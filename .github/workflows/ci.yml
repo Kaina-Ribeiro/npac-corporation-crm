@@ -46,4 +46,11 @@ jobs:
           POSTGRES_DB: npac
       - run: pnpm install --frozen-lockfile
       - run: pnpm turbo run lint typecheck test
+      - run: pnpm --filter @npac/web exec playwright install --with-deps chromium
+      - run: pnpm --filter @npac/web e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-failures
+          path: apps/web/test-results
       - run: pnpm audit --audit-level high

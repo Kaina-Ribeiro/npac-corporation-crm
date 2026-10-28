@@ -1,0 +1,190 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Tokens do protótipo aprovado: iOS claro, liquid glass médio, dourado para dinheiro. */
+:root {
+  --bg: #f2f2f7;
+  --ink: #1d1d1f;
+  --ink2: #6e6e73;
+  --ink3: #8e8e93;
+  --line: rgba(60, 60, 67, 0.14);
+  --gl: rgba(255, 255, 255, 0.58);
+  --gl2: rgba(255, 255, 255, 0.66);
+  --glhi:
+    inset 0 1.5px 0 #fff, inset 0 -1px 2px rgba(255, 255, 255, 0.45),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.75);
+  --gld: 0 0 0 0.5px rgba(0, 0, 0, 0.04), 0 14px 34px -14px rgba(0, 0, 0, 0.18);
+  --blur: blur(30px) saturate(2.1);
+  --gold: #e2bb66;
+  --gold-deep: #a87818;
+  --gold-ring: rgba(194, 146, 46, 0.75);
+  --danger: #d7264a;
+  --on: rgba(255, 255, 255, 0.8);
+  --wash:
+    radial-gradient(80% 38% at 100% 0%, rgba(226, 187, 102, 0.38), transparent 70%),
+    radial-gradient(70% 40% at 0% 100%, rgba(110, 145, 255, 0.22), transparent 70%),
+    radial-gradient(50% 30% at 25% 48%, rgba(255, 140, 165, 0.1), transparent 70%);
+}
+
+.dark {
+  --bg: #0b0b0d;
+  --ink: #f5f5f7;
+  --ink2: #a1a1a6;
+  --ink3: #8e8e93;
+  --line: rgba(235, 235, 245, 0.14);
+  --gl: rgba(28, 28, 32, 0.6);
+  --gl2: rgba(36, 36, 40, 0.66);
+  --glhi: inset 0 1px 0 rgba(255, 255, 255, 0.1), inset 0 0 0 0.5px rgba(255, 255, 255, 0.08);
+  --gld: 0 14px 34px -14px rgba(0, 0, 0, 0.6);
+  --on: rgba(255, 255, 255, 0.12);
+  --wash:
+    radial-gradient(80% 38% at 100% 0%, rgba(226, 187, 102, 0.18), transparent 70%),
+    radial-gradient(70% 40% at 0% 100%, rgba(110, 145, 255, 0.12), transparent 70%);
+}
+
+@theme inline {
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', var(--font-geist),
+    system-ui, sans-serif;
+  --font-mark: var(--font-anton), Impact, sans-serif;
+  --color-ink: var(--ink);
+  --color-ink2: var(--ink2);
+  --color-ink3: var(--ink3);
+  --color-line: var(--line);
+  --color-gold: var(--gold);
+  --color-gold-deep: var(--gold-deep);
+  --color-danger: var(--danger);
+}
+
+html,
+body {
+  background: var(--wash), var(--bg);
+  background-attachment: fixed;
+  color: var(--ink);
+  min-height: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  letter-spacing: -0.012em;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid #c2922e;
+  outline-offset: 2px;
+}
+
+@layer components {
+  .glass {
+    background: var(--gl);
+    backdrop-filter: var(--blur);
+    -webkit-backdrop-filter: var(--blur);
+    box-shadow: var(--glhi), var(--gld);
+  }
+  .glass-card {
+    position: relative;
+    border-radius: 20px;
+    background: var(--gl2);
+    backdrop-filter: var(--blur);
+    -webkit-backdrop-filter: var(--blur);
+    box-shadow: var(--glhi), var(--gld);
+  }
+  .mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(160deg, #1c1b19, #050506);
+    color: var(--gold);
+    font-family: var(--font-mark);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.15),
+      0 0 24px -8px rgba(226, 187, 102, 0.55);
+  }
+  .field {
+    height: 50px;
+    border-radius: 14px;
+    border: 0;
+    padding: 0 14px;
+    font-size: 16px;
+    background: rgba(255, 255, 255, 0.72);
+    box-shadow:
+      inset 0 0 0 0.5px rgba(60, 60, 67, 0.2),
+      inset 0 1px 2px rgba(0, 0, 0, 0.05);
+    transition:
+      box-shadow 0.2s,
+      background 0.2s;
+  }
+  .field:focus {
+    outline: none;
+    background: #fff;
+    box-shadow:
+      inset 0 0 0 1px var(--gold-ring),
+      0 0 0 4px rgba(194, 146, 46, 0.18);
+  }
+  .btn-dark {
+    height: 52px;
+    border: 0;
+    border-radius: 15px;
+    background: #1d1d1f;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.2),
+      0 12px 26px -10px rgba(0, 0, 0, 0.6);
+    transition:
+      transform 0.1s,
+      background 0.2s;
+  }
+  .btn-dark:hover {
+    background: #000;
+  }
+  .btn-dark:active {
+    transform: scale(0.985);
+  }
+  .btn-dark:disabled {
+    opacity: 0.6;
+    cursor: wait;
+  }
+  .tier {
+    display: inline-flex;
+    align-items: center;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    flex: none;
+  }
+  .tier-P0 {
+    background: #1d1d1f;
+    color: #fff;
+  }
+  .tier-P1 {
+    box-shadow: inset 0 0 0 1px #8e8e93;
+  }
+  .tier-P2 {
+    box-shadow: inset 0 0 0 1px #d1d1d6;
+    color: var(--ink2);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+@keyframes fadein {
+  to {
+    opacity: 1;
+  }
+}
