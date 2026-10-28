@@ -24,7 +24,7 @@ jobs:
       APP_DATABASE_URL: postgresql://npac_app:ci_app_password@localhost:5432/npac
       TEST_DATABASE_URL: postgresql://npac_owner:ci_owner_password@localhost:5432/npac_test
       APP_DB_PASSWORD: ci_app_password
-      # Valores descart·veis sÛ para CI (base64 de 32 bytes)
+      # Valores descart√°veis s√≥ para CI (base64 de 32 bytes)
       BETTER_AUTH_SECRET: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
       FIELD_ENCRYPTION_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
       BLIND_INDEX_KEY: ZmVkY2JhOTg3NjU0MzIxMGZlZGNiYTk4NzY1NDMyMTA=
