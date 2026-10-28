@@ -120,6 +120,46 @@ afterAll(async () => {
 });
 
 describe('row-level security', () => {
+  it('notas e tarefas herdam o escopo do lead e não podem ser movidas', async () => {
+    const create = await app.begin(async (s) => {
+      await s`select set_config('app.user_id', ${ale.id}, true)`;
+      const [note] = await s<{ id: string }[]>`insert into lead_notes (lead_id, body, created_by)
+        values (${A}, 'Pediu retorno amanhã', ${ale.id}) returning id`;
+      await s`insert into lead_tasks (lead_id, title, assignee_id, created_by)
+        values (${A}, 'Retornar', ${ale.id}, ${ale.id})`;
+      return note!.id;
+    });
+    const visible = (u: Fixture, table: 'lead_notes' | 'lead_tasks') =>
+      app.begin(async (s) => {
+        await s`select set_config('app.user_id', ${u.id}, true)`;
+        return s.unsafe(`select id from ${table}`);
+      });
+    expect(await visible(ale, 'lead_notes')).toHaveLength(1);
+    expect(await visible(sonia, 'lead_tasks')).toHaveLength(1);
+    expect(await visible(murilo, 'lead_notes')).toHaveLength(0);
+    await expect(
+      app.begin(async (s) => {
+        await s`select set_config('app.user_id', ${ale.id}, true)`;
+        await s`update lead_notes set lead_id = ${M} where id = ${create}`;
+      }),
+    ).rejects.toThrow();
+    await cancelMeeting(meetingA);
+    expect(await visible(sonia, 'lead_notes')).toHaveLength(0);
+  });
+
+  it('timeline é append-only, sem conteúdo de contato e sem autoria forjada', async () => {
+    const insert = (actor: string, fields: string[]) =>
+      app.begin(async (s) => {
+        await s`select set_config('app.user_id', ${ale.id}, true)`;
+        return s`insert into lead_timeline (lead_id, kind, actor_id, fields)
+        values (${A}, 'lead.updated', ${actor}, ${fields})`;
+      });
+    await insert(ale.id, ['name']);
+    await expect(insert(murilo.id, ['name'])).rejects.toThrow();
+    await expect(insert(ale.id, ['11988887777'])).rejects.toThrow();
+    await expect(app`update lead_timeline set kind = 'lead.created'`).rejects.toThrow();
+    await expect(app`delete from lead_timeline`).rejects.toThrow();
+  });
   it('closer não vê nem altera reunião de outro closer no mesmo lead', async () => {
     const [other] = await owner<{ id: string }[]>`
       insert into meetings (lead_id, closer_id, scheduled_at, origin, created_by)

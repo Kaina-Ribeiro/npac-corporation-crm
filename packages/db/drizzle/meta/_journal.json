@@ -43,6 +43,13 @@
       "when": 1793153922430,
       "tag": "0005_agenda_scope",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793155113479,
+      "tag": "0006_lead_activity",
+      "breakpoints": true
     }
   ]
 }
