@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { LiveUpdates } from '@/components/shell/live-updates';
 import { ThemeToggle } from '@/components/shell/theme-toggle';
 import { BottomNav } from '@/components/shell/bottom-nav';
 import { Sidebar } from '@/components/shell/sidebar';
@@ -13,6 +14,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex min-h-dvh">
+      <LiveUpdates />
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-10 flex h-[52px] items-center gap-2.5 bg-[rgba(242,242,247,.6)] px-4 shadow-[0_.5px_0_var(--line)] backdrop-blur-[30px] backdrop-saturate-200 md:bg-transparent md:shadow-none md:backdrop-blur-none">

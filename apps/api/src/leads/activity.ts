@@ -15,7 +15,7 @@ export async function recordActivity(
   await tx.insert(leadTimeline).values({ leadId, actorId: u.id, kind, fields, entityId });
   await tx.insert(auditLog).values({
     actorId: u.id,
-    action: kind,
+    action: kind === 'lead.created' ? 'lead.create' : kind,
     entityType: 'lead',
     entityId: leadId,
     data: { fields, ...(entityId ? { entityId } : {}) },

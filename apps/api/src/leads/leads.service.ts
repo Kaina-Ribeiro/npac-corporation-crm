@@ -6,7 +6,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { leadContactTaken, leadTimeline, pipelineStages, user, withUser, type Db } from '@npac/db';
+import { leadContactTaken, pipelineStages, user, withUser, type Db } from '@npac/db';
 import {
   normalizeInstagram,
   normalizePhoneBR,
@@ -19,6 +19,7 @@ import { asc, eq, sql } from 'drizzle-orm';
 import { AuditService } from '../audit/audit.service.js';
 import { FieldCrypto } from '../common/crypto/field-crypto.js';
 import { DB } from '../common/db/db.module.js';
+import { recordActivity } from './activity.js';
 import {
   LeadsRepository,
   type LeadFilters,
@@ -129,19 +130,10 @@ export class LeadsService {
         summary: input.summary ?? null,
         createdBy: u.id,
       });
-      await tx
-        .insert(leadTimeline)
-        .values({ leadId: created, actorId: u.id, kind: 'lead.created' });
+      await recordActivity(tx, u, created, 'lead.created', [], undefined, meta);
       return created;
     });
 
-    await this.audit.record({
-      actorId: u.id,
-      action: 'lead.create',
-      entityType: 'lead',
-      entityId: id,
-      ...meta,
-    });
     return { id };
   }
 

@@ -25,9 +25,7 @@ export const leadTasks = pgTable(
   'lead_tasks',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    leadId: uuid('lead_id')
-      .notNull()
-      .references(() => leads.id),
+    leadId: uuid('lead_id').references(() => leads.id),
     title: text('title').notNull(),
     assigneeId: text('assignee_id')
       .notNull()

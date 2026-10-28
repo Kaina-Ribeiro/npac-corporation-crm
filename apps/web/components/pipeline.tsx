@@ -5,16 +5,22 @@ import { useState, type FormEvent } from 'react';
 import { clientApi } from '@/lib/client-api';
 import { button, control, FormError, quietButton } from './crm-ui';
 import { LeadFilters, readFilters } from './lead-filters';
+import { useCrmRefresh } from './shell/live-updates';
 
 export function Pipeline({ initial, catalog }: { initial: PipelineDTO; catalog: LeadCatalog }) {
   const [columns, setColumns] = useState(initial);
   const [active, setActive] = useState<StageKey>('SONDAGEM');
   const [visible, setVisible] = useState(catalog.stages.map((s) => s.key));
   const [filters, setFilters] = useState<Record<string, string>>({});
+  useCrmRefresh(() => load());
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   async function load(selected = filters) {
-    setColumns(await clientApi<PipelineDTO>('/api/leads/pipeline/search', 'POST', selected));
+    const fresh = await clientApi<PipelineDTO>('/api/leads/pipeline/search', 'POST', selected);
+    setColumns(fresh);
+    setActive((old) =>
+      fresh.some((c) => c.stage.key === old) ? old : (fresh[0]?.stage.key ?? old),
+    );
   }
   async function move(lead: PipelineLead, target: string) {
     if (busy || lead.stageKey === target) return;

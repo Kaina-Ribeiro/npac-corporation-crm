@@ -15,13 +15,16 @@ import { button, control, Field, FormError } from './crm-ui';
 export function LeadForm({
   catalog,
   me,
-  lead,
+  lead: latestLead,
 }: {
   catalog: LeadCatalog;
   me: { id: string; role: Role };
   lead?: LeadDTO;
 }) {
   const router = useRouter();
+  // O rascunho pertence à versão exibida ao abrir o formulário. SSE não pode
+  // avançar esta versão silenciosamente e autorizar um overwrite de campos antigos.
+  const [lead, setLead] = useState(latestLead);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   async function submit(e: FormEvent<HTMLFormElement>) {
@@ -58,6 +61,7 @@ export function LeadForm({
         lead ? 'PATCH' : 'POST',
         parsed.data,
       );
+      if (lead) setLead(await clientApi<LeadDTO>(`/api/leads/${result.id}`));
       router.push(`/leads/${result.id}`);
       router.refresh();
     } catch (e) {
@@ -67,7 +71,22 @@ export function LeadForm({
     }
   }
   return (
-    <form onSubmit={submit} className="flex flex-col gap-5">
+    <form key={lead?.version ?? 'new'} onSubmit={submit} className="flex flex-col gap-5">
+      {lead && latestLead && latestLead.version > lead.version && (
+        <div className="rounded-xl border border-line p-3 text-sm">
+          <p>Este lead mudou enquanto você editava. Seu rascunho foi preservado.</p>
+          <button
+            type="button"
+            className="mt-2 font-semibold underline"
+            onClick={() => {
+              setLead(latestLead);
+              setError('');
+            }}
+          >
+            Descartar rascunho e carregar dados atuais
+          </button>
+        </div>
+      )}
       <div className="grid gap-4 md:grid-cols-2">
         <Field label="Nome">
           <input

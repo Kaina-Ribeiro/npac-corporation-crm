@@ -2,7 +2,7 @@ import { gzipSync } from 'node:zlib';
 import { createHmac } from 'node:crypto';
 import { expect, test, type Page } from '@playwright/test';
 import { closeTestConnections, ownerSql } from '@npac/db/testing';
-import { E2E_DB, E2E_PASSWORD } from './env.js';
+import { E2E_DB, E2E_PASSWORD, WEB_ORIGIN } from './env.js';
 
 const owner = ownerSql(E2E_DB);
 
@@ -66,6 +66,18 @@ test('SDR entra e vê só os próprios leads', async ({ page }) => {
   await page.screenshot({ path: 'test-results/leads-desktop.png', fullPage: true });
 });
 
+test('Hoje permite criar e concluir uma tarefa pessoal', async ({ page }) => {
+  await login(page, 'ale@npac.com.br');
+  await page.waitForURL(/\/hoje/);
+  await page.getByLabel('Nova tarefa pessoal', { exact: true }).fill('Planejar contatos');
+  await page.getByRole('button', { name: 'Criar tarefa pessoal' }).click();
+  const finish = page.getByRole('button', { name: 'Concluir Planejar contatos', exact: true });
+  await expect(finish).toBeVisible();
+  await page.screenshot({ path: 'test-results/hoje.png', fullPage: true });
+  await finish.click();
+  await expect(finish).toHaveCount(0);
+});
+
 test('senha errada mostra erro genérico', async ({ page }) => {
   await login(page, 'ale@npac.com.br', 'senha-errada-123');
   await expect(errorAlert(page)).toBeVisible();
@@ -97,6 +109,16 @@ test('mobile mostra barra inferior', async ({ page }) => {
   await expect(page.getByRole('navigation', { name: 'Navegação lateral' })).toBeHidden();
   await page.goto('/leads');
   await page.screenshot({ path: 'test-results/leads-mobile.png', fullPage: true });
+  await page.goto('/pipeline');
+  const tabs = page.getByRole('navigation', { name: 'Etapas do Pipeline' });
+  await expect(tabs).toBeVisible();
+  await tabs.getByRole('button', { name: /^Em Follow-up/ }).click();
+  await page
+    .getByRole('combobox', { name: 'Mover Lead e2e CRM para', exact: true })
+    .selectOption('AGENDADO_FOLLOW');
+  await tabs.getByRole('button', { name: /^Agendado do Follow/ }).click();
+  await expect(page.getByText('Lead e2e CRM', { exact: true })).toBeVisible();
+  await page.screenshot({ path: 'test-results/pipeline-mobile.png', fullPage: true });
 });
 
 test('nada de dado pessoal no localStorage', async ({ page }) => {
@@ -180,10 +202,11 @@ test('primeira carga de /leads fica abaixo de 150 KB de JS (gzip)', async ({ pag
       sizes.push(res.body().then((b) => gzipSync(b).length));
     }
   });
-  await page.goto('/leads', { waitUntil: 'networkidle' });
+  await page.goto('/leads', { waitUntil: 'load' });
   const total = (await Promise.all(sizes)).reduce((a, b) => a + b, 0);
   console.log(`JS de /leads (gzip): ${(total / 1024).toFixed(1)} KB`);
   expect(total).toBeLessThan(150 * 1024);
+  expect(total).toBeGreaterThan(50 * 1024);
 });
 
 test('sair encerra a sessão', async ({ page }) => {
@@ -193,4 +216,85 @@ test('sair encerra a sessão', async ({ page }) => {
   await page.waitForURL(/\/login/);
   await page.goto('/leads');
   await expect(page).toHaveURL(/\/login/);
+});
+
+test('duas sessões recebem notas em tempo real e revogam acesso sem recarregar', async ({
+  browser,
+}) => {
+  const a = await browser.newContext({ baseURL: WEB_ORIGIN });
+  const s = await browser.newContext({ baseURL: WEB_ORIGIN });
+  try {
+    const ale = await a.newPage();
+    const sonia = await s.newPage();
+    await login(ale, 'ale@npac.com.br');
+    await ale.waitForURL(/\/hoje/);
+    const response = await a.request.post('/api/leads', {
+      data: { name: 'Lead tempo real', instagram: '@lead.live', incomeBand: 'R5_10K', tier: 'P1' },
+    });
+    expect(response.status()).toBe(201);
+    const { id } = (await response.json()) as { id: string };
+    const [closer] = await owner<
+      { id: string }[]
+    >`select id from "user" where email = 'sonia@npac.com.br'`;
+    const meeting = await a.request.post('/api/meetings', {
+      data: {
+        leadId: id,
+        closerId: closer!.id,
+        scheduledAt: '2030-01-01T10:00:00-03:00',
+        origin: 'DIRETO',
+      },
+    });
+    expect(meeting.status()).toBe(201);
+    const { id: meetingId } = (await meeting.json()) as { id: string };
+    await login(sonia, 'sonia@npac.com.br');
+    await sonia.waitForURL(/\/hoje/);
+    await sonia.goto(`/leads/${id}`);
+    await expect(
+      sonia.getByRole('heading', { name: 'Lead tempo real', exact: true }),
+    ).toBeVisible();
+    await a.request.post(`/api/leads/${id}/notes`, {
+      data: { body: 'Nota sincronizada entre sessões' },
+    });
+    await expect(sonia.getByText('Nota sincronizada entre sessões', { exact: true })).toBeVisible({
+      timeout: 10_000,
+    });
+    await owner`update meetings set closer_id = (select id from "user" where email = 'ronaldo@npac.com.br'), version = version + 1 where id = ${meetingId}`;
+    await expect(sonia.getByRole('heading', { name: 'Lead indisponível' })).toBeVisible({
+      timeout: 10_000,
+    });
+    await owner`update "user" set active = false where email = 'sonia@npac.com.br'`;
+    await expect(sonia).toHaveURL(/\/login/, { timeout: 10_000 });
+  } finally {
+    await a.close();
+    await s.close();
+  }
+});
+
+test('rascunho não usa versão nova recebida por SSE para sobrescrever outra edição', async ({
+  page,
+}) => {
+  await login(page, 'ale@npac.com.br');
+  await page.waitForURL(/\/hoje/);
+  const created = await page.request.post('/api/leads', {
+    data: {
+      name: 'Lead versão',
+      instagram: '@lead.version.draft',
+      incomeBand: 'R5_10K',
+      tier: 'P1',
+    },
+  });
+  const { id } = (await created.json()) as { id: string };
+  await page.goto(`/leads/${id}`);
+  await page.getByText('Editar dados do lead', { exact: true }).click();
+  await page.getByLabel('Nome', { exact: true }).fill('Meu rascunho');
+  await page.request.patch(`/api/leads/${id}`, { data: { version: 1, name: 'Mudança remota' } });
+  await expect(page.getByRole('heading', { name: 'Mudança remota', exact: true })).toBeVisible({
+    timeout: 10_000,
+  });
+  await expect(page.getByLabel('Nome', { exact: true })).toHaveValue('Meu rascunho');
+  await page.getByRole('button', { name: 'Salvar alterações', exact: true }).click();
+  await expect(
+    page.getByText('Outra pessoa alterou este registro.', { exact: false }),
+  ).toBeVisible();
+  expect((await (await page.request.get(`/api/leads/${id}`)).json()).name).toBe('Mudança remota');
 });

@@ -4,6 +4,7 @@ import { INCOME_BAND_LABELS } from '@npac/shared/enums';
 import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { LeadFilters, readFilters } from './lead-filters';
+import { useCrmRefresh } from './shell/live-updates';
 
 const dateFmt = new Intl.DateTimeFormat('pt-BR', {
   day: '2-digit',
@@ -26,6 +27,7 @@ export function LeadsBrowser({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({});
+  useCrmRefresh(() => search(q, data.page));
   const page = data.page;
   const pages = Math.max(1, Math.ceil(data.total / data.pageSize));
 

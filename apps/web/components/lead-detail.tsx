@@ -5,6 +5,7 @@ import { useState, type FormEvent } from 'react';
 import { brasiliaInput, clientApi } from '@/lib/client-api';
 import { button, control, Field, FormError, quietButton } from './crm-ui';
 import { LeadForm } from './lead-form';
+import { useCrmRefresh } from './shell/live-updates';
 
 const date = (s: string) =>
   new Date(s).toLocaleString('pt-BR', {
@@ -41,6 +42,7 @@ export function LeadDetail({
   me: { id: string; role: Role };
 }) {
   const router = useRouter();
+  useCrmRefresh(() => router.refresh());
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   async function mutate(path: string, method: string, body: object) {
@@ -102,7 +104,7 @@ export function LeadDetail({
           <select
             id="move-stage"
             className={control}
-            defaultValue={lead.stageKey}
+            value={lead.stageKey}
             onChange={(e) =>
               void mutate(`/api/leads/${lead.id}`, 'PATCH', {
                 version: lead.version,
@@ -272,7 +274,7 @@ export function LeadDetail({
                     <Field label="Reatribuir closer">
                       <select
                         className={control}
-                        defaultValue={m.closerId}
+                        value={m.closerId}
                         disabled={busy}
                         onChange={(e) =>
                           void mutate(`/api/meetings/${m.id}`, 'PATCH', {
