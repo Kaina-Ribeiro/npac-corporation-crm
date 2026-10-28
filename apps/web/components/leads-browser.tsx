@@ -4,6 +4,7 @@ import { INCOME_BAND_LABELS, TIERS, isLeader } from '@npac/shared/enums';
 import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { clientApi } from '@/lib/client-api';
+import { StageOptions } from './crm-ui';
 import { LeadFilters, readFilters } from './lead-filters';
 import { useCrmRefresh } from './shell/live-updates';
 
@@ -155,11 +156,7 @@ export function LeadsBrowser({
       onChange={(e) => void edit(l, { stageKey: e.target.value as LeadDTO['stageKey'] })}
       className={className}
     >
-      {catalog.stages.map((st) => (
-        <option key={st.key} value={st.key}>
-          {st.label}
-        </option>
-      ))}
+      <StageOptions stages={catalog.stages} current={l.stageKey} />
     </select>
   );
   const checkbox = (l: LeadDTO) => (
@@ -521,7 +518,8 @@ export function LeadsBrowser({
           {bar(
             'Mover para etapa',
             'Mover para…',
-            catalog.stages.map((st) => [st.key, st.label]),
+            // Venda só entra registrando a venda, lead a lead.
+            catalog.stages.filter((st) => st.key !== 'VENDA').map((st) => [st.key, st.label]),
             (v) => ({ stageKey: v as LeadDTO['stageKey'] }),
           )}
           {canTier &&

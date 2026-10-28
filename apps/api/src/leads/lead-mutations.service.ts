@@ -81,6 +81,7 @@ export class LeadMutationsService {
       if (input.stageKey) {
         patch.stageId = await this.repo.stageId(tx, input.stageKey);
         if (!patch.stageId) throw new BadRequestException('Etapa inexistente');
+        if (patch.stageId !== old.stageId) await this.guardSaleStage(tx, id, input.stageKey);
       }
       if (input.phone !== undefined) {
         patch.phoneBidx = phoneBidx;
@@ -97,6 +98,27 @@ export class LeadMutationsService {
       await recordActivity(tx, u, id, kind, fields, undefined, meta);
       return { id, version: old.version + 1 };
     });
+  }
+
+  /**
+   * A etapa Venda acompanha a venda registrada: só entra pelo registro (que cria a venda e
+   * as parcelas) e só sai pelo estorno. Mover à mão deixaria funil e financeiro divergentes.
+   */
+  private async guardSaleStage(tx: Tx, id: string, target: string) {
+    if (target === 'VENDA')
+      throw new ConflictException({
+        code: 'SALE_REQUIRED',
+        message: 'Para mover para Venda, registre a venda na ficha do lead.',
+      });
+    const [active] = await tx
+      .select({ id: deals.id })
+      .from(deals)
+      .where(and(eq(deals.leadId, id), isNull(deals.reversedAt)));
+    if (active)
+      throw new ConflictException({
+        code: 'ACTIVE_SALE',
+        message: 'Este lead tem uma venda ativa. Estorne a venda antes de mudar a etapa.',
+      });
   }
 
   async remove(u: AuthUser, id: string, version: number, meta: RequestMeta) {

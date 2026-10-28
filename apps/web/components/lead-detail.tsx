@@ -13,7 +13,7 @@ import type {
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import { brasiliaInput, clientApi } from '@/lib/client-api';
-import { button, control, Field, FormError, quietButton } from './crm-ui';
+import { button, control, Field, FormError, quietButton, StageOptions } from './crm-ui';
 import { LeadForm } from './lead-form';
 import { FinancePanel } from './finance-panel';
 import { useCrmRefresh } from './shell/live-updates';
@@ -132,11 +132,7 @@ export function LeadDetail({
             }
             disabled={busy}
           >
-            {catalog.stages.map((s) => (
-              <option key={s.id} value={s.key}>
-                {s.label}
-              </option>
-            ))}
+            <StageOptions stages={catalog.stages} current={lead.stageKey} />
           </select>
         </Field>
         <span className="pb-3 text-xs text-ink2">

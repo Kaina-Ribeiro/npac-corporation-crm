@@ -3,7 +3,7 @@ import type { LeadCatalog, Page, LeadDTO, PipelineDTO, PipelineLead, StageKey } 
 import Link from 'next/link';
 import { useState, type FormEvent } from 'react';
 import { clientApi } from '@/lib/client-api';
-import { button, control, FormError, quietButton } from './crm-ui';
+import { button, control, FormError, quietButton, StageOptions } from './crm-ui';
 import { LeadFilters, readFilters } from './lead-filters';
 import { useCrmRefresh } from './shell/live-updates';
 
@@ -176,11 +176,7 @@ export function Pipeline({ initial, catalog }: { initial: PipelineDTO; catalog: 
                     disabled={busy}
                     onChange={(e) => void move(l, e.target.value)}
                   >
-                    {catalog.stages.map((s) => (
-                      <option key={s.id} value={s.key}>
-                        {s.label}
-                      </option>
-                    ))}
+                    <StageOptions stages={catalog.stages} current={l.stageKey} />
                   </select>
                 </article>
               ))}

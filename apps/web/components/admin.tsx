@@ -242,15 +242,18 @@ export function Admin({
                         aria-label={`Cargo de ${u.name}`}
                         value={u.role}
                         className={`${quietButton} bg-transparent`}
-                        onChange={(e) =>
-                          void run(
-                            () =>
-                              clientApi(`/api/admin/users/${u.id}`, 'PATCH', {
-                                role: e.target.value,
-                              }),
-                            `${u.name} agora é ${ROLE_LABEL[e.target.value as Role]}`,
+                        onChange={(e) => {
+                          const role = e.target.value as Role;
+                          if (
+                            isLeader(role) &&
+                            !confirm(`Dar cargo de ${ROLE_LABEL[role]} para ${u.name}?`)
                           )
-                        }
+                            return;
+                          void run(
+                            () => clientApi(`/api/admin/users/${u.id}`, 'PATCH', { role }),
+                            `${u.name} agora é ${ROLE_LABEL[role]}`,
+                          );
+                        }}
                       >
                         {roles.map((r) => (
                           <option key={r} value={r}>
@@ -261,20 +264,29 @@ export function Admin({
                       <button
                         type="button"
                         className={quietButton}
-                        onClick={() =>
+                        onClick={() => {
+                          if (u.active && !confirm(`Desativar ${u.name}? A pessoa sai na hora.`))
+                            return;
                           void run(
                             () =>
                               clientApi(`/api/admin/users/${u.id}`, 'PATCH', { active: !u.active }),
                             u.active ? `${u.name} desativado` : `${u.name} reativado`,
-                          )
-                        }
+                          );
+                        }}
                       >
                         {u.active ? 'Desativar' : 'Reativar'}
                       </button>
                       <button
                         type="button"
                         className={quietButton}
-                        onClick={() =>
+                        onClick={() => {
+                          // A senha atual para de valer na hora e a pessoa é desconectada.
+                          if (
+                            !confirm(
+                              `Gerar nova senha para ${u.name}? A senha atual deixa de valer.`,
+                            )
+                          )
+                            return;
                           void run(async () => {
                             const r = await clientApi(
                               `/api/admin/users/${u.id}/reset-password`,
@@ -282,8 +294,8 @@ export function Admin({
                               {},
                             );
                             setTimeout(() => setNotice(temp(r)));
-                          })
-                        }
+                          });
+                        }}
                       >
                         Nova senha
                       </button>
@@ -291,12 +303,18 @@ export function Admin({
                         <button
                           type="button"
                           className={quietButton}
-                          onClick={() =>
+                          onClick={() => {
+                            if (
+                              !confirm(
+                                `Resetar o MFA de ${u.name}? Será preciso configurar o app de novo.`,
+                              )
+                            )
+                              return;
                             void run(
                               () => clientApi(`/api/admin/users/${u.id}/reset-mfa`, 'POST', {}),
                               `MFA de ${u.name} redefinido`,
-                            )
-                          }
+                            );
+                          }}
                         >
                           Resetar MFA
                         </button>

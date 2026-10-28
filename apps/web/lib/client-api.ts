@@ -1,5 +1,16 @@
 'use client';
 
+/** Mensagens padrão do Nest (em inglês) e da validação: trocadas pelas nossas. */
+const GENERIC_MESSAGES = new Set([
+  'Dados inválidos',
+  'Bad Request',
+  'Forbidden',
+  'Conflict',
+  'Not Found',
+  'Unauthorized',
+  'Internal server error',
+]);
+
 /** Requisições com contatos usam corpo, nunca query string ou storage persistente. */
 export async function clientApi<T>(path: string, method = 'GET', body?: object): Promise<T> {
   const res = await fetch(path, {
@@ -9,7 +20,7 @@ export async function clientApi<T>(path: string, method = 'GET', body?: object):
     body: body ? JSON.stringify(body) : undefined,
   });
   if (!res.ok) {
-    const data = (await res.json().catch(() => ({}))) as { code?: string };
+    const data = (await res.json().catch(() => ({}))) as { code?: string; message?: unknown };
     if (res.status === 401) {
       window.location.replace('/login');
       throw new Error('Sessão encerrada.');
@@ -20,8 +31,10 @@ export async function clientApi<T>(path: string, method = 'GET', body?: object):
         'Outra pessoa alterou este registro. Atualize a página antes de tentar novamente.',
       );
     if (data.code === 'DUPLICATE_LEAD') throw new Error('Já existe um lead com este contato.');
-    if (data.code === 'ACTIVE_SALE')
-      throw new Error('Estorne a venda ativa antes de excluir o lead.');
+    if (res.status === 429) throw new Error('Muitas tentativas. Aguarde um minuto.');
+    // A API explica o motivo em português (ex.: "Este lead já tem uma venda ativa"); mostra.
+    if (typeof data.message === 'string' && !GENERIC_MESSAGES.has(data.message))
+      throw new Error(data.message);
     if (res.status === 403) throw new Error('Seu acesso não permite esta ação.');
     throw new Error('Não foi possível salvar. Confira os campos e tente novamente.');
   }

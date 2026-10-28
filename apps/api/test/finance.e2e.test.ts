@@ -151,6 +151,20 @@ it('lead com venda ativa exige estorno antes de exclusão', async () => {
   expect((await h.get('/api/leads/' + leadId, head)).status).toBe(200);
 });
 
+it('etapa Venda só entra registrando a venda e só sai pelo estorno', async () => {
+  const toSale = await h.patch('/api/leads/' + leadId, { version: 1, stageKey: 'VENDA' }, ale);
+  expect(toSale.status).toBe(409);
+  expect(toSale.body.code).toBe('SALE_REQUIRED');
+  expect((await h.post('/api/finance/deals', sale(), ale)).status).toBe(201);
+  const out = await h.patch('/api/leads/' + leadId, { version: 2, stageKey: 'PERDIDO' }, head);
+  expect(out.status).toBe(409);
+  expect(out.body.code).toBe('ACTIVE_SALE');
+  // Outras edições do lead vendido continuam valendo.
+  expect(
+    (await h.patch('/api/leads/' + leadId, { version: 2, summary: 'Cliente fechou' }, ale)).status,
+  ).toBe(200);
+});
+
 it.each(['CARD', 'PIX', 'BANK_SLIP'] as const)(
   'forma %s concilia pagamentos e saldo',
   async (method) => {
