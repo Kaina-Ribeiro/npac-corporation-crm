@@ -69,7 +69,14 @@ export function LoginForm({ lastUser }: { lastUser?: string }) {
 
   if (step === 'totp') {
     return (
-      <form className="flex flex-col gap-4" aria-label="Código de verificação" onSubmit={onTotp}>
+      // key distinta: sem ela o React reaproveita o <input> da senha no lugar do código (mesma
+      // posição) e a senha reaparece em texto aberto.
+      <form
+        key="totp"
+        className="flex flex-col gap-4"
+        aria-label="Código de verificação"
+        onSubmit={onTotp}
+      >
         <button
           type="button"
           className="flex min-h-8 items-center gap-1 self-start text-sm text-[#515154]"
@@ -112,7 +119,7 @@ export function LoginForm({ lastUser }: { lastUser?: string }) {
   }
 
   return (
-    <form className="flex flex-col gap-4" aria-label="Entrar" onSubmit={onPassword}>
+    <form key="password" className="flex flex-col gap-4" aria-label="Entrar" onSubmit={onPassword}>
       <h2 className="text-[28px] font-bold tracking-[-0.035em]">Bem-vindo de volta</h2>
       <p className="-mt-2 mb-1 text-[15px] text-[#515154]">
         Entre com o seu usuário da NPAC e a sua senha.

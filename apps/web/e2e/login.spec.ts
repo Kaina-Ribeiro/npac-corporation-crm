@@ -237,6 +237,8 @@ for (const head of ['ana', 'ronaldo']) {
     await page.waitForURL(/\/login/);
     await login(page, `${head}@npac.com.br`);
     await expect(page.getByRole('heading', { name: 'Confirme que é você' })).toBeVisible();
+    // A senha do passo anterior não pode reaparecer (em texto aberto) no campo do código.
+    await expect(page.getByLabel('Código', { exact: true })).toHaveValue('');
     await page.getByLabel('Código', { exact: true }).fill(totp(secret));
     await page.waitForURL(/\/dashboard/);
   });
