@@ -3,9 +3,9 @@
 CRM comercial. Monorepo pnpm/Turborepo: Next.js (`apps/web`), NestJS/Fastify
 (`apps/api`), Postgres/Drizzle (`packages/db`) e contratos (`packages/shared`).
 
-O Plano 01 entrega a fundação: login individual, MFA para HEAD, permissões com RLS,
-auditoria, API de leads e interface de login/navegação/lista. Pipeline, vendas,
-chat e relatórios ainda aparecem como **Em breve**.
+Planos 01 e 02 implementados: login individual, MFA para HEAD, permissões com RLS,
+auditoria, cadastro/ficha de leads, notas, tarefas, reuniões, Pipeline, Hoje e
+atualizações entre sessões. Vendas, Dashboard, chat e relatórios continuam **Em breve**.
 
 ## Desenvolvimento
 
@@ -56,9 +56,15 @@ O Playwright sobe os servidores automaticamente; exige Postgres já disponível.
 - Telefones: AES-256-GCM e HMAC para busca; renda somente em faixas >= R$ 5 mil.
 - `GET /api/leads` lista/pagina/filtra por IDs; `POST /api/leads/search` pesquisa
   por nome/telefone/Instagram no corpo. `GET ?search=` é recusado para evitar PII na URL.
+- Edições exigem a versão exibida ao usuário. Conflitos respondem 409; rascunhos
+  não assumem automaticamente uma nova versão recebida por tempo real.
+- O stream `/api/events` emite apenas sinais sem dados pessoais, revalida a sessão
+  a cada ciclo e aplica RLS às leituras usadas para detectar mudanças.
 - Busca não usa localStorage; respostas pessoais são `no-store`; logs omitem corpo/query/cookies.
 - `DATABASE_URL` é exclusiva para migrations/seed; não a use como conexão de runtime.
 - `TRUST_PROXY=true` só atrás de proxy confiável com acesso direto à API bloqueado.
 - Guarde `.env`, chaves de cifra e backups fora do Git. Chaves perdidas impedem decifrar contatos.
 
-Veja `docs/spec.md`, o roadmap e `docs/revisao-fundacao.md` para escopo e evidências.
+Veja `docs/spec.md`, o roadmap, `docs/revisao-fundacao.md` e `docs/revisao-crm-base.md`
+para escopo e evidências. Em uma instalação existente, atualize o banco com
+`pnpm --filter @npac/db migrate` antes de iniciar a versão nova da aplicação.
