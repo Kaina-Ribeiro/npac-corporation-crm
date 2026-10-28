@@ -1,4 +1,5 @@
 import { eq } from 'drizzle-orm';
+import type { TransactionSql } from 'postgres';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { leads, meetings } from '../src/schema/index.js';
 import { appDb, appSql, closeTestConnections, ownerSql } from '../src/testing.js';
@@ -152,7 +153,7 @@ describe('row-level security', () => {
         tx.update(leads).set({ sdrId: murilo.id }).where(eq(leads.id, A)),
       ),
     );
-    await expect(attempt).rejects.toThrow(/row-level security/);
+    await expect(attempt).rejects.toThrow(/row-level security|só HEAD/);
     const [row] = await owner<{ sdr_id: string }[]>`select sdr_id from leads where id = ${A}`;
     expect(row?.sdr_id).toBe(ale.id);
   });
@@ -191,5 +192,127 @@ describe('row-level security', () => {
     expect((await meetingsOf(sonia)).map((r) => r.id)).toEqual([meetingA]);
     expect((await meetingsOf(ale)).map((r) => r.id)).toEqual([meetingA]);
     expect((await meetingsOf(murilo)).map((r) => r.id)).toEqual([]);
+  });
+});
+
+type TxSql = TransactionSql<Record<string, never>>;
+
+describe('escritas que não podem ampliar visibilidade', () => {
+  /** Roda `stmt` como `u` (npac_app + app.user_id); resolve com o nº de linhas afetadas. */
+  const asUser = (u: Fixture, stmt: (s: TxSql) => PromiseLike<readonly unknown[]>) =>
+    app.begin(async (s) => {
+      await s`select set_config('app.user_id', ${u.id}, true)`;
+      return (await stmt(s)).length;
+    });
+
+  const newMeeting =
+    (closerId: string, createdBy: string, leadId = A) =>
+    (s: TxSql) =>
+      s`insert into meetings (lead_id, closer_id, scheduled_at, origin, created_by)
+      values (${leadId}, ${closerId}, now() + interval '2 days', 'DIRETO', ${createdBy}) returning id`;
+
+  it('SDR agenda reunião do próprio lead com closer', async () =>
+    expect(await asUser(ale, newMeeting(sonia.id, ale.id))).toBe(1));
+
+  it('closer não repassa a reunião para outro lead', async () => {
+    await expect(
+      asUser(
+        sonia,
+        (s) => s`update meetings set lead_id = ${M} where id = ${meetingA} returning id`,
+      ),
+    ).rejects.toThrow();
+    expect(await visibleLeadIds(sonia)).toEqual([A]);
+  });
+
+  it('SDR não repassa reunião para lead alheio se colocando como closer', async () => {
+    await expect(
+      asUser(
+        ale,
+        (s) =>
+          s`update meetings set lead_id = ${M}, closer_id = ${ale.id} where id = ${meetingA} returning id`,
+      ),
+    ).rejects.toThrow();
+    expect(await visibleLeadIds(ale)).toEqual([A]);
+  });
+
+  it('SDR não entrega lead a quem não é closer', async () => {
+    await expect(asUser(ale, newMeeting(murilo.id, ale.id))).rejects.toThrow(/row-level security/);
+    expect(await visibleLeadIds(murilo)).toEqual([M]);
+  });
+
+  it('created_by da reunião é sempre quem agenda', async () =>
+    await expect(asUser(ale, newMeeting(sonia.id, ana.id))).rejects.toThrow(/row-level security/));
+
+  it('closer não agenda reunião', async () =>
+    await expect(asUser(sonia, newMeeting(sonia.id, sonia.id))).rejects.toThrow(
+      /row-level security/,
+    ));
+
+  it('closer não desfaz cancelamento', async () => {
+    await cancelMeeting(meetingA);
+    const undo = asUser(
+      sonia,
+      (s) => s`update meetings set canceled_at = null where id = ${meetingA} returning id`,
+    );
+    await expect(undo.catch(() => 0)).resolves.toBe(0);
+    expect(await visibleLeadIds(sonia)).toEqual([]);
+  });
+
+  it('closer não passa a reunião para outro closer', async () => {
+    await expect(
+      asUser(
+        sonia,
+        (s) => s`update meetings set closer_id = ${ronaldo.id} where id = ${meetingA} returning id`,
+      ),
+    ).rejects.toThrow();
+  });
+
+  it('closer remarca a reunião (só horário)', async () =>
+    expect(
+      await asUser(
+        sonia,
+        (s) =>
+          s`update meetings set scheduled_at = now() + interval '3 days' where id = ${meetingA} returning id`,
+      ),
+    ).toBe(1));
+
+  it('closer não troca o SDR do lead', async () => {
+    await expect(
+      asUser(sonia, (s) => s`update leads set sdr_id = ${murilo.id} where id = ${A} returning id`),
+    ).rejects.toThrow();
+    const [row] = await owner<{ sdr_id: string }[]>`select sdr_id from leads where id = ${A}`;
+    expect(row?.sdr_id).toBe(ale.id);
+  });
+
+  it('só HEAD exclui lead', async () => {
+    await expect(
+      asUser(ale, (s) => s`update leads set deleted_at = now() where id = ${A} returning id`),
+    ).rejects.toThrow();
+    expect(
+      await asUser(ana, (s) => s`update leads set deleted_at = now() where id = ${A} returning id`),
+    ).toBe(1);
+  });
+
+  it('HEAD troca o SDR do lead', async () =>
+    expect(
+      await asUser(
+        ana,
+        (s) => s`update leads set sdr_id = ${murilo.id} where id = ${A} returning id`,
+      ),
+    ).toBe(1));
+
+  it('lead_contact_taken não responde sem usuário', async () => {
+    const [r] = await app<
+      { taken: boolean }[]
+    >`select lead_contact_taken(${bidxOfM}, null) as taken`;
+    expect(r?.taken).toBe(false);
+  });
+
+  it('closer não vê reunião cancelada', async () => {
+    await cancelMeeting(meetingA);
+    const rows = await withUser(db, sonia.id, (tx) =>
+      tx.select({ id: meetings.id }).from(meetings),
+    );
+    expect(rows).toEqual([]);
   });
 });
