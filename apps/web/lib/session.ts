@@ -33,6 +33,7 @@ export function pendingStep(me: Me): '/conta/senha' | '/conta/mfa' | null {
 }
 
 export const ROLE_LABEL: Record<Role, string> = {
+  DIRETOR: 'Diretoria',
   HEAD: 'Head',
   SDR: 'SDR',
   CLOSER: 'Closer',

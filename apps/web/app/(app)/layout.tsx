@@ -1,3 +1,4 @@
+import { isLeader } from '@npac/shared/enums';
 import { redirect } from 'next/navigation';
 import { CommandPalette } from '@/components/shell/command-palette';
 import { LiveUpdates } from '@/components/shell/live-updates';
@@ -31,9 +32,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex min-h-dvh">
       <LiveUpdates />
-      <CommandPalette head={me.role === 'HEAD'} />
+      <CommandPalette head={isLeader(me.role)} />
       <Sidebar
-        head={me.role === 'HEAD'}
+        head={isLeader(me.role)}
         footer={
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2.5 px-1">

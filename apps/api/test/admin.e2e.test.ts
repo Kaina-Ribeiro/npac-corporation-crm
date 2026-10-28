@@ -16,12 +16,14 @@ afterAll(async () => {
   await owner`delete from "user" where email like '%@novo.test'`;
   await owner`update products set active = true, price_cents = 250000 where code = 'NACAO_PROMO'`;
   await owner`update pipeline_stages set label = 'Sondagem' where key = 'SONDAGEM'`;
+  await owner`update "user" set role = 'HEAD', two_factor_enabled = false where email = 'ana@npac.com.br'`;
   await closeTestApp(app);
 });
 beforeEach(async () => {
   await resetAuthState();
   await owner`truncate lgpd_requests, chat_reads, chat_messages, chat_members, payments, deals, lead_notes, lead_tasks, notifications, lead_timeline, meetings, leads`;
   await owner`update "user" set active = true`;
+  await owner`update "user" set role = 'HEAD' where email = 'ana@npac.com.br'`;
   const users = await owner<{ id: string; email: string }[]>`select id, email from "user"`;
   ids = Object.fromEntries(users.map((u) => [u.email.split('@')[0], u.id]));
   ale = await h.signIn('ale@npac.com.br');
@@ -82,17 +84,91 @@ describe('usuários', () => {
   });
 
   it('reset de MFA e de senha encerram sessões e exigem novo passo', async () => {
-    await owner`update "user" set two_factor_enabled = true where id = ${ids.ana!}`;
-    expect((await h.post(`/api/admin/users/${ids.ana}/reset-mfa`, {}, head)).status).toBe(200);
+    await owner`update "user" set two_factor_enabled = true where id = ${ids.sonia!}`;
+    expect((await h.post(`/api/admin/users/${ids.sonia}/reset-mfa`, {}, head)).status).toBe(200);
     const [a] = await owner<
       { two_factor_enabled: boolean }[]
-    >`select two_factor_enabled from "user" where id = ${ids.ana!}`;
+    >`select two_factor_enabled from "user" where id = ${ids.sonia!}`;
     expect(a!.two_factor_enabled).toBe(false);
     const reset = await h.post(`/api/admin/users/${ids.ale}/reset-password`, {}, head);
     expect(reset.status).toBe(200);
     expect((await h.get('/api/me', ale)).status).toBe(401);
     expect((await h.signInRaw('ale@npac.com.br', reset.body.temporaryPassword)).status).toBe(200);
     await owner`update account set password = (select password from account a2 join "user" u on u.id = a2.user_id where u.email = 'sonia@npac.com.br') where user_id = ${ids.ale!}`;
+  });
+});
+
+describe('Diretoria', () => {
+  const asDiretor = async () => {
+    await owner`update "user" set role = 'DIRETOR' where email = 'ana@npac.com.br'`;
+    const s = await h.signIn('ana@npac.com.br');
+    // MFA ativado depois do login (como no teste do Head) para não pedir o código aqui.
+    await owner`update "user" set two_factor_enabled = true where email = 'ana@npac.com.br'`;
+    return s;
+  };
+
+  it('Head não mexe em Head nem cria Head', async () => {
+    const promote = await h.patch(`/api/admin/users/${ids.ale}`, { role: 'HEAD' }, head);
+    expect(promote.status).toBe(403);
+    const invite = await h.post(
+      '/api/admin/users',
+      {
+        name: 'Outro Head',
+        email: 'head@novo.test',
+        role: 'HEAD',
+        canProspect: false,
+        canClose: true,
+      },
+      head,
+    );
+    expect(invite.status).toBe(403);
+    expect((await h.patch(`/api/admin/users/${ids.ana}`, { active: false }, head)).status).toBe(
+      403,
+    );
+    expect((await h.post(`/api/admin/users/${ids.ana}/reset-password`, {}, head)).status).toBe(403);
+    expect((await h.post(`/api/admin/users/${ids.ana}/reset-mfa`, {}, head)).status).toBe(403);
+    // Continua gerenciando SDR e closer.
+    expect((await h.patch(`/api/admin/users/${ids.ale}`, { canClose: true }, head)).status).toBe(
+      200,
+    );
+    await owner`update "user" set can_close = false where email = 'ale@npac.com.br'`;
+  });
+
+  it('Diretoria promove e rebaixa Head e vê tudo como Head', async () => {
+    const diretor = await asDiretor();
+    expect((await h.patch(`/api/admin/users/${ids.ale}`, { role: 'HEAD' }, diretor)).status).toBe(
+      200,
+    );
+    expect((await h.patch(`/api/admin/users/${ids.ale}`, { role: 'SDR' }, diretor)).status).toBe(
+      200,
+    );
+    expect((await h.get('/api/me', diretor)).body.role).toBe('DIRETOR');
+    // Mesmo acesso de dados do Head (RLS) e às telas de Head.
+    const lead = await h.post(
+      '/api/leads',
+      {
+        name: 'Lead da diretoria',
+        instagram: '@diretoria.e2e',
+        incomeBand: 'R5_8K',
+        tier: 'P1',
+        sdrId: ids.ale,
+      },
+      diretor,
+    );
+    expect(lead.status).toBe(201);
+    const mine = await h.post('/api/leads/search', { search: 'diretoria' }, diretor);
+    expect(mine.body.total).toBe(1);
+    expect((await h.get('/api/reports/activity', diretor)).status).toBe(200);
+    // Não remove o próprio cargo.
+    expect((await h.patch(`/api/admin/users/${ids.ana}`, { role: 'HEAD' }, diretor)).status).toBe(
+      400,
+    );
+  });
+
+  it('Diretoria sem MFA é bloqueada como o Head', async () => {
+    await owner`update "user" set role = 'DIRETOR', two_factor_enabled = false where email = 'ana@npac.com.br'`;
+    const s = await h.signIn('ana@npac.com.br');
+    expect((await h.get('/api/admin/users', s)).body.code).toBe('MFA_ENROLLMENT_REQUIRED');
   });
 });
 

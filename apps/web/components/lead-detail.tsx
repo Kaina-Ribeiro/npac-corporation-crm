@@ -1,4 +1,5 @@
 'use client';
+import { isLeader } from '@npac/shared/enums';
 import { HandoffActions } from './handoff-actions';
 import type {
   DealDTO,
@@ -288,7 +289,7 @@ export function LeadDetail({
                       Reagendar
                     </button>
                   </form>
-                  {me.role === 'HEAD' && (
+                  {isLeader(me.role) && (
                     <Field label="Reatribuir closer">
                       <select
                         className={control}
@@ -386,7 +387,7 @@ export function LeadDetail({
           </div>
         </details>
       )}
-      {me.role === 'HEAD' && (
+      {isLeader(me.role) && (
         <details className="glass-card p-5">
           <summary className="cursor-pointer text-sm text-danger">Excluir lead</summary>
           <p className="my-3 text-sm text-ink2">

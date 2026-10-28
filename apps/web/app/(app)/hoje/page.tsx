@@ -1,3 +1,4 @@
+import { isLeader } from '@npac/shared/enums';
 import type { LeadCatalog, TodayDTO } from '@npac/shared';
 import { redirect } from 'next/navigation';
 import { Today } from '@/components/today';
@@ -12,5 +13,5 @@ export default async function HojePage() {
     apiPost<TodayDTO>('/api/today/search', {}),
     apiGet<LeadCatalog>('/api/leads/catalog'),
   ]);
-  return <Today initial={initial} catalog={catalog} name={me.name} head={me.role === 'HEAD'} />;
+  return <Today initial={initial} catalog={catalog} name={me.name} head={isLeader(me.role)} />;
 }

@@ -10,7 +10,7 @@ import {
   withUser,
   type Db,
 } from '@npac/db';
-import { spDayRange, type AuthUser } from '@npac/shared';
+import { spDayRange, type AuthUser, isLeader } from '@npac/shared';
 import {
   and,
   asc,
@@ -30,7 +30,7 @@ import { DB } from '../common/db/db.module.js';
 export class TodayService {
   constructor(@Inject(DB) private readonly db: Db) {}
   async search(u: AuthUser, filters: { sdrId?: string; closerId?: string }) {
-    if (u.role !== 'HEAD' && (filters.sdrId || filters.closerId)) throw new ForbiddenException();
+    if (!isLeader(u.role) && (filters.sdrId || filters.closerId)) throw new ForbiddenException();
     const { start, end } = spDayRange(new Date());
     return withUser(this.db, u.id, async (tx) => {
       const scope: SQL[] = [isNull(leads.deletedAt)];
@@ -102,7 +102,7 @@ export class TodayService {
             ),
             isNull(leadTasks.completedAt),
             or(lt(leadTasks.dueAt, end), isNull(leadTasks.dueAt)),
-            u.role === 'HEAD' ? undefined : eq(leadTasks.assigneeId, u.id),
+            isLeader(u.role) ? undefined : eq(leadTasks.assigneeId, u.id),
           ),
         )
         .orderBy(sql`${leadTasks.dueAt} asc nulls last`, asc(leadTasks.id))

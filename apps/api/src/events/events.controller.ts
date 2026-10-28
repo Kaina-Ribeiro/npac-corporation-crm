@@ -1,4 +1,5 @@
 import { Controller, Header, Inject, Req, Sse } from '@nestjs/common';
+import { isLeader, type Role } from '@npac/shared';
 import { withUser, type Db } from '@npac/db';
 import { sql } from 'drizzle-orm';
 import type { FastifyRequest } from 'fastify';
@@ -33,7 +34,9 @@ export class EventsController {
         if (!current || !current.user.active) type = 'session-ended';
         else if (
           current.user.mustChangePassword ||
-          (this.env.MFA_REQUIRED && current.user.role === 'HEAD' && !current.user.twoFactorEnabled)
+          (this.env.MFA_REQUIRED &&
+            isLeader(current.user.role as Role) &&
+            !current.user.twoFactorEnabled)
         )
           type = 'access-required';
         else {

@@ -14,6 +14,7 @@ import {
   type LeadCreateInput,
   type LeadDTO,
   type Page,
+  isLeader,
 } from '@npac/shared';
 import { asc, eq, sql } from 'drizzle-orm';
 import { AuditService } from '../audit/audit.service.js';
@@ -100,7 +101,7 @@ export class LeadsService {
       for (const contact of contacts) {
         await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${contact}, 0))`);
       }
-      if (u.role === 'HEAD' && !(await this.repo.activeUserFlags(tx, sdrId))?.canProspect) {
+      if (isLeader(u.role) && !(await this.repo.activeUserFlags(tx, sdrId))?.canProspect) {
         throw new BadRequestException('O responsável precisa ser um SDR ativo que prospecta');
       }
       if (input.closerId && !(await this.repo.activeUserFlags(tx, input.closerId))?.canClose) {
@@ -169,7 +170,7 @@ export class LeadsService {
   }
 
   private resolveSdr(u: AuthUser, requested: string | undefined): string {
-    if (u.role === 'HEAD') {
+    if (isLeader(u.role)) {
       if (!requested) throw new BadRequestException('Escolha o SDR responsável');
       return requested;
     }

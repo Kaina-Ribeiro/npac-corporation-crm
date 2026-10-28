@@ -1,3 +1,4 @@
+import { isLeader } from '@npac/shared/enums';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { ADMIN_ITEM, MORE_ITEMS } from '@/components/shell/nav-items';
@@ -21,7 +22,7 @@ const HINT: Record<string, string> = {
 export default async function MorePage() {
   const me = await getSession();
   if (!me) redirect('/login');
-  const items = [...MORE_ITEMS, ...(me.role === 'HEAD' ? [ADMIN_ITEM] : [])];
+  const items = [...MORE_ITEMS, ...(isLeader(me.role) ? [ADMIN_ITEM] : [])];
   const flags = [me.canProspect && 'Prospecta', me.canClose && 'Fecha'].filter(Boolean);
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-5 pt-2">

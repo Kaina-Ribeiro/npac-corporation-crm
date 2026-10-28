@@ -112,7 +112,7 @@ export function createAuth(db: Db, env: Env, audit: AuditService) {
     emailAndPassword: {
       enabled: true,
       disableSignUp: true,
-      minPasswordLength: 12,
+      minPasswordLength: 8,
       password: {
         hash: (p) => hash(p),
         verify: ({ hash: h, password }) => verify(h, password),

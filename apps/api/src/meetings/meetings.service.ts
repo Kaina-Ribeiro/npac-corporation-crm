@@ -7,7 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { meetings, user, withUser, type Db } from '@npac/db';
-import type { AuthUser, MeetingOrigin, MeetingOutcome } from '@npac/shared';
+import { isLeader, type AuthUser, type MeetingOrigin, type MeetingOutcome } from '@npac/shared';
 import { and, desc, eq } from 'drizzle-orm';
 import { DB } from '../common/db/db.module.js';
 import { recordActivity } from '../leads/activity.js';
@@ -64,7 +64,7 @@ export class MeetingsService {
       if (old.version !== input.version) throw new ConflictException({ code: 'VERSION_CONFLICT' });
       if (old.canceledAt) throw new ConflictException('Reunião cancelada');
       if (input.closerId) {
-        if (u.role !== 'HEAD') throw new ForbiddenException();
+        if (!isLeader(u.role)) throw new ForbiddenException();
         const [closer] = await tx
           .select({ id: user.id })
           .from(user)

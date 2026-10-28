@@ -1,3 +1,4 @@
+import { isLeader } from '@npac/shared/enums';
 import type { LeadCatalog, ProductDTO, ReportDTO } from '@npac/shared';
 import { redirect } from 'next/navigation';
 import { Reports } from '@/components/reports';
@@ -13,6 +14,6 @@ export default async function ReportsPage() {
     apiGet<ProductDTO[]>('/api/finance/products'),
   ]);
   return (
-    <Reports initial={initial} catalog={catalog} products={products} head={me.role === 'HEAD'} />
+    <Reports initial={initial} catalog={catalog} products={products} head={isLeader(me.role)} />
   );
 }

@@ -1,5 +1,10 @@
-export const ROLES = ['HEAD', 'SDR', 'CLOSER'] as const;
+/** Hierarquia: Diretoria > Head > SDR / Closer. */
+export const ROLES = ['DIRETOR', 'HEAD', 'SDR', 'CLOSER'] as const;
 export type Role = (typeof ROLES)[number];
+
+/** Liderança: vê toda a equipe e administra. Só a Diretoria dá ou tira cargo de liderança. */
+export const LEADER_ROLES: readonly Role[] = ['DIRETOR', 'HEAD'];
+export const isLeader = (role: Role) => LEADER_ROLES.includes(role);
 
 export const TIERS = ['P0', 'P1', 'P2'] as const;
 export type Tier = (typeof TIERS)[number];

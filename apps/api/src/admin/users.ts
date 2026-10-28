@@ -4,6 +4,7 @@ import {
   Body,
   ConflictException,
   Controller,
+  ForbiddenException,
   Get,
   HttpCode,
   Inject,
@@ -15,7 +16,7 @@ import {
 } from '@nestjs/common';
 import { hash } from '@node-rs/argon2';
 import { account, session, twoFactor, user, type Db } from '@npac/db';
-import { ROLES, type AuthUser } from '@npac/shared';
+import { isLeader, ROLES, type AuthUser, type Role } from '@npac/shared';
 import { and, asc, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { AuditService } from '../audit/audit.service.js';
@@ -45,7 +46,7 @@ const change = z
   .strict()
   .refine((v) => Object.keys(v).length > 0, 'Informe alteração');
 
-/** Senha temporária mostrada uma única vez ao HEAD; o titular troca no primeiro acesso. */
+/** Senha temporária mostrada uma única vez a quem administra; o titular troca no primeiro acesso. */
 const temporaryPassword = () => randomBytes(12).toString('base64url');
 
 /**
@@ -76,7 +77,26 @@ export class AdminUsersService {
       .orderBy(asc(user.active), asc(user.name));
   }
 
+  /**
+   * Cargo de liderança (Diretoria ou Head) só a Diretoria dá, tira ou administra: o Head
+   * gerencia SDRs e closers, mas não cria outro Head nem mexe na conta de um.
+   */
+  private async guardLeadership(actor: AuthUser, targetId: string | null, newRole?: Role) {
+    if (actor.role === 'DIRETOR') return;
+    if (newRole && isLeader(newRole))
+      throw new ForbiddenException('Só a Diretoria pode dar cargo de Head ou Diretoria');
+    if (!targetId) return;
+    const [target] = await this.db
+      .select({ role: user.role })
+      .from(user)
+      .where(eq(user.id, targetId));
+    if (!target) throw new NotFoundException();
+    if (isLeader(target.role))
+      throw new ForbiddenException('Só a Diretoria administra contas de Head ou Diretoria');
+  }
+
   async invite(actor: AuthUser, input: z.output<typeof invite>) {
+    await this.guardLeadership(actor, null, input.role);
     const password = temporaryPassword();
     const id = randomUUID();
     const passwordHash = await hash(password);
@@ -101,8 +121,9 @@ export class AdminUsersService {
   }
 
   async update(actor: AuthUser, id: string, input: z.output<typeof change>) {
-    if (id === actor.id && (input.active === false || (input.role && input.role !== 'HEAD')))
-      throw new BadRequestException('Você não pode remover o próprio acesso de HEAD');
+    if (id === actor.id && (input.active === false || (input.role && input.role !== actor.role)))
+      throw new BadRequestException('Você não pode remover o próprio cargo');
+    await this.guardLeadership(actor, id, input.role);
     await this.db.transaction(async (tx) => {
       const [row] = await tx
         .update(user)
@@ -117,6 +138,7 @@ export class AdminUsersService {
   }
 
   async resetPassword(actor: AuthUser, id: string) {
+    await this.guardLeadership(actor, id);
     const password = temporaryPassword();
     const passwordHash = await hash(password);
     await this.db.transaction(async (tx) => {
@@ -137,6 +159,7 @@ export class AdminUsersService {
   }
 
   async resetMfa(actor: AuthUser, id: string) {
+    await this.guardLeadership(actor, id);
     await this.db.transaction(async (tx) => {
       const [row] = await tx
         .update(user)

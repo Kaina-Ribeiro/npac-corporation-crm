@@ -3,7 +3,7 @@ import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import { authClient } from '@/lib/auth-client';
 
-const MIN = 12;
+const MIN = 8;
 
 export function ChangePasswordForm() {
   const router = useRouter();

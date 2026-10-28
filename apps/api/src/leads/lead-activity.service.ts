@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { auditLog, leadNotes, leadTasks, leadTimeline, withUser, type Db } from '@npac/db';
-import type { AuthUser } from '@npac/shared';
+import { isLeader, type AuthUser } from '@npac/shared';
 import { and, desc, eq } from 'drizzle-orm';
 import { DB } from '../common/db/db.module.js';
 import { recordActivity } from './activity.js';
@@ -68,7 +68,7 @@ export class LeadActivityService {
         .where(and(eq(leadNotes.id, noteId), eq(leadNotes.leadId, id)))
         .for('update');
       if (!old) throw new NotFoundException();
-      if (old.createdBy !== u.id && u.role !== 'HEAD') throw new ForbiddenException();
+      if (old.createdBy !== u.id && !isLeader(u.role)) throw new ForbiddenException();
       if (old.version !== input.version) throw new ConflictException({ code: 'VERSION_CONFLICT' });
       const [row] = await tx
         .update(leadNotes)

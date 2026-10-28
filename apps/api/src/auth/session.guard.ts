@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { session as sessionTable, type Db } from '@npac/db';
-import type { Role } from '@npac/shared';
+import { isLeader, type Role } from '@npac/shared';
 import { eq } from 'drizzle-orm';
 import type { FastifyRequest } from 'fastify';
 import { DB } from '../common/db/db.module.js';
@@ -58,7 +58,7 @@ export class SessionGuard implements CanActivate {
         message: 'Troque a senha inicial para continuar.',
       });
     }
-    if (this.env.MFA_REQUIRED && req.user.role === 'HEAD' && !req.user.twoFactorEnabled) {
+    if (this.env.MFA_REQUIRED && isLeader(req.user.role) && !req.user.twoFactorEnabled) {
       throw new ForbiddenException({
         code: 'MFA_ENROLLMENT_REQUIRED',
         message: 'Configure o app autenticador para continuar.',

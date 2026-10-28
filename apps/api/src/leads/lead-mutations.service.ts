@@ -7,7 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { deals, leadContactTaken, leads, withUser, type Db, type Tx } from '@npac/db';
-import type { AuthUser, LeadUpdateInput } from '@npac/shared';
+import { isLeader, type AuthUser, type LeadUpdateInput } from '@npac/shared';
 import { and, eq, isNull, sql } from 'drizzle-orm';
 import { DB } from '../common/db/db.module.js';
 import { FieldCrypto } from '../common/crypto/field-crypto.js';
@@ -41,7 +41,7 @@ export class LeadMutationsService {
       const old = await lockLead(tx, id, input.version);
       if (u.role === 'CLOSER' && fields.some((f) => f !== 'stageKey'))
         throw new ForbiddenException();
-      if (u.role !== 'HEAD' && fields.some((f) => f === 'sdrId' || f === 'closerId'))
+      if (!isLeader(u.role) && fields.some((f) => f === 'sdrId' || f === 'closerId'))
         throw new ForbiddenException();
       if (input.sdrId && !(await this.repo.activeUserFlags(tx, input.sdrId))?.canProspect)
         throw new BadRequestException('SDR inválido');

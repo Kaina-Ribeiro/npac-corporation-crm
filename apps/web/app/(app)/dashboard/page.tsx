@@ -1,3 +1,4 @@
+import { isLeader } from '@npac/shared/enums';
 import type { LeadCatalog, ProductDTO, ReportDTO, TeamActivityDTO } from '@npac/shared';
 import { redirect } from 'next/navigation';
 import { Reports } from '@/components/reports';
@@ -7,7 +8,7 @@ export const metadata = { title: 'Dashboard' };
 export default async function DashboardPage() {
   const me = await getSession();
   if (!me) redirect('/login');
-  const head = me.role === 'HEAD';
+  const head = isLeader(me.role);
   const [initial, catalog, products, activity] = await Promise.all([
     apiPost<ReportDTO>('/api/reports/search', { period: 'MONTH' }),
     apiGet<LeadCatalog>('/api/leads/catalog'),

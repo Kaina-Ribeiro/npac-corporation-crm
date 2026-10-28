@@ -1,4 +1,5 @@
 'use client';
+import { isLeader } from '@npac/shared/enums';
 import type { DealDTO, LeadDTO, ProductDTO, Role } from '@npac/shared';
 import { money } from '@npac/shared/money';
 import { useRouter } from 'next/navigation';
@@ -71,7 +72,7 @@ export function FinancePanel({
               )}
             </div>
           ))}
-          {me.role === 'HEAD' && !d.reversedAt && (
+          {isLeader(me.role) && !d.reversedAt && (
             <details>
               <summary className="cursor-pointer text-sm text-danger">Estornar venda</summary>
               <p className="my-2 text-xs text-ink2">

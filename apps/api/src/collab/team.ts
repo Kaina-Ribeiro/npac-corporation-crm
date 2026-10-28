@@ -1,4 +1,5 @@
 import { Controller, Get, Inject, Injectable } from '@nestjs/common';
+import { isLeader } from '@npac/shared';
 import { withUser, type Db } from '@npac/db';
 import type { AuthUser } from '@npac/shared';
 import { sql } from 'drizzle-orm';
@@ -39,7 +40,7 @@ export class TeamService {
     const bySdr = new Map((r.bySdr as Row[]).map((x) => [x.id, x]));
     const byCloser = new Map((r.byCloser as Row[]).map((x) => [x.id, x]));
     const stats = (id: string): TeamStats | null => {
-      if (u.role !== 'HEAD' && id !== u.id) return null;
+      if (!isLeader(u.role) && id !== u.id) return null;
       const s = bySdr.get(id);
       const c = byCloser.get(id);
       const n = (v: unknown) => Number(v ?? 0);

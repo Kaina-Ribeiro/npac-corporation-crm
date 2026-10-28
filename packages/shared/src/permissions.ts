@@ -28,6 +28,7 @@ export type AuthUser = { id: string; role: Role; canProspect: boolean; canClose:
 
 /** Papel -> ações permitidas. Escopo por linha (qual lead) é decidido via RLS, não aqui. */
 const MATRIX: Record<Role, ReadonlySet<Action>> = {
+  DIRETOR: new Set<Action>(ACTIONS),
   HEAD: new Set<Action>(ACTIONS),
   SDR: new Set<Action>([
     'lead:create',

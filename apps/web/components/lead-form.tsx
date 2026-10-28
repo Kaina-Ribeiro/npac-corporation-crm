@@ -6,7 +6,7 @@ import {
   type LeadDTO,
   type Role,
 } from '@npac/shared';
-import { INCOME_BAND_LABELS, LEAD_SOURCES, TIERS } from '@npac/shared/enums';
+import { INCOME_BAND_LABELS, LEAD_SOURCES, TIERS, isLeader } from '@npac/shared/enums';
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import { brasiliaInput, clientApi } from '@/lib/client-api';
@@ -36,7 +36,7 @@ export function LeadForm({
       ...f,
       nextContactAt: brasiliaInput(String(f.nextContactAt ?? '')),
     };
-    if (me.role !== 'HEAD') {
+    if (!isLeader(me.role)) {
       delete raw.sdrId;
       delete raw.closerId;
     } else if (!raw.closerId) {
@@ -171,7 +171,7 @@ export function LeadForm({
             }
           />
         </Field>
-        {me.role === 'HEAD' && (
+        {isLeader(me.role) && (
           <>
             <Field label="SDR responsável">
               <select

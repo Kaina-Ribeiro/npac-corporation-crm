@@ -1,6 +1,6 @@
 'use client';
 import type { LeadCatalog, LeadDTO, Page, Role, SavedViewDTO } from '@npac/shared';
-import { INCOME_BAND_LABELS, TIERS } from '@npac/shared/enums';
+import { INCOME_BAND_LABELS, TIERS, isLeader } from '@npac/shared/enums';
 import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { clientApi } from '@/lib/client-api';
@@ -55,7 +55,7 @@ export function LeadsBrowser({
   const [bulkMsg, setBulkMsg] = useState('');
   // Mesmas regras da API: closer só move etapa; troca de responsável é do Head.
   const canTier = role !== 'CLOSER';
-  const canAssign = role === 'HEAD';
+  const canAssign = isLeader(role);
   const sdrs = catalog.team.filter((u) => u.canProspect);
   const closers = catalog.team.filter((u) => u.canClose);
   useCrmRefresh(() => search(q, data.page));

@@ -16,7 +16,12 @@
 | Igor    | SDR              | ✅ | — |
 | Sônia   | CLOSER           | — | ✅ (Nação Milionária P1/P2) |
 
-Modelo: cada usuário tem **um papel** (`HEAD`, `SDR`, `CLOSER`) + duas flags (`can_prospect`, `can_close`).
+Modelo: cada usuário tem **um papel** (`DIRETOR`, `HEAD`, `SDR`, `CLOSER`) + duas flags (`can_prospect`, `can_close`).
+
+Hierarquia: **Diretoria** (`DIRETOR`) > **Head** > SDR / Closer. A Diretoria tem o mesmo acesso a
+dados do Head e é a única que dá ou tira cargo de liderança (Head ou Diretoria) e administra contas de
+liderança (desativar, nova senha, resetar MFA). O Head administra só SDRs e closers. MFA é obrigatório
+para Head e Diretoria.
 Assim Ana é HEAD que prospecta e Ronaldo é HEAD que fecha, sem `if nome === 'Ana'` no código.
 Time, closers e produtos são **dados no banco**, não código: contratou alguém, cadastra e pronto.
 
@@ -25,6 +30,7 @@ Time, closers e produtos são **dados no banco**, não código: contratou algué
 **Visibilidade de lead** (aplicada na API **e** no Postgres via RLS):
 
 ```
+DIRETOR → todos os leads (para a RLS, app_role() trata Diretoria como HEAD)
 HEAD    → todos os leads
 SDR     → leads onde sdr_id = eu
 CLOSER  → leads com reunião (futura ou já feita) onde closer_id = eu

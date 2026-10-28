@@ -1,5 +1,6 @@
 'use client';
 import type { Role } from '@npac/shared';
+import { isLeader } from '@npac/shared/enums';
 import { money, parseCents } from '@npac/shared/money';
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { clientApi } from '@/lib/client-api';
@@ -48,7 +49,12 @@ type AuditItem = {
 export type AdminData = { users: User[]; products: Product[]; stages: Stage[]; lgpd: Lgpd[] };
 
 const TABS = ['Usuários', 'Produtos', 'Etapas', 'Auditoria', 'LGPD'] as const;
-const ROLE_LABEL: Record<Role, string> = { HEAD: 'Head', SDR: 'SDR', CLOSER: 'Closer' };
+const ROLE_LABEL: Record<Role, string> = {
+  DIRETOR: 'Diretoria',
+  HEAD: 'Head',
+  SDR: 'SDR',
+  CLOSER: 'Closer',
+};
 const KIND: Record<Lgpd['kind'], string> = {
   ACCESS: 'Acesso',
   CORRECTION: 'Correção',
@@ -70,8 +76,19 @@ function Card({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-/** Administração do HEAD; toda escrita é validada e auditada na API. */
-export function Admin({ initial, meId }: { initial: AdminData; meId: string }) {
+/** Administração da liderança; toda escrita é validada e auditada na API. */
+export function Admin({
+  initial,
+  meId,
+  meRole,
+}: {
+  initial: AdminData;
+  meId: string;
+  meRole: Role;
+}) {
+  // Mesma regra da API: só a Diretoria dá cargo de liderança ou mexe em conta de Head/Diretoria.
+  const diretor = meRole === 'DIRETOR';
+  const roles: Role[] = diretor ? ['SDR', 'CLOSER', 'HEAD', 'DIRETOR'] : ['SDR', 'CLOSER'];
   const [tab, setTab] = useState<(typeof TABS)[number]>('Usuários');
   const [data, setData] = useState(initial);
   const [error, setError] = useState<string>();
@@ -167,7 +184,7 @@ export function Admin({ initial, meId }: { initial: AdminData; meId: string }) {
               </Field>
               <Field label="Papel">
                 <select name="role" className={control} defaultValue="SDR">
-                  {(['SDR', 'CLOSER', 'HEAD'] as const).map((r) => (
+                  {roles.map((r) => (
                     <option key={r} value={r}>
                       {ROLE_LABEL[r]}
                     </option>
@@ -198,8 +215,31 @@ export function Admin({ initial, meId }: { initial: AdminData; meId: string }) {
                       {u.twoFactorEnabled ? ' · MFA ativo' : ''}
                     </p>
                   </div>
-                  {u.id !== meId && (
-                    <div className="flex flex-wrap gap-2">
+                  {u.id !== meId && !diretor && isLeader(u.role) && (
+                    <p className="text-xs text-ink3">Só a Diretoria altera esta conta</p>
+                  )}
+                  {u.id !== meId && (diretor || !isLeader(u.role)) && (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <select
+                        aria-label={`Cargo de ${u.name}`}
+                        value={u.role}
+                        className={`${quietButton} bg-transparent`}
+                        onChange={(e) =>
+                          void run(
+                            () =>
+                              clientApi(`/api/admin/users/${u.id}`, 'PATCH', {
+                                role: e.target.value,
+                              }),
+                            `${u.name} agora é ${ROLE_LABEL[e.target.value as Role]}`,
+                          )
+                        }
+                      >
+                        {roles.map((r) => (
+                          <option key={r} value={r}>
+                            {ROLE_LABEL[r]}
+                          </option>
+                        ))}
+                      </select>
                       <button
                         type="button"
                         className={quietButton}
