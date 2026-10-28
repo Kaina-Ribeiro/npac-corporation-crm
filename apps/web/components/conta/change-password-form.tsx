@@ -44,7 +44,7 @@ export function ChangePasswordForm() {
           ['confirm', 'Confirme a nova senha', 'new-password'],
         ] as const
       ).map(([name, label, ac]) => (
-        <label key={name} className="flex flex-col gap-2 text-[13px] font-semibold text-[#3a3a3c]">
+        <label key={name} className="flex flex-col gap-2 text-[13px] font-semibold text-ink2">
           {label}
           <input name={name} type="password" className="field" autoComplete={ac} required />
         </label>

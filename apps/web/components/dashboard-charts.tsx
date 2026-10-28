@@ -133,11 +133,11 @@ export function RevenueHero({
         <ul className="flex gap-4 text-xs text-white/70">
           <li className="flex items-center gap-1.5">
             <span aria-hidden="true" className="h-0.5 w-3.5 rounded" style={{ background: GOLD }} />
-            <span className="capitalize">{curName}</span>
+            <span className="inline-block first-letter:uppercase">{curName}</span>
           </li>
           <li className="flex items-center gap-1.5">
             <span aria-hidden="true" className="w-3.5 border-t border-dashed border-white/60" />
-            <span className="capitalize">{prevName}</span>
+            <span className="inline-block first-letter:uppercase">{prevName}</span>
           </li>
         </ul>
       </div>
@@ -286,7 +286,7 @@ export function RevenueHero({
             </p>
             {prev[hover] !== undefined && (
               <p className="text-white/70">
-                <span className="capitalize">{prevName}</span>: {money(prev[hover]!)}
+                <span className="inline-block first-letter:uppercase">{prevName}</span>: {money(prev[hover]!)}
               </p>
             )}
             <p className="text-white/70">Vendas do dia: {money(daily[hover]!.soldCents)}</p>

@@ -1,9 +1,6 @@
 'use client';
-import { useRouter } from 'next/navigation';
-
 // fetch direto (sem o client do Better Auth) para manter o JS das telas do app enxuto.
 export function SignOutButton({ className }: { className?: string }) {
-  const router = useRouter();
   return (
     <button
       type="button"
@@ -17,8 +14,8 @@ export function SignOutButton({ className }: { className?: string }) {
           headers: { 'content-type': 'application/json' },
           body: '{}',
         });
-        router.replace('/login');
-        router.refresh();
+        // Navegação completa: descarta o cache do roteador, que ainda guarda telas da sessão.
+        window.location.replace('/login');
       }}
     >
       Sair

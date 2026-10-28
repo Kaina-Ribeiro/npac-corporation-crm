@@ -19,6 +19,7 @@ export default async function DashboardPage() {
       products={products}
       head={me.role === 'HEAD'}
       dashboard
+      name={me.name}
     />
   );
 }

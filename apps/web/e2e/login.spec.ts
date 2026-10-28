@@ -138,6 +138,10 @@ test('HEAD sem MFA é levado para configurar o autenticador', async ({ page }) =
   await owner`delete from two_factor where user_id=(select id from "user" where email='ana@npac.com.br')`;
   await login(page, 'ana@npac.com.br');
   await expect(page).toHaveURL(/\/conta\/mfa/);
+  await page.getByRole('button', { name: 'Sair' }).click();
+  await page.waitForURL(/\/login/);
+  await page.goto('/conta/mfa');
+  await expect(page).toHaveURL(/\/login/);
 });
 
 test('mobile mostra barra inferior', async ({ page }) => {
@@ -270,12 +274,20 @@ test('HEAD estorna pela ficha preservando recebimento', async ({ page }) => {
     await owner`select id from payments where deal_id=${deal.id} and paid_at is not null`;
   expect(rows).toHaveLength(1);
   await page.goto('/dashboard');
-  await expect(page.getByRole('heading', { name: 'Dashboard', exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { level: 1, name: /^(Bom dia|Boa tarde|Boa noite)/ }),
+  ).toBeVisible();
   await page.screenshot({ path: 'test-results/dashboard.png', fullPage: true });
 });
 
 test('primeiro acesso exige trocar a senha', async ({ page }) => {
   await owner`update "user" set must_change_password = true where email = 'igor@npac.com.br'`;
+  await login(page, 'igor@npac.com.br');
+  await expect(page).toHaveURL(/\/conta\/senha/);
+  // Sair no meio do primeiro acesso não pode prender a pessoa: volta ao login e entra de novo.
+  await page.getByRole('button', { name: 'Sair' }).click();
+  await page.waitForURL(/\/login/);
+  await expect(page.getByRole('button', { name: 'Entrar' })).toBeVisible();
   await login(page, 'igor@npac.com.br');
   await expect(page).toHaveURL(/\/conta\/senha/);
   await page.getByLabel('Senha atual', { exact: true }).fill(E2E_PASSWORD);

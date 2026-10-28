@@ -46,7 +46,7 @@ export function MfaSetup() {
           Heads entram com senha e com o código de um app autenticador (Google Authenticator,
           1Password, Authy…). Confirme a sua senha para começar.
         </p>
-        <label className="flex flex-col gap-2 text-[13px] font-semibold text-[#3a3a3c]">
+        <label className="flex flex-col gap-2 text-[13px] font-semibold text-ink2">
           Senha
           <input
             name="password"
@@ -86,7 +86,7 @@ export function MfaSetup() {
           Sem câmera? Digite a chave: <code className="font-mono text-ink">{secret}</code>
         </p>
       )}
-      <label className="flex flex-col gap-2 text-[13px] font-semibold text-[#3a3a3c]">
+      <label className="flex flex-col gap-2 text-[13px] font-semibold text-ink2">
         Código
         <input
           name="code"
