@@ -8,6 +8,20 @@
       "when": 1793150680096,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793150941460,
+      "tag": "0001_meetings_indexes",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793150945689,
+      "tag": "0002_rls",
+      "breakpoints": true
     }
   ]
 }
