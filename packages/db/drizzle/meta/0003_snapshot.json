@@ -94,13 +94,9 @@
         "account_user_id_user_id_fk": {
           "name": "account_user_id_user_id_fk",
           "tableFrom": "account",
-          "columnsFrom": [
-            "user_id"
-          ],
+          "columnsFrom": ["user_id"],
           "tableTo": "user",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "cascade"
         }
@@ -146,9 +142,7 @@
       "uniqueConstraints": {
         "rate_limit_key_unique": {
           "name": "rate_limit_key_unique",
-          "columns": [
-            "key"
-          ],
+          "columns": ["key"],
           "nullsNotDistinct": false
         }
       },
@@ -216,13 +210,9 @@
         "session_user_id_user_id_fk": {
           "name": "session_user_id_user_id_fk",
           "tableFrom": "session",
-          "columnsFrom": [
-            "user_id"
-          ],
+          "columnsFrom": ["user_id"],
           "tableTo": "user",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "cascade"
         }
@@ -231,9 +221,7 @@
       "uniqueConstraints": {
         "session_token_unique": {
           "name": "session_token_unique",
-          "columns": [
-            "token"
-          ],
+          "columns": ["token"],
           "nullsNotDistinct": false
         }
       },
@@ -275,13 +263,9 @@
         "two_factor_user_id_user_id_fk": {
           "name": "two_factor_user_id_user_id_fk",
           "tableFrom": "two_factor",
-          "columnsFrom": [
-            "user_id"
-          ],
+          "columnsFrom": ["user_id"],
           "tableTo": "user",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "cascade"
         }
@@ -390,9 +374,7 @@
       "uniqueConstraints": {
         "user_email_unique": {
           "name": "user_email_unique",
-          "columns": [
-            "email"
-          ],
+          "columns": ["email"],
           "nullsNotDistinct": false
         }
       },
@@ -488,9 +470,7 @@
       "uniqueConstraints": {
         "pipeline_stages_key_unique": {
           "name": "pipeline_stages_key_unique",
-          "columns": [
-            "key"
-          ],
+          "columns": ["key"],
           "nullsNotDistinct": false
         }
       },
@@ -728,52 +708,36 @@
         "leads_stage_id_pipeline_stages_id_fk": {
           "name": "leads_stage_id_pipeline_stages_id_fk",
           "tableFrom": "leads",
-          "columnsFrom": [
-            "stage_id"
-          ],
+          "columnsFrom": ["stage_id"],
           "tableTo": "pipeline_stages",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "no action"
         },
         "leads_sdr_id_user_id_fk": {
           "name": "leads_sdr_id_user_id_fk",
           "tableFrom": "leads",
-          "columnsFrom": [
-            "sdr_id"
-          ],
+          "columnsFrom": ["sdr_id"],
           "tableTo": "user",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "no action"
         },
         "leads_closer_id_user_id_fk": {
           "name": "leads_closer_id_user_id_fk",
           "tableFrom": "leads",
-          "columnsFrom": [
-            "closer_id"
-          ],
+          "columnsFrom": ["closer_id"],
           "tableTo": "user",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "no action"
         },
         "leads_created_by_user_id_fk": {
           "name": "leads_created_by_user_id_fk",
           "tableFrom": "leads",
-          "columnsFrom": [
-            "created_by"
-          ],
+          "columnsFrom": ["created_by"],
           "tableTo": "user",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "no action"
         }
@@ -890,39 +854,27 @@
         "meetings_lead_id_leads_id_fk": {
           "name": "meetings_lead_id_leads_id_fk",
           "tableFrom": "meetings",
-          "columnsFrom": [
-            "lead_id"
-          ],
+          "columnsFrom": ["lead_id"],
           "tableTo": "leads",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "no action"
         },
         "meetings_closer_id_user_id_fk": {
           "name": "meetings_closer_id_user_id_fk",
           "tableFrom": "meetings",
-          "columnsFrom": [
-            "closer_id"
-          ],
+          "columnsFrom": ["closer_id"],
           "tableTo": "user",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "no action"
         },
         "meetings_created_by_user_id_fk": {
           "name": "meetings_created_by_user_id_fk",
           "tableFrom": "meetings",
-          "columnsFrom": [
-            "created_by"
-          ],
+          "columnsFrom": ["created_by"],
           "tableTo": "user",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "no action"
         }
@@ -1007,56 +959,32 @@
     "public.income_band": {
       "name": "income_band",
       "schema": "public",
-      "values": [
-        "R5_10K",
-        "R10_20K",
-        "R20_50K",
-        "R50K_PLUS"
-      ]
+      "values": ["R5_10K", "R10_20K", "R20_50K", "R50K_PLUS"]
     },
     "public.lead_source": {
       "name": "lead_source",
       "schema": "public",
-      "values": [
-        "INSTAGRAM",
-        "WHATSAPP",
-        "INDICACAO",
-        "OUTRO"
-      ]
+      "values": ["INSTAGRAM", "WHATSAPP", "INDICACAO", "OUTRO"]
     },
     "public.legal_basis": {
       "name": "legal_basis",
       "schema": "public",
-      "values": [
-        "LEGITIMATE_INTEREST",
-        "CONSENT",
-        "CONTRACT"
-      ]
+      "values": ["LEGITIMATE_INTEREST", "CONSENT", "CONTRACT"]
     },
     "public.meeting_origin": {
       "name": "meeting_origin",
       "schema": "public",
-      "values": [
-        "DIRETO",
-        "FOLLOW"
-      ]
+      "values": ["DIRETO", "FOLLOW"]
     },
     "public.meeting_outcome": {
       "name": "meeting_outcome",
       "schema": "public",
-      "values": [
-        "DONE",
-        "NO_SHOW"
-      ]
+      "values": ["DONE", "NO_SHOW"]
     },
     "public.role": {
       "name": "role",
       "schema": "public",
-      "values": [
-        "HEAD",
-        "SDR",
-        "CLOSER"
-      ]
+      "values": ["HEAD", "SDR", "CLOSER"]
     },
     "public.stage_key": {
       "name": "stage_key",
@@ -1075,11 +1003,7 @@
     "public.tier": {
       "name": "tier",
       "schema": "public",
-      "values": [
-        "P0",
-        "P1",
-        "P2"
-      ]
+      "values": ["P0", "P1", "P2"]
     }
   },
   "schemas": {},

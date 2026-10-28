@@ -13,7 +13,8 @@
     "SEED_INITIAL_PASSWORD",
     "API_PORT",
     "WEB_ORIGIN",
-    "API_INTERNAL_URL"
+    "API_INTERNAL_URL",
+    "TRUST_PROXY"
   ],
   "tasks": {
     "build": { "dependsOn": ["^build"], "outputs": ["dist/**", ".next/**", "!.next/cache/**"] },
