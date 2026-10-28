@@ -152,7 +152,7 @@ pnpm exec prettier --write <arquivos>     # formatar só o que mudou
 - Testes só recriam bancos `npac_test*`/`npac_e2e*`. Não aponte teste para outro banco.
 - API e e2e compartilham estado de usuários: teste que mexe em MFA/senha/papel restaura no fim.
 - `truncate leads` em teste precisa incluir as tabelas com FK (lista acima).
-- e2e loga com `email.split('@')[0]` como usuário. Seeds: ana/ronaldo (HEAD), ale/murilo/igor
+- e2e loga com `email.split('@')[0]` como usuário. Seeds: diretor (DIRETOR), ana/ronaldo (HEAD), ale/murilo/igor
   (SDR), sonia (CLOSER), todos `@npac.com.br`.
 - Playwright: use `filter({ visible: true })`/`exact: true` contra colisões (layout mobile
   oculto duplica controles); nada de `networkidle` (SSE é permanente).

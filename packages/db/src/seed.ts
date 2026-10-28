@@ -34,6 +34,14 @@ const TEAM: {
   canClose: boolean;
 }[] = [
   {
+    name: 'Diretor',
+    username: 'diretor',
+    email: 'diretor@npac.com.br',
+    role: 'DIRETOR',
+    canProspect: false,
+    canClose: false,
+  },
+  {
     name: 'Ana',
     username: 'ana',
     email: 'ana@npac.com.br',
