@@ -2,6 +2,7 @@
 import type { ReportDTO, ReportRow } from '@npac/shared';
 import { money } from '@npac/shared/money';
 import { useState, type ReactNode } from 'react';
+import { CountUp } from './count-up';
 
 type Day = ReportDTO['daily'][number];
 
@@ -56,9 +57,11 @@ export function Sparkline({ values, color = C2 }: { values: number[]; color?: st
   const d = 'M' + pts.map(([x, y]) => `${x!.toFixed(1)} ${y!.toFixed(1)}`).join(' L');
   return (
     <svg viewBox="0 0 100 30" preserveAspectRatio="none" className="h-8 w-full" aria-hidden="true">
-      <path d={`${d} L100 30 L0 30 Z`} fill={color} opacity="0.12" />
+      <path d={`${d} L100 30 L0 30 Z`} fill={color} opacity="0.12" className="chart-fade" />
       <path
         d={d}
+        pathLength={1}
+        className="chart-draw"
         fill="none"
         stroke={color}
         strokeWidth="2"
@@ -148,7 +151,7 @@ export function RevenueHero({
             backgroundImage: `linear-gradient(100deg, ${GOLD} 20%, #fff1c9 45%, ${GOLD} 70%)`,
           }}
         >
-          {money(sold)}
+          <CountUp value={sold} format={money} />
         </p>
         {delta !== null && (
           <span
@@ -208,9 +211,12 @@ export function RevenueHero({
               <path
                 d={`${line(cur)} L${x(last)} ${y(0)} L${x(0)} ${y(0)} Z`}
                 fill="url(#hero-area)"
+                className="chart-fade"
               />
               <path
                 d={line(cur)}
+                pathLength={1}
+                className="chart-draw"
                 fill="none"
                 stroke={GOLD}
                 strokeWidth="2.5"
@@ -346,6 +352,8 @@ export function DailyBars({
                 <path
                   d={`M${L + i * slot + 1} ${y(0)} V${top + 2} q0 -2 2 -2 h${bw - 4} q2 0 2 2 V${y(0)} Z`}
                   fill={C2}
+                  className="chart-rise"
+                  style={{ animationDelay: `${Math.min(i * 12, 360)}ms` }}
                   opacity={hover === null || hover === i ? 1 : 0.45}
                 />
               )}
@@ -391,7 +399,9 @@ export function Funnel({ metrics }: { metrics: Record<string, number> }) {
           <div className="flex items-baseline justify-between text-sm">
             <span className="text-ink2">{label}</span>
             <span>
-              <b className="tabular-nums">{v}</b>
+              <b className="tabular-nums">
+                <CountUp value={v} />
+              </b>
               {i > 0 && (
                 <span className="ml-2 text-xs text-ink2">
                   {pct(v, steps[i - 1]![1])} da etapa anterior
@@ -401,8 +411,9 @@ export function Funnel({ metrics }: { metrics: Record<string, number> }) {
           </div>
           <div className="h-3 rounded-full bg-black/5 dark:bg-white/10">
             <div
-              className="h-3 rounded-full"
+              className="chart-grow h-3 rounded-full"
               style={{
+                animationDelay: `${i * 80}ms`,
                 width: `${Math.max(v ? 2 : 0, (v * 100) / top)}%`,
                 background: i === 3 ? C1 : C2,
               }}
@@ -449,6 +460,7 @@ export function TierDonut({ p0, p1, p2 }: { p0: number; p1: number; p2: number }
                 strokeDasharray={`${Math.max(0, len - 2)} ${CIRC}`}
                 strokeDashoffset={-offset}
                 transform="rotate(-90 60 60)"
+                className="chart-fade"
               />
             );
             offset += len;
@@ -512,8 +524,9 @@ export function RankBars({
           </div>
           <div className="h-2.5 rounded-full bg-black/5 dark:bg-white/10">
             <div
-              className="h-2.5 rounded-full"
+              className="chart-grow h-2.5 rounded-full"
               style={{
+                animationDelay: `${i * 60}ms`,
                 width: `${Math.max(value(r) ? 2 : 0, (value(r) * 100) / max)}%`,
                 background: color,
               }}

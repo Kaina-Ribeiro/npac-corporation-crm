@@ -16,6 +16,7 @@ import {
   chartColors,
 } from './dashboard-charts';
 import { CloserDesk, SdrTable, TeamFeed } from './dashboard-team';
+import { CountUp } from './count-up';
 import { useCrmRefresh } from './shell/live-updates';
 
 function Breakdown({ title, rows }: { title: string; rows: ReportRow[] }) {
@@ -363,28 +364,28 @@ export function Reports({
               [
                 [
                   'Leads novos',
-                  String(m.leads ?? 0),
+                  m.leads ?? 0,
                   `P0 ${m.p0 ?? 0} · P1 ${m.p1 ?? 0} · P2 ${m.p2 ?? 0}`,
                   'leads',
                   chartColors.volume,
                 ],
                 [
                   'Reuniões agendadas',
-                  String(m.meetings ?? 0),
+                  m.meetings ?? 0,
                   `${m.direct ?? 0} diretas · ${m.follow ?? 0} do follow`,
                   'meetings',
                   chartColors.volume,
                 ],
                 [
                   'Vendido',
-                  money(m.soldCents ?? 0),
+                  m.soldCents ?? 0,
                   `${m.sales ?? 0} vendas · conversão ${((m.conversionBps ?? 0) / 100).toFixed(0)}%`,
                   'soldCents',
                   chartColors.money,
                 ],
                 [
                   'Recebido',
-                  money(m.receivedCents ?? 0),
+                  m.receivedCents ?? 0,
                   `A receber: ${money(m.outstandingCents ?? 0)}`,
                   'receivedCents',
                   chartColors.money,
@@ -396,7 +397,7 @@ export function Reports({
                 <p
                   className={`text-3xl font-bold tracking-tight tabular-nums ${key.endsWith('Cents') ? 'text-gold-deep' : ''}`}
                 >
-                  {value}
+                  <CountUp value={value} format={key.endsWith('Cents') ? money : undefined} />
                 </p>
                 <p className="text-xs text-ink2">{foot}</p>
                 <Sparkline values={data.daily.map((d) => d[key])} color={color} />
