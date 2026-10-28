@@ -5,3 +5,4 @@ packages:
 # pnpm bloqueia scripts de build de dependências por padrão; liste aqui as permitidas.
 allowBuilds:
   esbuild: true
+  '@swc/core': true
