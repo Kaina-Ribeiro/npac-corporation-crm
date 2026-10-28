@@ -21,7 +21,15 @@ jobs:
           --health-interval 5s --health-timeout 5s --health-retries 10
     env:
       DATABASE_URL: postgresql://npac_owner:ci_owner_password@localhost:5432/npac
+      APP_DATABASE_URL: postgresql://npac_app:ci_app_password@localhost:5432/npac
       TEST_DATABASE_URL: postgresql://npac_owner:ci_owner_password@localhost:5432/npac_test
+      APP_DB_PASSWORD: ci_app_password
+      # Valores descartáveis só para CI (base64 de 32 bytes)
+      BETTER_AUTH_SECRET: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+      FIELD_ENCRYPTION_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+      BLIND_INDEX_KEY: ZmVkY2JhOTg3NjU0MzIxMGZlZGNiYTk4NzY1NDMyMTA=
+      API_PORT: 4000
+      WEB_ORIGIN: http://localhost:3000
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -29,6 +37,13 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
+      - name: Criar role npac_app e banco npac_test
+        run: sh infra/postgres/init/01-app-role.sh
+        env:
+          PGHOST: localhost
+          PGPASSWORD: ci_owner_password
+          POSTGRES_USER: npac_owner
+          POSTGRES_DB: npac
       - run: pnpm install --frozen-lockfile
       - run: pnpm turbo run lint typecheck test
       - run: pnpm audit --audit-level high
