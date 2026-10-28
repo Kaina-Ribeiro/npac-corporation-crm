@@ -1,5 +1,5 @@
 'use client';
-import type { LeadCatalog, LeadDTO, Page, Role } from '@npac/shared';
+import type { LeadCatalog, LeadDTO, Page, Role, SavedViewDTO } from '@npac/shared';
 import { INCOME_BAND_LABELS, TIERS } from '@npac/shared/enums';
 import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
@@ -30,17 +30,26 @@ export function LeadsBrowser({
   canCreate,
   catalog,
   role,
+  views: initialViews = [],
+  activeView,
 }: {
   initialData: Page<LeadDTO>;
   canCreate: boolean;
   catalog: LeadCatalog;
   role: Role;
+  views?: SavedViewDTO[];
+  /** Filtro salvo aberto pela URL (/leads?view=id); a lista inicial já vem filtrada. */
+  activeView?: SavedViewDTO;
 }) {
   const [data, setData] = useState(initialData);
   const [q, setQ] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [filters, setFilters] = useState<Record<string, string>>({});
+  const [filters, setFilters] = useState<Record<string, string>>(activeView?.filters ?? {});
+  const [views, setViews] = useState(initialViews);
+  const [viewId, setViewId] = useState(activeView?.id ?? '');
+  const [formKey, setFormKey] = useState(0);
+  const [naming, setNaming] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [saved, setSaved] = useState('');
   const [bulkMsg, setBulkMsg] = useState('');
@@ -186,11 +195,49 @@ export function LeadsBrowser({
     </select>
   );
 
+  /** Aplica um filtro salvo (ou limpa) e deixa o id na URL, que não carrega dado pessoal. */
+  async function openView(v?: SavedViewDTO) {
+    const f = v?.filters ?? {};
+    setViewId(v?.id ?? '');
+    setFilters(f);
+    setFormKey((k) => k + 1);
+    window.history.replaceState(null, '', v ? `/leads?view=${v.id}` : '/leads');
+    await search(q, 1, f);
+  }
+  async function saveView(name: string) {
+    setError('');
+    try {
+      const { id } = await clientApi<{ id: string }>('/api/views', 'POST', { name, filters });
+      setViews((vs) => [...vs, { id, name: name.trim(), filters }]);
+      setViewId(id);
+      setNaming(false);
+      window.history.replaceState(null, '', `/leads?view=${id}`);
+      window.dispatchEvent(new Event('crm:views'));
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+  async function removeView(v: SavedViewDTO) {
+    setError('');
+    try {
+      await clientApi(`/api/views/${v.id}`, 'DELETE');
+      setViews((vs) => vs.filter((x) => x.id !== v.id));
+      if (viewId === v.id) await openView();
+      window.dispatchEvent(new Event('crm:views'));
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
   function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
     const selected = readFilters(f);
     setFilters(selected);
+    if (viewId) {
+      setViewId('');
+      window.history.replaceState(null, '', '/leads');
+    }
     void search(String(f.get('q') ?? '').trim(), 1, selected);
   }
   return (
@@ -240,7 +287,75 @@ export function LeadsBrowser({
         </form>
       </div>
 
-      <LeadFilters catalog={catalog} form="lead-search" />
+      <div className="flex flex-wrap items-center gap-2" aria-label="Filtros salvos" role="group">
+        {views.map((v) => (
+          <span
+            key={v.id}
+            className={`flex items-center rounded-full border text-sm font-medium ${
+              viewId === v.id ? 'border-ink bg-ink text-[var(--bg)]' : 'border-line text-ink2'
+            }`}
+          >
+            <button
+              type="button"
+              aria-pressed={viewId === v.id}
+              disabled={busy}
+              onClick={() => void openView(viewId === v.id ? undefined : v)}
+              className="h-8 pr-1 pl-3.5"
+            >
+              {v.name}
+            </button>
+            <button
+              type="button"
+              aria-label={`Apagar filtro ${v.name}`}
+              onClick={() => void removeView(v)}
+              className="grid size-7 place-items-center rounded-full opacity-60 hover:opacity-100"
+            >
+              ×
+            </button>
+          </span>
+        ))}
+        {naming ? (
+          <form
+            className="flex items-center gap-1.5"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void saveView(String(new FormData(e.currentTarget).get('viewName') ?? ''));
+            }}
+          >
+            <input
+              name="viewName"
+              aria-label="Nome do filtro"
+              autoFocus
+              maxLength={60}
+              required
+              placeholder="Ex.: Meus P0 atrasados"
+              className="h-8 w-52 rounded-full border border-line bg-transparent px-3.5 text-sm"
+            />
+            <button className="h-8 rounded-full bg-ink px-3.5 text-sm font-semibold text-[var(--bg)]">
+              Salvar
+            </button>
+            <button
+              type="button"
+              onClick={() => setNaming(false)}
+              className="h-8 rounded-full px-2.5 text-sm text-ink2"
+            >
+              Cancelar
+            </button>
+          </form>
+        ) : (
+          Object.keys(filters).length > 0 &&
+          !viewId && (
+            <button
+              type="button"
+              onClick={() => setNaming(true)}
+              className="h-8 rounded-full border border-dashed border-line px-3.5 text-sm font-medium text-ink2 hover:text-ink"
+            >
+              + Salvar este filtro
+            </button>
+          )
+        )}
+      </div>
+      <LeadFilters key={formKey} catalog={catalog} form="lead-search" values={filters} />
       {error && <p role="alert">{error}</p>}
       {data.items.length === 0 ? (
         <section className="glass-card p-6 text-center text-sm text-ink2">

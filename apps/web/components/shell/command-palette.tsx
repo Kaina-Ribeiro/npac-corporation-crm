@@ -5,6 +5,7 @@ import { useTheme } from 'next-themes';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { clientApi } from '@/lib/client-api';
 import { ADMIN_ITEM, SIDEBAR_ITEMS } from './nav-items';
+import { useSavedViews } from './saved-views-nav';
 
 type Item = { id: string; label: string; hint?: string; icon?: ReactNode; run: () => void };
 
@@ -105,6 +106,7 @@ export function CommandPalette({ head }: { head: boolean }) {
     };
   }, [query]);
 
+  const views = useSavedViews();
   const go = (href: string) => () => {
     setOpen(false);
     router.push(href);
@@ -117,6 +119,12 @@ export function CommandPalette({ head }: { head: boolean }) {
       hint: 'Ir para',
       icon: n.icon,
       run: go(n.href),
+    })),
+    ...views.map((v) => ({
+      id: `view-${v.id}`,
+      label: v.name,
+      hint: 'Filtro salvo',
+      run: go(`/leads?view=${v.id}`),
     })),
     {
       id: 'theme',

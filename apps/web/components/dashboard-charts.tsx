@@ -286,7 +286,8 @@ export function RevenueHero({
             </p>
             {prev[hover] !== undefined && (
               <p className="text-white/70">
-                <span className="inline-block first-letter:uppercase">{prevName}</span>: {money(prev[hover]!)}
+                <span className="inline-block first-letter:uppercase">{prevName}</span>:{' '}
+                {money(prev[hover]!)}
               </p>
             )}
             <p className="text-white/70">Vendas do dia: {money(daily[hover]!.soldCents)}</p>

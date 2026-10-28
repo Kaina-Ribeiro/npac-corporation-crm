@@ -1,7 +1,9 @@
 import { ADMIN_ITEM, SIDEBAR_ITEMS } from './nav-items';
 import { NavLink } from './nav-link';
 import { InboxLink } from '../inbox';
+import { Suspense } from 'react';
 import { SearchButton } from './command-palette';
+import { SavedViewsNav } from './saved-views-nav';
 
 /** Desktop: navegação + bloco da pessoa logada no rodapé, sempre visível (a sidebar é fixa). */
 export function Sidebar({ head = false, footer }: { head?: boolean; footer?: React.ReactNode }) {
@@ -29,6 +31,9 @@ export function Sidebar({ head = false, footer }: { head?: boolean; footer?: Rea
           </NavLink>
         ))}
       </nav>
+      <Suspense>
+        <SavedViewsNav />
+      </Suspense>
       {footer && <div className="mt-auto border-t border-line px-1 pt-3">{footer}</div>}
     </aside>
   );

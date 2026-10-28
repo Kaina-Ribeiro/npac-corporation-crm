@@ -97,3 +97,34 @@ test('lista: edita perfil direto na célula e move vários leads de uma vez', as
   // SDR não vê troca de responsável na barra (só Head).
   await expect(bar.getByLabel('Trocar SDR')).toHaveCount(0);
 });
+
+test('filtro salvo aparece na sidebar e reabre a lista já filtrada', async ({ page }) => {
+  await login(page, 'murilo@npac.com.br');
+  await page.goto('/leads');
+  await page.getByText('Filtrar e ordenar').click();
+  await page.getByLabel('Perfil do lead').selectOption('P1');
+  await page.getByRole('button', { name: 'Aplicar filtros' }).click();
+  await page.getByRole('button', { name: '+ Salvar este filtro' }).click();
+  await page.getByLabel('Nome do filtro').fill('Meus P1');
+  await page.getByRole('button', { name: 'Salvar', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Meus P1', pressed: true })).toBeVisible();
+  await expect(page).toHaveURL(/\/leads\?view=[0-9a-f-]{36}$/);
+
+  await page.goto('/dashboard');
+  await page
+    .getByRole('navigation', { name: 'Filtros salvos' })
+    .getByRole('link', { name: 'Meus P1' })
+    .click();
+  await page.waitForURL(/\/leads\?view=/);
+  await expect(page.getByText('Lead do Murilo').filter({ visible: true })).toBeVisible();
+  await expect(page.getByLabel('Perfil do lead')).toHaveValue('P1');
+
+  // Também pelo Ctrl+K.
+  await page.keyboard.press('Control+k');
+  await page.getByRole('combobox', { name: 'Buscar leads ou ir para…' }).fill('Meus P1');
+  await expect(page.getByRole('option', { name: /Meus P1.*Filtro salvo/ })).toBeVisible();
+  await page.keyboard.press('Escape');
+
+  await page.getByRole('button', { name: 'Apagar filtro Meus P1' }).click();
+  await expect(page.getByRole('navigation', { name: 'Filtros salvos' })).toHaveCount(0);
+});

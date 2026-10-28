@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { CurrentUser, type SessionUser } from '../auth/current-user.decorator.js';
 import { DB } from '../common/db/db.module.js';
 import { validate } from '../common/validate.js';
+import { ViewsController, ViewsService } from './views.js';
 
 const iso = (v: unknown) => new Date(v as string).toISOString();
 
@@ -70,5 +71,8 @@ export class NotificationsController {
   }
 }
 
-@Module({ controllers: [NotificationsController], providers: [NotificationsService] })
+@Module({
+  controllers: [NotificationsController, ViewsController],
+  providers: [NotificationsService, ViewsService],
+})
 export class NotificationsModule {}

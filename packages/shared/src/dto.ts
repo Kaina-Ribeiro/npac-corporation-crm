@@ -79,3 +79,6 @@ export type NotificationsDTO = {
   /** Reuniões da pessoa como closer nas próximas 2 horas. */
   soon: { id: string; at: string; leadId: string; leadName: string }[];
 };
+
+/** Filtro salvo da lista de leads (só critérios). */
+export type SavedViewDTO = { id: string; name: string; filters: Record<string, string> };
