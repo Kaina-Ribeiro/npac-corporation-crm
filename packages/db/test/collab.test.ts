@@ -59,7 +59,7 @@ describe('chat', () => {
     const [{ id: dm }] = (await as<{ id: string }>(
       'u-ale',
       sql`select chat_open_dm('u-murilo') as id`,
-    )) as [{ id: string }];
+    )) as unknown as [{ id: string }];
     await as(
       'u-ale',
       sql`insert into chat_messages (channel_id, author_id, body) values (${dm}, 'u-ale', 'oi')`,

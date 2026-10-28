@@ -33,13 +33,13 @@ beforeEach(async () => {
       ('u-ale', 'Ale', 'ale@npac.test', 'SDR', true, false),
       ('u-sonia', 'Sônia', 'sonia@npac.test', 'CLOSER', false, true)`;
   [{ id: stage }] = (await owner<{ id: string }[]>`
-    insert into pipeline_stages (key, label, position) values ('SONDAGEM', 'Sondagem', 1) returning id`) as [
+    insert into pipeline_stages (key, label, position) values ('SONDAGEM', 'Sondagem', 1) returning id`) as unknown as [
     { id: string },
   ];
   [{ id: lead }] = (await owner<{ id: string }[]>`
     insert into leads (name, income_band, source, tier, stage_id, sdr_id, created_by, instagram, phone_bidx, phone_enc, summary)
     values ('Maria Titular', 'R10_20K', 'INSTAGRAM', 'P1', ${stage}, 'u-ale', 'u-ale', 'maria', 'bidx', '\\x01', 'conversa')
-    returning id`) as [{ id: string }];
+    returning id`) as unknown as [{ id: string }];
   await owner`insert into lead_notes (lead_id, body, created_by) values (${lead}, 'telefone pessoal 11999', 'u-ale')`;
 });
 
@@ -125,7 +125,7 @@ describe('anonimização', () => {
     const [{ id: recent }] = (await owner<{ id: string }[]>`
       insert into leads (name, income_band, source, tier, stage_id, sdr_id, created_by, instagram, deleted_at)
       values ('Recente', 'R5_10K', 'INSTAGRAM', 'P2', ${stage}, 'u-ale', 'u-ale', 'recente', now() - interval '10 days')
-      returning id`) as [{ id: string }];
+      returning id`) as unknown as [{ id: string }];
     await owner`update leads set deleted_at = now() - interval '200 days' where id = ${lead}`;
     const [r] = await owner<{ n: number }[]>`select lgpd_retention(180) as n`;
     expect(r!.n).toBe(1);
