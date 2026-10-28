@@ -60,7 +60,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         }
       />
       <div className="flex min-w-0 flex-1 flex-col">
-        <main className="flex-1 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-32 md:px-8 md:pt-6 md:pb-10">
+        <main className="page-reveal flex-1 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-32 md:px-8 md:pt-6 md:pb-10">
           {children}
         </main>
       </div>

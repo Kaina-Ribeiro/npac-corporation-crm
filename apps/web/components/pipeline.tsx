@@ -129,7 +129,7 @@ export function Pipeline({ initial, catalog }: { initial: PipelineDTO; catalog: 
             </button>
           ))}
       </nav>
-      <div className="flex items-start gap-4 overflow-x-auto pb-4">
+      <div data-own-motion className="flex items-start gap-4 overflow-x-auto pb-4">
         {columns
           .filter((c) => visible.includes(c.stage.key))
           .map((c, col) => (
@@ -137,7 +137,7 @@ export function Pipeline({ initial, catalog }: { initial: PipelineDTO; catalog: 
               key={c.stage.id}
               aria-label={c.stage.label}
               // Entrada em cascata (globals.css `.reveal`): coluna por coluna, depois os cards.
-              style={{ '--delay': `${col * 90}ms` } as CSSProperties}
+              style={{ '--delay': `${200 + col * 90}ms` } as CSSProperties}
               className={`reveal glass-card w-full shrink-0 flex-col gap-3 p-3 md:w-[280px] ${active === c.stage.key ? 'flex' : 'hidden md:flex'}`}
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => {
@@ -157,7 +157,7 @@ export function Pipeline({ initial, catalog }: { initial: PipelineDTO; catalog: 
                   draggable={!busy}
                   onDragStart={(e) => e.dataTransfer.setData('text/plain', l.id)}
                   style={
-                    { '--delay': `${col * 90 + 160 + Math.min(i, 8) * 55}ms` } as CSSProperties
+                    { '--delay': `${360 + col * 90 + Math.min(i, 8) * 55}ms` } as CSSProperties
                   }
                   className="reveal rounded-2xl border border-line bg-[var(--gl2)] p-3"
                 >

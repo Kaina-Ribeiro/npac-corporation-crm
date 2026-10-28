@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import type { Role } from '@npac/shared';
 import { money } from '@npac/shared/money';
 import { apiGet } from '@/lib/api';
@@ -21,7 +22,10 @@ export default async function EquipePage() {
         <h1 className="mt-1.5 text-[34px] leading-tight font-bold tracking-[-0.04em]">Equipe</h1>
         <p className="text-sm text-ink2">Números do mês corrente (horário de Brasília).</p>
       </div>
-      <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <ul
+        className="reveal-grid grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+        style={{ '--d': '140ms' } as CSSProperties}
+      >
         {members.map((m) => (
           <li key={m.id} className="glass-card flex flex-col gap-3 p-5">
             <div className="flex items-center gap-3">
