@@ -14,7 +14,7 @@
   --gl-solid: #fbfbfd;
   /* Liquid glass (só em conteúdo, classe .liquid): mais translúcido, reflexo na borda
      (luz de cima/esquerda) e brilho interno do topo. */
-  --gl-liquid: rgba(255, 255, 255, 0.58);
+  --gl-liquid: rgba(255, 255, 255, 0.42);
   --rim: linear-gradient(
     150deg,
     rgba(255, 255, 255, 0.95),
@@ -22,7 +22,14 @@
     rgba(255, 255, 255, 0) 60%,
     rgba(255, 255, 255, 0.45)
   );
-  --sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0) 42%);
+  --sheen: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.6),
+    rgba(255, 255, 255, 0.12) 45%,
+    rgba(255, 255, 255, 0) 70%
+  );
+  /* Sombra fina por dentro embaixo: dá volume e contraste à borda clara no tema claro. */
+  --liquid-depth: inset 0 -1px 0 rgba(0, 0, 0, 0.05), inset 0 -10px 20px -14px rgba(0, 0, 0, 0.08);
   --glhi:
     inset 0 1.5px 0 #fff, inset 0 -1px 2px rgba(255, 255, 255, 0.45),
     inset 0 0 0 0.5px rgba(255, 255, 255, 0.75);
@@ -55,12 +62,13 @@
   --gl-liquid: rgba(36, 36, 40, 0.6);
   --rim: linear-gradient(
     150deg,
-    rgba(255, 255, 255, 0.22),
-    rgba(255, 255, 255, 0.05) 35%,
+    rgba(255, 255, 255, 0.16),
+    rgba(255, 255, 255, 0.04) 35%,
     rgba(255, 255, 255, 0) 60%,
-    rgba(255, 255, 255, 0.08)
+    rgba(255, 255, 255, 0.06)
   );
   --sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 42%);
+  --liquid-depth: inset 0 -1px 0 rgba(0, 0, 0, 0.25);
   --glhi: inset 0 1px 0 rgba(255, 255, 255, 0.1), inset 0 0 0 0.5px rgba(255, 255, 255, 0.08);
   --gld: 0 14px 34px -14px rgba(0, 0, 0, 0.6);
   --on: rgba(255, 255, 255, 0.12);
@@ -124,6 +132,7 @@ body {
   /* Liquid glass nos cards de conteúdo dentro de `.liquid` (por enquanto, o dashboard). */
   .liquid .glass-card {
     background: var(--sheen), var(--gl-liquid);
+    box-shadow: var(--glhi), var(--liquid-depth), var(--gld);
   }
   /* Fio de luz de 1px na borda, mais claro em cima/à esquerda (só a borda: o meio é recortado). */
   .liquid .glass-card::before {
@@ -385,11 +394,16 @@ body {
     transition:
       transform 0.32s cubic-bezier(0.25, 0.1, 0.25, 1),
       box-shadow 0.32s cubic-bezier(0.25, 0.1, 0.25, 1);
+    /* Camada própria desde o início: sem isso o navegador promove o card só durante a
+       animação e redesenha ao entrar/sair, e o fio de luz de 1px "pisca". */
+    will-change: transform;
+    backface-visibility: hidden;
   }
   .dash-lift article.glass-card:hover {
     transform: scale(1.01);
     box-shadow:
       var(--glhi),
+      var(--liquid-depth),
       0 0 0 0.5px rgba(0, 0, 0, 0.04),
       0 22px 44px -16px rgba(0, 0, 0, 0.24);
   }
@@ -398,6 +412,7 @@ body {
     transform: scale(1.005);
     box-shadow:
       var(--glhi),
+      var(--liquid-depth),
       0 0 0 0.5px rgba(0, 0, 0, 0.04),
       0 22px 44px -16px rgba(0, 0, 0, 0.24);
   }
