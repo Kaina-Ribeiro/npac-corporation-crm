@@ -36,6 +36,13 @@ describe('seed', () => {
     ]);
     expect(rows.every((r) => r.can_close)).toBe(true);
   });
+  it('playbook inicial por tema, sem duplicar no segundo seed', async () => {
+    const [p] = await owner<
+      { n: number; topics: number }[]
+    >`select count(*)::int as n, count(distinct topic)::int as topics from playbook_scripts`;
+    expect(p!.n).toBeGreaterThanOrEqual(6);
+    expect(p!.topics).toBeGreaterThanOrEqual(4);
+  });
   it('é idempotente: 6 usuários e 8 etapas', async () => {
     const [u] = await owner<{ n: number }[]>`select count(*)::int as n from "user"`;
     const [s] = await owner<{ n: number }[]>`select count(*)::int as n from pipeline_stages`;
