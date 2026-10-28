@@ -6,7 +6,8 @@ import { InboxCard } from '@/components/inbox';
 import { SearchButton } from '@/components/shell/command-palette';
 import { SignOutButton } from '@/components/shell/sign-out-button';
 import { ThemeSwitch } from '@/components/shell/theme-switch';
-import { getSession, ROLE_LABEL } from '@/lib/session';
+import { RoleTag } from '@/components/role-tag';
+import { getSession } from '@/lib/session';
 
 export const metadata = { title: 'Mais' };
 
@@ -36,9 +37,7 @@ export default async function MorePage() {
         <div className="min-w-0">
           <h1 className="truncate text-2xl font-bold tracking-[-0.03em]">{me.name}</h1>
           <div className="mt-1.5 flex flex-wrap gap-1.5">
-            <span className="rounded-full bg-ink px-2.5 py-0.5 text-xs font-semibold text-[var(--bg)]">
-              {ROLE_LABEL[me.role]}
-            </span>
+            <RoleTag role={me.role} className="h-[22px]" />
             {flags.map((f) => (
               <span
                 key={String(f)}

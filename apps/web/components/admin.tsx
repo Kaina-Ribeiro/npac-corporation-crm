@@ -4,6 +4,7 @@ import { isLeader } from '@npac/shared/enums';
 import { money, parseCents } from '@npac/shared/money';
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { clientApi } from '@/lib/client-api';
+import { ROLE_LABEL, RoleTag } from './role-tag';
 import { button, control, Field, FormError, quietButton } from './crm-ui';
 
 type User = {
@@ -52,12 +53,6 @@ type AuditItem = {
 export type AdminData = { users: User[]; products: Product[]; stages: Stage[]; lgpd: Lgpd[] };
 
 const TABS = ['Usuários', 'Produtos', 'Etapas', 'Auditoria', 'LGPD'] as const;
-const ROLE_LABEL: Record<Role, string> = {
-  DIRETOR: 'Diretoria',
-  HEAD: 'Head',
-  SDR: 'SDR',
-  CLOSER: 'Closer',
-};
 const KIND: Record<Lgpd['kind'], string> = {
   ACCESS: 'Acesso',
   CORRECTION: 'Correção',
@@ -227,12 +222,13 @@ export function Admin({
               {data.users.map((u) => (
                 <li key={u.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
                   <div>
-                    <p className="font-semibold">
-                      {u.name} {!u.active && <span className="text-xs text-danger">inativo</span>}
+                    <p className="flex flex-wrap items-center gap-2 font-semibold">
+                      {u.name} <RoleTag role={u.role} />
+                      {!u.active && <span className="text-xs text-danger">inativo</span>}
                     </p>
                     <p className="text-xs text-ink2">
                       {u.username && <b className="font-semibold text-ink">{u.username} · </b>}
-                      {u.email} · {ROLE_LABEL[u.role]}
+                      {u.email}
                       {u.twoFactorEnabled ? ' · MFA ativo' : ''}
                       {u.leads > 0 && ` · ${u.leads} ${u.leads === 1 ? 'lead' : 'leads'}`}
                     </p>

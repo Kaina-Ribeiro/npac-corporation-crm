@@ -7,7 +7,8 @@ import { ThemeToggle } from '@/components/shell/theme-toggle';
 import { BottomNav } from '@/components/shell/bottom-nav';
 import { Sidebar } from '@/components/shell/sidebar';
 import { SignOutButton } from '@/components/shell/sign-out-button';
-import { getSession, pendingStep, ROLE_LABEL } from '@/lib/session';
+import { RoleTag } from '@/components/role-tag';
+import { getSession, pendingStep } from '@/lib/session';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const me = await getSession();
@@ -26,8 +27,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const who = (
     <span className="min-w-0 leading-tight">
       <b className="block truncate text-sm font-semibold">{me.name}</b>
-      <small className="block text-xs text-ink2">
-        {ROLE_LABEL[me.role]} ·{' '}
+      <small className="mt-1 flex items-center gap-2 text-xs text-ink2">
+        <RoleTag role={me.role} />
         <Link href="/conta/senha" className="underline-offset-2 hover:text-ink hover:underline">
           Trocar senha
         </Link>

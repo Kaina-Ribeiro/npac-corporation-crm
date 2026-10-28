@@ -31,10 +31,3 @@ export function pendingStep(me: Me): '/conta/senha' | '/conta/mfa' | null {
   if (me.mfaPending) return '/conta/mfa';
   return null;
 }
-
-export const ROLE_LABEL: Record<Role, string> = {
-  DIRETOR: 'Diretoria',
-  HEAD: 'Head',
-  SDR: 'SDR',
-  CLOSER: 'Closer',
-};

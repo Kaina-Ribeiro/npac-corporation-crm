@@ -43,7 +43,12 @@ test('HEAD convida usuário, vê auditoria e registra pedido LGPD', async ({ pag
   await page.getByLabel('Prospecta').check();
   await page.getByRole('button', { name: 'Convidar', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Senha temporária' })).toBeVisible();
-  await expect(page.getByText('convidada@npac.test · SDR')).toBeVisible();
+  await expect(
+    page
+      .getByRole('listitem')
+      .filter({ hasText: 'convidada@npac.test' })
+      .locator('.role-SDR'),
+  ).toBeVisible();
   // Head gerencia SDR/closer, mas não promove a Head nem mexe na conta de outro Head.
   await expect(page.getByLabel('Papel').locator('option')).toHaveText(['SDR', 'Closer']);
   await page.getByLabel('Cargo de Ale').selectOption('CLOSER');

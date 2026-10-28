@@ -1,7 +1,7 @@
 import type { Role } from '@npac/shared';
 import { money } from '@npac/shared/money';
 import { apiGet } from '@/lib/api';
-import { ROLE_LABEL } from '@/lib/session';
+import { RoleTag } from '@/components/role-tag';
 
 export const metadata = { title: 'Equipe' };
 type Member = {
@@ -33,10 +33,11 @@ export default async function EquipePage() {
               </span>
               <div>
                 <h2 className="font-bold">{m.name}</h2>
-                <p className="text-xs text-ink2">
-                  {ROLE_LABEL[m.role]}
-                  {m.canProspect ? ' · prospecta' : ''}
-                  {m.canClose ? ' · fecha' : ''}
+                <p className="mt-1 flex items-center gap-1.5 text-xs text-ink2">
+                  <RoleTag role={m.role} />
+                  {[m.canProspect && 'prospecta', m.canClose && 'fecha']
+                    .filter(Boolean)
+                    .join(' · ')}
                 </p>
               </div>
             </div>

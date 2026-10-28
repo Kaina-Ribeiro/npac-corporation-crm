@@ -204,6 +204,48 @@ body {
     box-shadow: inset 0 0 0 1px #d1d1d6;
     color: var(--ink2);
   }
+  /* Cargo: hierarquia pelo peso visual, na paleta do site. Diretoria em preto e dourado
+     (único dourado fora de dinheiro), Head em grafite sólido, SDR e Closer em contorno. */
+  .role {
+    display: inline-flex;
+    align-items: center;
+    height: 20px;
+    padding: 0 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    flex: none;
+    background: var(--role-bg, transparent);
+    color: var(--role-fg, var(--ink2));
+    box-shadow: inset 0 0 0 1px var(--role-ring, transparent);
+  }
+  .role-DIRETOR {
+    --role-bg: #1d1d1f;
+    --role-fg: #f2d38a;
+    --role-ring: rgba(226, 187, 102, 0.55);
+  }
+  .role-HEAD {
+    --role-bg: #3a3a3c;
+    --role-fg: #fff;
+  }
+  .role-SDR,
+  .role-CLOSER {
+    --role-ring: #c7c7cc;
+  }
+  .dark .role-DIRETOR {
+    --role-bg: rgba(226, 187, 102, 0.14);
+    --role-ring: rgba(226, 187, 102, 0.45);
+  }
+  .dark .role-HEAD {
+    --role-bg: #e5e5ea;
+    --role-fg: #1d1d1f;
+  }
+  .dark .role-SDR,
+  .dark .role-CLOSER {
+    --role-ring: rgba(235, 235, 245, 0.3);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
