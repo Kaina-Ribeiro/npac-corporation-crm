@@ -31,7 +31,10 @@ export const leadCreateSchema = z
     sdrId: z.string().optional(),
     closerId: z.string().optional(),
     stageKey: z.enum(STAGE_KEYS).default('SONDAGEM'),
-    nextContactAt: z.iso.datetime({ offset: true }).transform((s) => new Date(s)).optional(),
+    nextContactAt: z.iso
+      .datetime({ offset: true })
+      .transform((s) => new Date(s))
+      .optional(),
     summary: z.string().max(5000).optional(),
   })
   .refine((v) => v.phone !== undefined || v.instagram !== undefined, {

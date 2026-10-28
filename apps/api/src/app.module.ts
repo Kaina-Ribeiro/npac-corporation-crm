@@ -5,10 +5,17 @@ import { AuthModule } from './auth/auth.module.js';
 import { DbModule } from './common/db/db.module.js';
 import { loggerOptions } from './common/logging/logger.js';
 import { HealthController } from './health/health.controller.js';
+import { LeadsModule } from './leads/leads.module.js';
 import { MeController } from './me/me.controller.js';
 
 @Module({
-  imports: [LoggerModule.forRoot({ pinoHttp: loggerOptions }), DbModule, AuditModule, AuthModule],
+  imports: [
+    LoggerModule.forRoot({ pinoHttp: loggerOptions }),
+    DbModule,
+    AuditModule,
+    AuthModule,
+    LeadsModule,
+  ],
   controllers: [HealthController, MeController],
 })
 export class AppModule {}
