@@ -2,6 +2,7 @@
 import { useRouter } from 'next/navigation';
 import { useRef, useState, type FormEvent } from 'react';
 import { authClient } from '@/lib/auth-client';
+import { submitWhenComplete } from '@/lib/otp-input';
 import { LAST_USER_COOKIE } from '@/lib/last-user';
 
 /**
@@ -55,6 +56,7 @@ export function LoginForm({ lastUser }: { lastUser?: string }) {
 
   async function onTotp(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (busy) return; // envio automático + clique não mandam o código duas vezes
     const code = String(new FormData(e.currentTarget).get('code') ?? '').replace(/\D/g, '');
     setBusy(true);
     setError(null);
@@ -92,6 +94,7 @@ export function LoginForm({ lastUser }: { lastUser?: string }) {
             pattern="\d{6}"
             maxLength={6}
             required
+            onInput={submitWhenComplete}
             autoFocus
           />
         </label>

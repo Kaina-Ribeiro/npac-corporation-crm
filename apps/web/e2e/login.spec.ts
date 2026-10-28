@@ -217,14 +217,12 @@ for (const head of ['ana', 'ronaldo']) {
     await page.getByRole('button', { name: 'Continuar' }).click();
     const secret = await page.locator('code').innerText();
     await page.getByLabel('Código', { exact: true }).fill(totp(secret));
-    await page.getByRole('button', { name: 'Ativar e entrar' }).click();
     await page.waitForURL(/\/dashboard/);
     await page.getByRole('button', { name: 'Sair' }).click();
     await page.waitForURL(/\/login/);
     await login(page, `${head}@npac.com.br`);
     await expect(page.getByRole('heading', { name: 'Confirme que é você' })).toBeVisible();
     await page.getByLabel('Código', { exact: true }).fill(totp(secret));
-    await page.getByRole('button', { name: 'Verificar e entrar' }).click();
     await page.waitForURL(/\/dashboard/);
   });
 }
@@ -238,7 +236,6 @@ test('HEAD estorna pela ficha preservando recebimento', async ({ page }) => {
   await page.getByRole('button', { name: 'Continuar', exact: true }).click();
   const secret = await page.locator('code').innerText();
   await page.getByLabel('Código', { exact: true }).fill(totp(secret));
-  await page.getByRole('button', { name: 'Ativar e entrar' }).click();
   await page.waitForURL(/\/dashboard/);
   const [sdr] = await owner<{ id: string }[]>`select id from "user" where email='ale@npac.com.br'`;
   const lead = await page.request.post('/api/leads', {

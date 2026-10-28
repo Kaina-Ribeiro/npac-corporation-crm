@@ -3,6 +3,7 @@ import { useRouter } from 'next/navigation';
 import QRCode from 'qrcode';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { authClient } from '@/lib/auth-client';
+import { submitWhenComplete } from '@/lib/otp-input';
 import { takePassword } from '@/lib/mfa-handoff';
 
 /** Ativação do TOTP: confirma a senha, mostra o QR e valida o primeiro código. */
@@ -44,6 +45,7 @@ export function MfaSetup() {
 
   async function onCode(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (busy) return; // envio automático + clique não mandam o código duas vezes
     const code = String(new FormData(e.currentTarget).get('code') ?? '').replace(/\D/g, '');
     setBusy(true);
     setError(null);
@@ -120,6 +122,7 @@ export function MfaSetup() {
           pattern="\d{6}"
           maxLength={6}
           required
+          onInput={submitWhenComplete}
         />
       </label>
       {error && (
