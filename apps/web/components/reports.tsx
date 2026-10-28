@@ -2,8 +2,9 @@
 import type { LeadCatalog, ProductDTO, ReportDTO, ReportRow, TeamActivityDTO } from '@npac/shared';
 import { money } from '@npac/shared/money';
 import Link from 'next/link';
-import { type CSSProperties, useState, type FormEvent } from 'react';
+import { type CSSProperties, useMemo, useState, type FormEvent } from 'react';
 import { clientApi } from '@/lib/client-api';
+import { DASH_CARDS } from '@/lib/dashboard-layout';
 import { button, control, Field, FormError, quietButton } from './crm-ui';
 import {
   ChartCard,
@@ -15,6 +16,7 @@ import {
   TierDonut,
   chartColors,
 } from './dashboard-charts';
+import { BoardProvider, DashboardBoard, RestoreOrder, type BoardCard } from './dashboard-board';
 import { CloserDesk, SdrTable, TeamFeed } from './dashboard-team';
 import { CountUp } from './count-up';
 import { useCrmRefresh } from './shell/live-updates';
@@ -133,6 +135,7 @@ export function Reports({
   dashboard = false,
   name,
   activity,
+  layout,
 }: {
   initial: ReportDTO;
   catalog: LeadCatalog;
@@ -143,6 +146,8 @@ export function Reports({
   name?: string;
   /** Feed da equipe; só vem para Head. */
   activity?: TeamActivityDTO;
+  /** Ordem salva dos cards do dashboard (cookie da pessoa). */
+  layout?: { cookie: string; saved?: string };
 }) {
   const [data, setData] = useState(initial),
     [filters, setFilters] = useState<Record<string, string>>({ period: 'MONTH' }),
@@ -219,6 +224,164 @@ export function Reports({
     }
   }
   const m = data.metrics;
+  const dashCards: BoardCard[] = !dashboard
+    ? []
+    : [
+        ...(
+          [
+            [
+              'kpi-leads',
+              'Leads novos',
+              m.leads ?? 0,
+              `P0 ${m.p0 ?? 0} · P1 ${m.p1 ?? 0} · P2 ${m.p2 ?? 0}`,
+              'leads',
+              chartColors.volume,
+            ],
+            [
+              'kpi-meetings',
+              'Reuniões agendadas',
+              m.meetings ?? 0,
+              `${m.direct ?? 0} diretas · ${m.follow ?? 0} do follow`,
+              'meetings',
+              chartColors.volume,
+            ],
+            [
+              'kpi-sold',
+              'Vendido',
+              m.soldCents ?? 0,
+              `${m.sales ?? 0} vendas · conversão ${((m.conversionBps ?? 0) / 100).toFixed(0)}%`,
+              'soldCents',
+              chartColors.money,
+            ],
+            [
+              'kpi-received',
+              'Recebido',
+              m.receivedCents ?? 0,
+              `A receber: ${money(m.outstandingCents ?? 0)}`,
+              'receivedCents',
+              chartColors.money,
+            ],
+          ] as const
+        ).map(([id, label, value, foot, key, color], i): BoardCard => ({
+          id,
+          title: label,
+          size: 'kpi',
+          node: (
+            <article className="glass-card flex flex-col gap-1 p-5">
+              <p className="text-sm text-ink2">{label}</p>
+              <p
+                className={`text-3xl font-bold tracking-tight tabular-nums ${key.endsWith('Cents') ? 'text-gold-deep' : ''}`}
+              >
+                <CountUp
+                  value={value}
+                  format={key.endsWith('Cents') ? money : undefined}
+                  delay={230 + i * 70}
+                />
+              </p>
+              <p className="text-xs text-ink2">{foot}</p>
+              <Sparkline values={data.daily.map((d) => d[key])} color={color} />
+            </article>
+          ),
+        })),
+        {
+          id: 'revenue',
+          title: 'Faturamento acumulado',
+          size: 'wide',
+          node: (
+            <RevenueHero
+              daily={data.daily}
+              previous={data.previousDaily}
+              receivedCents={m.receivedCents ?? 0}
+              outstandingCents={m.outstandingCents ?? 0}
+              monthly={preset === 'MONTH'}
+            />
+          ),
+        },
+        {
+          id: 'funnel',
+          title: 'Funil',
+          size: 'narrow',
+          node: (
+            <ChartCard
+              title="Funil"
+              subtitle={`No-show ${((m.noShowBps ?? 0) / 100).toFixed(0)}% das reuniões decididas`}
+            >
+              <Funnel metrics={m} />
+            </ChartCard>
+          ),
+        },
+        {
+          id: 'daily-leads',
+          title: 'Leads novos por dia',
+          size: 'wide',
+          node: (
+            <ChartCard title="Leads novos por dia">
+              <DailyBars daily={data.daily} field="leads" label="Leads" />
+            </ChartCard>
+          ),
+        },
+        {
+          id: 'tiers',
+          title: 'Perfil dos leads',
+          size: 'narrow',
+          node: (
+            <ChartCard title="Perfil dos leads">
+              <TierDonut p0={m.p0 ?? 0} p1={m.p1 ?? 0} p2={m.p2 ?? 0} />
+            </ChartCard>
+          ),
+        },
+        {
+          id: 'closers',
+          title: 'Mesa dos closers',
+          size: 'half',
+          node: <CloserDesk rows={data.byCloser} />,
+        },
+        {
+          id: 'sdrs',
+          title: 'Pré-vendas',
+          size: 'half',
+          node: (
+            <SdrTable
+              rows={data.bySdr}
+              period={
+                preset === 'TODAY' ? 'Hoje' : preset === 'WEEK' ? 'Últimos 7 dias' : monthName()
+              }
+            />
+          ),
+        },
+        {
+          id: 'products',
+          title: 'Produtos',
+          size: 'narrow',
+          node: (
+            <ChartCard title="Produtos" subtitle="Vendido por produto">
+              <RankBars
+                rows={data.byProduct}
+                value={(r) => r.soldCents}
+                format={money}
+                color={chartColors.money}
+                detail={(r) => `${r.sales}×`}
+              />
+            </ChartCard>
+          ),
+        },
+        ...(activity
+          ? [
+              {
+                id: 'feed',
+                title: 'Atividade da equipe',
+                size: 'wide',
+                node: <TeamFeed initial={activity} />,
+              } satisfies BoardCard,
+            ]
+          : []),
+      ];
+  // Ordem padrão: estável entre renderizações (o feed só existe para a liderança).
+  const hasFeed = !!activity;
+  const dashIds = useMemo(
+    () => DASH_CARDS.filter((id) => dashboard && (id !== 'feed' || hasFeed)),
+    [dashboard, hasFeed],
+  );
   const cards = [
     ['Leads novos', String(m.leads ?? 0)],
     ['Agendamentos', String(m.meetings ?? 0)],
@@ -227,7 +390,7 @@ export function Reports({
     ['Recebido no período', money(m.receivedCents ?? 0)],
     ['A receber das vendas do período', money(m.outstandingCents ?? 0)],
   ];
-  return (
+  const page = (
     <div className="mx-auto flex max-w-6xl flex-col gap-5">
       {dashboard ? (
         <header className="reveal flex flex-wrap items-end justify-between gap-4">
@@ -237,28 +400,31 @@ export function Reports({
               {head ? 'Toda a equipe' : 'Seu escopo'} · {todayLabel()}
             </p>
           </div>
-          <div
-            role="group"
-            aria-label="Período"
-            aria-busy={busy}
-            className="grid grid-cols-3 gap-1 rounded-full bg-black/5 p-1 dark:bg-white/10"
-          >
-            {(['TODAY', 'WEEK', 'MONTH'] as const).map((p) => (
-              <button
-                key={p}
-                type="button"
-                aria-pressed={preset === p}
-                disabled={busy}
-                onClick={() => void pick(p)}
-                className={`min-h-9 rounded-full px-4 text-sm font-semibold whitespace-nowrap transition-all first-letter:uppercase ${
-                  preset === p
-                    ? 'bg-[var(--on)] text-ink shadow-[0_2px_10px_rgba(0,0,0,.08)]'
-                    : 'text-ink2'
-                }`}
-              >
-                {p === 'TODAY' ? 'Hoje' : p === 'WEEK' ? '7 dias' : monthName()}
-              </button>
-            ))}
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <RestoreOrder />
+            <div
+              role="group"
+              aria-label="Período"
+              aria-busy={busy}
+              className="grid grid-cols-3 gap-1 rounded-full bg-black/5 p-1 dark:bg-white/10"
+            >
+              {(['TODAY', 'WEEK', 'MONTH'] as const).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  aria-pressed={preset === p}
+                  disabled={busy}
+                  onClick={() => void pick(p)}
+                  className={`min-h-9 rounded-full px-4 text-sm font-semibold whitespace-nowrap transition-all first-letter:uppercase ${
+                    preset === p
+                      ? 'bg-[var(--on)] text-ink shadow-[0_2px_10px_rgba(0,0,0,.08)]'
+                      : 'text-ink2'
+                  }`}
+                >
+                  {p === 'TODAY' ? 'Hoje' : p === 'WEEK' ? '7 dias' : monthName()}
+                </button>
+              ))}
+            </div>
           </div>
         </header>
       ) : (
@@ -357,120 +523,7 @@ export function Reports({
       )}
       <FormError message={error} />
       {dashboard ? (
-        // `dash-lift`: cards sobem de leve no hover; `liquid`: liquid glass (globals.css).
-        <div className="dash-lift liquid contents">
-          <div
-            className="reveal-grid grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
-            style={{ '--d': '80ms' } as CSSProperties}
-          >
-            {(
-              [
-                [
-                  'Leads novos',
-                  m.leads ?? 0,
-                  `P0 ${m.p0 ?? 0} · P1 ${m.p1 ?? 0} · P2 ${m.p2 ?? 0}`,
-                  'leads',
-                  chartColors.volume,
-                ],
-                [
-                  'Reuniões agendadas',
-                  m.meetings ?? 0,
-                  `${m.direct ?? 0} diretas · ${m.follow ?? 0} do follow`,
-                  'meetings',
-                  chartColors.volume,
-                ],
-                [
-                  'Vendido',
-                  m.soldCents ?? 0,
-                  `${m.sales ?? 0} vendas · conversão ${((m.conversionBps ?? 0) / 100).toFixed(0)}%`,
-                  'soldCents',
-                  chartColors.money,
-                ],
-                [
-                  'Recebido',
-                  m.receivedCents ?? 0,
-                  `A receber: ${money(m.outstandingCents ?? 0)}`,
-                  'receivedCents',
-                  chartColors.money,
-                ],
-              ] as const
-            ).map(([label, value, foot, key, color], i) => (
-              <article key={label} className="glass-card flex flex-col gap-1 p-5">
-                <p className="text-sm text-ink2">{label}</p>
-                <p
-                  className={`text-3xl font-bold tracking-tight tabular-nums ${key.endsWith('Cents') ? 'text-gold-deep' : ''}`}
-                >
-                  <CountUp
-                    value={value}
-                    format={key.endsWith('Cents') ? money : undefined}
-                    delay={230 + i * 70}
-                  />
-                </p>
-                <p className="text-xs text-ink2">{foot}</p>
-                <Sparkline values={data.daily.map((d) => d[key])} color={color} />
-              </article>
-            ))}
-          </div>
-          <div
-            className="reveal-grid grid gap-5 lg:grid-cols-3"
-            style={{ '--d': '300ms' } as CSSProperties}
-          >
-            <RevenueHero
-              daily={data.daily}
-              previous={data.previousDaily}
-              receivedCents={m.receivedCents ?? 0}
-              outstandingCents={m.outstandingCents ?? 0}
-              monthly={preset === 'MONTH'}
-            />
-            <ChartCard
-              title="Funil"
-              subtitle={`No-show ${((m.noShowBps ?? 0) / 100).toFixed(0)}% das reuniões decididas`}
-            >
-              <Funnel metrics={m} />
-            </ChartCard>
-            <ChartCard title="Leads novos por dia" className="lg:col-span-2">
-              <DailyBars daily={data.daily} field="leads" label="Leads" />
-            </ChartCard>
-            <ChartCard title="Perfil dos leads">
-              <TierDonut p0={m.p0 ?? 0} p1={m.p1 ?? 0} p2={m.p2 ?? 0} />
-            </ChartCard>
-          </div>
-          <div
-            className="reveal-grid grid gap-5 lg:grid-cols-2"
-            style={{ '--d': '520ms' } as CSSProperties}
-          >
-            <CloserDesk rows={data.byCloser} />
-            <SdrTable
-              rows={data.bySdr}
-              period={
-                preset === 'TODAY' ? 'Hoje' : preset === 'WEEK' ? 'Últimos 7 dias' : monthName()
-              }
-            />
-          </div>
-          <div
-            className="reveal-grid grid gap-5 lg:grid-cols-3"
-            style={{ '--d': '660ms' } as CSSProperties}
-          >
-            <ChartCard
-              title="Produtos"
-              subtitle="Vendido por produto"
-              className={activity ? '' : 'lg:col-span-3'}
-            >
-              <RankBars
-                rows={data.byProduct}
-                value={(r) => r.soldCents}
-                format={money}
-                color={chartColors.money}
-                detail={(r) => `${r.sales}×`}
-              />
-            </ChartCard>
-            {activity && (
-              <div className="min-w-0 lg:col-span-2">
-                <TeamFeed initial={activity} />
-              </div>
-            )}
-          </div>
-        </div>
+        <DashboardBoard cards={dashCards} style={{ '--d': '80ms' } as CSSProperties} />
       ) : (
         <>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -574,5 +627,12 @@ export function Reports({
         </>
       )}
     </div>
+  );
+  return dashboard ? (
+    <BoardProvider defaults={dashIds} saved={layout?.saved} cookie={layout?.cookie ?? ''}>
+      {page}
+    </BoardProvider>
+  ) : (
+    page
   );
 }

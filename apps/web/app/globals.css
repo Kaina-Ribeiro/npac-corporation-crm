@@ -388,6 +388,197 @@ body {
   }
 }
 
+/* Dashboard organizável (DashboardBoard + lib/board-motion.ts). Cada card ocupa N/12 da linha
+   e cresce para fechar a linha: mover um card nunca deixa buraco. As posições animam com molas
+   em JS; aqui ficam o tamanho, o puxador, o encaixe vazio e o card levantado. */
+:root {
+  /* Mola (resposta 0,42 s, amortecimento 0,72): passa ~3% do alvo e assenta. */
+  --ease-spring: linear(
+    0,
+    0.063,
+    0.2,
+    0.367,
+    0.531,
+    0.677,
+    0.797,
+    0.888,
+    0.952,
+    0.995,
+    1.02,
+    1.032,
+    1.036,
+    1.034,
+    1.029,
+    1.024,
+    1.018,
+    1.012,
+    1.008,
+    1.004,
+    1.002,
+    1
+  );
+}
+.dash-board {
+  --gap: 16px;
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gap);
+}
+.dash-item {
+  --span: 12;
+  position: relative;
+  display: grid;
+  min-width: 0;
+  flex: var(--span) 1 calc(var(--span) / 12 * 100% - var(--gap));
+  -webkit-touch-callout: none;
+}
+@media (width >= 40rem) {
+  .dash-item[data-size='kpi'] {
+    --span: 6;
+  }
+}
+@media (width >= 64rem) {
+  .dash-board {
+    --gap: 20px;
+  }
+  .dash-item[data-size='wide'] {
+    --span: 8;
+  }
+  .dash-item[data-size='narrow'] {
+    --span: 4;
+  }
+  .dash-item[data-size='half'] {
+    --span: 6;
+  }
+}
+@media (width >= 80rem) {
+  .dash-item[data-size='kpi'] {
+    --span: 3;
+  }
+}
+/* No toque, segurar o card levanta: sem seleção de texto nem menu do sistema. */
+@media (hover: none) {
+  .dash-item {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}
+.dash-item[data-lifted],
+.dash-item[data-settling] {
+  z-index: 30;
+}
+/* Os outros cards não reagem ao ponteiro enquanto um está na mão (sem hover nem dicas). */
+.dash-board[data-dragging] .dash-item:not([data-lifted]) {
+  pointer-events: none;
+}
+.dash-item > :is(.glass-card, .lift) {
+  transition:
+    transform 0.5s var(--ease-spring),
+    box-shadow 0.35s var(--ease-out);
+}
+.dash-board .dash-item[data-lifted] > :is(.glass-card, .lift) {
+  cursor: grabbing;
+  box-shadow:
+    var(--glhi),
+    var(--liquid-depth),
+    0 0 0 0.5px rgba(0, 0, 0, 0.05),
+    0 32px 64px -20px rgba(0, 0, 0, 0.32);
+}
+.dash-board .dash-item[data-lifted] > .lift {
+  box-shadow: 0 32px 64px -18px rgba(0, 0, 0, 0.6);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .dash-board .dash-item[data-lifted] > :is(.glass-card, .lift) {
+    transform: scale(1.03);
+  }
+}
+html[data-dash-dragging],
+html[data-dash-dragging] * {
+  cursor: grabbing !important;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Puxador no topo do card, como o de uma folha do iOS: aparece sob o mouse e no foco; no
+   toque fica sempre à vista, discreto. */
+.dash-grip {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 22px;
+  margin-left: -36px;
+  border-radius: 999px;
+  color: var(--ink3);
+  cursor: grab;
+  touch-action: none;
+  opacity: 0;
+  transition: opacity 0.2s var(--ease-out);
+}
+.dash-grip::before {
+  content: '';
+  width: 36px;
+  height: 5px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.5;
+  transition:
+    width 0.4s var(--ease-spring),
+    opacity 0.2s var(--ease-out);
+}
+.dash-item:hover > .dash-grip,
+.dash-item[data-lifted] > .dash-grip,
+.dash-grip:focus-visible {
+  opacity: 1;
+}
+.dash-grip:hover::before,
+.dash-item[data-lifted] > .dash-grip::before {
+  width: 46px;
+  opacity: 0.8;
+}
+.dash-grip:focus-visible {
+  outline-offset: -2px;
+}
+@media (hover: none) {
+  .dash-grip {
+    opacity: 0.8;
+  }
+}
+
+/* Encaixe vazio: mostra onde o card vai assentar e desliza até o lugar novo. */
+.dash-slot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 22px;
+  background: rgba(120, 120, 128, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(120, 120, 128, 0.18);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.25s var(--ease-out),
+    width 0.35s var(--ease-out),
+    height 0.35s var(--ease-out);
+}
+.dash-slot[data-on] {
+  opacity: 1;
+}
+
+/* Botão que surge (ex.: "Ordem padrão" depois de reorganizar). */
+.dash-pop {
+  animation: dash-pop 0.45s var(--ease-spring) both;
+}
+@keyframes dash-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+}
+
 /* Entrada dos gráficos ao carregar: linha que se desenha, barras que crescem, áreas que
    aparecem. Movimento reduzido já zera a duração (regra global acima). */
 @layer components {

@@ -126,7 +126,7 @@ export function RevenueHero({
   const GOLD = '#e2bb66';
   return (
     <section
-      className="lift relative min-w-0 overflow-hidden rounded-3xl p-5 text-white shadow-[0_14px_34px_-14px_rgba(0,0,0,.45)] lg:col-span-2"
+      className="lift relative min-w-0 overflow-hidden rounded-3xl p-5 text-white shadow-[0_14px_34px_-14px_rgba(0,0,0,.45)]"
       style={{ background: 'linear-gradient(160deg, #1d1d20 0%, #0d0d0f 100%)' }}
     >
       <div className="flex flex-wrap items-center justify-between gap-2">

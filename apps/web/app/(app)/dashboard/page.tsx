@@ -1,19 +1,23 @@
 import { isLeader } from '@npac/shared/enums';
 import type { LeadCatalog, ProductDTO, ReportDTO, TeamActivityDTO } from '@npac/shared';
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { Reports } from '@/components/reports';
 import { apiGet, apiPost } from '@/lib/api';
+import { dashCookieName } from '@/lib/dashboard-layout';
 import { getSession } from '@/lib/session';
 export const metadata = { title: 'Dashboard' };
 export default async function DashboardPage() {
   const me = await getSession();
   if (!me) redirect('/login');
   const head = isLeader(me.role);
-  const [initial, catalog, products, activity] = await Promise.all([
+  const cookie = dashCookieName(me.id);
+  const [initial, catalog, products, activity, jar] = await Promise.all([
     apiPost<ReportDTO>('/api/reports/search', { period: 'MONTH' }),
     apiGet<LeadCatalog>('/api/leads/catalog'),
     apiGet<ProductDTO[]>('/api/finance/products'),
     head ? apiGet<TeamActivityDTO>('/api/reports/activity') : undefined,
+    cookies(),
   ]);
   return (
     <Reports
@@ -24,6 +28,7 @@ export default async function DashboardPage() {
       dashboard
       name={me.name}
       activity={activity}
+      layout={{ cookie, saved: jar.get(cookie)?.value }}
     />
   );
 }
