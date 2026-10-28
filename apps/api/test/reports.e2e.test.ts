@@ -81,3 +81,17 @@ it('CSV só HEAD e neutraliza fórmula; resumo não inclui contato', async () =>
   expect(r.status).toBe(200);
   expect(r.body.text).not.toContain('rel.ale');
 });
+it('leads excluídos não entram em métricas, linhas nem CSV do HEAD', async () => {
+  const gone = await h.post(
+    '/api/leads',
+    { name: 'Lead excluído', instagram: '@rel.gone', incomeBand: 'R5_10K', tier: 'P0' },
+    ale,
+  );
+  expect(gone.status).toBe(201);
+  await owner`update leads set deleted_at=now() where id=${gone.body.id}`;
+  const r = await h.post('/api/reports/search', { period: 'TODAY' }, head);
+  expect(r.body.metrics).toMatchObject({ leads: 2, p0: 0 });
+  expect(r.body.leads.map((l: { id: string }) => l.id)).not.toContain(gone.body.id);
+  const csv = await h.post('/api/reports/csv', { period: 'TODAY' }, head);
+  expect(csv.text).not.toContain('rel.gone');
+});

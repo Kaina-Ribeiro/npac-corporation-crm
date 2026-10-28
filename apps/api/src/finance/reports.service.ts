@@ -40,7 +40,7 @@ function window(q: ReportQuery) {
   return { start, end };
 }
 function scope(q: ReportQuery) {
-  const a: SQL[] = [sql`true`];
+  const a: SQL[] = [sql`l.deleted_at is null`];
   if (q.sdrId) a.push(sql`l.sdr_id=${q.sdrId}`);
   if (q.closerId)
     a.push(
