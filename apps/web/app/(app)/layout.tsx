@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { CommandPalette } from '@/components/shell/command-palette';
 import { LiveUpdates } from '@/components/shell/live-updates';
 import { ThemeToggle } from '@/components/shell/theme-toggle';
 import { BottomNav } from '@/components/shell/bottom-nav';
@@ -30,6 +31,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex min-h-dvh">
       <LiveUpdates />
+      <CommandPalette head={me.role === 'HEAD'} />
       <Sidebar
         head={me.role === 'HEAD'}
         footer={

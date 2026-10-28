@@ -61,3 +61,21 @@ export type PipelineDTO = {
   total: number;
   page: number;
 }[];
+
+/** Caixa de avisos da pessoa logada. */
+export type NotificationsDTO = {
+  unread: number;
+  /** Follow-ups atrasados dos leads em que a pessoa é SDR. */
+  overdue: number;
+  items: {
+    id: string;
+    at: string;
+    read: boolean;
+    kind: string;
+    actorName: string;
+    leadId: string;
+    leadName: string | null;
+  }[];
+  /** Reuniões da pessoa como closer nas próximas 2 horas. */
+  soon: { id: string; at: string; leadId: string; leadName: string }[];
+};

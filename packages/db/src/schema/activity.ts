@@ -76,3 +76,20 @@ export const leadTimeline = pgTable(
     ),
   ],
 );
+
+/** Avisos por pessoa, gerados no banco a partir da timeline (gatilho na migration 0019). */
+export const notifications = pgTable(
+  'notifications',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id),
+    timelineId: uuid('timeline_id')
+      .notNull()
+      .references(() => leadTimeline.id),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    readAt: timestamp('read_at', { withTimezone: true }),
+  },
+  (t) => [index('notifications_user_idx').on(t.userId, t.createdAt)],
+);

@@ -45,7 +45,8 @@ export class EventsController {
               coalesce((select count(*)::text || ':' || max(at)::text from lead_timeline), '') || '/' ||
               coalesce((select max(id)::text from chat_messages), '') || '/' ||
               coalesce((select count(*)::text from chat_channels), '') || '/' ||
-              coalesce((select string_agg(channel_id::text || ':' || last_read_id::text, ',' order by channel_id) from chat_reads), '')
+              coalesce((select string_agg(channel_id::text || ':' || last_read_id::text, ',' order by channel_id) from chat_reads), '') || '/' ||
+              coalesce((select count(*)::text || ':' || count(read_at)::text from notifications), '')
             ) as revision`);
             return rows[0]!.revision;
           });

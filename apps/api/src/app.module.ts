@@ -8,6 +8,7 @@ import { HealthController } from './health/health.controller.js';
 import { LeadsModule } from './leads/leads.module.js';
 import { MeController } from './me/me.controller.js';
 import { MeetingsModule } from './meetings/meetings.module.js';
+import { NotificationsModule } from './notifications/notifications.js';
 import { TodayModule } from './today/today.module.js';
 import { EventsModule } from './events/events.module.js';
 import { FinanceModule } from './finance/finance.module.js';
@@ -23,6 +24,7 @@ import { AdminModule } from './admin/admin.module.js';
     LeadsModule,
     MeetingsModule,
     TodayModule,
+    NotificationsModule,
     EventsModule,
     FinanceModule,
     CollabModule,

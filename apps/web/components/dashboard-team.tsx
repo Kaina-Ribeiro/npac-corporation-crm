@@ -3,11 +3,11 @@ import type { ReportRow, TeamActivityDTO } from '@npac/shared';
 import { money } from '@npac/shared/money';
 import Link from 'next/link';
 import { useState } from 'react';
+import { activityVerb, activityWhen } from '@/lib/activity-text';
 import { clientApi } from '@/lib/client-api';
 import { ChartCard } from './dashboard-charts';
 import { useCrmRefresh } from './shell/live-updates';
 
-const SP = 'America/Sao_Paulo';
 const empty = <p className="text-sm text-ink2">Nenhum resultado no período.</p>;
 
 function Initial({ name }: { name: string }) {
@@ -161,41 +161,6 @@ export function SdrTable({ rows, period }: { rows: ReportRow[]; period: string }
   );
 }
 
-const VERB: Record<string, string> = {
-  'lead.created': 'cadastrou',
-  'lead.updated': 'atualizou os dados de',
-  'lead.moved': 'mudou a etapa de',
-  'lead.reassigned': 'trocou o responsável de',
-  'lead.deleted': 'excluiu',
-  'note.created': 'anotou em',
-  'note.updated': 'editou uma nota de',
-  'task.created': 'criou uma tarefa para',
-  'task.updated': 'atualizou uma tarefa de',
-  'meeting.scheduled': 'agendou',
-  'meeting.rescheduled': 'remarcou a reunião de',
-  'meeting.canceled': 'cancelou a reunião de',
-  'meeting.outcome': 'registrou o resultado da reunião de',
-  'sale.registered': 'registrou a venda de',
-  'sale.reversed': 'estornou a venda de',
-  'payment.received': 'recebeu um pagamento de',
-};
-
-const spDay = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: SP }).format(d);
-
-function when(iso: string) {
-  const d = new Date(iso);
-  const time = new Intl.DateTimeFormat('pt-BR', {
-    timeZone: SP,
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(d);
-  const day = spDay(d);
-  if (day === spDay(new Date())) return `Hoje, ${time}`;
-  if (day === spDay(new Date(Date.now() - 86_400_000))) return `Ontem, ${time}`;
-  const date = new Intl.DateTimeFormat('pt-BR', { timeZone: SP, day: '2-digit', month: '2-digit' });
-  return `${date.format(d)}, ${time}`;
-}
-
 /** Atividade da equipe (só Head): últimas mudanças nos leads, atualizada ao vivo. */
 export function TeamFeed({ initial }: { initial: TeamActivityDTO }) {
   const [items, setItems] = useState(initial.items);
@@ -212,7 +177,7 @@ export function TeamFeed({ initial }: { initial: TeamActivityDTO }) {
               <div className="min-w-0">
                 <p>
                   <b className="font-semibold">{i.actorName.split(' ')[0]}</b>{' '}
-                  <span className="text-ink2">{VERB[i.kind] ?? 'alterou'}</span>{' '}
+                  <span className="text-ink2">{activityVerb(i.kind)}</span>{' '}
                   {i.leadName ? (
                     <Link href={`/leads/${i.leadId}`} className="font-medium hover:underline">
                       {i.leadName}
@@ -223,7 +188,7 @@ export function TeamFeed({ initial }: { initial: TeamActivityDTO }) {
                     </span>
                   )}
                 </p>
-                <small className="text-xs text-ink3">{when(i.at)}</small>
+                <small className="text-xs text-ink3">{activityWhen(i.at)}</small>
               </div>
             </li>
           ))}

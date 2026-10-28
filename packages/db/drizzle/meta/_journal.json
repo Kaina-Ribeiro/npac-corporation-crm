@@ -134,6 +134,13 @@
       "when": 1793167823616,
       "tag": "0018_income_bands",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793176987040,
+      "tag": "0019_notifications",
+      "breakpoints": true
     }
   ]
 }

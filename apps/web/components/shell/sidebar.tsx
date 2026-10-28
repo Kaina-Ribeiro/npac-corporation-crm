@@ -1,5 +1,7 @@
 import { ADMIN_ITEM, SIDEBAR_ITEMS } from './nav-items';
 import { NavLink } from './nav-link';
+import { InboxLink } from '../inbox';
+import { SearchButton } from './command-palette';
 
 /** Desktop: navegação + bloco da pessoa logada no rodapé, sempre visível (a sidebar é fixa). */
 export function Sidebar({ head = false, footer }: { head?: boolean; footer?: React.ReactNode }) {
@@ -9,7 +11,9 @@ export function Sidebar({ head = false, footer }: { head?: boolean; footer?: Rea
         <span className="mark h-8 w-8 rounded-[9px] text-[17px]">N</span>
         <b className="text-[15px] font-semibold">NPAC Corporation</b>
       </div>
+      <SearchButton className="flex h-[34px] items-center gap-2.5 rounded-lg border border-line px-2.5 text-sm font-medium text-ink2 transition-colors hover:bg-black/5 hover:text-ink [&_svg]:h-4 [&_svg]:w-4" />
       <nav aria-label="Navegação lateral" className="flex flex-col gap-px">
+        <InboxLink />
         {(head ? [...SIDEBAR_ITEMS, ADMIN_ITEM] : SIDEBAR_ITEMS).map((item) => (
           <NavLink
             key={item.href}

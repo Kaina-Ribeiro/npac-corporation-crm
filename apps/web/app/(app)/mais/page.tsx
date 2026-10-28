@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { ADMIN_ITEM, MORE_ITEMS } from '@/components/shell/nav-items';
+import { InboxCard } from '@/components/inbox';
+import { SearchButton } from '@/components/shell/command-palette';
 import { SignOutButton } from '@/components/shell/sign-out-button';
 import { ThemeSwitch } from '@/components/shell/theme-switch';
 import { getSession, ROLE_LABEL } from '@/lib/session';
@@ -47,6 +49,10 @@ export default async function MorePage() {
           </div>
         </div>
       </section>
+
+      <SearchButton className="glass-card flex min-h-12 items-center gap-3 px-4 text-sm font-medium text-ink2 [&_kbd]:hidden [&_svg]:size-5" />
+
+      <InboxCard />
 
       <nav aria-label="Mais seções" className="grid grid-cols-2 gap-3">
         {items.map((item) => (

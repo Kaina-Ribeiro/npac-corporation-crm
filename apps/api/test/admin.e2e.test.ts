@@ -20,7 +20,7 @@ afterAll(async () => {
 });
 beforeEach(async () => {
   await resetAuthState();
-  await owner`truncate lgpd_requests, chat_reads, chat_messages, chat_members, payments, deals, lead_notes, lead_tasks, lead_timeline, meetings, leads`;
+  await owner`truncate lgpd_requests, chat_reads, chat_messages, chat_members, payments, deals, lead_notes, lead_tasks, notifications, lead_timeline, meetings, leads`;
   await owner`update "user" set active = true`;
   const users = await owner<{ id: string; email: string }[]>`select id, email from "user"`;
   ids = Object.fromEntries(users.map((u) => [u.email.split('@')[0], u.id]));
