@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { ADMIN_ITEM, MORE_ITEMS } from '@/components/shell/nav-items';
 import { InboxCard } from '@/components/inbox';
-import { SearchButton } from '@/components/shell/command-trigger';
+import { SearchButton } from '@/components/shell/command-palette';
 import { SignOutButton } from '@/components/shell/sign-out-button';
 import { ThemeSwitch } from '@/components/shell/theme-switch';
 import { RoleTag } from '@/components/role-tag';
