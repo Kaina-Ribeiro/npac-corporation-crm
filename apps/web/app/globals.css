@@ -204,8 +204,8 @@ body {
     box-shadow: inset 0 0 0 1px #d1d1d6;
     color: var(--ink2);
   }
-  /* Cargo: hierarquia pelo peso visual, na paleta do site. Diretoria em preto e dourado
-     (único dourado fora de dinheiro), Head em grafite sólido, SDR e Closer em contorno. */
+  /* Cargo: a cor diz quem lidera e o que faz. Liderança em dourado (Diretoria cheio, Head
+     suave); time com as cores dos gráficos: SDR azul (prospecta), Closer rosa (fecha). */
   .role {
     display: inline-flex;
     align-items: center;
@@ -217,34 +217,40 @@ body {
     letter-spacing: 0.01em;
     white-space: nowrap;
     flex: none;
-    background: var(--role-bg, transparent);
-    color: var(--role-fg, var(--ink2));
-    box-shadow: inset 0 0 0 1px var(--role-ring, transparent);
+    background: var(--role-bg);
+    color: var(--role-fg);
   }
   .role-DIRETOR {
-    --role-bg: #1d1d1f;
-    --role-fg: #f2d38a;
-    --role-ring: rgba(226, 187, 102, 0.55);
+    --role-bg: #e2bb66;
+    --role-fg: #3d2a00;
   }
   .role-HEAD {
-    --role-bg: #3a3a3c;
-    --role-fg: #fff;
+    --role-bg: #f6ecd4;
+    --role-fg: #7a560f;
   }
-  .role-SDR,
+  .role-SDR {
+    --role-bg: #e3efff;
+    --role-fg: #0a5ab8;
+  }
   .role-CLOSER {
-    --role-ring: #c7c7cc;
+    --role-bg: #fbe4ec;
+    --role-fg: #a8285a;
   }
   .dark .role-DIRETOR {
-    --role-bg: rgba(226, 187, 102, 0.14);
-    --role-ring: rgba(226, 187, 102, 0.45);
+    --role-bg: #c9a24e;
+    --role-fg: #241800;
   }
   .dark .role-HEAD {
-    --role-bg: #e5e5ea;
-    --role-fg: #1d1d1f;
+    --role-bg: rgba(226, 187, 102, 0.16);
+    --role-fg: #f2d38a;
   }
-  .dark .role-SDR,
+  .dark .role-SDR {
+    --role-bg: rgba(63, 140, 242, 0.2);
+    --role-fg: #9cc5ff;
+  }
   .dark .role-CLOSER {
-    --role-ring: rgba(235, 235, 245, 0.3);
+    --role-bg: rgba(219, 95, 140, 0.2);
+    --role-fg: #f5a6c3;
   }
 }
 

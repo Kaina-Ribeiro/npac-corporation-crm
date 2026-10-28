@@ -7,7 +7,7 @@ export const ROLE_LABEL: Record<Role, string> = {
   CLOSER: 'Closer',
 };
 
-/** Etiqueta do cargo (estilos em globals.css, `.role-*`): hierarquia pelo peso visual. */
+/** Etiqueta do cargo (cores em globals.css, `.role-*`): dourado = liderança, azul/rosa = time. */
 export function RoleTag({ role, className = '' }: { role: Role; className?: string }) {
   return <span className={`role role-${role} ${className}`}>{ROLE_LABEL[role]}</span>;
 }
