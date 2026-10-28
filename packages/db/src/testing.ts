@@ -4,6 +4,8 @@ import postgres, { type Sql } from 'postgres';
 import { createDb, type Db } from './client.js';
 import { runMigrations } from './migrate.js';
 
+const TEST_DB_NAME = /^npac_(test|e2e)(_[a-z0-9_]+)?$/;
+
 const opened: Sql[] = [];
 
 function urlFor(dbName: string, user?: string, password?: string): string {
@@ -46,13 +48,15 @@ export function appDb(dbName: string): Db {
 
 /** Recria o banco `dbName`, concede CONNECT ao npac_app, roda migrations e devolve a URL do owner. */
 export async function resetTestDb(dbName: string): Promise<string> {
-  if (!/^[a-z_][a-z0-9_]*$/.test(dbName)) throw new Error(`Nome de banco inválido: ${dbName}`);
+  if (!TEST_DB_NAME.test(dbName)) {
+    throw new Error(`resetTestDb só aceita bancos de teste (npac_test*, npac_e2e*): ${dbName}`);
+  }
   const admin = postgres(urlFor('postgres'), { max: 1, onnotice: () => {} });
   try {
     await admin`select pg_terminate_backend(pid) from pg_stat_activity where datname = ${dbName} and pid <> pg_backend_pid()`;
-    await admin.unsafe(`DROP DATABASE IF EXISTS ${dbName}`);
-    await admin.unsafe(`CREATE DATABASE ${dbName}`);
-    await admin.unsafe(`GRANT CONNECT ON DATABASE ${dbName} TO npac_app`);
+    await admin.unsafe(`DROP DATABASE IF EXISTS "${dbName}"`);
+    await admin.unsafe(`CREATE DATABASE "${dbName}"`);
+    await admin.unsafe(`GRANT CONNECT ON DATABASE "${dbName}" TO npac_app`);
   } finally {
     await admin.end({ timeout: 5 });
   }
