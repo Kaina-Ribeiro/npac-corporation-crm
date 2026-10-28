@@ -97,6 +97,20 @@ export class ReportsService {
     private readonly audit: AuditService,
     private readonly crypto: FieldCrypto,
   ) {}
+  /** Feed do dashboard: escritas recentes da timeline; lead apagado/anonimizado aparece sem nome. */
+  activity(u: AuthUser) {
+    return withUser(this.db, u.id, async (tx) => {
+      const items = await tx.execute<
+        Record<string, unknown>
+      >(sql`select t.id,t.at,t.kind,u.name as "actorName",t.lead_id as "leadId",
+        case when l.deleted_at is null and l.anonymized_at is null then l.name end as "leadName"
+        from lead_timeline t join "user" u on u.id=t.actor_id left join leads l on l.id=t.lead_id
+        order by t.at desc, t.id limit 8`);
+      return {
+        items: items.map((i) => ({ ...i, at: new Date(i.at as string).toISOString() })),
+      };
+    });
+  }
   async search(u: AuthUser, q: ReportQuery, opts: { audit?: boolean } = {}) {
     const { start, end, prevStart, prevEnd } = window(q);
     const result = await withUser(

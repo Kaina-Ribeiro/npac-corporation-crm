@@ -143,3 +143,19 @@ it('traz o período anterior de mesmo tamanho para comparar o faturamento', asyn
     mine.body.previousDaily.reduce((a: number, d: { soldCents: number }) => a + d.soldCents, 0),
   ).toBe(0);
 });
+
+it('atividade da equipe: só Head vê, mais recente primeiro, com quem fez e qual lead', async () => {
+  expect((await h.get('/api/reports/activity', ale)).status).toBe(403);
+  const r = await h.get('/api/reports/activity', head);
+  expect(r.status).toBe(200);
+  expect(r.body.items.length).toBeGreaterThan(0);
+  expect(r.body.items.length).toBeLessThanOrEqual(8);
+  const [first] = r.body.items;
+  expect(first).toMatchObject({ kind: 'sale.registered', actorName: expect.any(String) });
+  expect(first.leadName).toBe('Outro lead');
+  const at = r.body.items.map((i: { at: string }) => i.at);
+  expect([...at].sort().reverse()).toEqual(at);
+  expect(Object.keys(first).sort()).toEqual(
+    ['actorName', 'at', 'id', 'kind', 'leadId', 'leadName'].sort(),
+  );
+});

@@ -1,4 +1,4 @@
-import { Body, Controller, Header, HttpCode, Post } from '@nestjs/common';
+import { Body, Controller, Get, Header, HttpCode, Post } from '@nestjs/common';
 import { LEAD_SOURCES, STAGE_KEYS, TIERS } from '@npac/shared';
 import { z } from 'zod';
 import { Can } from '../auth/can.decorator.js';
@@ -24,6 +24,9 @@ const query = z
 @Can('report:view')
 export class ReportsController {
   constructor(private readonly reports: ReportsService) {}
+  @Get('activity') @Can('audit:view') activity(@CurrentUser() u: SessionUser) {
+    return this.reports.activity(u);
+  }
   @Post('search') @HttpCode(200) search(@CurrentUser() u: SessionUser, @Body() b: unknown) {
     return this.reports.search(u, validate(query, b));
   }

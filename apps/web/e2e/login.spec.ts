@@ -98,6 +98,8 @@ test('SDR registra venda parcial, recebe saldo e vê o relatório', async ({ pag
 test('SDR entra e vê só os próprios leads', async ({ page }) => {
   await login(page, 'ale@npac.com.br');
   await page.waitForURL(/\/dashboard/);
+  await expect(page.getByRole('heading', { name: 'Pré-vendas' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Atividade da equipe' })).toHaveCount(0);
   await page.goto('/leads');
   await expect(page.getByText('Lead do Ale').filter({ visible: true })).toBeVisible();
   await expect(page.getByText('Lead do Murilo')).toHaveCount(0);
@@ -277,6 +279,15 @@ test('HEAD estorna pela ficha preservando recebimento', async ({ page }) => {
   await expect(
     page.getByRole('heading', { level: 1, name: /^(Bom dia|Boa tarde|Boa noite)/ }),
   ).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Mesa dos closers' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Pré-vendas' })).toBeVisible();
+  // O feed do Head mostra o estorno que acabou de acontecer, com link para a ficha.
+  await expect(page.getByRole('heading', { name: 'Atividade da equipe' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Venda para estorno' }).first()).toHaveAttribute(
+    'href',
+    `/leads/${id}`,
+  );
+  await expect(page.getByText('estornou a venda de').first()).toBeVisible();
   await page.screenshot({ path: 'test-results/dashboard.png', fullPage: true });
 });
 

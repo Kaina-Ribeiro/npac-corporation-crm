@@ -63,6 +63,17 @@ export type ReportRow = {
   conversionBps?: number;
   noShowBps?: number;
 };
+/** Últimos acontecimentos da equipe (dashboard do Head): só tipo, autor e nome do lead. */
+export type TeamActivityDTO = {
+  items: {
+    id: string;
+    at: string;
+    kind: string;
+    actorName: string;
+    leadId: string;
+    leadName: string | null;
+  }[];
+};
 export type ChargeDTO = {
   id: string;
   dealId: string;

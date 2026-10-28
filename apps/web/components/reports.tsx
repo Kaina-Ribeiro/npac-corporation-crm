@@ -1,5 +1,5 @@
 'use client';
-import type { LeadCatalog, ProductDTO, ReportDTO, ReportRow } from '@npac/shared';
+import type { LeadCatalog, ProductDTO, ReportDTO, ReportRow, TeamActivityDTO } from '@npac/shared';
 import { money } from '@npac/shared/money';
 import Link from 'next/link';
 import { useState, type FormEvent } from 'react';
@@ -15,6 +15,7 @@ import {
   TierDonut,
   chartColors,
 } from './dashboard-charts';
+import { CloserDesk, SdrTable, TeamFeed } from './dashboard-team';
 import { useCrmRefresh } from './shell/live-updates';
 
 function Breakdown({ title, rows }: { title: string; rows: ReportRow[] }) {
@@ -130,6 +131,7 @@ export function Reports({
   head,
   dashboard = false,
   name,
+  activity,
 }: {
   initial: ReportDTO;
   catalog: LeadCatalog;
@@ -138,6 +140,8 @@ export function Reports({
   dashboard?: boolean;
   /** Primeiro nome para a saudação do dashboard. */
   name?: string;
+  /** Feed da equipe; só vem para Head. */
+  activity?: TeamActivityDTO;
 }) {
   const [data, setData] = useState(initial),
     [filters, setFilters] = useState<Record<string, string>>({ period: 'MONTH' }),
@@ -418,26 +422,22 @@ export function Reports({
             <ChartCard title="Perfil dos leads">
               <TierDonut p0={m.p0 ?? 0} p1={m.p1 ?? 0} p2={m.p2 ?? 0} />
             </ChartCard>
-            <ChartCard title="Closers" subtitle="Vendido no período">
-              <RankBars
-                rows={data.byCloser}
-                value={(r) => r.soldCents}
-                format={money}
-                color={chartColors.money}
-                detail={(r) =>
-                  `${r.sales} vendas · conv. ${((r.conversionBps ?? 0) / 100).toFixed(0)}%`
-                }
-              />
-            </ChartCard>
-            <ChartCard title="Ranking de SDRs" subtitle="Reuniões agendadas no período">
-              <RankBars
-                rows={data.bySdr}
-                value={(r) => r.meetings ?? 0}
-                format={(v) => String(v)}
-                detail={(r) => `${r.sales} vendas`}
-              />
-            </ChartCard>
-            <ChartCard title="Produtos" subtitle="Vendido por produto">
+          </div>
+          <div className="grid gap-5 lg:grid-cols-2">
+            <CloserDesk rows={data.byCloser} />
+            <SdrTable
+              rows={data.bySdr}
+              period={
+                preset === 'TODAY' ? 'Hoje' : preset === 'WEEK' ? 'Últimos 7 dias' : monthName()
+              }
+            />
+          </div>
+          <div className="grid gap-5 lg:grid-cols-3">
+            <ChartCard
+              title="Produtos"
+              subtitle="Vendido por produto"
+              className={activity ? '' : 'lg:col-span-3'}
+            >
               <RankBars
                 rows={data.byProduct}
                 value={(r) => r.soldCents}
@@ -446,6 +446,11 @@ export function Reports({
                 detail={(r) => `${r.sales}×`}
               />
             </ChartCard>
+            {activity && (
+              <div className="min-w-0 lg:col-span-2">
+                <TeamFeed initial={activity} />
+              </div>
+            )}
           </div>
         </>
       ) : (
