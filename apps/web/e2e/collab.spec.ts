@@ -15,7 +15,7 @@ async function login(page: Page, email: string) {
   await page.getByLabel('E-mail').fill(email);
   await page.getByLabel('Senha').fill(E2E_PASSWORD);
   await page.getByRole('button', { name: 'Entrar' }).click();
-  await page.waitForURL(/\/hoje/);
+  await page.waitForURL(/\/dashboard/);
 }
 
 test('chat: mensagem no Geral com #lead e DM privada', async ({ browser }) => {

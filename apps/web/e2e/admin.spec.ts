@@ -27,7 +27,7 @@ async function headWithMfa(page: Page) {
   const secret = await page.locator('code').innerText();
   await page.getByLabel('Código', { exact: true }).fill(totp(secret));
   await page.getByRole('button', { name: 'Ativar e entrar' }).click();
-  await page.waitForURL(/\/hoje/);
+  await page.waitForURL(/\/dashboard/);
 }
 
 test('HEAD convida usuário, vê auditoria e registra pedido LGPD', async ({ page }) => {
@@ -60,7 +60,7 @@ test('HEAD convida usuário, vê auditoria e registra pedido LGPD', async ({ pag
 
 test('SDR não acessa o Admin', async ({ page }) => {
   await login(page, 'ale@npac.com.br');
-  await page.waitForURL(/\/hoje/);
+  await page.waitForURL(/\/dashboard/);
   await expect(
     page
       .getByRole('navigation', { name: 'Navegação lateral' })

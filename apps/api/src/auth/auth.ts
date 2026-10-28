@@ -119,7 +119,8 @@ export function createAuth(db: Db, env: Env, audit: AuditService) {
       },
     },
     plugins: [twoFactor({ issuer: 'NPAC Corporation' }), auditPlugin(db, audit)],
-    session: { expiresIn: 43_200, updateAge: 3_600 },
+    // 30 dias logado (cookie persistente); renova a validade uma vez por dia de uso.
+    session: { expiresIn: 30 * 86_400, updateAge: 86_400 },
     rateLimit: {
       enabled: true,
       storage: 'database',
@@ -135,7 +136,8 @@ export function createAuth(db: Db, env: Env, audit: AuditService) {
       },
     },
     advanced: {
-      useSecureCookies: env.NODE_ENV === 'production',
+      // Secure sempre que o site é servido por https (produção, túnel); http local não grava Secure.
+      useSecureCookies: env.WEB_ORIGIN.startsWith('https://'),
       // O controller sobrescreve este header com o IP visto pelo Fastify.
       ipAddress: { ipAddressHeaders: ['x-forwarded-for'] },
     },

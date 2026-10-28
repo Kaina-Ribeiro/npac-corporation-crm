@@ -17,7 +17,11 @@ export default defineConfig({
   workers: 1,
   reporter: 'list',
   use: { baseURL: WEB_ORIGIN, trace: 'retain-on-failure' },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    { name: 'chromium', testIgnore: /mobile-layout/, use: { ...devices['Desktop Chrome'] } },
+    // Motor do Safari em tamanho de iPhone para regressões de layout no celular.
+    { name: 'iphone', testMatch: /mobile-layout/, use: { ...devices['iPhone 13'] } },
+  ],
   webServer: [
     {
       command: 'pnpm --filter @npac/api build && node ../api/dist/main.js',

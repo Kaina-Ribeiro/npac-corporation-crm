@@ -73,14 +73,14 @@ export const ADMIN_ITEM: NavItem = {
   icon: ICONS.admin,
 };
 
-/** Mobile: barra inferior com cinco destinos. */
+/** Mobile: os quatro primeiros da sidebar, na mesma ordem, + Mais (Dashboard sempre primeiro). */
 export const BOTTOM_ITEMS: NavItem[] = [
-  { href: '/hoje', label: 'Hoje', ready: true, icon: ICONS.hoje },
-  { href: '/pipeline', label: 'Pipeline', ready: true, icon: ICONS.pipeline },
-  { href: '/leads', label: 'Leads', ready: true, icon: ICONS.leads },
-  { href: '/chat', label: 'Chat', ready: true, icon: ICONS.chat },
+  ...SIDEBAR_ITEMS.slice(0, 4),
   { href: '/mais', label: 'Mais', ready: true, icon: ICONS.mais },
 ];
+
+/** O restante da sidebar, na mesma ordem, listado na tela Mais. */
+export const MORE_ITEMS: NavItem[] = SIDEBAR_ITEMS.slice(4);
 
 /** Seções que existem na navegação mas ainda não foram construídas. */
 export const SOON: Record<string, string> = {

@@ -27,7 +27,7 @@ export function ChangePasswordForm() {
     });
     setBusy(false);
     if (err) return setError('Não foi possível trocar a senha. Confira a senha atual.');
-    router.replace('/hoje');
+    router.replace('/dashboard');
     router.refresh();
   }
 

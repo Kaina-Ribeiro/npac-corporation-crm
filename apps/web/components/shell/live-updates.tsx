@@ -11,7 +11,7 @@ export function LiveUpdates() {
         window.dispatchEvent(new Event('crm:invalidate'));
       if (type === 'session-ended' || type === 'access-required') {
         stream.close();
-        window.location.replace(type === 'session-ended' ? '/login' : '/hoje');
+        window.location.replace(type === 'session-ended' ? '/login' : '/dashboard');
       }
     };
     return () => stream.close();

@@ -29,6 +29,21 @@ const totpFrom = (uri: string) =>
   new TOTP({ secret: Secret.fromBase32(new URL(uri).searchParams.get('secret') ?? '') });
 
 describe('autenticação', () => {
+  it('sessão dura 30 dias e o cookie só é Secure quando a origem é https', async () => {
+    await owner`update "user" set must_change_password = false where email = 'ale@npac.com.br'`;
+    const res = await h.signInRaw('ale@npac.com.br');
+    expect(res.status).toBe(200);
+    const cookie = (res.headers['set-cookie'] as unknown as string[]).find((c) =>
+      c.includes('session_token='),
+    )!;
+    expect(cookie).toMatch(/Max-Age=2592000/);
+    expect(cookie).toMatch(/HttpOnly/);
+    expect(cookie).not.toMatch(/Secure/);
+    const [s] = await owner<{ days: number }[]>`
+      select round(extract(epoch from expires_at - created_at) / 86400)::int as days
+      from session order by created_at desc limit 1`;
+    expect(s!.days).toBe(30);
+  });
   it('não existe cadastro aberto', async () => {
     const res = await h.post('/api/auth/sign-up/email', {
       email: 'novo@npac.com.br',

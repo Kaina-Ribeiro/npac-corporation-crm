@@ -34,7 +34,7 @@ export function MfaSetup() {
     const { error: err } = await authClient.twoFactor.verifyTotp({ code });
     setBusy(false);
     if (err) return setError('Código inválido. Confira o relógio do celular e tente de novo.');
-    router.replace('/hoje');
+    router.replace('/dashboard');
     router.refresh();
   }
 

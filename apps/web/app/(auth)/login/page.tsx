@@ -7,7 +7,7 @@ import { getSession } from '@/lib/session';
 export const metadata: Metadata = { title: 'Entrar' };
 
 export default async function LoginPage() {
-  if (await getSession()) redirect('/hoje');
+  if (await getSession()) redirect('/dashboard');
 
   return (
     <main className="relative flex min-h-dvh items-center overflow-hidden bg-[radial-gradient(60%_60%_at_70%_30%,#5a4210,#0a0805_70%)] text-ink">

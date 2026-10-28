@@ -8,6 +8,6 @@ export const metadata: Metadata = { title: 'Configurar autenticador' };
 export default async function MfaPage() {
   const me = await getSession();
   if (me?.mustChangePassword) redirect('/conta/senha');
-  if (me?.twoFactorEnabled) redirect('/hoje');
+  if (me?.twoFactorEnabled) redirect('/dashboard');
   return <MfaSetup />;
 }

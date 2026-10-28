@@ -124,6 +124,32 @@ body {
       box-shadow 0.2s,
       background 0.2s;
   }
+  /* Nunca maior que o container: o iOS dá largura mínima própria a data/hora e select. */
+  .field {
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
+  }
+  .field:is([type='date'], [type='datetime-local'], [type='time'], [type='month']) {
+    -webkit-appearance: none;
+    appearance: none;
+    display: block;
+    width: 100%;
+    line-height: 50px;
+  }
+  .field::-webkit-date-and-time-value {
+    text-align: left;
+    min-width: 0;
+  }
+  select.field {
+    text-overflow: ellipsis;
+  }
+  textarea.field {
+    height: auto;
+    min-height: 96px;
+    padding: 12px 14px;
+    line-height: 1.4;
+  }
   .field:focus {
     outline: none;
     background: #fff;

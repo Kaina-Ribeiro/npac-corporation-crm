@@ -28,7 +28,7 @@ export function LoginForm() {
         err?.status === 429 ? 'Muitas tentativas. Aguarde um minuto.' : GENERIC_ERROR,
       );
     if ('twoFactorRedirect' in data && data.twoFactorRedirect) return setStep('totp');
-    router.replace('/hoje');
+    router.replace('/dashboard');
     router.refresh();
   }
 
@@ -40,7 +40,7 @@ export function LoginForm() {
     const { error: err } = await authClient.twoFactor.verifyTotp({ code });
     setBusy(false);
     if (err) return setError('Código inválido. Tente de novo.');
-    router.replace('/hoje');
+    router.replace('/dashboard');
     router.refresh();
   }
 

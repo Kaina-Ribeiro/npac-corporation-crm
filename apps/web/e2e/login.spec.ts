@@ -24,7 +24,7 @@ async function login(page: Page, email: string, password = E2E_PASSWORD) {
 
 test('SDR cadastra lead, escreve nota e conclui tarefa na ficha', async ({ page }) => {
   await login(page, 'ale@npac.com.br');
-  await page.waitForURL(/\/hoje/);
+  await page.waitForURL(/\/dashboard/);
   await page.goto('/leads');
   await page.getByRole('link', { name: 'Novo lead', exact: true }).click();
   await page.getByLabel('Nome', { exact: true }).fill('Lead e2e CRM');
@@ -60,7 +60,7 @@ test('SDR cadastra lead, escreve nota e conclui tarefa na ficha', async ({ page 
 test('SDR registra venda parcial, recebe saldo e vê o relatório', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 });
   await login(page, 'ale@npac.com.br');
-  await page.waitForURL(/\/hoje/);
+  await page.waitForURL(/\/dashboard/);
   const response = await page.request.post('/api/leads', {
     data: { name: 'Lead venda e2e', instagram: '@sale.e2e', incomeBand: 'R5_10K', tier: 'P1' },
   });
@@ -97,7 +97,7 @@ test('SDR registra venda parcial, recebe saldo e vê o relatório', async ({ pag
 
 test('SDR entra e vê só os próprios leads', async ({ page }) => {
   await login(page, 'ale@npac.com.br');
-  await page.waitForURL(/\/hoje/);
+  await page.waitForURL(/\/dashboard/);
   await page.goto('/leads');
   await expect(page.getByText('Lead do Ale').filter({ visible: true })).toBeVisible();
   await expect(page.getByText('Lead do Murilo')).toHaveCount(0);
@@ -106,7 +106,8 @@ test('SDR entra e vê só os próprios leads', async ({ page }) => {
 
 test('Hoje permite criar e concluir uma tarefa pessoal', async ({ page }) => {
   await login(page, 'ale@npac.com.br');
-  await page.waitForURL(/\/hoje/);
+  await page.waitForURL(/\/dashboard/);
+  await page.goto('/hoje');
   await page.getByLabel('Nova tarefa pessoal', { exact: true }).fill('Planejar contatos');
   await page.getByRole('button', { name: 'Criar tarefa pessoal' }).click();
   const finish = page.getByRole('button', { name: 'Concluir Planejar contatos', exact: true });
@@ -142,10 +143,11 @@ test('HEAD sem MFA é levado para configurar o autenticador', async ({ page }) =
 test('mobile mostra barra inferior', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 });
   await login(page, 'ale@npac.com.br');
-  await page.waitForURL(/\/hoje/);
+  await page.waitForURL(/\/dashboard/);
   const nav = page.getByRole('navigation', { name: 'Navegação inferior' });
   await expect(nav).toBeVisible();
   await expect(nav.getByRole('link')).toHaveCount(5);
+  await expect(nav.getByRole('link').first()).toHaveAccessibleName('Dashboard');
   await expect(page.getByRole('navigation', { name: 'Navegação lateral' })).toBeHidden();
   await page.goto('/leads');
   await page.screenshot({ path: 'test-results/leads-mobile.png', fullPage: true });
@@ -170,7 +172,7 @@ test('mobile mostra barra inferior', async ({ page }) => {
 
 test('nada de dado pessoal no localStorage', async ({ page }) => {
   await login(page, 'ale@npac.com.br');
-  await page.waitForURL(/\/hoje/);
+  await page.waitForURL(/\/dashboard/);
   await page.goto('/leads');
   expect(await page.evaluate(() => JSON.stringify(localStorage))).not.toMatch(/\d{8,}|@/);
 });
@@ -187,7 +189,7 @@ test('página responde com CSP e sem cabeçalho do Next', async ({ page }) => {
 
 test('busca mantém contato fora da URL e alterna o tema', async ({ page }) => {
   await login(page, 'ale@npac.com.br');
-  await page.waitForURL(/\/hoje/);
+  await page.waitForURL(/\/dashboard/);
   await page.goto('/leads');
   await page.getByRole('textbox').fill('@lead.do.ale');
   await page.getByRole('textbox').press('Enter');
@@ -210,14 +212,14 @@ for (const head of ['ana', 'ronaldo']) {
     const secret = await page.locator('code').innerText();
     await page.getByLabel('Código', { exact: true }).fill(totp(secret));
     await page.getByRole('button', { name: 'Ativar e entrar' }).click();
-    await page.waitForURL(/\/hoje/);
+    await page.waitForURL(/\/dashboard/);
     await page.getByRole('button', { name: 'Sair' }).click();
     await page.waitForURL(/\/login/);
     await login(page, `${head}@npac.com.br`);
     await expect(page.getByRole('heading', { name: 'Confirme que é você' })).toBeVisible();
     await page.getByLabel('Código', { exact: true }).fill(totp(secret));
     await page.getByRole('button', { name: 'Verificar e entrar' }).click();
-    await page.waitForURL(/\/hoje/);
+    await page.waitForURL(/\/dashboard/);
   });
 }
 
@@ -231,7 +233,7 @@ test('HEAD estorna pela ficha preservando recebimento', async ({ page }) => {
   const secret = await page.locator('code').innerText();
   await page.getByLabel('Código', { exact: true }).fill(totp(secret));
   await page.getByRole('button', { name: 'Ativar e entrar' }).click();
-  await page.waitForURL(/\/hoje/);
+  await page.waitForURL(/\/dashboard/);
   const [sdr] = await owner<{ id: string }[]>`select id from "user" where email='ale@npac.com.br'`;
   const lead = await page.request.post('/api/leads', {
     data: {
@@ -280,12 +282,12 @@ test('primeiro acesso exige trocar a senha', async ({ page }) => {
   await page.getByLabel('Nova senha', { exact: true }).fill('nova-senha-do-igor-123');
   await page.getByLabel('Confirme a nova senha').fill('nova-senha-do-igor-123');
   await page.getByRole('button', { name: 'Salvar senha' }).click();
-  await page.waitForURL(/\/hoje/);
+  await page.waitForURL(/\/dashboard/);
 });
 
 test('primeira carga de /leads fica abaixo de 150 KB de JS (gzip)', async ({ page }) => {
   await login(page, 'ale@npac.com.br');
-  await page.waitForURL(/\/hoje/);
+  await page.waitForURL(/\/dashboard/);
   const sizes: Promise<number>[] = [];
   page.on('response', (res) => {
     if (res.request().resourceType() === 'script') {
@@ -301,7 +303,7 @@ test('primeira carga de /leads fica abaixo de 150 KB de JS (gzip)', async ({ pag
 
 test('sair encerra a sessão', async ({ page }) => {
   await login(page, 'ale@npac.com.br');
-  await page.waitForURL(/\/hoje/);
+  await page.waitForURL(/\/dashboard/);
   await page.getByRole('button', { name: 'Sair' }).click();
   await page.waitForURL(/\/login/);
   await page.goto('/leads');
@@ -317,7 +319,7 @@ test('duas sessões recebem notas em tempo real e revogam acesso sem recarregar'
     const ale = await a.newPage();
     const sonia = await s.newPage();
     await login(ale, 'ale@npac.com.br');
-    await ale.waitForURL(/\/hoje/);
+    await ale.waitForURL(/\/dashboard/);
     const response = await a.request.post('/api/leads', {
       data: { name: 'Lead tempo real', instagram: '@lead.live', incomeBand: 'R5_10K', tier: 'P1' },
     });
@@ -337,7 +339,7 @@ test('duas sessões recebem notas em tempo real e revogam acesso sem recarregar'
     expect(meeting.status()).toBe(201);
     const { id: meetingId } = (await meeting.json()) as { id: string };
     await login(sonia, 'sonia@npac.com.br');
-    await sonia.waitForURL(/\/hoje/);
+    await sonia.waitForURL(/\/dashboard/);
     await sonia.goto(`/leads/${id}`);
     await expect(
       sonia.getByRole('heading', { name: 'Lead tempo real', exact: true }),
@@ -364,7 +366,7 @@ test('rascunho não usa versão nova recebida por SSE para sobrescrever outra ed
   page,
 }) => {
   await login(page, 'ale@npac.com.br');
-  await page.waitForURL(/\/hoje/);
+  await page.waitForURL(/\/dashboard/);
   const created = await page.request.post('/api/leads', {
     data: {
       name: 'Lead versão',
