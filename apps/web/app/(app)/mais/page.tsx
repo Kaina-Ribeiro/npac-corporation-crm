@@ -8,8 +8,9 @@ export default function MorePage() {
         {[
           ['/dashboard', 'Dashboard'],
           ['/relatorios', 'Relatórios'],
-          ['/equipe', 'Equipe · Em breve'],
-          ['/playbook', 'Playbook · Em breve'],
+          ['/chat', 'Chat'],
+          ['/equipe', 'Equipe'],
+          ['/playbook', 'Playbook'],
         ].map(([href, label]) => (
           <Link
             key={href}

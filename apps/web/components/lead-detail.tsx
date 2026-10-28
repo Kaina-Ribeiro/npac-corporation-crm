@@ -1,4 +1,5 @@
 'use client';
+import { HandoffActions } from './handoff-actions';
 import type {
   DealDTO,
   ProductDTO,
@@ -101,6 +102,7 @@ export function LeadDetail({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <HandoffActions leadId={lead.id} />
           {lead.phone && (
             <a
               className={quietButton}

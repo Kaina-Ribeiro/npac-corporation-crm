@@ -54,9 +54,9 @@ export const SIDEBAR_ITEMS: NavItem[] = [
   { href: '/pipeline', label: 'Pipeline', ready: true, icon: ICONS.pipeline },
   { href: '/leads', label: 'Leads', ready: true, icon: ICONS.leads },
   { href: '/relatorios', label: 'Relatórios', ready: true, icon: ICONS.relatorios },
-  { href: '/chat', label: 'Chat', ready: false, icon: ICONS.chat },
-  { href: '/equipe', label: 'Equipe', ready: false, icon: ICONS.equipe },
-  { href: '/playbook', label: 'Playbook', ready: false, icon: ICONS.playbook },
+  { href: '/chat', label: 'Chat', ready: true, icon: ICONS.chat },
+  { href: '/equipe', label: 'Equipe', ready: true, icon: ICONS.equipe },
+  { href: '/playbook', label: 'Playbook', ready: true, icon: ICONS.playbook },
 ];
 
 /** Mobile: barra inferior com cinco destinos. */
@@ -64,7 +64,7 @@ export const BOTTOM_ITEMS: NavItem[] = [
   { href: '/hoje', label: 'Hoje', ready: true, icon: ICONS.hoje },
   { href: '/pipeline', label: 'Pipeline', ready: true, icon: ICONS.pipeline },
   { href: '/leads', label: 'Leads', ready: true, icon: ICONS.leads },
-  { href: '/chat', label: 'Chat', ready: false, icon: ICONS.chat },
+  { href: '/chat', label: 'Chat', ready: true, icon: ICONS.chat },
   { href: '/mais', label: 'Mais', ready: true, icon: ICONS.mais },
 ];
 
@@ -73,8 +73,5 @@ export const SOON: Record<string, string> = {
   dashboard: 'Dashboard',
   pipeline: 'Pipeline',
   relatorios: 'Relatórios',
-  chat: 'Chat',
-  equipe: 'Equipe',
-  playbook: 'Playbook',
   mais: 'Mais',
 };
