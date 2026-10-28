@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { leadCreateSchema } from '../src/schemas/lead.js';
 
-const base = { name: 'Maria', instagram: '@maria', incomeBand: 'R10_20K', tier: 'P1' };
+const base = { name: 'Maria', instagram: '@maria', incomeBand: 'R8_15K', tier: 'P1' };
 
 describe('leadCreateSchema', () => {
   it('aceita lead válido e normaliza', () =>

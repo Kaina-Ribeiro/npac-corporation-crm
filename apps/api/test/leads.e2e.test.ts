@@ -15,7 +15,7 @@ let seq = 0;
 const lead = (over: Record<string, unknown> = {}) => ({
   name: 'Maria Silva',
   instagram: `@maria.${++seq}`,
-  incomeBand: 'R10_20K',
+  incomeBand: 'R8_15K',
   tier: 'P1',
   ...over,
 });
@@ -205,7 +205,7 @@ describe('leads', () => {
     const got = await h.get(`/api/leads/${res.body.id}`, ale);
     expect(got.status).toBe(200);
     expect(got.body.sdr).toEqual({ id: ids.ale, name: 'Ale' });
-    expect(got.body).toMatchObject({ stageKey: 'SONDAGEM', incomeBand: 'R10_20K', version: 1 });
+    expect(got.body).toMatchObject({ stageKey: 'SONDAGEM', incomeBand: 'R8_15K', version: 1 });
   });
 
   it('SDR não cria lead para outro SDR', async () =>

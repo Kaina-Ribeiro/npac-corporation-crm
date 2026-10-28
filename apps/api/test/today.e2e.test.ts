@@ -20,14 +20,14 @@ beforeEach(async () => {
   a = (
     await h.post(
       '/api/leads',
-      { name: 'Hoje Ale', instagram: '@hoje.ale', incomeBand: 'R5_10K', tier: 'P1' },
+      { name: 'Hoje Ale', instagram: '@hoje.ale', incomeBand: 'R5_8K', tier: 'P1' },
       ale,
     )
   ).body.id;
   m = (
     await h.post(
       '/api/leads',
-      { name: 'Hoje Murilo', instagram: '@hoje.murilo', incomeBand: 'R5_10K', tier: 'P1' },
+      { name: 'Hoje Murilo', instagram: '@hoje.murilo', incomeBand: 'R5_8K', tier: 'P1' },
       murilo,
     )
   ).body.id;

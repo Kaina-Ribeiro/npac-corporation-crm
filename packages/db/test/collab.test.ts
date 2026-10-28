@@ -38,7 +38,7 @@ beforeEach(async () => {
     insert into pipeline_stages (key, label, position) values ('SONDAGEM', 'Sondagem', 1) returning id`;
   const [lead] = await owner<{ id: string }[]>`
     insert into leads (name, income_band, source, tier, stage_id, sdr_id, created_by, instagram)
-    values ('Lead do Ale', 'R10_20K', 'INSTAGRAM', 'P1', ${stage!.id}, 'u-ale', 'u-ale', 'lead_ale') returning id`;
+    values ('Lead do Ale', 'R8_15K', 'INSTAGRAM', 'P1', ${stage!.id}, 'u-ale', 'u-ale', 'lead_ale') returning id`;
   leadOfAle = lead!.id;
   const [g] = await owner<{ id: string }[]>`select id from chat_channels where kind = 'GENERAL'`;
   general = g!.id;

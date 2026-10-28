@@ -143,7 +143,7 @@ describe('auditoria e LGPD', () => {
   it('acesso exporta dados do titular; eliminação anonimiza ao concluir', async () => {
     const lead = await h.post(
       '/api/leads',
-      { name: 'Titular Teste', phone: '11955554444', incomeBand: 'R5_10K', tier: 'P2' },
+      { name: 'Titular Teste', phone: '11955554444', incomeBand: 'R5_8K', tier: 'P2' },
       ale,
     );
     const access = await h.post(

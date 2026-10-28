@@ -47,7 +47,7 @@ it('stream não expõe PII, detecta mudanças e encerra usuário desativado', as
     expect(await nextType()).toBe('ready');
     await h.post(
       '/api/leads',
-      { name: 'Sinal privado', instagram: '@evento.privado', incomeBand: 'R5_10K', tier: 'P1' },
+      { name: 'Sinal privado', instagram: '@evento.privado', incomeBand: 'R5_8K', tier: 'P1' },
       cookie,
     );
     expect(await nextType()).toBe('invalidate');

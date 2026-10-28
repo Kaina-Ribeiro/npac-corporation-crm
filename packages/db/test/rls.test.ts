@@ -57,12 +57,12 @@ async function seedFixtures(): Promise<void> {
   A = idOf(
     await owner<{ id: string }[]>`
     insert into leads (name, income_band, source, tier, stage_id, sdr_id, created_by, instagram)
-    values ('Lead A', 'R10_20K', 'INSTAGRAM', 'P1', ${stageId}, 'u-ale', 'u-ale', 'lead_a') returning id`,
+    values ('Lead A', 'R8_15K', 'INSTAGRAM', 'P1', ${stageId}, 'u-ale', 'u-ale', 'lead_a') returning id`,
   );
   M = idOf(
     await owner<{ id: string }[]>`
     insert into leads (name, income_band, source, tier, stage_id, sdr_id, created_by, phone_bidx)
-    values ('Lead M', 'R5_10K', 'WHATSAPP', 'P2', ${stageId}, 'u-murilo', 'u-murilo', ${bidxOfM}) returning id`,
+    values ('Lead M', 'R5_8K', 'WHATSAPP', 'P2', ${stageId}, 'u-murilo', 'u-murilo', ${bidxOfM}) returning id`,
   );
   meetingA = idOf(
     await owner<{ id: string }[]>`
@@ -93,7 +93,7 @@ async function insertLeadAs(u: Fixture, data: { sdrId: string }): Promise<void> 
     withUser(db, u.id, (tx) =>
       tx.insert(leads).values({
         name: 'Novo',
-        incomeBand: 'R10_20K',
+        incomeBand: 'R8_15K',
         source: 'INDICACAO',
         tier: 'P0',
         stageId,

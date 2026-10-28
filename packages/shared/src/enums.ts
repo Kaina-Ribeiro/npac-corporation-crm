@@ -4,13 +4,13 @@ export type Role = (typeof ROLES)[number];
 export const TIERS = ['P0', 'P1', 'P2'] as const;
 export type Tier = (typeof TIERS)[number];
 
-export const INCOME_BANDS = ['R5_10K', 'R10_20K', 'R20_50K', 'R50K_PLUS'] as const;
+export const INCOME_BANDS = ['R5_8K', 'R8_15K', 'R15_50K', 'R50K_PLUS'] as const;
 export type IncomeBand = (typeof INCOME_BANDS)[number];
 
 export const INCOME_BAND_LABELS: Record<IncomeBand, string> = {
-  R5_10K: 'R$ 5–10 mil',
-  R10_20K: 'R$ 10–20 mil',
-  R20_50K: 'R$ 20–50 mil',
+  R5_8K: 'R$ 5–8 mil',
+  R8_15K: 'R$ 8–15 mil',
+  R15_50K: 'R$ 15–50 mil',
   R50K_PLUS: 'R$ 50 mil+',
 };
 

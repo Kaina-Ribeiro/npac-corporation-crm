@@ -87,9 +87,9 @@ export function incomeBand(v: unknown): IncomeBand | 'BELOW' | null {
   if (reais === null || !Number.isFinite(reais) || reais <= 0) return null;
   if (reais < 1000) reais *= 1000;
   if (reais < 5_000) return 'BELOW';
-  if (reais < 10_000) return 'R5_10K';
-  if (reais < 20_000) return 'R10_20K';
-  if (reais < 50_000) return 'R20_50K';
+  if (reais < 8_000) return 'R5_8K';
+  if (reais < 15_000) return 'R8_15K';
+  if (reais < 50_000) return 'R15_50K';
   return 'R50K_PLUS';
 }
 

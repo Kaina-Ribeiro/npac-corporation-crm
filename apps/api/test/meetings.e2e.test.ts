@@ -23,7 +23,7 @@ beforeEach(async () => {
   await owner`update "user" set two_factor_enabled = true where email = 'ronaldo@npac.com.br'`;
   const res = await h.post(
     '/api/leads',
-    { name: 'Lead reunião', instagram: '@teste.meeting', incomeBand: 'R5_10K', tier: 'P1' },
+    { name: 'Lead reunião', instagram: '@teste.meeting', incomeBand: 'R5_8K', tier: 'P1' },
     ale,
   );
   leadId = res.body.id;

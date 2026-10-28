@@ -24,11 +24,13 @@ describe('normalizadores do Firebase', () => {
     expect(L.parseDate('31/02')).toBeNull();
   });
   it('renda vira faixa e bloqueia abaixo de 5 mil', () => {
-    expect(L.incomeBand('R$ 8.000')).toBe('R5_10K');
-    expect(L.incomeBand('10 a 20 mil')).toBe('R10_20K');
-    expect(L.incomeBand('20k-50k')).toBe('R20_50K');
+    expect(L.incomeBand('R$ 7.500')).toBe('R5_8K');
+    expect(L.incomeBand('R$ 8.000')).toBe('R8_15K');
+    expect(L.incomeBand('10 a 20 mil')).toBe('R8_15K');
+    expect(L.incomeBand('20k-50k')).toBe('R15_50K');
     expect(L.incomeBand('mais de 50 mil')).toBe('R50K_PLUS');
-    expect(L.incomeBand(15)).toBe('R10_20K');
+    expect(L.incomeBand(15)).toBe('R15_50K');
+    expect(L.incomeBand('14.999')).toBe('R8_15K');
     expect(L.incomeBand('3.000')).toBe('BELOW');
     expect(L.incomeBand('')).toBeNull();
   });
@@ -109,7 +111,7 @@ describe('importação', () => {
       { phone_enc: Buffer; income_band: string; key: string; created_at: Date }[]
     >`select l.phone_enc, l.income_band, s.key, l.created_at from leads l join pipeline_stages s on s.id = l.stage_id`;
     expect(crypto.decrypt(lead!.phone_enc)).toBe('+5511988881111');
-    expect(lead).toMatchObject({ income_band: 'R10_20K', key: 'VENDA' });
+    expect(lead).toMatchObject({ income_band: 'R8_15K', key: 'VENDA' });
     const [deal] = await owner<
       { total_cents: number; paid: number }[]
     >`select d.total_cents, count(p.paid_at)::int as paid from deals d join payments p on p.deal_id = d.id group by d.id`;

@@ -24,7 +24,7 @@ beforeEach(async () => {
   ] as const) {
     const lead = await h.post(
       '/api/leads',
-      { name, instagram: insta, incomeBand: 'R5_10K', tier: 'P1' },
+      { name, instagram: insta, incomeBand: 'R5_8K', tier: 'P1' },
       cookie,
     );
     expect(
@@ -84,7 +84,7 @@ it('CSV só HEAD e neutraliza fórmula; resumo não inclui contato', async () =>
 it('leads excluídos não entram em métricas, linhas nem CSV do HEAD', async () => {
   const gone = await h.post(
     '/api/leads',
-    { name: 'Lead excluído', instagram: '@rel.gone', incomeBand: 'R5_10K', tier: 'P0' },
+    { name: 'Lead excluído', instagram: '@rel.gone', incomeBand: 'R5_8K', tier: 'P0' },
     ale,
   );
   expect(gone.status).toBe(201);

@@ -29,7 +29,7 @@ beforeEach(async () => {
       name: 'Maria Handoff',
       phone: '11987654321',
       instagram: '@collab.lead',
-      incomeBand: 'R10_20K',
+      incomeBand: 'R8_15K',
       tier: 'P1',
       summary: 'Quer mentoria',
     },

@@ -54,7 +54,7 @@ CLOSER  → leads com reunião (futura ou já feita) onde closer_id = eu
 
 Só entra no CRM quem tem **renda ≥ R$ 5 mil/mês**. O form exige a **faixa de renda**:
 
-- `5k–10k` · `10k–20k` · `20k–50k` · `50k+`
+- `5k–8k` · `8k–15k` · `15k–50k` · `50k+`
 
 Não existe opção abaixo de 5k → o lead simplesmente não é cadastrado.
 Guarda-se a faixa, nunca o valor exato (minimização — LGPD art. 6º, III).

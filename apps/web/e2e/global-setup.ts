@@ -16,7 +16,7 @@ export default async function globalSetup(): Promise<void> {
   await owner`update "user" set must_change_password = false`;
   await owner`
     insert into leads (name, instagram, income_band, source, tier, stage_id, sdr_id, created_by)
-    select l.name, l.insta, 'R10_20K', 'INSTAGRAM', 'P1', s.id, u.id, u.id
+    select l.name, l.insta, 'R8_15K', 'INSTAGRAM', 'P1', s.id, u.id, u.id
     from (values ('Lead do Ale', 'lead.do.ale', 'ale@npac.com.br'),
                  ('Lead do Murilo', 'lead.do.murilo', 'murilo@npac.com.br')) as l(name, insta, email)
     join "user" u on u.email = l.email
