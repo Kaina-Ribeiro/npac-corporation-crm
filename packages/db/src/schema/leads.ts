@@ -47,6 +47,8 @@ export const leads = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
     anonymizedAt: timestamp('anonymized_at', { withTimezone: true }),
+    /** ID do registro no Firebase, para importação idempotente. */
+    legacyId: text('legacy_id').unique(),
   },
   (t) => [
     index('leads_sdr_id_idx').on(t.sdrId),

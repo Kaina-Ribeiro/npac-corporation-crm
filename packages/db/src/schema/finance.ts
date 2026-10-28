@@ -59,6 +59,7 @@ export const deals = pgTable(
     reversedAt: timestamp('reversed_at', { withTimezone: true }),
     reversedBy: text('reversed_by').references(() => user.id),
     version: integer('version').notNull().default(1),
+    legacyId: text('legacy_id').unique(),
   },
   (t) => [
     index('deals_lead_idx').on(t.leadId),

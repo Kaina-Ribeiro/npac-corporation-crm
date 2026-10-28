@@ -120,6 +120,13 @@
       "when": 1793163383103,
       "tag": "0016_admin_lgpd",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793164085115,
+      "tag": "0017_legacy_ids",
+      "breakpoints": true
     }
   ]
 }

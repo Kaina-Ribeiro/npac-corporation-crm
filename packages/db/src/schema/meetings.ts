@@ -24,6 +24,7 @@ export const meetings = pgTable(
       .references(() => user.id),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    legacyId: text('legacy_id').unique(),
   },
   (t) => [
     index('meetings_lead_id_idx').on(t.leadId),
