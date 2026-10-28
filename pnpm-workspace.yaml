@@ -3,5 +3,5 @@ packages:
   - 'packages/*'
 
 # pnpm bloqueia scripts de build de dependências por padrão; liste aqui as permitidas.
-onlyBuiltDependencies:
-  - esbuild
+allowBuilds:
+  esbuild: true
