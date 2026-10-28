@@ -46,17 +46,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         }
       />
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Só no celular: barra fixa com fundo de vidro (no desktop a pessoa fica na sidebar). */}
-        <header className="sticky top-0 z-20 flex h-[52px] items-center gap-2.5 bg-[rgba(242,242,247,.82)] px-4 shadow-[0_.5px_0_var(--line)] backdrop-blur-[30px] backdrop-saturate-200 md:hidden dark:bg-[rgba(11,11,13,.82)]">
-          <span className="mark h-7 w-7 rounded-lg text-[15px]">N</span>
-          <b className="text-base font-semibold">NPAC</b>
-          <div className="ml-auto flex min-w-0 items-center gap-1.5">
-            {avatar}
-            <SignOutButton />
-            <ThemeToggle />
-          </div>
-        </header>
-        <main className="flex-1 px-4 pt-2 pb-32 md:px-8 md:pt-6 md:pb-10">{children}</main>
+        <main className="flex-1 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-32 md:px-8 md:pt-6 md:pb-10">
+          {children}
+        </main>
       </div>
       <BottomNav />
     </div>
