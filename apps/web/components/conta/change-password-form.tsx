@@ -3,21 +3,11 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import { authClient } from '@/lib/auth-client';
-import { handOffPassword } from '@/lib/mfa-handoff';
 
 const MIN = 8;
 
-/**
- * `first`: primeiro acesso, troca obrigatória. `mfaNext`: a próxima etapa é ativar o
- * autenticador (liderança sem MFA).
- */
-export function ChangePasswordForm({
-  first = true,
-  mfaNext = false,
-}: {
-  first?: boolean;
-  mfaNext?: boolean;
-}) {
+/** `first`: primeiro acesso, troca obrigatória; senão, troca voluntária pelo menu. */
+export function ChangePasswordForm({ first = true }: { first?: boolean }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -39,11 +29,6 @@ export function ChangePasswordForm({
     });
     setBusy(false);
     if (err) return setError('Não foi possível trocar a senha. Confira a senha atual.');
-    if (mfaNext) {
-      handOffPassword(newPassword);
-      router.replace('/conta/mfa');
-      return;
-    }
     router.replace('/dashboard');
     router.refresh();
   }

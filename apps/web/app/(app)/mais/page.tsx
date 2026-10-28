@@ -83,6 +83,12 @@ export default async function MorePage() {
       >
         Trocar senha
       </Link>
+      <Link
+        href="/conta/mfa"
+        className="glass-card flex min-h-14 w-full items-center justify-center text-base font-semibold"
+      >
+        Autenticador
+      </Link>
       <SignOutButton className="glass-card min-h-14 w-full text-base font-semibold text-danger" />
 
       <p className="text-center text-xs text-ink3">NPAC Corporation · área comercial</p>

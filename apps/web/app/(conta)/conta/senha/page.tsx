@@ -9,5 +9,5 @@ export default async function SenhaPage() {
   const me = await getSession();
   if (!me) redirect('/login');
   // Primeiro acesso (obrigatório) ou troca voluntária a partir do menu.
-  return <ChangePasswordForm first={me.mustChangePassword} mfaNext={me.mfaPending} />;
+  return <ChangePasswordForm first={me.mustChangePassword} />;
 }

@@ -31,7 +31,7 @@ Pacotes: `@npac/web`, `@npac/api`, `@npac/db`, `@npac/shared`.
 | `withUser`, `leadContactTaken`                      | `packages/db/src/with-user.ts`                                                            |
 | Seed (usuários, produtos, playbook)                 | `packages/db/src/seed*.ts`                                                                |
 | Better Auth (username, TOTP, auditoria, rate limit) | `apps/api/src/auth/auth.ts`                                                               |
-| Sessão, MFA/senha obrigatórios                      | `apps/api/src/auth/session.guard.ts`                                                      |
+| Sessão, troca de senha obrigatória                  | `apps/api/src/auth/session.guard.ts`                                                      |
 | `@Can`, `@Public`, `@AllowIncomplete`               | `apps/api/src/auth/*.decorator.ts`                                                        |
 | Env validado (Zod)                                  | `apps/api/src/config/env.ts`                                                              |
 | Leads: rotas / leitura / escrita                    | `apps/api/src/leads/leads.controller.ts`, `leads.service.ts`, `lead-mutations.service.ts` |
@@ -77,8 +77,10 @@ compartilhadas ficam em arquivo sem `'use client'` (ex.: `lib/last-user.ts`, `ro
 - Flags `canProspect`/`canClose` são dados; autorização nunca depende de nomes de pessoas.
 - Login por **usuário** (`/sign-in/username`, `[a-z0-9_.]{3,30}`, minúsculo); login por
   e-mail e `/is-username-available` desligados. Senha mínima 8. Sem cadastro aberto.
-- MFA (TOTP) obrigatório para liderança; `MFA_REQUIRED=false` é recusado em produção.
-  Primeiro acesso: senha → MFA; a senha nova passa só em memória (`lib/mfa-handoff.ts`).
+- MFA (TOTP) **opcional** para todos (decisão do usuário em 28/10/2026): cada um ativa ou
+  desativa em `/conta/mfa` (link "Autenticador" na sidebar e em Mais); quem ativou confirma
+  o login com o código, que é enviado sozinho ao completar 6 dígitos (`lib/otp-input.ts`).
+  Primeiro acesso só obriga trocar a senha.
 - Último usuário do aparelho: cookie `npac_last_user` com `Path=/login` (nunca localStorage).
 
 ## Segurança e privacidade (não negociável)

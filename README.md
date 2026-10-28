@@ -3,7 +3,7 @@
 CRM comercial. Monorepo pnpm/Turborepo: Next.js (`apps/web`), NestJS/Fastify
 (`apps/api`), Postgres/Drizzle (`packages/db`) e contratos (`packages/shared`).
 
-Planos 01 a 06 implementados: login individual, MFA para HEAD, permissões com RLS,
+Planos 01 a 06 implementados: login individual, MFA opcional (TOTP), permissões com RLS,
 auditoria, leads/ficha/notas/tarefas/reuniões, Pipeline, Hoje, tempo real, vendas com
 parcelas/recebimentos/estorno, Dashboard, Relatórios, chat (Geral + DMs privadas),
 handoff/Google Agenda, Equipe, Playbook, Admin (usuários, catálogo, etapas, auditoria),
@@ -31,7 +31,7 @@ pnpm dev
 
 Web: http://localhost:3000. API health: http://localhost:4000/api/health.
 O seed cria `ana`, `ronaldo`, `ale`, `murilo`, `igor` e `sonia` em `@npac.com.br`.
-A senha inicial vem do seu `.env`; todos precisam trocá-la, e Ana/Ronaldo configuram TOTP.
+A senha inicial vem do seu `.env`; todos precisam trocá-la; o autenticador (TOTP) é opcional.
 Rodar o seed novamente não redefine senhas nem duplica usuários.
 
 O script de criação da role roda apenas no primeiro boot de um volume Postgres vazio.

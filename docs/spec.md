@@ -18,14 +18,13 @@
 
 Modelo: cada usuário tem **um papel** (`DIRETOR`, `HEAD`, `SDR`, `CLOSER`) + duas flags (`can_prospect`, `can_close`).
 
-Login: **usuário + senha** (mínimo 8 caracteres), com MFA para a liderança. O e-mail fica no cadastro
+Login: **usuário + senha** (mínimo 8 caracteres). MFA (TOTP) é opcional: cada pessoa ativa ou desativa em "Autenticador", e quem ativou confirma o login com o código. O e-mail fica no cadastro
 como contato; o login por e-mail é desligado. A tela de login sugere o último usuário do aparelho
 (cookie restrito a `/login`, nunca localStorage).
 
 Hierarquia: **Diretoria** (`DIRETOR`) > **Head** > SDR / Closer. A Diretoria tem o mesmo acesso a
 dados do Head e é a única que dá ou tira cargo de liderança (Head ou Diretoria) e administra contas de
-liderança (desativar, nova senha, resetar MFA). O Head administra só SDRs e closers. MFA é obrigatório
-para Head e Diretoria.
+liderança (desativar, nova senha, resetar MFA). O Head administra só SDRs e closers.
 Assim Ana é HEAD que prospecta e Ronaldo é HEAD que fecha, sem `if nome === 'Ana'` no código.
 Time, closers e produtos são **dados no banco**, não código: contratou alguém, cadastra e pronto.
 
@@ -92,7 +91,7 @@ Navegação mobile: barra inferior com **Hoje · Pipeline · Leads · Chat · Ma
 Desktop: sidebar com as mesmas seções + Dashboard e Relatórios.
 
 ### 5.1 Login
-E-mail + senha (cada um tem o seu). MFA (TOTP) obrigatório para HEADs. Sem cadastro aberto: HEAD convida.
+E-mail + senha (cada um tem o seu). MFA (TOTP) opcional, escolhido por cada pessoa. Sem cadastro aberto: HEAD convida.
 
 ### 5.2 Dashboard (Cockpit)
 Seletor **Hoje / Mês / Período**. KPIs: leads novos, P0/P1/P2, agendados (direto × follow), no-show %,

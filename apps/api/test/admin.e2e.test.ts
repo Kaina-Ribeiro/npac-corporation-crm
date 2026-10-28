@@ -219,12 +219,6 @@ describe('Diretoria', () => {
       400,
     );
   });
-
-  it('Diretoria sem MFA é bloqueada como o Head', async () => {
-    await owner`update "user" set role = 'DIRETOR', two_factor_enabled = false where email = 'ana@npac.com.br'`;
-    const s = await h.signIn('ana@npac.com.br');
-    expect((await h.get('/api/admin/users', s)).body.code).toBe('MFA_ENROLLMENT_REQUIRED');
-  });
 });
 
 describe('catálogo e etapas', () => {

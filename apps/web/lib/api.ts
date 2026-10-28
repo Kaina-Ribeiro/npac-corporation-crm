@@ -15,7 +15,6 @@ export class ApiError extends Error {
 
 async function fail(path: string, res: Response): Promise<never> {
   const body = (await res.json().catch(() => ({}))) as { code?: string };
-  if (body.code === 'MFA_ENROLLMENT_REQUIRED') redirect('/conta/mfa');
   if (body.code === 'PASSWORD_CHANGE_REQUIRED') redirect('/conta/senha');
   if (res.status === 401 && path !== '/api/me') redirect('/login');
   throw new ApiError(res.status, body.code);

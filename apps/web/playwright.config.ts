@@ -9,7 +9,6 @@ const apiEnv = {
   WEB_ORIGIN,
   LOG_LEVEL: 'warn',
   // O e2e prova o MFA real de HEAD, independente do .env local.
-  MFA_REQUIRED: 'true',
 } as Record<string, string>;
 
 export default defineConfig({

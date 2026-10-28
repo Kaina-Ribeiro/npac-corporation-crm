@@ -1,5 +1,4 @@
 import { Controller, Header, Inject, Req, Sse } from '@nestjs/common';
-import { isLeader, type Role } from '@npac/shared';
 import { withUser, type Db } from '@npac/db';
 import { sql } from 'drizzle-orm';
 import type { FastifyRequest } from 'fastify';
@@ -7,7 +6,6 @@ import { exhaustMap, interval, startWith, takeWhile } from 'rxjs';
 import { AUTH, type Auth } from '../auth/auth.js';
 import { toHeaders } from '../auth/headers.js';
 import { DB } from '../common/db/db.module.js';
-import { ENV, type Env } from '../config/env.js';
 
 type Signal = 'ready' | 'invalidate' | 'heartbeat' | 'session-ended' | 'access-required';
 
@@ -16,7 +14,6 @@ export class EventsController {
   constructor(
     @Inject(AUTH) private readonly auth: Auth,
     @Inject(DB) private readonly db: Db,
-    @Inject(ENV) private readonly env: Env,
   ) {}
 
   @Sse('events')
@@ -32,13 +29,7 @@ export class EventsController {
         const current = await this.auth.api.getSession({ headers: toHeaders(req) });
         let type: Signal;
         if (!current || !current.user.active) type = 'session-ended';
-        else if (
-          current.user.mustChangePassword ||
-          (this.env.MFA_REQUIRED &&
-            isLeader(current.user.role as Role) &&
-            !current.user.twoFactorEnabled)
-        )
-          type = 'access-required';
+        else if (current.user.mustChangePassword) type = 'access-required';
         else {
           const digest = await withUser(this.db, current.user.id, async (tx) => {
             const rows = await tx.execute<{ revision: string }>(sql`

@@ -1,7 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { closeTestConnections, ownerSql } from '@npac/db/testing';
 import { E2E_DB, E2E_PASSWORD } from './env.js';
-import { totp } from './totp.js';
 
 const owner = ownerSql(E2E_DB);
 
@@ -17,20 +16,16 @@ async function login(page: Page, email: string) {
   await page.getByRole('button', { name: 'Entrar' }).click();
 }
 
-async function headWithMfa(page: Page) {
+async function headLogin(page: Page) {
+  // Outros specs podem ter deixado o autenticador da Ana ativo.
   await owner`update "user" set two_factor_enabled=false where email='ana@npac.com.br'`;
   await owner`delete from two_factor where user_id=(select id from "user" where email='ana@npac.com.br')`;
   await login(page, 'ana@npac.com.br');
-  await page.waitForURL(/\/conta\/mfa/);
-  await page.getByLabel('Senha', { exact: true }).fill(E2E_PASSWORD);
-  await page.getByRole('button', { name: 'Continuar', exact: true }).click();
-  const secret = await page.locator('code').innerText();
-  await page.getByLabel('Código', { exact: true }).fill(totp(secret));
   await page.waitForURL(/\/dashboard/);
 }
 
 test('HEAD convida usuário, vê auditoria e registra pedido LGPD', async ({ page }) => {
-  await headWithMfa(page);
+  await headLogin(page);
   await page
     .getByRole('navigation', { name: 'Navegação lateral' })
     .getByRole('link', { name: 'Admin' })

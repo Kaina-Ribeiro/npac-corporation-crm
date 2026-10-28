@@ -135,15 +135,29 @@ test('sem sessão redireciona para /login', async ({ page }) => {
   await expect(page).toHaveURL(/\/login/);
 });
 
-test('HEAD sem MFA é levado para configurar o autenticador', async ({ page }) => {
+test('MFA é opcional: liderança entra direto e ativa e desativa o autenticador pelo menu', async ({
+  page,
+}) => {
   await owner`update "user" set two_factor_enabled=false where email='ana@npac.com.br'`;
   await owner`delete from two_factor where user_id=(select id from "user" where email='ana@npac.com.br')`;
   await login(page, 'ana@npac.com.br');
-  await expect(page).toHaveURL(/\/conta\/mfa/);
+  await page.waitForURL(/\/dashboard/);
+  await page.getByRole('link', { name: 'Autenticador' }).click();
+  await page.getByLabel('Senha', { exact: true }).fill(E2E_PASSWORD);
+  await page.getByRole('button', { name: 'Continuar', exact: true }).click();
+  const secret = await page.locator('code').innerText();
+  await page.getByLabel('Código', { exact: true }).fill(totp(secret));
+  await page.waitForURL(/\/dashboard/);
+  // Desativa: o próximo login volta a ser só com senha.
+  await page.getByRole('link', { name: 'Autenticador' }).click();
+  await expect(page.getByRole('heading', { name: 'Autenticador ativo' })).toBeVisible();
+  await page.getByLabel('Senha', { exact: true }).fill(E2E_PASSWORD);
+  await page.getByRole('button', { name: 'Desativar autenticador' }).click();
+  await page.waitForURL(/\/dashboard/);
   await page.getByRole('button', { name: 'Sair' }).click();
   await page.waitForURL(/\/login/);
-  await page.goto('/conta/mfa');
-  await expect(page).toHaveURL(/\/login/);
+  await login(page, 'ana@npac.com.br');
+  await page.waitForURL(/\/dashboard/);
 });
 
 test('mobile mostra barra inferior', async ({ page }) => {
@@ -207,12 +221,13 @@ test('busca mantém contato fora da URL e alterna o tema', async ({ page }) => {
 });
 
 for (const head of ['ana', 'ronaldo']) {
-  test(`${head}: configura MFA e próximo login exige TOTP`, async ({ page }) => {
+  test(`${head}: ativa MFA e próximo login exige TOTP`, async ({ page }) => {
     const email = `${head}@npac.com.br`;
     await owner`update "user" set two_factor_enabled=false where email=${email}`;
     await owner`delete from two_factor where user_id=(select id from "user" where email=${email})`;
     await login(page, email);
-    await expect(page).toHaveURL(/\/conta\/mfa/);
+    await page.waitForURL(/\/dashboard/);
+    await page.goto('/conta/mfa');
     await page.getByLabel('Senha', { exact: true }).fill(E2E_PASSWORD);
     await page.getByRole('button', { name: 'Continuar' }).click();
     const secret = await page.locator('code').innerText();
@@ -231,11 +246,6 @@ test('HEAD estorna pela ficha preservando recebimento', async ({ page }) => {
   await owner`update "user" set two_factor_enabled=false where email='ronaldo@npac.com.br'`;
   await owner`delete from two_factor where user_id=(select id from "user" where email='ronaldo@npac.com.br')`;
   await login(page, 'ronaldo@npac.com.br');
-  await page.waitForURL(/\/conta\/mfa/);
-  await page.getByLabel('Senha', { exact: true }).fill(E2E_PASSWORD);
-  await page.getByRole('button', { name: 'Continuar', exact: true }).click();
-  const secret = await page.locator('code').innerText();
-  await page.getByLabel('Código', { exact: true }).fill(totp(secret));
   await page.waitForURL(/\/dashboard/);
   const [sdr] = await owner<{ id: string }[]>`select id from "user" where email='ale@npac.com.br'`;
   const lead = await page.request.post('/api/leads', {
@@ -447,7 +457,7 @@ test('tema automático segue o sistema', async ({ page }) => {
   await page.getByRole('radio', { name: 'Claro' }).click();
 });
 
-test('primeiro acesso da liderança: cria a senha e vai direto ao QR, sem pedir a senha de novo', async ({
+test('primeiro acesso da liderança: cria a senha e entra direto (MFA opcional)', async ({
   page,
 }) => {
   const [before] = await owner<{ password: string }[]>`
@@ -461,9 +471,7 @@ test('primeiro acesso da liderança: cria a senha e vai direto ao QR, sem pedir 
     await page.getByLabel('Nova senha', { exact: true }).fill('ronaldo-nova-1');
     await page.getByLabel('Confirme a nova senha').fill('ronaldo-nova-1');
     await page.getByRole('button', { name: 'Salvar senha' }).click();
-    await expect(page).toHaveURL(/\/conta\/mfa/);
-    await expect(page.getByRole('heading', { name: 'Escaneie o QR' })).toBeVisible();
-    await expect(page.getByLabel('Senha', { exact: true })).toHaveCount(0);
+    await page.waitForURL(/\/dashboard/);
   } finally {
     await owner`update account set password = ${before!.password} where user_id = (select id from "user" where email = 'ronaldo@npac.com.br')`;
     await owner`update "user" set must_change_password = false where email = 'ronaldo@npac.com.br'`;

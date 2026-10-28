@@ -1,46 +1,78 @@
 'use client';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import QRCode from 'qrcode';
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { authClient } from '@/lib/auth-client';
 import { submitWhenComplete } from '@/lib/otp-input';
-import { takePassword } from '@/lib/mfa-handoff';
 
-/** Ativação do TOTP: confirma a senha, mostra o QR e valida o primeiro código. */
-export function MfaSetup() {
+const errorText = (error: string | null) =>
+  error && (
+    <p role="alert" className="text-sm font-medium text-danger">
+      {error}
+    </p>
+  );
+
+function PasswordField() {
+  return (
+    <label className="flex flex-col gap-2 text-[13px] font-semibold text-ink2">
+      Senha
+      <input
+        name="password"
+        type="password"
+        className="field"
+        autoComplete="current-password"
+        required
+      />
+    </label>
+  );
+}
+
+const back = (
+  <Link href="/dashboard" className="text-center text-sm font-semibold text-ink2 hover:text-ink">
+    Voltar
+  </Link>
+);
+
+/**
+ * Autenticador opcional (qualquer cargo): ativa com senha → QR → primeiro código, ou
+ * desativa com a senha. Quem ativou passa a confirmar cada login com o código.
+ */
+export function MfaSetup({ enabled }: { enabled: boolean }) {
   const router = useRouter();
   const [qr, setQr] = useState<string | null>(null);
   const [secret, setSecret] = useState<string | null>(null);
   const [backup, setBackup] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const password = (e: FormEvent<HTMLFormElement>) =>
+    String(new FormData(e.currentTarget).get('password') ?? '');
 
-  // Vindo da troca de senha agora há pouco: usa a senha nova da memória e pula a confirmação.
-  const started = useRef(false);
-  const [auto, setAuto] = useState(false);
-  useEffect(() => {
-    if (started.current) return;
-    started.current = true;
-    const password = takePassword();
-    if (!password) return;
-    setAuto(true);
-    void enable(password).finally(() => setAuto(false));
-  }, []);
-
-  async function onPassword(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    await enable(String(new FormData(e.currentTarget).get('password') ?? ''));
+  function done() {
+    router.replace('/dashboard');
+    router.refresh();
   }
 
-  async function enable(password: string) {
+  async function onEnable(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
     setBusy(true);
     setError(null);
-    const { data, error: err } = await authClient.twoFactor.enable({ password });
+    const { data, error: err } = await authClient.twoFactor.enable({ password: password(e) });
     setBusy(false);
     if (err || !data || data.method !== 'totp') return setError('Senha incorreta.');
     setQr(await QRCode.toDataURL(data.totpURI, { margin: 1, width: 220 }));
     setSecret(new URL(data.totpURI).searchParams.get('secret'));
     setBackup(data.backupCodes);
+  }
+
+  async function onDisable(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    const { error: err } = await authClient.twoFactor.disable({ password: password(e) });
+    setBusy(false);
+    if (err) return setError('Senha incorreta.');
+    done();
   }
 
   async function onCode(e: FormEvent<HTMLFormElement>) {
@@ -52,44 +84,44 @@ export function MfaSetup() {
     const { error: err } = await authClient.twoFactor.verifyTotp({ code });
     setBusy(false);
     if (err) return setError('Código inválido. Confira o relógio do celular e tente de novo.');
-    router.replace('/dashboard');
-    router.refresh();
+    done();
   }
 
-  if (!qr && auto) {
+  if (enabled) {
     return (
-      <p role="status" className="py-10 text-center text-sm text-ink2">
-        Preparando o autenticador…
-      </p>
+      <form
+        className="flex flex-col gap-4"
+        onSubmit={onDisable}
+        aria-label="Desativar autenticador"
+      >
+        <h1 className="text-[28px] font-bold tracking-[-0.035em]">Autenticador ativo</h1>
+        <p className="-mt-2 text-[15px] text-ink2">
+          Cada login pede o código do app. Para desativar, confirme a sua senha.
+        </p>
+        <PasswordField />
+        {errorText(error)}
+        <button className="btn-dark" type="submit" disabled={busy}>
+          Desativar autenticador
+        </button>
+        {back}
+      </form>
     );
   }
 
   if (!qr) {
     return (
-      <form className="flex flex-col gap-4" onSubmit={onPassword} aria-label="Confirmar senha">
+      <form className="flex flex-col gap-4" onSubmit={onEnable} aria-label="Confirmar senha">
         <h1 className="text-[28px] font-bold tracking-[-0.035em]">Proteja o seu acesso</h1>
         <p className="-mt-2 text-[15px] text-ink2">
-          Head e Diretoria entram com senha e com o código de um app autenticador (Google
+          Opcional: além da senha, o login passa a pedir o código de um app autenticador (Google
           Authenticator, 1Password, Authy…). Confirme a sua senha para começar.
         </p>
-        <label className="flex flex-col gap-2 text-[13px] font-semibold text-ink2">
-          Senha
-          <input
-            name="password"
-            type="password"
-            className="field"
-            autoComplete="current-password"
-            required
-          />
-        </label>
-        {error && (
-          <p role="alert" className="text-sm font-medium text-danger">
-            {error}
-          </p>
-        )}
+        <PasswordField />
+        {errorText(error)}
         <button className="btn-dark" type="submit" disabled={busy}>
           Continuar
         </button>
+        {back}
       </form>
     );
   }
@@ -125,11 +157,7 @@ export function MfaSetup() {
           onInput={submitWhenComplete}
         />
       </label>
-      {error && (
-        <p role="alert" className="text-sm font-medium text-danger">
-          {error}
-        </p>
-      )}
+      {errorText(error)}
       <button className="btn-dark" type="submit" disabled={busy}>
         Ativar e entrar
       </button>

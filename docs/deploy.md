@@ -72,7 +72,7 @@ Atualizações: `git pull && docker compose ... build && docker compose ... up -
 
 - [ ] `.env.prod` preenchido, chaves no cofre, nenhuma reutilizada de dev.
 - [ ] `/api/health` 200 via domínio; HTTP redireciona para HTTPS; HSTS presente.
-- [ ] Ana e Ronaldo entram e configuram MFA; demais trocam a senha inicial.
+- [ ] Todos trocam a senha inicial; quem quiser ativa o autenticador (recomendado para a liderança).
 - [ ] Importação simulada sem rejeições inesperadas; importação aplicada e conferida.
 - [ ] Primeiro backup gerado e `restore-check.sh` ok; cópia externa chegando no bucket.
 - [ ] Firewall aceita 80/443 só do Cloudflare; Postgres não exposto (`ss -tlnp`).

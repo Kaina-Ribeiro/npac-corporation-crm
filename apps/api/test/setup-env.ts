@@ -10,5 +10,3 @@ url.password = pw;
 process.env.APP_DATABASE_URL = url.toString();
 process.env.NODE_ENV = 'test';
 process.env.LOG_LEVEL = 'silent';
-// Os testes provam o MFA obrigatório; só mfa-optional.e2e.test.ts desliga explicitamente.
-process.env.MFA_REQUIRED = 'true';

@@ -96,14 +96,10 @@ describe('autenticação', () => {
 
   it('health é público', async () => expect((await h.get('/api/health')).status).toBe(200));
 
-  it('HEAD sem MFA é barrado fora do /me', async () => {
+  it('MFA é opcional: liderança sem autenticador usa o app normalmente', async () => {
     const s = await h.signIn('ana@npac.com.br');
-    const res = await h.get(protectedRoute, s);
-    expect(res.status).toBe(403);
-    expect(res.body.code).toBe('MFA_ENROLLMENT_REQUIRED');
-    const me = await h.get('/api/me', s);
-    expect(me.status).toBe(200);
-    expect(me.body.mfaPending).toBe(true);
+    expect((await h.get(protectedRoute, s)).status).toBe(200);
+    expect((await h.get('/api/me', s)).body).not.toHaveProperty('mfaPending');
   });
 
   it('HEAD com MFA precisa do TOTP para entrar', async () => {

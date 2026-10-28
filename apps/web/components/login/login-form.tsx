@@ -203,8 +203,7 @@ export function LoginForm({ lastUser }: { lastUser?: string }) {
         Entrar
       </button>
       <Note>
-        Cada acesso é registrado. Head e Diretoria confirmam a entrada com o código do app
-        autenticador.
+        Cada acesso é registrado. Quem ativou o autenticador confirma a entrada com o código do app.
       </Note>
     </form>
   );
