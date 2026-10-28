@@ -20,6 +20,8 @@ export async function clientApi<T>(path: string, method = 'GET', body?: object):
         'Outra pessoa alterou este registro. Atualize a página antes de tentar novamente.',
       );
     if (data.code === 'DUPLICATE_LEAD') throw new Error('Já existe um lead com este contato.');
+    if (data.code === 'ACTIVE_SALE')
+      throw new Error('Estorne a venda ativa antes de excluir o lead.');
     if (res.status === 403) throw new Error('Seu acesso não permite esta ação.');
     throw new Error('Não foi possível salvar. Confira os campos e tente novamente.');
   }

@@ -188,3 +188,26 @@ body {
     opacity: 1;
   }
 }
+
+@media print {
+  aside,
+  header,
+  nav,
+  form,
+  button {
+    display: none !important;
+  }
+  body {
+    background: white;
+    color: black;
+  }
+  main {
+    padding: 0 !important;
+  }
+  .glass-card {
+    box-shadow: none;
+    backdrop-filter: none;
+    border: 1px solid #ddd;
+    break-inside: avoid;
+  }
+}

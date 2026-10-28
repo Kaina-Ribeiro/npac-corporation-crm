@@ -13,6 +13,10 @@
     "./enums": {
       "types": "./dist/enums.d.ts",
       "default": "./dist/enums.js"
+    },
+    "./money": {
+      "types": "./dist/money.d.ts",
+      "default": "./dist/money.js"
     }
   },
   "scripts": {

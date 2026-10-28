@@ -57,6 +57,44 @@ test('SDR cadastra lead, escreve nota e conclui tarefa na ficha', async ({ page 
   await expect(page.getByText('Lead e2e CRM', { exact: true })).toHaveCount(0);
 });
 
+test('SDR registra venda parcial, recebe saldo e vê o relatório', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await login(page, 'ale@npac.com.br');
+  await page.waitForURL(/\/hoje/);
+  const response = await page.request.post('/api/leads', {
+    data: { name: 'Lead venda e2e', instagram: '@sale.e2e', incomeBand: 'R5_10K', tier: 'P1' },
+  });
+  const { id } = (await response.json()) as { id: string };
+  const products = (await (await page.request.get('/api/finance/products')).json()) as {
+    id: string;
+    name: string;
+  }[];
+  const product = products.find((p) => p.name === 'Nação Promocional')!;
+  await page.goto(`/leads/${id}`);
+  await page.getByRole('button', { name: 'Registrar venda', exact: true }).click();
+  await page.getByLabel('Produto da venda', { exact: true }).selectOption(product.id);
+  await page.getByRole('button', { name: 'Continuar venda' }).click();
+  await page.getByLabel('Forma de pagamento', { exact: true }).selectOption('PARTIAL');
+  await page.getByLabel('Entrada recebida (R$)', { exact: true }).fill('1000,00');
+  await page.getByLabel('Parcela 1 (R$)', { exact: true }).fill('1500,00');
+  await page.getByLabel('Vencimento 1 (Brasília)', { exact: true }).fill('2030-01-01T12:00');
+  await page.getByRole('button', { name: 'Continuar venda' }).click();
+  await page.getByRole('button', { name: 'Confirmar venda', exact: true }).click();
+  await expect(
+    page.getByRole('button', { name: 'Registrar recebimento', exact: true }),
+  ).toBeVisible();
+  await page.screenshot({ path: 'test-results/venda.png', fullPage: true });
+  await page.getByRole('button', { name: 'Registrar recebimento', exact: true }).click();
+  await expect(
+    page.getByRole('button', { name: 'Registrar recebimento', exact: true }),
+  ).toHaveCount(0);
+  await page.goto('/relatorios');
+  await expect(page.getByRole('heading', { name: 'Relatórios', exact: true })).toBeVisible();
+  await expect(page.getByText(/2\.500,00/).first()).toBeVisible();
+  await expect(page.getByRole('button', { name: 'CSV com contatos', exact: true })).toHaveCount(0);
+  await page.screenshot({ path: 'test-results/relatorios.png', fullPage: true });
+});
+
 test('SDR entra e vê só os próprios leads', async ({ page }) => {
   await login(page, 'ale@npac.com.br');
   await page.waitForURL(/\/hoje/);
@@ -119,6 +157,13 @@ test('mobile mostra barra inferior', async ({ page }) => {
   await tabs.getByRole('button', { name: /^Agendado do Follow/ }).click();
   await expect(page.getByText('Lead e2e CRM', { exact: true })).toBeVisible();
   await page.screenshot({ path: 'test-results/pipeline-mobile.png', fullPage: true });
+  await page.getByRole('link', { name: 'Mais', exact: true }).click();
+  await page.getByRole('link', { name: 'Relatórios', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Relatórios', exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  );
+  await page.screenshot({ path: 'test-results/relatorios-mobile.png', fullPage: true });
 });
 
 test('nada de dado pessoal no localStorage', async ({ page }) => {
@@ -181,6 +226,57 @@ for (const head of ['ana', 'ronaldo']) {
     await page.waitForURL(/\/hoje/);
   });
 }
+
+test('HEAD estorna pela ficha preservando recebimento', async ({ page }) => {
+  await owner`update "user" set two_factor_enabled=false where email='ronaldo@npac.com.br'`;
+  await owner`delete from two_factor where user_id=(select id from "user" where email='ronaldo@npac.com.br')`;
+  await login(page, 'ronaldo@npac.com.br');
+  await page.waitForURL(/\/conta\/mfa/);
+  await page.getByLabel('Senha', { exact: true }).fill(E2E_PASSWORD);
+  await page.getByRole('button', { name: 'Continuar', exact: true }).click();
+  const secret = await page.locator('code').innerText();
+  await page.getByLabel('Código', { exact: true }).fill(totp(secret));
+  await page.getByRole('button', { name: 'Ativar e entrar' }).click();
+  await page.waitForURL(/\/hoje/);
+  const [sdr] = await owner<{ id: string }[]>`select id from "user" where email='ale@npac.com.br'`;
+  const lead = await page.request.post('/api/leads', {
+    data: {
+      name: 'Venda para estorno',
+      instagram: '@sale.reverse.e2e',
+      incomeBand: 'R5_10K',
+      tier: 'P1',
+      sdrId: sdr!.id,
+    },
+  });
+  const { id } = (await lead.json()) as { id: string };
+  const ps = (await (await page.request.get('/api/finance/products')).json()) as {
+    id: string;
+    closerId: string;
+  }[];
+  const d = await page.request.post('/api/finance/deals', {
+    data: {
+      leadId: id,
+      productId: ps[0]!.id,
+      closerId: ps[0]!.closerId,
+      version: 1,
+      totalCents: 250000,
+      method: 'PIX',
+      requestKey: crypto.randomUUID(),
+    },
+  });
+  expect(d.status()).toBe(201);
+  const deal = (await d.json()) as { id: string };
+  await page.goto(`/leads/${id}`);
+  await page.getByText('Estornar venda', { exact: true }).click();
+  await page.getByRole('button', { name: 'Confirmar estorno', exact: true }).click();
+  await expect(page.getByText('Estornada — histórico preservado', { exact: true })).toBeVisible();
+  const rows =
+    await owner`select id from payments where deal_id=${deal.id} and paid_at is not null`;
+  expect(rows).toHaveLength(1);
+  await page.goto('/dashboard');
+  await expect(page.getByRole('heading', { name: 'Dashboard', exact: true })).toBeVisible();
+  await page.screenshot({ path: 'test-results/dashboard.png', fullPage: true });
+});
 
 test('primeiro acesso exige trocar a senha', async ({ page }) => {
   await owner`update "user" set must_change_password = true where email = 'igor@npac.com.br'`;

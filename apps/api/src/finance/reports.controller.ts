@@ -16,6 +16,8 @@ const query = z
     tier: z.enum(TIERS).optional(),
     stage: z.enum(STAGE_KEYS).optional(),
     productId: z.uuid().optional(),
+    page: z.coerce.number().int().min(1).max(1000000).default(1),
+    pageSize: z.coerce.number().int().min(1).max(100).default(20),
   })
   .strict();
 @Controller('reports')

@@ -1,5 +1,6 @@
 import type { MeetingOutcome } from './enums.js';
 export type TodayDTO = {
+  charges: import('./finance.js').ChargeDTO[];
   overdue: { id: string; name: string; nextContactAt: string | null; version: number }[];
   contacts: { id: string; name: string; nextContactAt: string | null; version: number }[];
   meetings: {

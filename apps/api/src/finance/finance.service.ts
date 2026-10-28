@@ -137,26 +137,22 @@ export class FinanceService {
       const now = new Date();
       const entry = direct ? input.totalCents : input.entryCents;
       if (entry)
-        await tx
-          .insert(payments)
-          .values({
-            dealId: d!.id,
-            amountCents: entry,
-            dueAt: now,
-            paidAt: now,
-            paidBy: u.id,
-            receiptKey: randomUUID(),
-          });
+        await tx.insert(payments).values({
+          dealId: d!.id,
+          amountCents: entry,
+          dueAt: now,
+          paidAt: now,
+          paidBy: u.id,
+          receiptKey: randomUUID(),
+        });
       if (input.installments.length)
-        await tx
-          .insert(payments)
-          .values(
-            input.installments.map((p) => ({
-              dealId: d!.id,
-              amountCents: p.amountCents,
-              dueAt: p.dueAt,
-            })),
-          );
+        await tx.insert(payments).values(
+          input.installments.map((p) => ({
+            dealId: d!.id,
+            amountCents: p.amountCents,
+            dueAt: p.dueAt,
+          })),
+        );
       await tx
         .update(leads)
         .set({ stageId: stage.id, version: lead.version + 1, updatedAt: now })

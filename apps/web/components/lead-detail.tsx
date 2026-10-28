@@ -1,10 +1,19 @@
 'use client';
-import type { LeadActivityDTO, LeadCatalog, LeadDTO, MeetingDTO, Role } from '@npac/shared';
+import type {
+  DealDTO,
+  ProductDTO,
+  LeadActivityDTO,
+  LeadCatalog,
+  LeadDTO,
+  MeetingDTO,
+  Role,
+} from '@npac/shared';
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import { brasiliaInput, clientApi } from '@/lib/client-api';
 import { button, control, Field, FormError, quietButton } from './crm-ui';
 import { LeadForm } from './lead-form';
+import { FinancePanel } from './finance-panel';
 import { useCrmRefresh } from './shell/live-updates';
 
 const date = (s: string) =>
@@ -26,6 +35,9 @@ const EVENT_LABEL: Record<string, string> = {
   'meeting.rescheduled': 'Reunião remarcada',
   'meeting.canceled': 'Reunião cancelada',
   'meeting.outcome': 'Resultado da reunião registrado',
+  'sale.registered': 'Venda registrada',
+  'sale.reversed': 'Venda estornada',
+  'payment.received': 'Pagamento recebido',
 };
 
 export function LeadDetail({
@@ -33,12 +45,16 @@ export function LeadDetail({
   activity,
   catalog,
   meetings,
+  deals,
+  products,
   me,
 }: {
   lead: LeadDTO;
   activity: LeadActivityDTO;
   catalog: LeadCatalog;
   meetings: MeetingDTO[];
+  deals: DealDTO[];
+  products: ProductDTO[];
   me: { id: string; role: Role };
 }) {
   const router = useRouter();
@@ -359,6 +375,7 @@ export function LeadDetail({
           </ol>
         </section>
       </div>
+      <FinancePanel lead={lead} deals={deals} products={products} me={me} />
       {me.role !== 'CLOSER' && (
         <details className="glass-card p-5">
           <summary className="cursor-pointer font-semibold">Editar dados do lead</summary>

@@ -52,6 +52,9 @@ beforeEach(async () => {
 it('SQL não duplica faturamento ao juntar duas reuniões e respeita escopo', async () => {
   const mine = await h.post('/api/reports/search', { period: 'TODAY' }, ale);
   expect(mine.status).toBe(200);
+  expect(mine.body.bySdr[0]).toMatchObject({ p1: 1, direct: 2, follow: 0 });
+  expect(mine.body.byCloser[0].conversionBps).toBe(5000);
+  expect(mine.body.byProduct[0].ticketCents).toBe(250000);
   expect(mine.body.metrics).toMatchObject({
     soldCents: 250000,
     receivedCents: 250000,
@@ -62,6 +65,12 @@ it('SQL não duplica faturamento ao juntar duas reuniões e respeita escopo', as
   expect(
     (await h.post('/api/reports/search', { period: 'TODAY' }, head)).body.metrics.soldCents,
   ).toBe(550000);
+  const a = await h.post('/api/reports/search', { period: 'TODAY', page: 1, pageSize: 1 }, head);
+  const b = await h.post('/api/reports/search', { period: 'TODAY', page: 2, pageSize: 1 }, head);
+  expect(a.body.totalLeads).toBe(2);
+  expect(a.body.leads).toHaveLength(1);
+  expect(b.body.leads[0].id).not.toBe(a.body.leads[0].id);
+  expect(b.body.metrics.soldCents).toBe(550000);
 });
 it('CSV só HEAD e neutraliza fórmula; resumo não inclui contato', async () => {
   expect((await h.post('/api/reports/csv', { period: 'TODAY' }, ale)).status).toBe(403);

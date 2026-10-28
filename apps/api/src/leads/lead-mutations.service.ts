@@ -6,9 +6,9 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { leadContactTaken, leads, withUser, type Db, type Tx } from '@npac/db';
+import { deals, leadContactTaken, leads, withUser, type Db, type Tx } from '@npac/db';
 import type { AuthUser, LeadUpdateInput } from '@npac/shared';
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import { DB } from '../common/db/db.module.js';
 import { FieldCrypto } from '../common/crypto/field-crypto.js';
 import { recordActivity } from './activity.js';
@@ -102,6 +102,15 @@ export class LeadMutationsService {
   async remove(u: AuthUser, id: string, version: number, meta: RequestMeta) {
     return withUser(this.db, u.id, async (tx) => {
       const old = await lockLead(tx, id, version);
+      const [active] = await tx
+        .select({ id: deals.id })
+        .from(deals)
+        .where(and(eq(deals.leadId, id), isNull(deals.reversedAt)));
+      if (active)
+        throw new ConflictException({
+          code: 'ACTIVE_SALE',
+          message: 'Estorne a venda ativa antes de excluir o lead.',
+        });
       await recordActivity(tx, u, id, 'lead.deleted', [], undefined, meta);
       await tx
         .update(leads)

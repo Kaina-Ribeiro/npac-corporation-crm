@@ -120,6 +120,18 @@ afterAll(async () => {
 });
 
 describe('row-level security', () => {
+  it('banco recusa venda sem parcelas que fechem o total', async () => {
+    const [p] = await owner<
+      { id: string }[]
+    >`insert into products(code,name,closer_id,price_cents) values('BALANCE','Teste saldo',${sonia.id},250000) returning id`;
+    await expect(
+      app.begin(async (s) => {
+        await s`select set_config('app.user_id',${ale.id},true)`;
+        await s`insert into deals(lead_id,product_id,product_name,catalog_price_cents,closer_id,sdr_id,total_cents,method,created_by,request_key)
+        values(${A},${p!.id},'Teste saldo',250000,${sonia.id},${ale.id},250000,'PIX',${ale.id},'00000000-0000-4000-8000-000000000002')`;
+      }),
+    ).rejects.toThrow(/parcelas/);
+  });
   it('vendas e parcelas herdam o escopo e valores financeiros são imutáveis', async () => {
     const [product] = await owner<
       { id: string }[]

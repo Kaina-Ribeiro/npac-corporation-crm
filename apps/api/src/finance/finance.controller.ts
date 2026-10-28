@@ -4,6 +4,7 @@ import { CurrentUser, type SessionUser } from '../auth/current-user.decorator.js
 import { entityId, validate } from '../common/validate.js';
 import { FinanceService } from './finance.service.js';
 import { receiptSchema, reverseSchema, saleSchema } from './schemas.js';
+import { financialConflict } from './conflict.js';
 @Controller('finance')
 export class FinanceController {
   constructor(private readonly finance: FinanceService) {}
@@ -17,14 +18,16 @@ export class FinanceController {
     @CurrentUser() u: SessionUser,
     @Body() body: unknown,
   ) {
-    return this.finance.register(u, validate(saleSchema, body));
+    return this.finance.register(u, validate(saleSchema, body)).catch(financialConflict);
   }
   @Post('payments/:id/receive') @HttpCode(200) @Can('sale:register') receive(
     @CurrentUser() u: SessionUser,
     @Param('id') id: string,
     @Body() body: unknown,
   ) {
-    return this.finance.receive(u, entityId(id), validate(receiptSchema, body));
+    return this.finance
+      .receive(u, entityId(id), validate(receiptSchema, body))
+      .catch(financialConflict);
   }
   @Post('deals/:id/reverse') @HttpCode(200) @Can('sale:reverse') reverse(
     @CurrentUser() u: SessionUser,

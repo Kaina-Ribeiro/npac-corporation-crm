@@ -1,5 +1,15 @@
 import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
-import { auditLog, leads, leadTasks, meetings, pipelineStages, withUser, type Db } from '@npac/db';
+import {
+  auditLog,
+  deals,
+  payments,
+  leads,
+  leadTasks,
+  meetings,
+  pipelineStages,
+  withUser,
+  type Db,
+} from '@npac/db';
 import { spDayRange, type AuthUser } from '@npac/shared';
 import {
   and,
@@ -107,7 +117,31 @@ export class TodayService {
           ),
         },
       });
-      return { overdue, contacts, meetings: calls, tasks };
+      const charges = await tx
+        .select({
+          id: payments.id,
+          dealId: deals.id,
+          leadId: leads.id,
+          name: leads.name,
+          amountCents: payments.amountCents,
+          dueAt: payments.dueAt,
+          version: payments.version,
+        })
+        .from(payments)
+        .innerJoin(deals, eq(deals.id, payments.dealId))
+        .innerJoin(leads, eq(leads.id, deals.leadId))
+        .where(
+          and(
+            isNull(payments.paidAt),
+            isNull(deals.reversedAt),
+            lt(payments.dueAt, end),
+            filters.sdrId ? eq(deals.sdrId, filters.sdrId) : undefined,
+            filters.closerId ? eq(deals.closerId, filters.closerId) : undefined,
+          ),
+        )
+        .orderBy(asc(payments.dueAt), asc(payments.id))
+        .limit(100);
+      return { overdue, contacts, meetings: calls, tasks, charges };
     });
   }
 }

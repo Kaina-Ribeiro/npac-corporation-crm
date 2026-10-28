@@ -1,7 +1,8 @@
 'use client';
 import type { LeadCatalog, TodayDTO } from '@npac/shared';
 import Link from 'next/link';
-import { useState, type FormEvent, type ReactNode } from 'react';
+import { useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { money } from '@npac/shared/money';
 import { brasiliaInput, clientApi } from '@/lib/client-api';
 import { button, control, Field, FormError, quietButton } from './crm-ui';
 import { useCrmRefresh } from './shell/live-updates';
@@ -48,6 +49,7 @@ export function Today({
   head: boolean;
 }) {
   const [data, setData] = useState(initial);
+  const receiptKeys = useRef(new Map<string, string>());
   useCrmRefresh(() => load());
   const [filters, setFilters] = useState({});
   const [busy, setBusy] = useState(false);
@@ -189,6 +191,37 @@ export function Today({
                 )}
               </div>
             </article>
+          ))}
+        </Section>
+        <Section title="Cobranças até hoje" count={data.charges.length}>
+          {data.charges.map((p) => (
+            <div
+              key={p.id}
+              className="flex flex-wrap items-center justify-between gap-3 border-b border-line py-3"
+            >
+              <div>
+                <Link href={`/leads/${p.leadId}`} className="text-sm font-semibold">
+                  {p.name}
+                </Link>
+                <p className="text-sm text-gold-deep">
+                  {money(p.amountCents)} · {when(p.dueAt)}
+                </p>
+              </div>
+              <button
+                className={quietButton}
+                disabled={busy}
+                onClick={() => {
+                  if (!receiptKeys.current.has(p.id))
+                    receiptKeys.current.set(p.id, crypto.randomUUID());
+                  void action(`/api/finance/payments/${p.id}/receive`, 'POST', {
+                    version: p.version,
+                    requestKey: receiptKeys.current.get(p.id),
+                  });
+                }}
+              >
+                Registrar recebimento
+              </button>
+            </div>
           ))}
         </Section>
         <Section title="Tarefas" count={data.tasks.length}>

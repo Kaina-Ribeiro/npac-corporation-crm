@@ -48,6 +48,14 @@ it('venda parcial é atômica e repetição não duplica', async () => {
   expect(res.status).toBe(201);
   const retry = await h.post('/api/finance/deals', input, ale);
   expect(retry.body.id).toBe(res.body.id);
+  const other = await h.post(
+    '/api/leads',
+    { name: 'Outro comprador', instagram: '@outro.comprador', incomeBand: 'R5_10K', tier: 'P1' },
+    murilo,
+  );
+  expect(
+    (await h.post('/api/finance/deals', { ...input, leadId: other.body.id }, murilo)).status,
+  ).toBe(409);
   expect((await h.post('/api/finance/deals', { ...input, totalCents: 260000 }, ale)).status).toBe(
     409,
   );
@@ -86,3 +94,77 @@ it('baixa é idempotente e só HEAD estorna preservando parcelas', async () => {
   const rows = await owner`select * from payments where deal_id=${deal.body.id}`;
   expect(rows).toHaveLength(2);
 });
+
+it('closer registra venda da agenda, mas não escolhe outro closer', async () => {
+  const sonia = await h.signIn('sonia@npac.com.br');
+  await owner`insert into meetings (lead_id,closer_id,scheduled_at,origin,created_by) select ${leadId},${closerId},now(),'DIRETO',id from "user" where email='ale@npac.com.br'`;
+  const [other] = await owner<
+    { id: string; closer_id: string }[]
+  >`select id,closer_id from products where code='RDV'`;
+  expect(
+    (
+      await h.post(
+        '/api/finance/deals',
+        { ...sale(), productId: other!.id, closerId: other!.closer_id },
+        sonia,
+      )
+    ).status,
+  ).toBe(403);
+  expect((await h.post('/api/finance/deals', sale(), sonia)).status).toBe(201);
+});
+
+it('recebimento concorrente com estorno não perde nem duplica parcelas', async () => {
+  const res = await h.post('/api/finance/deals', sale(), ale);
+  const d = (await h.get(`/api/finance/leads/${leadId}`, ale)).body[0];
+  const pending = d.payments.find((p: { paidAt: string | null }) => !p.paidAt);
+  const [received, reversed] = await Promise.all([
+    h.post(
+      `/api/finance/payments/${pending.id}/receive`,
+      { version: 1, requestKey: randomUUID() },
+      ale,
+    ),
+    h.post(`/api/finance/deals/${res.body.id}/reverse`, { version: 1 }, head),
+  ]);
+  expect([200, 409]).toContain(received.status);
+  expect(reversed.status).toBe(200);
+  expect(await owner`select id from payments where deal_id=${res.body.id}`).toHaveLength(2);
+});
+
+it('cobrança vencida aparece só no escopo e sai após recebimento', async () => {
+  const d = await h.post('/api/finance/deals', sale(), ale);
+  await owner`update payments set due_at=now() where deal_id=${d.body.id} and paid_at is null`;
+  const charges = (await h.post('/api/today/search', {}, ale)).body.charges;
+  expect(charges).toHaveLength(1);
+  expect(charges[0].amountCents).toBe(150000);
+  expect((await h.post('/api/today/search', {}, murilo)).body.charges).toHaveLength(0);
+  await h.post(
+    `/api/finance/payments/${charges[0].id}/receive`,
+    { version: 1, requestKey: randomUUID() },
+    ale,
+  );
+  expect((await h.post('/api/today/search', {}, ale)).body.charges).toHaveLength(0);
+});
+
+it('lead com venda ativa exige estorno antes de exclusão', async () => {
+  expect((await h.post('/api/finance/deals', sale(), ale)).status).toBe(201);
+  expect((await h.del('/api/leads/' + leadId, { version: 2 }, head)).status).toBe(409);
+  expect((await h.get('/api/leads/' + leadId, head)).status).toBe(200);
+});
+
+it.each(['CARD', 'PIX', 'BANK_SLIP'] as const)(
+  'forma %s concilia pagamentos e saldo',
+  async (method) => {
+    const input = {
+      ...sale(),
+      method,
+      entryCents: 0,
+      installments:
+        method === 'BANK_SLIP' ? [{ amountCents: 250000, dueAt: '2030-01-01T12:00:00-03:00' }] : [],
+    };
+    expect((await h.post('/api/finance/deals', input, ale)).status).toBe(201);
+    const d = (await h.get('/api/finance/leads/' + leadId, ale)).body[0];
+    expect(d.payments).toHaveLength(1);
+    expect(d.payments[0].amountCents).toBe(250000);
+    expect(d.payments[0].paidAt === null).toBe(method === 'BANK_SLIP');
+  },
+);

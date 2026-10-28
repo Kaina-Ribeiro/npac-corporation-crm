@@ -5,11 +5,16 @@ import type { Db, Tx } from './client.js';
  * Executa `fn` numa transação com `app.user_id` definido (escopo local à transação),
  * que é o que as políticas de RLS leem via `app_user_id()`.
  */
-export async function withUser<T>(db: Db, userId: string, fn: (tx: Tx) => Promise<T>): Promise<T> {
+export async function withUser<T>(
+  db: Db,
+  userId: string,
+  fn: (tx: Tx) => Promise<T>,
+  config?: Parameters<Db['transaction']>[1],
+): Promise<T> {
   return db.transaction(async (tx) => {
     await tx.execute(sql`select set_config('app.user_id', ${userId}, true)`);
     return fn(tx);
-  });
+  }, config);
 }
 
 /**

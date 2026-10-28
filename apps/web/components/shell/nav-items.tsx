@@ -49,11 +49,11 @@ const ICONS = {
 
 /** Desktop: sidebar completa. */
 export const SIDEBAR_ITEMS: NavItem[] = [
-  { href: '/dashboard', label: 'Dashboard', ready: false, icon: ICONS.dashboard },
+  { href: '/dashboard', label: 'Dashboard', ready: true, icon: ICONS.dashboard },
   { href: '/hoje', label: 'Hoje', ready: true, icon: ICONS.hoje },
   { href: '/pipeline', label: 'Pipeline', ready: true, icon: ICONS.pipeline },
   { href: '/leads', label: 'Leads', ready: true, icon: ICONS.leads },
-  { href: '/relatorios', label: 'Relatórios', ready: false, icon: ICONS.relatorios },
+  { href: '/relatorios', label: 'Relatórios', ready: true, icon: ICONS.relatorios },
   { href: '/chat', label: 'Chat', ready: false, icon: ICONS.chat },
   { href: '/equipe', label: 'Equipe', ready: false, icon: ICONS.equipe },
   { href: '/playbook', label: 'Playbook', ready: false, icon: ICONS.playbook },
@@ -65,7 +65,7 @@ export const BOTTOM_ITEMS: NavItem[] = [
   { href: '/pipeline', label: 'Pipeline', ready: true, icon: ICONS.pipeline },
   { href: '/leads', label: 'Leads', ready: true, icon: ICONS.leads },
   { href: '/chat', label: 'Chat', ready: false, icon: ICONS.chat },
-  { href: '/mais', label: 'Mais', ready: false, icon: ICONS.mais },
+  { href: '/mais', label: 'Mais', ready: true, icon: ICONS.mais },
 ];
 
 /** Seções que existem na navegação mas ainda não foram construídas. */
