@@ -6,7 +6,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { leadContactTaken, leadTimeline, withUser, type Db } from '@npac/db';
+import { leadContactTaken, leadTimeline, pipelineStages, user, withUser, type Db } from '@npac/db';
 import {
   normalizeInstagram,
   normalizePhoneBR,
@@ -15,7 +15,7 @@ import {
   type LeadDTO,
   type Page,
 } from '@npac/shared';
-import { sql } from 'drizzle-orm';
+import { asc, eq, sql } from 'drizzle-orm';
 import { AuditService } from '../audit/audit.service.js';
 import { FieldCrypto } from '../common/crypto/field-crypto.js';
 import { DB } from '../common/db/db.module.js';
@@ -45,6 +45,46 @@ export class LeadsService {
     private readonly crypto: FieldCrypto,
     private readonly audit: AuditService,
   ) {}
+
+  async catalog(u: AuthUser) {
+    return withUser(this.db, u.id, async (tx) => ({
+      stages: await tx.select().from(pipelineStages).orderBy(asc(pipelineStages.position)),
+      team: await tx
+        .select({
+          id: user.id,
+          name: user.name,
+          role: user.role,
+          canProspect: user.canProspect,
+          canClose: user.canClose,
+        })
+        .from(user)
+        .where(eq(user.active, true)),
+    }));
+  }
+
+  async pipeline(u: AuthUser, q: LeadListQuery, meta: RequestMeta) {
+    const { stages } = await this.catalog(u);
+    return Promise.all(
+      stages
+        .filter((s) => !q.stage || q.stage === s.key)
+        .map(async (stage) => {
+          const data = await this.list(u, { ...q, stage: stage.key, page: 1, pageSize: 30 }, meta);
+          return {
+            stage,
+            total: data.total,
+            page: 1,
+            items: data.items.map(({ id, name, tier, stageKey, version, nextContactAt }) => ({
+              id,
+              name,
+              tier,
+              stageKey,
+              version,
+              nextContactAt,
+            })),
+          };
+        }),
+    );
+  }
 
   async create(u: AuthUser, input: LeadCreateInput, meta: RequestMeta): Promise<{ id: string }> {
     const sdrId = this.resolveSdr(u, input.sdrId);
@@ -106,6 +146,8 @@ export class LeadsService {
   }
 
   async list(u: AuthUser, q: LeadListQuery, meta: RequestMeta): Promise<Page<LeadDTO>> {
+    if (q.period === 'RANGE' && (!q.from || !q.to || q.from > q.to))
+      throw new BadRequestException('Intervalo inválido');
     const { search, page, pageSize, ...filters } = q;
     const { rows, total } = await withUser(this.db, u.id, (tx) =>
       this.repo.list(tx, { ...filters, search: this.parseSearch(search) }, page, pageSize),

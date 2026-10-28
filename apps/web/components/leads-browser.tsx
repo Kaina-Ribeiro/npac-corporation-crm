@@ -1,7 +1,9 @@
 'use client';
-import type { LeadDTO, Page } from '@npac/shared';
+import type { LeadCatalog, LeadDTO, Page } from '@npac/shared';
 import { INCOME_BAND_LABELS } from '@npac/shared/enums';
 import { useState, type FormEvent } from 'react';
+import Link from 'next/link';
+import { LeadFilters, readFilters } from './lead-filters';
 
 const dateFmt = new Intl.DateTimeFormat('pt-BR', {
   day: '2-digit',
@@ -10,15 +12,24 @@ const dateFmt = new Intl.DateTimeFormat('pt-BR', {
 });
 
 /** Busca só em memória: contatos nunca vão para URL ou armazenamento persistente. */
-export function LeadsBrowser({ initialData }: { initialData: Page<LeadDTO> }) {
+export function LeadsBrowser({
+  initialData,
+  canCreate,
+  catalog,
+}: {
+  initialData: Page<LeadDTO>;
+  canCreate: boolean;
+  catalog: LeadCatalog;
+}) {
   const [data, setData] = useState(initialData);
   const [q, setQ] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [filters, setFilters] = useState<Record<string, string>>({});
   const page = data.page;
   const pages = Math.max(1, Math.ceil(data.total / data.pageSize));
 
-  async function search(term: string, target = 1) {
+  async function search(term: string, target = 1, selected = filters) {
     if (busy) return;
     setBusy(true);
     setError('');
@@ -27,7 +38,7 @@ export function LeadsBrowser({ initialData }: { initialData: Page<LeadDTO> }) {
         method: 'POST',
         cache: 'no-store',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ search: term, page: target, pageSize: 20 }),
+        body: JSON.stringify({ ...selected, search: term, page: target, pageSize: 20 }),
       });
       if (res.status === 401) {
         window.location.replace('/login');
@@ -44,7 +55,10 @@ export function LeadsBrowser({ initialData }: { initialData: Page<LeadDTO> }) {
   }
   function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    void search(String(new FormData(e.currentTarget).get('q') ?? '').trim());
+    const f = new FormData(e.currentTarget);
+    const selected = readFilters(f);
+    setFilters(selected);
+    void search(String(f.get('q') ?? '').trim(), 1, selected);
   }
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-4">
@@ -55,7 +69,20 @@ export function LeadsBrowser({ initialData }: { initialData: Page<LeadDTO> }) {
             {data.total} {data.total === 1 ? 'lead' : 'leads'}
           </p>
         </div>
-        <form role="search" onSubmit={submit} className="relative w-full md:w-[340px]">
+        {canCreate && (
+          <Link
+            href="/leads/new"
+            className="rounded-xl bg-ink px-4 py-2 text-sm font-semibold text-[var(--bg)]"
+          >
+            Novo lead
+          </Link>
+        )}
+        <form
+          id="lead-search"
+          role="search"
+          onSubmit={submit}
+          className="relative w-full md:w-[340px]"
+        >
           <label htmlFor="q" className="sr-only">
             Buscar por nome, WhatsApp ou Instagram
           </label>
@@ -80,6 +107,7 @@ export function LeadsBrowser({ initialData }: { initialData: Page<LeadDTO> }) {
         </form>
       </div>
 
+      <LeadFilters catalog={catalog} form="lead-search" />
       {error && <p role="alert">{error}</p>}
       {data.items.length === 0 ? (
         <section className="glass-card p-6 text-center text-sm text-ink2">
@@ -92,7 +120,9 @@ export function LeadsBrowser({ initialData }: { initialData: Page<LeadDTO> }) {
             {data.items.map((l) => (
               <li key={l.id} className="glass-card flex flex-col gap-2 p-3.5">
                 <div className="flex items-center gap-2.5">
-                  <b className="flex-1 truncate text-base font-semibold">{l.name}</b>
+                  <Link href={`/leads/${l.id}`} className="flex-1 truncate text-base font-semibold">
+                    {l.name}
+                  </Link>
                   <span className={`tier tier-${l.tier}`}>{l.tier}</span>
                 </div>
                 <div className="flex flex-wrap gap-x-3 gap-y-1 text-[13px] text-ink2">
@@ -133,7 +163,7 @@ export function LeadsBrowser({ initialData }: { initialData: Page<LeadDTO> }) {
                 {data.items.map((l) => (
                   <tr key={l.id} className="transition-colors hover:bg-[rgba(118,118,128,.05)]">
                     <td className="h-[46px] border-b border-line px-3.5 font-semibold whitespace-nowrap">
-                      {l.name}
+                      <Link href={`/leads/${l.id}`}>{l.name}</Link>
                     </td>
                     <td className="border-b border-line px-3.5">
                       <span className={`tier tier-${l.tier}`}>{l.tier}</span>

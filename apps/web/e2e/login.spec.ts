@@ -22,6 +22,41 @@ async function login(page: Page, email: string, password = E2E_PASSWORD) {
   await page.getByRole('button', { name: 'Entrar' }).click();
 }
 
+test('SDR cadastra lead, escreve nota e conclui tarefa na ficha', async ({ page }) => {
+  await login(page, 'ale@npac.com.br');
+  await page.waitForURL(/\/hoje/);
+  await page.goto('/leads');
+  await page.getByRole('link', { name: 'Novo lead', exact: true }).click();
+  await page.getByLabel('Nome', { exact: true }).fill('Lead e2e CRM');
+  await page.getByLabel('WhatsApp', { exact: true }).fill('11966665555');
+  await page.getByLabel('Faixa de renda', { exact: true }).selectOption('R5_10K');
+  await page.getByRole('button', { name: 'Cadastrar lead' }).click();
+  await expect(page.getByRole('heading', { name: 'Lead e2e CRM', exact: true })).toBeVisible();
+  await page.getByLabel('Nova nota', { exact: true }).fill('Retornar após a reunião');
+  await page.getByRole('button', { name: 'Adicionar nota' }).click();
+  await expect(page.getByText('Retornar após a reunião', { exact: true })).toBeVisible();
+  await page.getByLabel('Nova tarefa', { exact: true }).fill('Enviar apresentação');
+  await page.getByRole('button', { name: 'Adicionar tarefa' }).click();
+  await page.getByRole('button', { name: 'Concluir Enviar apresentação', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Reabrir Enviar apresentação' })).toBeVisible();
+  await page.screenshot({ path: 'test-results/ficha.png', fullPage: true });
+  await page.goto('/pipeline');
+  await page
+    .getByRole('combobox', { name: 'Mover Lead e2e CRM para', exact: true })
+    .selectOption('EM_FOLLOW');
+  await expect(
+    page
+      .getByRole('region', { name: 'Em Follow-up', exact: true })
+      .getByText('Lead e2e CRM', { exact: true }),
+  ).toBeVisible();
+  await page.screenshot({ path: 'test-results/pipeline.png', fullPage: true });
+  await page.goto('/leads');
+  await page.getByText('Filtrar e ordenar', { exact: true }).click();
+  await page.getByLabel('Perfil do lead', { exact: true }).selectOption('P0');
+  await page.getByRole('button', { name: 'Aplicar filtros', exact: true }).click();
+  await expect(page.getByText('Lead e2e CRM', { exact: true })).toHaveCount(0);
+});
+
 test('SDR entra e vê só os próprios leads', async ({ page }) => {
   await login(page, 'ale@npac.com.br');
   await page.waitForURL(/\/hoje/);

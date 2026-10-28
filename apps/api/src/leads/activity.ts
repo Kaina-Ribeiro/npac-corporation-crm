@@ -13,15 +13,13 @@ export async function recordActivity(
   meta: RequestMeta = {},
 ): Promise<void> {
   await tx.insert(leadTimeline).values({ leadId, actorId: u.id, kind, fields, entityId });
-  await tx
-    .insert(auditLog)
-    .values({
-      actorId: u.id,
-      action: kind,
-      entityType: 'lead',
-      entityId: leadId,
-      data: { fields, ...(entityId ? { entityId } : {}) },
-      ip: meta.ip,
-      userAgent: meta.userAgent,
-    });
+  await tx.insert(auditLog).values({
+    actorId: u.id,
+    action: kind,
+    entityType: 'lead',
+    entityId: leadId,
+    data: { fields, ...(entityId ? { entityId } : {}) },
+    ip: meta.ip,
+    userAgent: meta.userAgent,
+  });
 }

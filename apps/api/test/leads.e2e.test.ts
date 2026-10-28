@@ -46,6 +46,82 @@ async function create(body: object, cookie: Cookie): Promise<string> {
 }
 
 describe('leads', () => {
+  it('pipeline agrupa pelas etapas do banco sem incluir lead de outro SDR', async () => {
+    const id = await create(lead({ name: 'Meu pipeline' }), ale);
+    await create(lead({ name: 'Pipeline alheio' }), murilo);
+    const res = await h.get('/api/leads/pipeline', ale);
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveLength(8);
+    expect(res.body.flatMap((c: { items: { id: string }[] }) => c.items.map((l) => l.id))).toEqual([
+      id,
+    ]);
+    expect(JSON.stringify(res.body)).not.toContain('Pipeline alheio');
+  });
+  it('filtros por origem/data e ordenação são aplicados no servidor', async () => {
+    await create(
+      lead({ name: 'Zélia', source: 'WHATSAPP', nextContactAt: '2030-01-01T23:30:00-03:00' }),
+      ale,
+    );
+    await create(lead({ name: 'Alice', source: 'INSTAGRAM' }), ale);
+    const sorted = await h.post('/api/leads/search', { sort: 'name', direction: 'asc' }, ale);
+    expect(sorted.body.items.map((l: { name: string }) => l.name)).toEqual(['Alice', 'Zélia']);
+    const range = await h.post(
+      '/api/leads/search',
+      { source: 'WHATSAPP', period: 'RANGE', from: '2030-01-01', to: '2030-01-01' },
+      ale,
+    );
+    expect(range.body.items.map((l: { name: string }) => l.name)).toEqual(['Zélia']);
+    const noDate = await h.post('/api/leads/search', { period: 'NO_DATE' }, ale);
+    expect(noDate.body.items.map((l: { name: string }) => l.name)).toEqual(['Alice']);
+    expect(
+      (
+        await h.post(
+          '/api/leads/search',
+          { period: 'RANGE', from: '2030-01-02', to: '2030-01-01' },
+          ale,
+        )
+      ).status,
+    ).toBe(400);
+  });
+  it('ficha guarda notas e tarefas com timeline sem copiar conteúdo', async () => {
+    const id = await create(lead(), ale);
+    expect(
+      (await h.post(`/api/leads/${id}/notes`, { body: 'Retornar depois do almoço' }, murilo))
+        .status,
+    ).toBe(404);
+    const note = await h.post(`/api/leads/${id}/notes`, { body: 'Retornar depois do almoço' }, ale);
+    expect(note.status).toBe(201);
+    const task = await h.post(
+      `/api/leads/${id}/tasks`,
+      { title: 'Ligar', dueAt: '2030-01-01T12:00:00-03:00' },
+      ale,
+    );
+    expect(task.status).toBe(201);
+    expect(
+      (
+        await h.patch(
+          `/api/leads/${id}/tasks/${task.body.id}`,
+          { version: 1, completed: true },
+          ale,
+        )
+      ).status,
+    ).toBe(200);
+    expect(
+      (
+        await h.patch(
+          `/api/leads/${id}/tasks/${task.body.id}`,
+          { version: 1, completed: false },
+          ale,
+        )
+      ).status,
+    ).toBe(409);
+    const activity = await h.get(`/api/leads/${id}/activity`, ale);
+    expect(activity.status).toBe(200);
+    expect(activity.body.notes[0].body).toBe('Retornar depois do almoço');
+    expect(activity.body.tasks[0].completedAt).not.toBeNull();
+    expect(JSON.stringify(activity.body.timeline)).not.toContain('Retornar');
+    expect((await h.get(`/api/leads/${id}/activity`, murilo)).status).toBe(404);
+  });
   it('edição usa versão otimista e nunca altera um lead invisível', async () => {
     const id = await create(lead(), ale);
     const [a, b] = await Promise.all([

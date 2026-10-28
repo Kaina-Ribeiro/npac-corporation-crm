@@ -15,6 +15,7 @@ import {
 import {
   leadCreateSchema,
   leadUpdateSchema,
+  LEAD_SOURCES,
   STAGE_KEYS,
   TIERS,
   type LeadDTO,
@@ -35,6 +36,12 @@ const listQuerySchema = z.object({
   tier: z.enum(TIERS).optional(),
   sdrId: z.string().optional(),
   closerId: z.string().optional(),
+  source: z.enum(LEAD_SOURCES).optional(),
+  period: z.enum(['TODAY', 'TOMORROW', 'WEEK', 'OVERDUE', 'NO_DATE', 'RANGE']).optional(),
+  from: z.iso.date().optional(),
+  to: z.iso.date().optional(),
+  sort: z.enum(['createdAt', 'name', 'nextContactAt', 'meetingAt']).optional(),
+  direction: z.enum(['asc', 'desc']).optional(),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce
     .number()
@@ -104,6 +111,22 @@ export class LeadsController {
     @Req() req: FastifyRequest,
   ): Promise<{ id: string }> {
     return this.leads.create(u, parse(leadCreateSchema, body), meta(req));
+  }
+
+  @Get('catalog')
+  catalog(@CurrentUser() u: SessionUser) {
+    return this.leads.catalog(u);
+  }
+
+  @Get('pipeline')
+  pipeline(@CurrentUser() u: SessionUser, @Req() req: FastifyRequest) {
+    return this.leads.pipeline(u, { page: 1, pageSize: 30 }, meta(req));
+  }
+
+  @Post('pipeline/search')
+  @HttpCode(200)
+  pipelineSearch(@CurrentUser() u: SessionUser, @Body() body: unknown, @Req() req: FastifyRequest) {
+    return this.leads.pipeline(u, parse(listQuerySchema, body), meta(req));
   }
 
   @Get()

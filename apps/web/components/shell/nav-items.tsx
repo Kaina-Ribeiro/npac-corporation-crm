@@ -51,7 +51,7 @@ const ICONS = {
 export const SIDEBAR_ITEMS: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', ready: false, icon: ICONS.dashboard },
   { href: '/hoje', label: 'Hoje', ready: true, icon: ICONS.hoje },
-  { href: '/pipeline', label: 'Pipeline', ready: false, icon: ICONS.pipeline },
+  { href: '/pipeline', label: 'Pipeline', ready: true, icon: ICONS.pipeline },
   { href: '/leads', label: 'Leads', ready: true, icon: ICONS.leads },
   { href: '/relatorios', label: 'Relatórios', ready: false, icon: ICONS.relatorios },
   { href: '/chat', label: 'Chat', ready: false, icon: ICONS.chat },
@@ -62,7 +62,7 @@ export const SIDEBAR_ITEMS: NavItem[] = [
 /** Mobile: barra inferior com cinco destinos. */
 export const BOTTOM_ITEMS: NavItem[] = [
   { href: '/hoje', label: 'Hoje', ready: true, icon: ICONS.hoje },
-  { href: '/pipeline', label: 'Pipeline', ready: false, icon: ICONS.pipeline },
+  { href: '/pipeline', label: 'Pipeline', ready: true, icon: ICONS.pipeline },
   { href: '/leads', label: 'Leads', ready: true, icon: ICONS.leads },
   { href: '/chat', label: 'Chat', ready: false, icon: ICONS.chat },
   { href: '/mais', label: 'Mais', ready: false, icon: ICONS.mais },
