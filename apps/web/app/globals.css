@@ -483,3 +483,27 @@ body {
     filter: blur(6px);
   }
 }
+
+/* Barrinha de carregamento entre páginas (NavProgress): dourado da marca, avança devagar
+   até 85% enquanto carrega e completa ao chegar. */
+.nav-progress {
+  width: 0;
+  opacity: 0;
+  border-radius: 0 2px 2px 0;
+  background: linear-gradient(90deg, #c2922e, #f2d38a);
+  box-shadow: 0 0 8px rgba(226, 187, 102, 0.6);
+}
+.nav-progress[data-state='loading'] {
+  width: 85%;
+  opacity: 1;
+  transition:
+    width 6s cubic-bezier(0.1, 0.6, 0.2, 1),
+    opacity 0.15s;
+}
+.nav-progress[data-state='done'] {
+  width: 100%;
+  opacity: 0;
+  transition:
+    width 0.2s ease-out,
+    opacity 0.3s ease 0.15s;
+}
