@@ -3,9 +3,10 @@
 CRM comercial. Monorepo pnpm/Turborepo: Next.js (`apps/web`), NestJS/Fastify
 (`apps/api`), Postgres/Drizzle (`packages/db`) e contratos (`packages/shared`).
 
-Planos 01 e 02 implementados: login individual, MFA para HEAD, permissões com RLS,
+Planos 01, 02 e 03 implementados: login individual, MFA para HEAD, permissões com RLS,
 auditoria, cadastro/ficha de leads, notas, tarefas, reuniões, Pipeline, Hoje e
-atualizações entre sessões. Vendas, Dashboard, chat e relatórios continuam **Em breve**.
+atualizações entre sessões, vendas com parcelas/recebimentos/estorno, Dashboard e
+Relatórios. Faltam colaboração (04), Admin/LGPD (05) e migração/deploy (06).
 
 ## Desenvolvimento
 
@@ -62,9 +63,14 @@ O Playwright sobe os servidores automaticamente; exige Postgres já disponível.
   a cada ciclo e aplica RLS às leituras usadas para detectar mudanças.
 - Busca não usa localStorage; respostas pessoais são `no-store`; logs omitem corpo/query/cookies.
 - `DATABASE_URL` é exclusiva para migrations/seed; não a use como conexão de runtime.
+- Dinheiro usa centavos inteiros. Registro de venda e baixa de parcela exigem chaves
+  idempotentes; só HEAD estorna. Pagamentos e histórico permanecem preservados.
+- Dashboard/Relatórios calculam métricas em SQL e respeitam o escopo do usuário.
+  CSV com contatos é exclusivo de HEAD e auditado; resumo WhatsApp omite contatos.
 - `TRUST_PROXY=true` só atrás de proxy confiável com acesso direto à API bloqueado.
 - Guarde `.env`, chaves de cifra e backups fora do Git. Chaves perdidas impedem decifrar contatos.
 
-Veja `docs/spec.md`, o roadmap, `docs/revisao-fundacao.md` e `docs/revisao-crm-base.md`
+Veja `AGENTS.md`, `docs/spec.md`, o roadmap, `docs/revisao-fundacao.md`,
+`docs/revisao-crm-base.md` e `docs/revisao-vendas-relatorios.md`
 para escopo e evidências. Em uma instalação existente, atualize o banco com
 `pnpm --filter @npac/db migrate` antes de iniciar a versão nova da aplicação.

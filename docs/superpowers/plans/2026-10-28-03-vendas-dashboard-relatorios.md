@@ -1,6 +1,6 @@
 # Plano 03 — Vendas, Dashboard e Relatórios
 
-**Status: aprovado; implementação em andamento, em execução direta.**
+**Status: concluído em 28/10/2026, em execução direta.**
 
 Parte do CRM real do Plano 02: `withUser`, permissões `sale:register`/`sale:reverse`,
 timeline/auditoria transacionais, reuniões com `outcomeAt`, filtros privados,
@@ -42,3 +42,15 @@ SSE de invalidação e interface responsiva.
 Lint, typecheck, testes, build e e2e verdes. Cada papel registra e vê apenas o
 escopo permitido; vendido/recebido/a receber conciliam com parcelas; CSV é
 restrito e auditado; nenhuma métrica depende de contagem no cliente.
+
+## Evidências de conclusão
+
+As oito entregas foram implementadas. Validação: lint, typecheck, build,
+214 testes (87 shared, 51 banco, 76 API) e 20 cenários Playwright.
+Os cenários incluem venda parcial no celular, recebimento, relatório responsivo,
+estorno com MFA real de HEAD e regressão de permissões/tempo real.
+Primeira carga de `/leads`: 140,5 KB gzip, abaixo de 150 KB.
+
+Migrations até `0014_finance_integrity.sql`; catálogo inicial com seed idempotente.
+Revisão técnica em `docs/revisao-vendas-relatorios.md`; instruções de manutenção
+criadas no `AGENTS.md` da raiz.
