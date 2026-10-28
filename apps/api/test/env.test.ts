@@ -33,4 +33,11 @@ describe('loadEnv', () => {
     ).toEqual(['https://a.trycloudflare.com', 'http://x:1']);
     expect(() => loadEnv({ ...validEnv, EXTRA_TRUSTED_ORIGINS: 'nao-e-url' })).toThrow();
   });
+  it('MFA obrigatório por padrão e nunca desligável em produção', () => {
+    expect(loadEnv(validEnv).MFA_REQUIRED).toBe(true);
+    expect(loadEnv({ ...validEnv, MFA_REQUIRED: 'false' }).MFA_REQUIRED).toBe(false);
+    expect(() => loadEnv({ ...validEnv, NODE_ENV: 'production', MFA_REQUIRED: 'false' })).toThrow(
+      /MFA/,
+    );
+  });
 });

@@ -86,7 +86,9 @@ describe('autenticação', () => {
     const res = await h.get(protectedRoute, s);
     expect(res.status).toBe(403);
     expect(res.body.code).toBe('MFA_ENROLLMENT_REQUIRED');
-    expect((await h.get('/api/me', s)).status).toBe(200);
+    const me = await h.get('/api/me', s);
+    expect(me.status).toBe(200);
+    expect(me.body.mfaPending).toBe(true);
   });
 
   it('HEAD com MFA precisa do TOTP para entrar', async () => {

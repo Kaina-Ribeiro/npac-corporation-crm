@@ -6,6 +6,7 @@ import { exhaustMap, interval, startWith, takeWhile } from 'rxjs';
 import { AUTH, type Auth } from '../auth/auth.js';
 import { toHeaders } from '../auth/headers.js';
 import { DB } from '../common/db/db.module.js';
+import { ENV, type Env } from '../config/env.js';
 
 type Signal = 'ready' | 'invalidate' | 'heartbeat' | 'session-ended' | 'access-required';
 
@@ -14,6 +15,7 @@ export class EventsController {
   constructor(
     @Inject(AUTH) private readonly auth: Auth,
     @Inject(DB) private readonly db: Db,
+    @Inject(ENV) private readonly env: Env,
   ) {}
 
   @Sse('events')
@@ -31,7 +33,7 @@ export class EventsController {
         if (!current || !current.user.active) type = 'session-ended';
         else if (
           current.user.mustChangePassword ||
-          (current.user.role === 'HEAD' && !current.user.twoFactorEnabled)
+          (this.env.MFA_REQUIRED && current.user.role === 'HEAD' && !current.user.twoFactorEnabled)
         )
           type = 'access-required';
         else {
