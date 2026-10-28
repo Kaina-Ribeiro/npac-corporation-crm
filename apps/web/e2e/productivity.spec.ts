@@ -65,3 +65,35 @@ test('avisos: SDR vê o lead que o Head passou para ele e marca como lido', asyn
   await expect(page.getByText('Tudo em dia', { exact: false })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Avisos', exact: true })).toBeVisible();
 });
+
+test('lista: edita perfil direto na célula e move vários leads de uma vez', async ({ page }) => {
+  await login(page, 'ale@npac.com.br');
+  const ids: string[] = [];
+  for (const n of [1, 2]) {
+    const r = await page.request.post('/api/leads', {
+      data: { name: `Massa ${n}`, instagram: `@massa.${n}.e2e`, incomeBand: 'R5_8K', tier: 'P2' },
+    });
+    expect(r.status()).toBe(201);
+    ids.push(((await r.json()) as { id: string }).id);
+  }
+  await page.goto('/leads');
+
+  // Edição na própria linha, sem abrir a ficha.
+  await page.getByLabel('Perfil de Massa 1').filter({ visible: true }).selectOption('P0');
+  await expect(page.getByRole('status').filter({ hasText: 'Salvo' })).toBeVisible();
+  const [m1] = await owner<{ tier: string }[]>`select tier from leads where id = ${ids[0]!}`;
+  expect(m1!.tier).toBe('P0');
+
+  // Seleção múltipla + barra de ações.
+  await page.getByLabel('Selecionar Massa 1').filter({ visible: true }).check();
+  await page.getByLabel('Selecionar Massa 2').filter({ visible: true }).check();
+  const bar = page.getByRole('region', { name: 'Ações em massa' });
+  await expect(bar.getByText('2 selecionados')).toBeVisible();
+  await bar.getByLabel('Mover para etapa').selectOption({ label: 'Em Follow-up' });
+  await expect(bar.getByText('2 leads atualizados')).toBeVisible();
+  const rows = await owner<{ key: string }[]>`
+    select s.key from leads l join pipeline_stages s on s.id = l.stage_id where l.id in ${owner(ids)}`;
+  expect(rows.map((r) => r.key)).toEqual(['EM_FOLLOW', 'EM_FOLLOW']);
+  // SDR não vê troca de responsável na barra (só Head).
+  await expect(bar.getByLabel('Trocar SDR')).toHaveCount(0);
+});

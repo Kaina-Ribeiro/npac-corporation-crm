@@ -10,5 +10,12 @@ export default async function LeadsPage() {
   const data = await apiGet<Page<LeadDTO>>('/api/leads?page=1&pageSize=20');
   const me = await getSession();
   const catalog = await apiGet<LeadCatalog>('/api/leads/catalog');
-  return <LeadsBrowser initialData={data} canCreate={me?.role !== 'CLOSER'} catalog={catalog} />;
+  return (
+    <LeadsBrowser
+      initialData={data}
+      canCreate={me?.role !== 'CLOSER'}
+      catalog={catalog}
+      role={me?.role ?? 'SDR'}
+    />
+  );
 }
