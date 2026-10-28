@@ -5,3 +5,4 @@ export * from './leads.js';
 export * from './meetings.js';
 export * from './audit.js';
 export * from './activity.js';
+export * from './finance.js';

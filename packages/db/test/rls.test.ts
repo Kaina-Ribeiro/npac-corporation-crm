@@ -120,6 +120,35 @@ afterAll(async () => {
 });
 
 describe('row-level security', () => {
+  it('vendas e parcelas herdam o escopo e valores financeiros são imutáveis', async () => {
+    const [product] = await owner<
+      { id: string }[]
+    >`insert into products (code, name, closer_id, price_cents) values ('TEST','Produto teste',${sonia.id},250000) returning id`;
+    const [sale] = await owner<
+      { id: string }[]
+    >`insert into deals (lead_id, product_id, product_name, catalog_price_cents, closer_id, sdr_id, total_cents, method, created_by, request_key)
+      values (${A},${product!.id},'Produto teste',250000,${sonia.id},${ale.id},250000,'PARTIAL',${ale.id},'00000000-0000-4000-8000-000000000001') returning id`;
+    await owner`insert into payments (deal_id, amount_cents, due_at) values (${sale!.id},250000,now())`;
+    const rows = (u: Fixture) =>
+      app.begin(async (s) => {
+        await s`select set_config('app.user_id', ${u.id}, true)`;
+        return s`select id from payments`;
+      });
+    expect(await rows(ale)).toHaveLength(1);
+    expect(await rows(murilo)).toHaveLength(0);
+    expect(await rows(sonia)).toHaveLength(1);
+    await expect(
+      app.begin(async (s) => {
+        await s`select set_config('app.user_id', ${ale.id}, true)`;
+        await s`update payments set amount_cents=1`;
+      }),
+    ).rejects.toThrow();
+    await expect(
+      owner`insert into payments (deal_id, amount_cents, due_at) values (${sale!.id},-1,now())`,
+    ).rejects.toThrow();
+    await cancelMeeting(meetingA);
+    expect(await rows(sonia)).toHaveLength(0);
+  });
   it('comando de cancelamento não funciona sem usuário nem para SDR alheio', async () => {
     const [anonymous] = await app<
       { changed: boolean }[]

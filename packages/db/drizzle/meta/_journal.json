@@ -78,6 +78,27 @@
       "when": 1793157282116,
       "tag": "0010_personal_tasks",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793159468825,
+      "tag": "0011_finance",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793159672667,
+      "tag": "0012_sale_idempotency",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793159746803,
+      "tag": "0013_finance_events",
+      "breakpoints": true
     }
   ]
 }

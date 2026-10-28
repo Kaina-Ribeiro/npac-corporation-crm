@@ -1,0 +1,2 @@
+ALTER TABLE "lead_timeline" DROP CONSTRAINT "timeline_kind_allowed";--> statement-breakpoint
+ALTER TABLE "lead_timeline" ADD CONSTRAINT "timeline_kind_allowed" CHECK ("lead_timeline"."kind" in ('lead.created','lead.updated','lead.moved','lead.reassigned','lead.deleted','note.created','note.updated','task.created','task.updated','meeting.scheduled','meeting.rescheduled','meeting.canceled','meeting.outcome','sale.registered','sale.reversed','payment.received'));

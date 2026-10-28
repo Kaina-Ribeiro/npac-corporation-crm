@@ -1,6 +1,6 @@
 # Plano 03 — Vendas, Dashboard e Relatórios
 
-**Status: proposta para aprovação; implementação não iniciada.**
+**Status: aprovado; implementação em andamento, em execução direta.**
 
 Parte do CRM real do Plano 02: `withUser`, permissões `sale:register`/`sale:reverse`,
 timeline/auditoria transacionais, reuniões com `outcomeAt`, filtros privados,

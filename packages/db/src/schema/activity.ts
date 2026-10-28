@@ -68,7 +68,7 @@ export const leadTimeline = pgTable(
     index('lead_timeline_lead_idx').on(t.leadId, t.at),
     check(
       'timeline_kind_allowed',
-      sql`${t.kind} in ('lead.created','lead.updated','lead.moved','lead.reassigned','lead.deleted','note.created','note.updated','task.created','task.updated','meeting.scheduled','meeting.rescheduled','meeting.canceled','meeting.outcome')`,
+      sql`${t.kind} in ('lead.created','lead.updated','lead.moved','lead.reassigned','lead.deleted','note.created','note.updated','task.created','task.updated','meeting.scheduled','meeting.rescheduled','meeting.canceled','meeting.outcome','sale.registered','sale.reversed','payment.received')`,
     ),
     check(
       'timeline_fields_allowed',

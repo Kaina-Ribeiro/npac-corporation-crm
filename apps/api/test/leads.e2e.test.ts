@@ -30,7 +30,7 @@ afterAll(async () => closeTestApp(app));
 
 beforeEach(async () => {
   await resetAuthState();
-  await owner`truncate lead_notes, lead_tasks, lead_timeline, meetings, leads`;
+  await owner`truncate payments, deals, lead_notes, lead_tasks, lead_timeline, meetings, leads`;
   ale = await h.signIn('ale@npac.com.br');
   murilo = await h.signIn('murilo@npac.com.br');
   sonia = await h.signIn('sonia@npac.com.br');

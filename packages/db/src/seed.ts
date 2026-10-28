@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import type { Role, StageKey } from '@npac/shared';
 import type { Db } from './client.js';
 import { account, pipelineStages, user } from './schema/index.js';
+import { seedProducts } from './seed-products.js';
 
 export interface SeedOptions {
   hashPassword(p: string): Promise<string>;
@@ -80,5 +81,6 @@ export async function seed(db: Db, opts: SeedOptions): Promise<void> {
         })),
       );
     }
+    await seedProducts(tx);
   });
 }

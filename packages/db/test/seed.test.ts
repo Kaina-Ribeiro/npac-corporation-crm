@@ -27,6 +27,15 @@ afterAll(async () => {
 });
 
 describe('seed', () => {
+  it('produtos reais por closer, sem duplicar no segundo seed', async () => {
+    const rows = await owner<
+      { price_cents: number; can_close: boolean }[]
+    >`select p.price_cents, u.can_close from products p join "user" u on u.id=p.closer_id order by p.price_cents`;
+    expect(rows.map((r) => r.price_cents)).toEqual([
+      250000, 300000, 350000, 1800000, 3000000, 8000000,
+    ]);
+    expect(rows.every((r) => r.can_close)).toBe(true);
+  });
   it('é idempotente: 6 usuários e 8 etapas', async () => {
     const [u] = await owner<{ n: number }[]>`select count(*)::int as n from "user"`;
     const [s] = await owner<{ n: number }[]>`select count(*)::int as n from pipeline_stages`;

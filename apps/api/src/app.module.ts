@@ -10,6 +10,7 @@ import { MeController } from './me/me.controller.js';
 import { MeetingsModule } from './meetings/meetings.module.js';
 import { TodayModule } from './today/today.module.js';
 import { EventsModule } from './events/events.module.js';
+import { FinanceModule } from './finance/finance.module.js';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { EventsModule } from './events/events.module.js';
     MeetingsModule,
     TodayModule,
     EventsModule,
+    FinanceModule,
   ],
   controllers: [HealthController, MeController],
 })
