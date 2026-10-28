@@ -162,7 +162,7 @@ test('mobile mostra barra inferior', async ({ page }) => {
   await expect(page.getByText('Lead e2e CRM', { exact: true })).toBeVisible();
   await page.screenshot({ path: 'test-results/pipeline-mobile.png', fullPage: true });
   await page.getByRole('link', { name: 'Mais', exact: true }).click();
-  await page.getByRole('link', { name: 'Relatórios', exact: true }).click();
+  await page.getByRole('link', { name: /^Relatórios/ }).click();
   await expect(page.getByRole('heading', { name: 'Relatórios', exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true,
@@ -389,4 +389,18 @@ test('rascunho não usa versão nova recebida por SSE para sobrescrever outra ed
     page.getByText('Outra pessoa alterou este registro.', { exact: false }),
   ).toBeVisible();
   expect((await (await page.request.get(`/api/leads/${id}`)).json()).name).toBe('Mudança remota');
+});
+
+test('tema automático segue o sistema', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await login(page, 'ale@npac.com.br');
+  await page.waitForURL(/\/dashboard/);
+  await page.goto('/mais');
+  await page.getByRole('radio', { name: 'Automático' }).click();
+  await expect(page.getByRole('radio', { name: 'Automático' })).toBeChecked();
+  await expect(page.locator('html')).toHaveClass(/dark/);
+  await page.emulateMedia({ colorScheme: 'light' });
+  await expect(page.locator('html')).not.toHaveClass(/dark/);
+  await page.getByRole('radio', { name: 'Claro' }).click();
 });

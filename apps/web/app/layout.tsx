@@ -25,7 +25,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="pt-BR" suppressHydrationWarning className={`${geist.variable} ${anton.variable}`}>
       <body>
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} nonce={nonce}>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem nonce={nonce}>
           {children}
         </ThemeProvider>
       </body>
