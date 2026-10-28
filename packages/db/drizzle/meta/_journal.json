@@ -36,6 +36,13 @@
       "when": 1793151964510,
       "tag": "0004_two_factor_lockout",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793153922430,
+      "tag": "0005_agenda_scope",
+      "breakpoints": true
     }
   ]
 }

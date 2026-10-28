@@ -6,3 +6,7 @@ coverage
 pnpm-lock.yaml
 .superpowers
 docs
+**/next-env.d.ts
+**/test-results/**
+**/playwright-report/**
+.review-*

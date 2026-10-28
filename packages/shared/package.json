@@ -9,6 +9,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./enums": {
+      "types": "./dist/enums.d.ts",
+      "default": "./dist/enums.js"
     }
   },
   "scripts": {
@@ -22,6 +26,6 @@
     "zod": "^4.0.0"
   },
   "devDependencies": {
-    "vitest": "^3.0.0"
+    "vitest": "^5.0.5"
   }
 }

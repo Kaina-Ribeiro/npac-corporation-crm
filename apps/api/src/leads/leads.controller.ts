@@ -65,8 +65,27 @@ export class LeadsController {
   }
 
   @Get()
-  list(@CurrentUser() u: SessionUser, @Query() query: unknown): Promise<Page<LeadDTO>> {
-    return this.leads.list(u, parse(listQuerySchema, query));
+  list(
+    @CurrentUser() u: SessionUser,
+    @Query() query: unknown,
+    @Req() req: FastifyRequest,
+  ): Promise<Page<LeadDTO>> {
+    // Pesquisa pessoal só por POST: não fica em histórico, URL ou logs de proxy.
+    return this.leads.list(
+      u,
+      parse(listQuerySchema.omit({ search: true }).strict(), query),
+      meta(req),
+    );
+  }
+
+  @Post('search')
+  @HttpCode(200)
+  search(
+    @CurrentUser() u: SessionUser,
+    @Body() body: unknown,
+    @Req() req: FastifyRequest,
+  ): Promise<Page<LeadDTO>> {
+    return this.leads.list(u, parse(listQuerySchema, body), meta(req));
   }
 
   @Get(':id')

@@ -15,6 +15,7 @@ import {
   type LeadDTO,
   type Page,
 } from '@npac/shared';
+import { sql } from 'drizzle-orm';
 import { AuditService } from '../audit/audit.service.js';
 import { FieldCrypto } from '../common/crypto/field-crypto.js';
 import { DB } from '../common/db/db.module.js';
@@ -50,6 +51,14 @@ export class LeadsService {
     const bidx = input.phone ? this.crypto.blindIndex(input.phone) : null;
 
     const id = await withUser(this.db, u.id, async (tx) => {
+      // Serializa por contato entre todos os SDRs. A ordem evita deadlocks quando
+      // telefone e Instagram coincidem em requisições diferentes.
+      const contacts = [bidx && `phone:${bidx}`, input.instagram && `instagram:${input.instagram}`]
+        .filter((v): v is string => Boolean(v))
+        .sort();
+      for (const contact of contacts) {
+        await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${contact}, 0))`);
+      }
       if (u.role === 'HEAD' && !(await this.repo.activeUserFlags(tx, sdrId))?.canProspect) {
         throw new BadRequestException('O responsável precisa ser um SDR ativo que prospecta');
       }
@@ -92,11 +101,18 @@ export class LeadsService {
     return { id };
   }
 
-  async list(u: AuthUser, q: LeadListQuery): Promise<Page<LeadDTO>> {
+  async list(u: AuthUser, q: LeadListQuery, meta: RequestMeta): Promise<Page<LeadDTO>> {
     const { search, page, pageSize, ...filters } = q;
     const { rows, total } = await withUser(this.db, u.id, (tx) =>
       this.repo.list(tx, { ...filters, search: this.parseSearch(search) }, page, pageSize),
     );
+    await this.audit.record({
+      actorId: u.id,
+      action: 'lead.list',
+      entityType: 'lead',
+      data: { ids: rows.map((r) => r.id), page, pageSize },
+      ...meta,
+    });
     return { items: rows.map((r) => this.toDTO(r)), total, page, pageSize };
   }
 

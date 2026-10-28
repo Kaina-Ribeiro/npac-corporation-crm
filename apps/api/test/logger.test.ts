@@ -11,11 +11,27 @@ function captureLog(fn: (l: Logger) => void): string {
       cb();
     },
   });
-  fn(createLogger(sink));
+  const logger = createLogger(sink);
+  logger.level = 'info'; // setup-env silencia logs da API, mas este teste precisa capturá-los.
+  fn(logger);
   return out;
 }
 
 describe('logger', () => {
+  it('omite query strings e corpo da requisição', () => {
+    const out = captureLog((l) =>
+      l.info({
+        req: {
+          method: 'GET',
+          url: '/api/leads?search=11988887777',
+          body: { search: '11988887777' },
+          headers: { cookie: 's=1' },
+        },
+      }),
+    );
+    expect(out).not.toContain('98888');
+    expect(out).toContain('/api/leads');
+  });
   it('mascara telefone e cookie', () => {
     const out = captureLog((l) =>
       l.info({ phone: '+5511988887777', req: { headers: { cookie: 's=1' } } }),

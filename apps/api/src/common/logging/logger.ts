@@ -5,6 +5,15 @@ const PII = ['password', 'phone', 'email', 'instagram'];
 // Nada de dado pessoal nos logs: cookies, tokens e campos de contato são mascarados.
 export const loggerOptions: LoggerOptions = {
   level: process.env.LOG_LEVEL ?? 'info',
+  serializers: {
+    // Não serializa headers, corpo, IP ou query string em logs de acesso.
+    req: (req: { method?: string; url?: string }) => ({
+      method: req.method,
+      url: req.url?.split('?')[0],
+    }),
+    // Exceções de drivers podem conter SQL e parâmetros com dados pessoais.
+    err: (err: { name?: string }) => ({ type: err.name ?? 'Error' }),
+  },
   redact: {
     paths: [
       'req.headers.cookie',

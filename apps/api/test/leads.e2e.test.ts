@@ -46,6 +46,24 @@ async function create(body: object, cookie: Cookie): Promise<string> {
 }
 
 describe('leads', () => {
+  it('cadastros simultâneos do mesmo contato criam apenas um lead', async () => {
+    const body = lead({ phone: '(11) 98888-7777' });
+    const responses = await Promise.all([
+      h.post('/api/leads', body, ale),
+      h.post('/api/leads', body, murilo),
+    ]);
+    expect(responses.map((r) => r.status).sort()).toEqual([201, 409]);
+  });
+
+  it('busca por POST não leva o contato para a URL e audita a leitura', async () => {
+    await create(lead({ phone: '(11) 98888-7777' }), ale);
+    const res = await h.post('/api/leads/search', { search: '11988887777' }, ale);
+    expect(res.status).toBe(200);
+    expect(res.body.items).toHaveLength(1);
+    const rows = await owner`select data from audit_log where action = 'lead.list'`;
+    expect(rows).toHaveLength(1);
+    expect(JSON.stringify(rows)).not.toContain('98888');
+  });
   it('SDR cria lead e ele fica dele', async () => {
     const res = await h.post('/api/leads', lead(), ale);
     expect(res.status).toBe(201);
@@ -128,13 +146,14 @@ describe('leads', () => {
     const a = await create(lead({ name: 'Joana Prado', phone: '11 97777-6666' }), ale);
     await create(lead({ name: 'Carlos Lima' }), ale);
     const by = async (q: string) =>
-      (await h.get(`/api/leads?search=${encodeURIComponent(q)}`, ale)).body.items.map(
+      (await h.post('/api/leads/search', { search: q }, ale)).body.items.map(
         (l: { id: string }) => l.id,
       );
     expect(await by('joana')).toEqual([a]);
     expect(await by('(11) 97777-6666')).toEqual([a]);
     const insta = (await h.get(`/api/leads/${a}`, ale)).body.instagram;
     expect(await by(`@${insta}`)).toEqual([a]);
+    expect((await h.get('/api/leads?search=joana', ale)).status).toBe(400);
   });
 
   it('paginação limita pageSize a 100', async () => {

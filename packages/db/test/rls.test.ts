@@ -120,6 +120,25 @@ afterAll(async () => {
 });
 
 describe('row-level security', () => {
+  it('closer não vê nem altera reunião de outro closer no mesmo lead', async () => {
+    const [other] = await owner<{ id: string }[]>`
+      insert into meetings (lead_id, closer_id, scheduled_at, origin, created_by)
+      values (${A}, ${ronaldo.id}, now(), 'DIRETO', ${ale.id}) returning id`;
+    const rows = await withUser(db, sonia.id, (tx) => tx.select().from(meetings));
+    expect(rows.map((r) => r.id)).toEqual([meetingA]);
+    const changed = await withUser(db, sonia.id, (tx) =>
+      tx
+        .update(meetings)
+        .set({ scheduledAt: new Date() })
+        .where(eq(meetings.id, other!.id))
+        .returning(),
+    );
+    expect(changed).toHaveLength(0);
+  });
+
+  it('closer não edita os dados pessoais do lead', async () => {
+    await expect(updateNameAs(sonia, A, 'alterado')).rejects.toThrow();
+  });
   it('HEAD vê todos', async () => expect(await visibleLeadIds(ana)).toEqual(sorted([A, M])));
 
   it('SDR vê só os seus', async () => expect(await visibleLeadIds(ale)).toEqual([A]));
