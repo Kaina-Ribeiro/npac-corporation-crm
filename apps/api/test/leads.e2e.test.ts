@@ -30,7 +30,7 @@ afterAll(async () => closeTestApp(app));
 
 beforeEach(async () => {
   await resetAuthState();
-  await owner`truncate meetings, leads`;
+  await owner`truncate lead_notes, lead_tasks, lead_timeline, meetings, leads`;
   ale = await h.signIn('ale@npac.com.br');
   murilo = await h.signIn('murilo@npac.com.br');
   sonia = await h.signIn('sonia@npac.com.br');
@@ -46,6 +46,64 @@ async function create(body: object, cookie: Cookie): Promise<string> {
 }
 
 describe('leads', () => {
+  it('edição usa versão otimista e nunca altera um lead invisível', async () => {
+    const id = await create(lead(), ale);
+    const [a, b] = await Promise.all([
+      h.patch(`/api/leads/${id}`, { version: 1, name: 'Maria atualizada' }, ale),
+      h.patch(`/api/leads/${id}`, { version: 1, name: 'Outra edição' }, ale),
+    ]);
+    expect([a.status, b.status].sort()).toEqual([200, 409]);
+    expect((await h.get(`/api/leads/${id}`, ale)).body.version).toBe(2);
+    expect(
+      (await h.patch(`/api/leads/${id}`, { version: 2, name: 'Invasão' }, murilo)).status,
+    ).toBe(404);
+  });
+
+  it('campos desconhecidos e dados pessoais de closer são rejeitados', async () => {
+    const id = await create(lead(), ale);
+    expect(
+      (await h.patch(`/api/leads/${id}`, { version: 1, createdBy: ids.murilo }, ale)).status,
+    ).toBe(400);
+    await owner`insert into meetings (lead_id, closer_id, scheduled_at, origin, created_by)
+      values (${id}, ${ids.sonia}, now(), 'DIRETO', ${ids.ale})`;
+    expect((await h.patch(`/api/leads/${id}`, { version: 1, name: 'Mudou' }, sonia)).status).toBe(
+      403,
+    );
+    expect(
+      (await h.patch(`/api/leads/${id}`, { version: 1, stageKey: 'EM_FOLLOW' }, sonia)).status,
+    ).toBe(200);
+  });
+
+  it('troca de contato não confunde o próprio lead com duplicado e protege outro SDR', async () => {
+    const id = await create(lead({ phone: '11988887777' }), ale);
+    await create(lead({ phone: '11977776666' }), murilo);
+    expect(
+      (await h.patch(`/api/leads/${id}`, { version: 1, phone: '11988887777' }, ale)).status,
+    ).toBe(200);
+    expect(
+      (await h.patch(`/api/leads/${id}`, { version: 2, phone: '11977776666' }, ale)).status,
+    ).toBe(409);
+    expect(
+      (await h.patch(`/api/leads/${id}`, { version: 2, phone: null, instagram: null }, ale)).status,
+    ).toBe(400);
+  });
+
+  it('só HEAD transfere e exclui, com timeline sem valores pessoais', async () => {
+    const id = await create(lead(), ale);
+    expect((await h.patch(`/api/leads/${id}`, { version: 1, sdrId: ids.murilo }, ale)).status).toBe(
+      403,
+    );
+    expect(
+      (await h.patch(`/api/leads/${id}`, { version: 1, sdrId: ids.murilo }, ronaldo)).status,
+    ).toBe(200);
+    expect((await h.get(`/api/leads/${id}`, ale)).status).toBe(404);
+    expect((await h.del(`/api/leads/${id}`, { version: 2 }, murilo)).status).toBe(403);
+    expect((await h.del(`/api/leads/${id}`, { version: 2 }, ronaldo)).status).toBe(200);
+    expect((await h.get(`/api/leads/${id}`, murilo)).status).toBe(404);
+    const timeline = await owner`select kind, fields from lead_timeline where lead_id = ${id}`;
+    expect(timeline.map((r) => r.kind)).toContain('lead.deleted');
+    expect(JSON.stringify(timeline)).not.toContain('Maria');
+  });
   it('cadastros simultâneos do mesmo contato criam apenas um lead', async () => {
     const body = lead({ phone: '(11) 98888-7777' });
     const responses = await Promise.all([

@@ -20,7 +20,14 @@ export async function leadContactTaken(
   tx: Tx,
   bidx: string | null,
   instagram: string | null,
+  excludeId?: string,
 ): Promise<boolean> {
+  if (excludeId) {
+    const rows = await tx.execute<{ taken: boolean }>(
+      sql`select lead_contact_taken(${bidx}::text, ${instagram}::text, ${excludeId}::uuid) as taken`,
+    );
+    return rows[0]?.taken === true;
+  }
   const rows = await tx.execute<{ taken: boolean }>(
     sql`select lead_contact_taken(${bidx}::text, ${instagram}::text) as taken`,
   );

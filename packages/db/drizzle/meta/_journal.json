@@ -50,6 +50,13 @@
       "when": 1793155113479,
       "tag": "0006_lead_activity",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793155202369,
+      "tag": "0007_contact_exclusion",
+      "breakpoints": true
     }
   ]
 }

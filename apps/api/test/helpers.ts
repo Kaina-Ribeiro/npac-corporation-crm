@@ -72,6 +72,10 @@ export function api(app: NestFastifyApplication) {
     const r = request(server).post(path).set('Origin', ORIGIN).send(body);
     return cookie ? r.set('Cookie', cookie) : r;
   };
+  const patch = (path: string, body: object, cookie: Cookie) =>
+    request(server).patch(path).set('Origin', ORIGIN).set('Cookie', cookie).send(body);
+  const del = (path: string, body: object, cookie: Cookie) =>
+    request(server).delete(path).set('Origin', ORIGIN).set('Cookie', cookie).send(body);
   const signInRaw = (email: string, password = TEST_PASSWORD) =>
     post('/api/auth/sign-in/email', { email, password });
   /** Faz login (zerando a troca obrigatória de senha) e devolve o cookie de sessão. */
@@ -81,7 +85,7 @@ export function api(app: NestFastifyApplication) {
     if (res.status !== 200) throw new Error(`login falhou (${res.status}): ${res.text}`);
     return cookiesOf(res);
   };
-  return { get, post, signIn, signInRaw };
+  return { get, post, patch, del, signIn, signInRaw };
 }
 
 export async function auditCount(action: string): Promise<number> {

@@ -6,7 +6,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { leadContactTaken, withUser, type Db } from '@npac/db';
+import { leadContactTaken, leadTimeline, withUser, type Db } from '@npac/db';
 import {
   normalizeInstagram,
   normalizePhoneBR,
@@ -74,7 +74,7 @@ export class LeadsService {
       }
       const stageId = await this.repo.stageId(tx, input.stageKey);
       if (!stageId) throw new BadRequestException('Etapa inexistente');
-      return this.repo.insert(tx, {
+      const created = await this.repo.insert(tx, {
         name: input.name,
         phoneEnc: input.phone ? this.crypto.encrypt(input.phone) : null,
         phoneBidx: bidx,
@@ -89,6 +89,10 @@ export class LeadsService {
         summary: input.summary ?? null,
         createdBy: u.id,
       });
+      await tx
+        .insert(leadTimeline)
+        .values({ leadId: created, actorId: u.id, kind: 'lead.created' });
+      return created;
     });
 
     await this.audit.record({

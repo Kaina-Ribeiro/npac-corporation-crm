@@ -1,21 +1,31 @@
 import {
   BadRequestException,
   Body,
+  Delete,
   Controller,
   Get,
   HttpCode,
   NotFoundException,
   Param,
+  Patch,
   Post,
   Query,
   Req,
 } from '@nestjs/common';
-import { leadCreateSchema, STAGE_KEYS, TIERS, type LeadDTO, type Page } from '@npac/shared';
+import {
+  leadCreateSchema,
+  leadUpdateSchema,
+  STAGE_KEYS,
+  TIERS,
+  type LeadDTO,
+  type Page,
+} from '@npac/shared';
 import type { FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { Can } from '../auth/can.decorator.js';
 import { CurrentUser, type SessionUser } from '../auth/current-user.decorator.js';
 import { LeadsService, type RequestMeta } from './leads.service.js';
+import { LeadMutationsService } from './lead-mutations.service.js';
 
 const MAX_PAGE_SIZE = 100;
 
@@ -51,7 +61,39 @@ const meta = (req: FastifyRequest): RequestMeta => ({
 
 @Controller('leads')
 export class LeadsController {
-  constructor(private readonly leads: LeadsService) {}
+  constructor(
+    private readonly leads: LeadsService,
+    private readonly mutations: LeadMutationsService,
+  ) {}
+
+  @Patch(':id')
+  @Can('lead:move')
+  update(
+    @CurrentUser() u: SessionUser,
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @Req() req: FastifyRequest,
+  ) {
+    if (!uuid.safeParse(id).success) throw new NotFoundException();
+    return this.mutations.update(u, id, parse(leadUpdateSchema, body), meta(req));
+  }
+
+  @Delete(':id')
+  @Can('lead:delete')
+  remove(
+    @CurrentUser() u: SessionUser,
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @Req() req: FastifyRequest,
+  ) {
+    if (!uuid.safeParse(id).success) throw new NotFoundException();
+    return this.mutations.remove(
+      u,
+      id,
+      parse(z.object({ version: z.number().int().positive() }).strict(), body).version,
+      meta(req),
+    );
+  }
 
   @Post()
   @HttpCode(201)

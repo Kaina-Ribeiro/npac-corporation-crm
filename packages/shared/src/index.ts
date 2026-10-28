@@ -4,3 +4,4 @@ export * from './dates.js';
 export * from './schemas/lead.js';
 export * from './permissions.js';
 export * from './dto.js';
+export * from './schemas/lead-update.js';
