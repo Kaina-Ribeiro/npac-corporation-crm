@@ -59,7 +59,7 @@ Pacotes: `@npac/web`, `@npac/api`, `@npac/db`, `@npac/shared`.
 | Ficha do lead / venda                               | `components/lead-detail.tsx`, `sale-flow.tsx`, `finance-panel.tsx`                        |
 | Pipeline / Hoje / Relatórios / Dashboard            | `components/pipeline.tsx`, `today.tsx`, `reports.tsx`, `dashboard-*.tsx`                  |
 | Ctrl+K / avisos / textos de atividade               | `components/shell/command-palette.tsx`, `components/inbox.tsx`, `lib/activity-text.ts`    |
-| Spec do produto / deploy                            | `docs/spec.md`, `docs/deploy.md`; planos em `docs/superpowers/plans/`                     |
+| Spec do produto / deploy                            | `docs/spec.md`, `docs/deploy.md` (Oracle) / `docs/deploy-cubeship.md` (VPS com Cubeship); planos em `docs/superpowers/plans/`                     |
 
 Next 16 tem APIs novas/incompatíveis: em dúvida, ver `apps/web/node_modules/next/dist/docs/`.
 Valor exportado de módulo `'use client'` não é legível num server component: constantes
