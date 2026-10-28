@@ -250,9 +250,7 @@ export function Reports({
                 disabled={busy}
                 onClick={() => void pick(p)}
                 className={`min-h-9 rounded-full px-4 text-sm font-semibold whitespace-nowrap transition-all first-letter:uppercase ${
-                  preset === p
-                    ? 'bg-[var(--on)] text-ink shadow-[0_2px_10px_rgba(0,0,0,.08)]'
-                    : 'text-ink2'
+                  preset === p ? 'glass-pill text-ink' : 'text-ink2'
                 }`}
               >
                 {p === 'TODAY' ? 'Hoje' : p === 'WEEK' ? '7 dias' : monthName()}

@@ -158,7 +158,7 @@ export function CommandPalette({ head }: { head: boolean }) {
         role="dialog"
         aria-modal="true"
         aria-label="Busca rápida"
-        className="glass-card w-full max-w-xl overflow-hidden !rounded-2xl shadow-[0_24px_60px_-20px_rgba(0,0,0,.45)]"
+        className="glass w-full max-w-xl overflow-hidden rounded-2xl shadow-[0_24px_60px_-20px_rgba(0,0,0,.45)] [--gl:rgba(255,255,255,.86)] dark:[--gl:rgba(28,28,32,.9)]"
       >
         <input
           ref={input}

@@ -21,7 +21,7 @@ export function Sidebar({ head = false, footer }: { head?: boolean; footer?: Rea
             key={item.href}
             item={item}
             className="flex h-[34px] items-center gap-2.5 rounded-lg px-2.5 text-sm font-medium text-ink2 transition-colors hover:bg-black/5 hover:text-ink [&_svg]:h-4 [&_svg]:w-4 [&_svg]:flex-none"
-            activeClassName="bg-[var(--on)] !text-ink shadow-[inset_0_1px_0_#fff,0_2px_10px_rgba(0,0,0,.08)]"
+            activeClassName="glass-pill !text-ink"
           >
             {item.icon}
             {item.label}

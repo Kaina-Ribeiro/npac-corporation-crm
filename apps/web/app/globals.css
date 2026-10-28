@@ -9,8 +9,20 @@
   --ink2: #6e6e73;
   --ink3: #8e8e93;
   --line: rgba(60, 60, 67, 0.14);
-  --gl: rgba(255, 255, 255, 0.58);
-  --gl2: rgba(255, 255, 255, 0.66);
+  /* Liquid glass suave. A navegação flutua sobre o conteúdo que rola: fica um pouco mais
+     opaca (--gl) para os rótulos não se misturarem com o texto de baixo. */
+  --gl: rgba(255, 255, 255, 0.64);
+  --gl2: rgba(255, 255, 255, 0.58);
+  --gl-solid: #fbfbfd;
+  /* Reflexo na borda (luz de cima/esquerda) e brilho interno do topo. */
+  --rim: linear-gradient(
+    150deg,
+    rgba(255, 255, 255, 0.95),
+    rgba(255, 255, 255, 0.25) 35%,
+    rgba(255, 255, 255, 0) 60%,
+    rgba(255, 255, 255, 0.45)
+  );
+  --sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0) 42%);
   --glhi:
     inset 0 1.5px 0 #fff, inset 0 -1px 2px rgba(255, 255, 255, 0.45),
     inset 0 0 0 0.5px rgba(255, 255, 255, 0.75);
@@ -37,8 +49,17 @@
   --ink2: #a1a1a6;
   --ink3: #8e8e93;
   --line: rgba(235, 235, 245, 0.14);
-  --gl: rgba(28, 28, 32, 0.6);
-  --gl2: rgba(36, 36, 40, 0.66);
+  --gl: rgba(28, 28, 32, 0.64);
+  --gl2: rgba(36, 36, 40, 0.6);
+  --gl-solid: #1c1c20;
+  --rim: linear-gradient(
+    150deg,
+    rgba(255, 255, 255, 0.22),
+    rgba(255, 255, 255, 0.05) 35%,
+    rgba(255, 255, 255, 0) 60%,
+    rgba(255, 255, 255, 0.08)
+  );
+  --sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 42%);
   --glhi: inset 0 1px 0 rgba(255, 255, 255, 0.1), inset 0 0 0 0.5px rgba(255, 255, 255, 0.08);
   --gld: 0 14px 34px -14px rgba(0, 0, 0, 0.6);
   --on: rgba(255, 255, 255, 0.12);
@@ -85,19 +106,53 @@ body {
 }
 
 @layer components {
+  /* Navegação flutuante (sidebar, barra inferior, Ctrl+K, ações em massa). */
   .glass {
-    background: var(--gl);
+    position: relative;
+    background: var(--sheen), var(--gl);
     backdrop-filter: var(--blur);
     -webkit-backdrop-filter: var(--blur);
     box-shadow: var(--glhi), var(--gld);
   }
+  /* Conteúdo: vidro mais discreto. */
   .glass-card {
     position: relative;
     border-radius: 20px;
-    background: var(--gl2);
+    background: var(--sheen), var(--gl2);
     backdrop-filter: var(--blur);
     -webkit-backdrop-filter: var(--blur);
     box-shadow: var(--glhi), var(--gld);
+  }
+  /* Fio de luz de 1px na borda, mais claro em cima/à esquerda (só a borda: o meio é recortado). */
+  .glass::before,
+  .glass-card::before,
+  .glass-pill::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: var(--rim);
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+  /* Item ativo de controle segmentado: uma "lente" de vidro sobre o trilho. */
+  .glass-pill {
+    position: relative;
+    background: var(--sheen), var(--on);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    .glass,
+    .glass-card {
+      background: var(--gl-solid);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
   }
   .mark {
     display: inline-flex;
