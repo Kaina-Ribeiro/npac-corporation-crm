@@ -78,7 +78,7 @@ export class ReportsService {
     private readonly audit: AuditService,
     private readonly crypto: FieldCrypto,
   ) {}
-  async search(u: AuthUser, q: ReportQuery) {
+  async search(u: AuthUser, q: ReportQuery, opts: { audit?: boolean } = {}) {
     const { start, end } = window(q);
     const result = await withUser(
       this.db,
@@ -148,12 +148,13 @@ export class ReportsService {
       },
       { isolationLevel: 'repeatable read' },
     );
-    await this.audit.record({
-      actorId: u.id,
-      action: 'report.view',
-      entityType: 'report',
-      data: { ids: result.leads.map((r) => r.id) },
-    });
+    if (opts.audit !== false)
+      await this.audit.record({
+        actorId: u.id,
+        action: 'report.view',
+        entityType: 'report',
+        data: { ids: result.leads.map((r) => r.id) },
+      });
     return result;
   }
   async csv(u: AuthUser, q: ReportQuery) {

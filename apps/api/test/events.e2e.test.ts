@@ -51,6 +51,11 @@ it('stream não expõe PII, detecta mudanças e encerra usuário desativado', as
       cookie,
     );
     expect(await nextType()).toBe('invalidate');
+    const murilo = await h.signIn('murilo@npac.com.br');
+    const channels = await h.get('/api/chat/channels', murilo);
+    const general = channels.body.find((c: { kind: string }) => c.kind === 'GENERAL');
+    await h.post(`/api/chat/channels/${general.id}/messages`, { body: 'mensagem nova' }, murilo);
+    expect(await nextType()).toBe('invalidate');
     await deactivate('ale@npac.com.br');
     expect(await nextType()).toBe('session-ended');
     await reader.cancel();

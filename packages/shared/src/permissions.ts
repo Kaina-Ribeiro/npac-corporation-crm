@@ -18,6 +18,7 @@ export const ACTIONS = [
   'export:csv',
   'export:whatsapp',
   'chat:use',
+  'playbook:edit',
   'admin:manage',
   'audit:view',
 ] as const;
