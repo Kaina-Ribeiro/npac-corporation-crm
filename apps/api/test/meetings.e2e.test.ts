@@ -70,6 +70,11 @@ it('reagendamento e resultado controlam versão', async () => {
       )
     ).status,
   ).toBe(409);
+  // Resultado só depois do horário marcado.
+  const early = await h.post(`/api/meetings/${id}/outcome`, { version: 2, outcome: 'DONE' }, sonia);
+  expect(early.status).toBe(400);
+  expect(early.body.message).toBe('A reunião ainda não aconteceu');
+  await owner`update meetings set scheduled_at = now() - interval '1 hour' where id = ${id}`;
   expect(
     (await h.post(`/api/meetings/${id}/outcome`, { version: 2, outcome: 'NO_SHOW' }, sonia)).status,
   ).toBe(200);

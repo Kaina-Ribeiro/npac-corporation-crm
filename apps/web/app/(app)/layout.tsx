@@ -1,4 +1,5 @@
 import { isLeader } from '@npac/shared/enums';
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { CommandPalette } from '@/components/shell/command-palette';
 import { LiveUpdates } from '@/components/shell/live-updates';
@@ -25,7 +26,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const who = (
     <span className="min-w-0 leading-tight">
       <b className="block truncate text-sm font-semibold">{me.name}</b>
-      <small className="block text-xs text-ink2">{ROLE_LABEL[me.role]}</small>
+      <small className="block text-xs text-ink2">
+        {ROLE_LABEL[me.role]} ·{' '}
+        <Link href="/conta/senha" className="underline-offset-2 hover:text-ink hover:underline">
+          Trocar senha
+        </Link>
+      </small>
     </span>
   );
 

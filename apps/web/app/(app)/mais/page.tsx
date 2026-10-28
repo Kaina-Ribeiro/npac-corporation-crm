@@ -78,6 +78,12 @@ export default async function MorePage() {
         <ThemeSwitch />
       </section>
 
+      <Link
+        href="/conta/senha"
+        className="glass-card flex min-h-14 w-full items-center justify-center text-base font-semibold"
+      >
+        Trocar senha
+      </Link>
       <SignOutButton className="glass-card min-h-14 w-full text-base font-semibold text-danger" />
 
       <p className="text-center text-xs text-ink3">NPAC Corporation · área comercial</p>

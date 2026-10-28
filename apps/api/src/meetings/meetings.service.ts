@@ -63,6 +63,8 @@ export class MeetingsService {
       if (!old) throw new NotFoundException();
       if (old.version !== input.version) throw new ConflictException({ code: 'VERSION_CONFLICT' });
       if (old.canceledAt) throw new ConflictException('Reunião cancelada');
+      if (input.outcome && old.scheduledAt.getTime() > Date.now())
+        throw new BadRequestException('A reunião ainda não aconteceu');
       if (input.closerId) {
         if (!isLeader(u.role)) throw new ForbiddenException();
         const [closer] = await tx

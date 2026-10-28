@@ -15,9 +15,18 @@ import {
   Post,
 } from '@nestjs/common';
 import { hash } from '@node-rs/argon2';
-import { account, session, twoFactor, user, type Db } from '@npac/db';
+import {
+  account,
+  leads,
+  leadTimeline,
+  session,
+  twoFactor,
+  user,
+  withUser,
+  type Db,
+} from '@npac/db';
 import { isLeader, ROLES, type AuthUser, type Role } from '@npac/shared';
-import { and, asc, eq } from 'drizzle-orm';
+import { and, asc, count, eq, isNull, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { AuditService } from '../audit/audit.service.js';
 import { Can } from '../auth/can.decorator.js';
@@ -66,8 +75,17 @@ export class AdminUsersService {
     private readonly audit: AuditService,
   ) {}
 
-  list() {
-    return this.db
+  async list(actor: AuthUser) {
+    // Leads abertos de cada SDR (para redistribuir quando alguém sai). Leads têm RLS: lê como quem pediu.
+    const owned = await withUser(this.db, actor.id, (tx) =>
+      tx
+        .select({ id: leads.sdrId, n: count() })
+        .from(leads)
+        .where(isNull(leads.deletedAt))
+        .groupBy(leads.sdrId),
+    );
+    const byUser = new Map(owned.map((o) => [o.id, o.n]));
+    const rows = await this.db
       .select({
         id: user.id,
         name: user.name,
@@ -82,6 +100,42 @@ export class AdminUsersService {
       })
       .from(user)
       .orderBy(asc(user.active), asc(user.name));
+    return rows.map((r) => ({ ...r, leads: byUser.get(r.id) ?? 0 }));
+  }
+
+  /** Passa todos os leads abertos de um SDR para outro (ex.: quem saiu da empresa). */
+  async transferLeads(actor: AuthUser, from: string, to: string) {
+    const moved = await withUser(this.db, actor.id, async (tx) => {
+      const [target] = await tx
+        .select({ id: user.id })
+        .from(user)
+        .where(and(eq(user.id, to), eq(user.active, true), eq(user.canProspect, true)));
+      if (!target || to === from)
+        throw new BadRequestException('Escolha um SDR ativo que prospecta');
+      const rows = await tx
+        .update(leads)
+        .set({ sdrId: to, updatedAt: new Date(), version: sql`${leads.version} + 1` })
+        .where(and(eq(leads.sdrId, from), isNull(leads.deletedAt)))
+        .returning({ id: leads.id });
+      if (rows.length)
+        await tx.insert(leadTimeline).values(
+          rows.map((r) => ({
+            leadId: r.id,
+            actorId: actor.id,
+            kind: 'lead.reassigned',
+            fields: ['sdrId'],
+          })),
+        );
+      return rows.length;
+    });
+    await this.audit.record({
+      actorId: actor.id,
+      action: 'admin.user.transfer_leads',
+      entityType: 'user',
+      entityId: from,
+      data: { to, moved },
+    });
+    return { moved };
   }
 
   /**
@@ -198,8 +252,19 @@ export class AdminUsersService {
 @Can('admin:manage')
 export class AdminUsersController {
   constructor(private readonly users: AdminUsersService) {}
-  @Get() list() {
-    return this.users.list();
+  @Get() list(@CurrentUser() u: SessionUser) {
+    return this.users.list(u);
+  }
+  @Post(':id/transfer-leads') @HttpCode(200) transferLeads(
+    @CurrentUser() u: SessionUser,
+    @Param('id') id: string,
+    @Body() body: unknown,
+  ) {
+    return this.users.transferLeads(
+      u,
+      id,
+      validate(z.object({ to: z.string().min(1) }).strict(), body).to,
+    );
   }
   @Post() invite(@CurrentUser() u: SessionUser, @Body() body: unknown) {
     return this.users.invite(u, validate(invite, body));

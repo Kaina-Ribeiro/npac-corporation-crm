@@ -7,6 +7,7 @@ export const metadata: Metadata = { title: 'Trocar senha' };
 
 export default async function SenhaPage() {
   const me = await getSession();
-  if (me && !me.mustChangePassword) redirect('/dashboard');
-  return <ChangePasswordForm mfaNext={!!me?.mfaPending} />;
+  if (!me) redirect('/login');
+  // Primeiro acesso (obrigatório) ou troca voluntária a partir do menu.
+  return <ChangePasswordForm first={me.mustChangePassword} mfaNext={me.mfaPending} />;
 }

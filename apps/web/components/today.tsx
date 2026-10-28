@@ -161,7 +161,7 @@ export function Today({
                 <Link href={`/leads/${m.leadId}`} className={quietButton}>
                   Ficha / reagendar
                 </Link>
-                {!m.outcome && (
+                {!m.outcome && new Date(m.scheduledAt).getTime() <= Date.now() && (
                   <>
                     <button
                       className={quietButton}

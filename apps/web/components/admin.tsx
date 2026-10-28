@@ -17,6 +17,8 @@ type User = {
   active: boolean;
   twoFactorEnabled: boolean | null;
   mustChangePassword: boolean;
+  /** Leads abertos em nome da pessoa (como SDR). */
+  leads: number;
 };
 type Product = {
   id: string;
@@ -127,6 +129,7 @@ export function Admin({
   }
 
   const closers = data.users.filter((u) => u.active && u.canClose);
+  const sdrs = data.users.filter((u) => u.active && u.canProspect);
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-5">
@@ -231,6 +234,7 @@ export function Admin({
                       {u.username && <b className="font-semibold text-ink">{u.username} · </b>}
                       {u.email} · {ROLE_LABEL[u.role]}
                       {u.twoFactorEnabled ? ' · MFA ativo' : ''}
+                      {u.leads > 0 && ` · ${u.leads} ${u.leads === 1 ? 'lead' : 'leads'}`}
                     </p>
                   </div>
                   {u.id !== meId && !diretor && isLeader(u.role) && (
@@ -265,7 +269,15 @@ export function Admin({
                         type="button"
                         className={quietButton}
                         onClick={() => {
-                          if (u.active && !confirm(`Desativar ${u.name}? A pessoa sai na hora.`))
+                          if (
+                            u.active &&
+                            !confirm(
+                              `Desativar ${u.name}? A pessoa sai na hora.` +
+                                (u.leads
+                                  ? ` Depois, passe os ${u.leads} lead(s) dela em "Passar leads para…".`
+                                  : ''),
+                            )
+                          )
                             return;
                           void run(
                             () =>
@@ -318,6 +330,37 @@ export function Admin({
                         >
                           Resetar MFA
                         </button>
+                      )}
+                      {u.leads > 0 && (
+                        <select
+                          aria-label={`Passar leads de ${u.name}`}
+                          value=""
+                          className={`${quietButton} bg-transparent`}
+                          onChange={(e) => {
+                            const to = sdrs.find((s) => s.id === e.target.value);
+                            if (
+                              !to ||
+                              !confirm(`Passar ${u.leads} lead(s) de ${u.name} para ${to.name}?`)
+                            )
+                              return;
+                            void run(
+                              () =>
+                                clientApi(`/api/admin/users/${u.id}/transfer-leads`, 'POST', {
+                                  to: to.id,
+                                }),
+                              `Leads de ${u.name} agora são de ${to.name}`,
+                            );
+                          }}
+                        >
+                          <option value="">Passar leads para…</option>
+                          {sdrs
+                            .filter((s) => s.id !== u.id)
+                            .map((s) => (
+                              <option key={s.id} value={s.id}>
+                                {s.name}
+                              </option>
+                            ))}
+                        </select>
                       )}
                     </div>
                   )}

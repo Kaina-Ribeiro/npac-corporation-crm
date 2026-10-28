@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import { authClient } from '@/lib/auth-client';
@@ -6,8 +7,17 @@ import { handOffPassword } from '@/lib/mfa-handoff';
 
 const MIN = 8;
 
-/** `mfaNext`: a próxima etapa é ativar o autenticador (liderança sem MFA). */
-export function ChangePasswordForm({ mfaNext = false }: { mfaNext?: boolean }) {
+/**
+ * `first`: primeiro acesso, troca obrigatória. `mfaNext`: a próxima etapa é ativar o
+ * autenticador (liderança sem MFA).
+ */
+export function ChangePasswordForm({
+  first = true,
+  mfaNext = false,
+}: {
+  first?: boolean;
+  mfaNext?: boolean;
+}) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -40,9 +50,13 @@ export function ChangePasswordForm({ mfaNext = false }: { mfaNext?: boolean }) {
 
   return (
     <form className="flex flex-col gap-4" onSubmit={onSubmit} aria-label="Trocar senha">
-      <h1 className="text-[28px] font-bold tracking-[-0.035em]">Crie a sua senha</h1>
+      <h1 className="text-[28px] font-bold tracking-[-0.035em]">
+        {first ? 'Crie a sua senha' : 'Trocar senha'}
+      </h1>
       <p className="-mt-2 text-[15px] text-ink2">
-        No primeiro acesso, troque a senha inicial por uma só sua ({MIN}+ caracteres).
+        {first
+          ? `No primeiro acesso, troque a senha inicial por uma só sua (${MIN}+ caracteres).`
+          : `Confirme a senha atual e escolha a nova (${MIN}+ caracteres). Os outros aparelhos saem da conta.`}
       </p>
       {(
         [
@@ -64,6 +78,14 @@ export function ChangePasswordForm({ mfaNext = false }: { mfaNext?: boolean }) {
       <button className="btn-dark" type="submit" disabled={busy}>
         Salvar senha
       </button>
+      {!first && (
+        <Link
+          href="/dashboard"
+          className="text-center text-sm font-semibold text-ink2 hover:text-ink"
+        >
+          Cancelar
+        </Link>
+      )}
     </form>
   );
 }

@@ -308,6 +308,28 @@ test('primeiro acesso exige trocar a senha', async ({ page }) => {
   await page.waitForURL(/\/dashboard/);
 });
 
+test('troca a senha quando quiser, pelo menu', async ({ page }) => {
+  const [before] = await owner<{ password: string }[]>`
+    select a.password from account a join "user" u on u.id = a.user_id
+    where u.email = 'murilo@npac.com.br'`;
+  await login(page, 'murilo@npac.com.br');
+  await page.waitForURL(/\/dashboard/);
+  await page.getByRole('link', { name: 'Trocar senha' }).click();
+  await expect(page.getByRole('heading', { name: 'Trocar senha' })).toBeVisible();
+  await page.getByLabel('Senha atual', { exact: true }).fill(E2E_PASSWORD);
+  await page.getByLabel('Nova senha', { exact: true }).fill('murilo-nova-1');
+  await page.getByLabel('Confirme a nova senha').fill('murilo-nova-1');
+  await page.getByRole('button', { name: 'Salvar senha' }).click();
+  await page.waitForURL(/\/dashboard/);
+  await page.getByRole('button', { name: 'Sair' }).click();
+  await page.waitForURL(/\/login/);
+  await login(page, 'murilo@npac.com.br', 'murilo-nova-1');
+  await page.waitForURL(/\/dashboard/);
+  await owner`
+    update account set password = ${before!.password}
+    where user_id = (select id from "user" where email = 'murilo@npac.com.br')`;
+});
+
 test('primeira carga de /leads fica abaixo de 150 KB de JS (gzip)', async ({ page }) => {
   await login(page, 'ale@npac.com.br');
   await page.waitForURL(/\/dashboard/);

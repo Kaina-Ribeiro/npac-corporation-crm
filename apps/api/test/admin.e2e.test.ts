@@ -104,6 +104,39 @@ describe('usuários', () => {
     );
   });
 
+  it('passa os leads de quem saiu para outro SDR, com registro na timeline', async () => {
+    const lead = await h.post(
+      '/api/leads',
+      { name: 'Lead da Ale', instagram: '@lead.da.ale', incomeBand: 'R5_8K', tier: 'P1' },
+      ale,
+    );
+    expect(lead.status).toBe(201);
+    await h.patch(`/api/admin/users/${ids.ale}`, { active: false }, head);
+    const listed = await h.get('/api/admin/users', head);
+    expect(listed.body.find((u: { id: string }) => u.id === ids.ale).leads).toBe(1);
+    // Closer que não prospecta não recebe leads.
+    expect(
+      (await h.post(`/api/admin/users/${ids.ale}/transfer-leads`, { to: ids.sonia }, head)).status,
+    ).toBe(400);
+    const moved = await h.post(
+      `/api/admin/users/${ids.ale}/transfer-leads`,
+      { to: ids.murilo },
+      head,
+    );
+    expect(moved.status).toBe(200);
+    expect(moved.body.moved).toBe(1);
+    const [row] = await owner<
+      { sdr_id: string }[]
+    >`select sdr_id from leads where id=${lead.body.id}`;
+    expect(row!.sdr_id).toBe(ids.murilo);
+    const events =
+      await owner`select 1 from lead_timeline where lead_id=${lead.body.id} and kind='lead.reassigned'`;
+    expect(events).toHaveLength(1);
+    expect(
+      (await h.post(`/api/admin/users/${ids.ale}/transfer-leads`, { to: ids.murilo }, ale)).status,
+    ).toBe(401);
+  });
+
   it('reset de MFA e de senha encerram sessões e exigem novo passo', async () => {
     await owner`update "user" set two_factor_enabled = true where id = ${ids.sonia!}`;
     expect((await h.post(`/api/admin/users/${ids.sonia}/reset-mfa`, {}, head)).status).toBe(200);

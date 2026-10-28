@@ -24,6 +24,8 @@ const date = (s: string) =>
     dateStyle: 'short',
     timeStyle: 'short',
   });
+/** A reunião já começou: dá para registrar se aconteceu ou foi no-show. */
+const started = (at: string) => new Date(at).getTime() <= Date.now();
 const EVENT_LABEL: Record<string, string> = {
   'lead.created': 'Lead cadastrado',
   'lead.updated': 'Dados atualizados',
@@ -228,30 +230,35 @@ export function LeadDetail({
               {!m.canceledAt && (
                 <>
                   <div className="flex flex-wrap gap-2">
-                    <button
-                      className={quietButton}
-                      disabled={busy}
-                      onClick={() =>
-                        void mutate(`/api/meetings/${m.id}/outcome`, 'POST', {
-                          version: m.version,
-                          outcome: 'DONE',
-                        })
-                      }
-                    >
-                      Realizada
-                    </button>
-                    <button
-                      className={quietButton}
-                      disabled={busy}
-                      onClick={() =>
-                        void mutate(`/api/meetings/${m.id}/outcome`, 'POST', {
-                          version: m.version,
-                          outcome: 'NO_SHOW',
-                        })
-                      }
-                    >
-                      No-show
-                    </button>
+                    {/* Resultado só depois do horário marcado (a API recusa antes). */}
+                    {started(m.scheduledAt) && (
+                      <>
+                        <button
+                          className={quietButton}
+                          disabled={busy}
+                          onClick={() =>
+                            void mutate(`/api/meetings/${m.id}/outcome`, 'POST', {
+                              version: m.version,
+                              outcome: 'DONE',
+                            })
+                          }
+                        >
+                          Realizada
+                        </button>
+                        <button
+                          className={quietButton}
+                          disabled={busy}
+                          onClick={() =>
+                            void mutate(`/api/meetings/${m.id}/outcome`, 'POST', {
+                              version: m.version,
+                              outcome: 'NO_SHOW',
+                            })
+                          }
+                        >
+                          No-show
+                        </button>
+                      </>
+                    )}
                     <button
                       className={quietButton}
                       disabled={busy}
