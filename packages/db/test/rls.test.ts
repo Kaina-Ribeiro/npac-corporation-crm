@@ -120,6 +120,18 @@ afterAll(async () => {
 });
 
 describe('row-level security', () => {
+  it('comando de cancelamento não funciona sem usuário nem para SDR alheio', async () => {
+    const [anonymous] = await app<
+      { changed: boolean }[]
+    >`select cancel_meeting(${meetingA}::uuid, 1) as changed`;
+    expect(anonymous?.changed).toBe(false);
+    const changed = await app.begin(async (s) => {
+      await s`select set_config('app.user_id', ${murilo.id}, true)`;
+      return s<{ changed: boolean }[]>`select cancel_meeting(${meetingA}::uuid, 1) as changed`;
+    });
+    expect(changed[0]?.changed).toBe(false);
+    expect(await visibleLeadIds(sonia)).toEqual([A]);
+  });
   it('notas e tarefas herdam o escopo do lead e não podem ser movidas', async () => {
     const create = await app.begin(async (s) => {
       await s`select set_config('app.user_id', ${ale.id}, true)`;

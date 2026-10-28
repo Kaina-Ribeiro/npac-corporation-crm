@@ -7,6 +7,7 @@ import { loggerOptions } from './common/logging/logger.js';
 import { HealthController } from './health/health.controller.js';
 import { LeadsModule } from './leads/leads.module.js';
 import { MeController } from './me/me.controller.js';
+import { MeetingsModule } from './meetings/meetings.module.js';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { MeController } from './me/me.controller.js';
     AuditModule,
     AuthModule,
     LeadsModule,
+    MeetingsModule,
   ],
   controllers: [HealthController, MeController],
 })
