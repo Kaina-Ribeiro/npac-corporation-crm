@@ -96,7 +96,7 @@ export function createAuth(db: Db, env: Env, audit: AuditService) {
     logger: { disabled: env.NODE_ENV === 'test' },
     basePath: '/api/auth',
     baseURL: env.WEB_ORIGIN,
-    trustedOrigins: [env.WEB_ORIGIN],
+    trustedOrigins: [env.WEB_ORIGIN, ...env.EXTRA_TRUSTED_ORIGINS],
     secret: env.BETTER_AUTH_SECRET,
     database: drizzleAdapter(db, {
       provider: 'pg',

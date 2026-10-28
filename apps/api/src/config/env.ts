@@ -13,6 +13,17 @@ const envSchema = z.object({
   BLIND_INDEX_KEY: key32('BLIND_INDEX_KEY'),
   API_PORT: z.coerce.number().int().positive().default(4000),
   WEB_ORIGIN: z.url(),
+  /** Origens adicionais aceitas no login (ex.: túnel de teste), separadas por vírgula. */
+  EXTRA_TRUSTED_ORIGINS: z
+    .string()
+    .default('')
+    .transform((v) =>
+      v
+        .split(',')
+        .map((o) => o.trim())
+        .filter(Boolean),
+    )
+    .pipe(z.array(z.url())),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
 });
 

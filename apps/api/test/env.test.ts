@@ -25,4 +25,12 @@ describe('loadEnv', () => {
     ).toThrow(/32 bytes/));
   it('sem segredo do auth falha', () =>
     expect(() => loadEnv({ ...validEnv, BETTER_AUTH_SECRET: undefined })).toThrow());
+  it('origens extras confiáveis vêm separadas por vírgula e precisam ser URLs', () => {
+    expect(loadEnv(validEnv).EXTRA_TRUSTED_ORIGINS).toEqual([]);
+    expect(
+      loadEnv({ ...validEnv, EXTRA_TRUSTED_ORIGINS: 'https://a.trycloudflare.com, http://x:1' })
+        .EXTRA_TRUSTED_ORIGINS,
+    ).toEqual(['https://a.trycloudflare.com', 'http://x:1']);
+    expect(() => loadEnv({ ...validEnv, EXTRA_TRUSTED_ORIGINS: 'nao-e-url' })).toThrow();
+  });
 });

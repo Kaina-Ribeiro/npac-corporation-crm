@@ -5,6 +5,8 @@ const api = process.env.API_INTERNAL_URL ?? 'http://localhost:4000';
 
 const config: NextConfig = {
   poweredByHeader: false,
+  // `next dev` acessado por túnel temporário (teste remoto).
+  allowedDevOrigins: ['*.trycloudflare.com'],
   // Docker: servidor standalone com rastreamento a partir da raiz do monorepo.
   ...(process.env.NEXT_OUTPUT === 'standalone'
     ? { output: 'standalone' as const, outputFileTracingRoot: path.resolve(process.cwd(), '../..') }
