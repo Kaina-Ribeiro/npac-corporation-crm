@@ -145,8 +145,10 @@ pnpm --filter @npac/web e2e e2e/admin.spec.ts                            # um ar
 pnpm exec prettier --write <arquivos>     # formatar só o que mudou
 ```
 
-- **e2e e dev disputam portas/`.next`**: pare o `pnpm dev` (e mate 3000/4000) antes do e2e;
-  depois `rm -rf apps/web/.next` e suba o dev de novo. e2e usa API 4100/web 3100 e banco `npac_e2e`.
+- **Dev sobe pelo painel do app**: `preview_start` com `npac-dev` (`.claude/launch.json`), nunca
+  `pnpm dev` em segundo plano (os dois disputam a porta 3000). e2e e dev também disputam portas
+  e `.next`: antes do e2e, `preview_stop` e mate 3000/4000; depois, `rm -rf apps/web/.next` e
+  `preview_start` de novo. e2e usa API 4100/web 3100 e banco `npac_e2e`.
 - Testes só recriam bancos `npac_test*`/`npac_e2e*`. Não aponte teste para outro banco.
 - API e e2e compartilham estado de usuários: teste que mexe em MFA/senha/papel restaura no fim.
 - `truncate leads` em teste precisa incluir as tabelas com FK (lista acima).
