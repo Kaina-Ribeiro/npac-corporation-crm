@@ -18,7 +18,7 @@
   "tasks": {
     "build": { "dependsOn": ["^build"], "outputs": ["dist/**", ".next/**", "!.next/cache/**"] },
     "dev": { "dependsOn": ["^build"], "persistent": true, "cache": false },
-    "test": { "dependsOn": ["^build"] },
+    "test": { "dependsOn": ["^build"], "cache": false },
     "lint": { "dependsOn": ["^build"] },
     "typecheck": { "dependsOn": ["^build"] }
   }
