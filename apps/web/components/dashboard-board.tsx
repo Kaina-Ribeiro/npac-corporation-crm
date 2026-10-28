@@ -34,6 +34,7 @@ function readCookie(name: string) {
 
 /** Salva a ordem no cookie da pessoa; a ordem padrão apaga o cookie. */
 function persist(cookie: string, order: string[], defaults: readonly string[]) {
+  if (!cookie) return;
   const value = serializeOrder(order);
   const isDefault = value === serializeOrder(defaults);
   const secure = location.protocol === 'https:' ? '; Secure' : '';
