@@ -356,7 +356,8 @@ export function Reports({
       )}
       <FormError message={error} />
       {dashboard ? (
-        <>
+        // `dash-lift`: cards do dashboard sobem de leve ao passar o mouse (globals.css).
+        <div className="dash-lift contents">
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {(
               [
@@ -452,7 +453,7 @@ export function Reports({
               </div>
             )}
           </div>
-        </>
+        </div>
       ) : (
         <>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">

@@ -319,3 +319,33 @@ body {
       0 0;
   }
 }
+
+/* Dashboard: o card sobe de leve sob o mouse, no estilo Apple. Só com mouse (no toque ficaria
+   preso ampliado) e nunca com movimento reduzido. Card largo cresce menos (1% de um card
+   largo já é muita coisa). */
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .dash-lift .glass-card,
+  .dash-lift .lift {
+    transition:
+      transform 0.32s cubic-bezier(0.25, 0.1, 0.25, 1),
+      box-shadow 0.32s cubic-bezier(0.25, 0.1, 0.25, 1);
+  }
+  .dash-lift article.glass-card:hover {
+    transform: scale(1.01);
+    box-shadow:
+      var(--glhi),
+      0 0 0 0.5px rgba(0, 0, 0, 0.04),
+      0 22px 44px -16px rgba(0, 0, 0, 0.24);
+  }
+  .dash-lift section.glass-card:hover,
+  .dash-lift .lift:hover {
+    transform: scale(1.005);
+    box-shadow:
+      var(--glhi),
+      0 0 0 0.5px rgba(0, 0, 0, 0.04),
+      0 22px 44px -16px rgba(0, 0, 0, 0.24);
+  }
+  .dash-lift .lift:hover {
+    box-shadow: 0 22px 44px -16px rgba(0, 0, 0, 0.55);
+  }
+}
