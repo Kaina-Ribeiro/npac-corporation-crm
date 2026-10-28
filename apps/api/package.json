@@ -10,7 +10,8 @@
     "test": "vitest run",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "import:firebase": "node --env-file-if-exists=../../.env dist/import/cli.js"
+    "import:firebase": "node --env-file-if-exists=../../.env dist/import/cli.js",
+    "mock:prototype": "tsc -p tsconfig.build.json && node --env-file-if-exists=../../.env dist/dev/mock-prototype.js"
   },
   "dependencies": {
     "@fastify/helmet": "^13.2.0",
