@@ -1,7 +1,7 @@
 'use client';
 import type { LeadCatalog, Page, LeadDTO, PipelineDTO, PipelineLead, StageKey } from '@npac/shared';
 import Link from 'next/link';
-import { useState, type FormEvent } from 'react';
+import { useState, type CSSProperties, type FormEvent } from 'react';
 import { clientApi } from '@/lib/client-api';
 import { button, control, FormError, quietButton, StageOptions } from './crm-ui';
 import { LeadFilters, readFilters } from './lead-filters';
@@ -132,11 +132,13 @@ export function Pipeline({ initial, catalog }: { initial: PipelineDTO; catalog: 
       <div className="flex items-start gap-4 overflow-x-auto pb-4">
         {columns
           .filter((c) => visible.includes(c.stage.key))
-          .map((c) => (
+          .map((c, col) => (
             <section
               key={c.stage.id}
               aria-label={c.stage.label}
-              className={`glass-card w-full shrink-0 flex-col gap-3 p-3 md:w-[280px] ${active === c.stage.key ? 'flex' : 'hidden md:flex'}`}
+              // Entrada em cascata (globals.css `.reveal`): coluna por coluna, depois os cards.
+              style={{ '--delay': `${col * 90}ms` } as CSSProperties}
+              className={`reveal glass-card w-full shrink-0 flex-col gap-3 p-3 md:w-[280px] ${active === c.stage.key ? 'flex' : 'hidden md:flex'}`}
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => {
                 e.preventDefault();
@@ -149,12 +151,15 @@ export function Pipeline({ initial, catalog }: { initial: PipelineDTO; catalog: 
                 {c.stage.label}
                 <span className="text-ink2">{c.total}</span>
               </h2>
-              {c.items.map((l) => (
+              {c.items.map((l, i) => (
                 <article
                   key={l.id}
                   draggable={!busy}
                   onDragStart={(e) => e.dataTransfer.setData('text/plain', l.id)}
-                  className="rounded-2xl border border-line bg-[var(--gl2)] p-3"
+                  style={
+                    { '--delay': `${col * 90 + 160 + Math.min(i, 8) * 55}ms` } as CSSProperties
+                  }
+                  className="reveal rounded-2xl border border-line bg-[var(--gl2)] p-3"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <Link className="text-sm font-semibold" href={`/leads/${l.id}`}>

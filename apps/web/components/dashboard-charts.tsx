@@ -151,7 +151,7 @@ export function RevenueHero({
             backgroundImage: `linear-gradient(100deg, ${GOLD} 20%, #fff1c9 45%, ${GOLD} 70%)`,
           }}
         >
-          <CountUp value={sold} format={money} />
+          <CountUp value={sold} format={money} delay={450} />
         </p>
         {delta !== null && (
           <span
@@ -400,7 +400,7 @@ export function Funnel({ metrics }: { metrics: Record<string, number> }) {
             <span className="text-ink2">{label}</span>
             <span>
               <b className="tabular-nums">
-                <CountUp value={v} />
+                <CountUp value={v} delay={520 + i * 80} />
               </b>
               {i > 0 && (
                 <span className="ml-2 text-xs text-ink2">

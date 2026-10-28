@@ -2,7 +2,7 @@
 import type { LeadCatalog, ProductDTO, ReportDTO, ReportRow, TeamActivityDTO } from '@npac/shared';
 import { money } from '@npac/shared/money';
 import Link from 'next/link';
-import { useState, type FormEvent } from 'react';
+import { type CSSProperties, useState, type FormEvent } from 'react';
 import { clientApi } from '@/lib/client-api';
 import { button, control, Field, FormError, quietButton } from './crm-ui';
 import {
@@ -230,7 +230,7 @@ export function Reports({
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-5">
       {dashboard ? (
-        <header className="flex flex-wrap items-end justify-between gap-4">
+        <header className="reveal flex flex-wrap items-end justify-between gap-4">
           <div className="min-w-0">
             <h1 className="text-[34px] font-bold tracking-tight">{greeting(name)}</h1>
             <p className="text-sm text-ink2 first-letter:uppercase">
@@ -359,7 +359,10 @@ export function Reports({
       {dashboard ? (
         // `dash-lift`: cards sobem de leve no hover; `liquid`: liquid glass (globals.css).
         <div className="dash-lift liquid contents">
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div
+            className="reveal-grid grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
+            style={{ '--d': '80ms' } as CSSProperties}
+          >
             {(
               [
                 [
@@ -391,20 +394,27 @@ export function Reports({
                   chartColors.money,
                 ],
               ] as const
-            ).map(([label, value, foot, key, color]) => (
+            ).map(([label, value, foot, key, color], i) => (
               <article key={label} className="glass-card flex flex-col gap-1 p-5">
                 <p className="text-sm text-ink2">{label}</p>
                 <p
                   className={`text-3xl font-bold tracking-tight tabular-nums ${key.endsWith('Cents') ? 'text-gold-deep' : ''}`}
                 >
-                  <CountUp value={value} format={key.endsWith('Cents') ? money : undefined} />
+                  <CountUp
+                    value={value}
+                    format={key.endsWith('Cents') ? money : undefined}
+                    delay={230 + i * 70}
+                  />
                 </p>
                 <p className="text-xs text-ink2">{foot}</p>
                 <Sparkline values={data.daily.map((d) => d[key])} color={color} />
               </article>
             ))}
           </div>
-          <div className="grid gap-5 lg:grid-cols-3">
+          <div
+            className="reveal-grid grid gap-5 lg:grid-cols-3"
+            style={{ '--d': '300ms' } as CSSProperties}
+          >
             <RevenueHero
               daily={data.daily}
               previous={data.previousDaily}
@@ -425,7 +435,10 @@ export function Reports({
               <TierDonut p0={m.p0 ?? 0} p1={m.p1 ?? 0} p2={m.p2 ?? 0} />
             </ChartCard>
           </div>
-          <div className="grid gap-5 lg:grid-cols-2">
+          <div
+            className="reveal-grid grid gap-5 lg:grid-cols-2"
+            style={{ '--d': '520ms' } as CSSProperties}
+          >
             <CloserDesk rows={data.byCloser} />
             <SdrTable
               rows={data.bySdr}
@@ -434,7 +447,10 @@ export function Reports({
               }
             />
           </div>
-          <div className="grid gap-5 lg:grid-cols-3">
+          <div
+            className="reveal-grid grid gap-5 lg:grid-cols-3"
+            style={{ '--d': '660ms' } as CSSProperties}
+          >
             <ChartCard
               title="Produtos"
               subtitle="Vendido por produto"
