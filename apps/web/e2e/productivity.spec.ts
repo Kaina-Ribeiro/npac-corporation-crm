@@ -11,7 +11,7 @@ test.afterAll(async () => closeTestConnections());
 
 async function login(page: Page, email: string) {
   await page.goto('/login');
-  await page.getByLabel('E-mail').fill(email);
+  await page.getByLabel('Usuário', { exact: true }).fill(email.split('@')[0]!);
   await page.getByLabel('Senha').fill(E2E_PASSWORD);
   await page.getByRole('button', { name: 'Entrar' }).click();
   await page.waitForURL(/\/dashboard/);
@@ -19,9 +19,12 @@ async function login(page: Page, email: string) {
 
 test('Ctrl+K busca lead e navega sem mouse', async ({ page }) => {
   await login(page, 'ale@npac.com.br');
-  await page.keyboard.press('Control+k');
   const box = page.getByRole('combobox', { name: 'Buscar leads ou ir para…' });
-  await expect(box).toBeFocused();
+  // O atalho só existe depois da hidratação; logo após o login a tecla pode chegar antes.
+  await expect(async () => {
+    await page.keyboard.press('Control+k');
+    await expect(box).toBeFocused({ timeout: 500 });
+  }).toPass();
   await box.fill('Lead do');
   await expect(page.getByRole('option', { name: /Lead do Ale/ })).toBeVisible();
   // Escopo vale também na busca rápida.
@@ -127,4 +130,27 @@ test('filtro salvo aparece na sidebar e reabre a lista já filtrada', async ({ p
 
   await page.getByRole('button', { name: 'Apagar filtro Meus P1' }).click();
   await expect(page.getByRole('navigation', { name: 'Filtros salvos' })).toHaveCount(0);
+});
+
+test('login sugere o último usuário ao clicar no campo, sem usar localStorage', async ({
+  page,
+}) => {
+  await login(page, 'ale@npac.com.br');
+  await page.goto('/mais');
+  await page.getByRole('button', { name: 'Sair' }).filter({ visible: true }).first().click();
+  await page.waitForURL(/\/login/);
+  const field = page.getByLabel('Usuário', { exact: true });
+  await expect(field).toHaveValue('');
+  await field.click();
+  await page.getByRole('option', { name: 'ale' }).click();
+  await expect(field).toHaveValue('ale');
+  await expect(page.getByLabel('Senha', { exact: true })).toBeFocused();
+  expect(await page.evaluate(() => JSON.stringify(localStorage))).not.toContain('ale');
+
+  await field.fill('');
+  await field.click();
+  await page.getByRole('button', { name: 'Esquecer' }).click();
+  await page.reload();
+  await page.getByLabel('Usuário', { exact: true }).click();
+  await expect(page.getByRole('option')).toHaveCount(0);
 });

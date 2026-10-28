@@ -1,13 +1,30 @@
 'use client';
 import { useRouter } from 'next/navigation';
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { authClient } from '@/lib/auth-client';
+import { LAST_USER_COOKIE } from '@/lib/last-user';
 
-const GENERIC_ERROR = 'E-mail ou senha inválidos';
+/**
+ * Último usuário que entrou neste aparelho, para sugerir no campo. Fica num cookie restrito a
+ * /login (não vai em nenhuma outra requisição) e fora do localStorage, como o resto do CRM.
+ */
+function rememberUser(username: string) {
+  const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+  document.cookie = `${LAST_USER_COOKIE}=${encodeURIComponent(username)}; Path=/login; Max-Age=31536000; SameSite=Lax${secure}`;
+}
+function forgetUser() {
+  document.cookie = `${LAST_USER_COOKIE}=; Path=/login; Max-Age=0; SameSite=Lax`;
+}
 
-/** Login em dois passos: e-mail + senha, depois o código do autenticador (se exigido). */
-export function LoginForm() {
+const GENERIC_ERROR = 'Usuário ou senha inválidos';
+
+/** Login em dois passos: usuário + senha, depois o código do autenticador (se exigido). */
+export function LoginForm({ lastUser }: { lastUser?: string }) {
   const router = useRouter();
+  const [remembered, setRemembered] = useState(lastUser);
+  const [suggest, setSuggest] = useState(false);
+  const userRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<'password' | 'totp'>('password');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -17,16 +34,20 @@ export function LoginForm() {
     const form = new FormData(e.currentTarget);
     setBusy(true);
     setError(null);
-    const { data, error: err } = await authClient.signIn.email({
-      email: String(form.get('email') ?? ''),
+    const username = String(form.get('username') ?? '')
+      .trim()
+      .toLowerCase();
+    const { data, error: err } = await authClient.signIn.username({
+      username,
       password: String(form.get('password') ?? ''),
     });
     setBusy(false);
-    // Nunca diz se o e-mail existe: qualquer falha vira a mesma mensagem.
+    // Nunca diz se o usuário existe: qualquer falha vira a mesma mensagem.
     if (err || !data)
       return setError(
         err?.status === 429 ? 'Muitas tentativas. Aguarde um minuto.' : GENERIC_ERROR,
       );
+    rememberUser(username);
     if ('twoFactorRedirect' in data && data.twoFactorRedirect) return setStep('totp');
     router.replace('/dashboard');
     router.refresh();
@@ -82,7 +103,7 @@ export function LoginForm() {
         <button className="btn-dark" type="submit" disabled={busy}>
           Verificar e entrar
         </button>
-        <Note>Sem acesso ao app? Peça para o outro Head redefinir o seu segundo fator.</Note>
+        <Note>Sem acesso ao app? Peça para a liderança redefinir o seu segundo fator.</Note>
       </form>
     );
   }
@@ -91,22 +112,77 @@ export function LoginForm() {
     <form className="flex flex-col gap-4" aria-label="Entrar" onSubmit={onPassword}>
       <h2 className="text-[28px] font-bold tracking-[-0.035em]">Bem-vindo de volta</h2>
       <p className="-mt-2 mb-1 text-[15px] text-[#515154]">
-        Entre com o e-mail da NPAC e a sua senha.
+        Entre com o seu usuário da NPAC e a sua senha.
       </p>
-      <label className="flex flex-col gap-2 text-[13px] font-semibold text-[#3a3a3c]">
-        E-mail
-        <input
-          name="email"
-          type="email"
-          className="field"
-          placeholder="voce@npac.com.br"
-          autoComplete="username"
-          required
-        />
-      </label>
+      <div className="flex flex-col gap-2">
+        <label htmlFor="username" className="text-[13px] font-semibold text-[#3a3a3c]">
+          Usuário
+        </label>
+        <div className="relative">
+          <input
+            ref={userRef}
+            id="username"
+            name="username"
+            className="field w-full"
+            placeholder="seu.usuario"
+            autoComplete="username"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            required
+            role="combobox"
+            aria-expanded={suggest && !!remembered}
+            aria-controls="last-user"
+            onFocus={(e) => setSuggest(!e.currentTarget.value)}
+            onClick={(e) => setSuggest(!e.currentTarget.value)}
+            onInput={(e) => setSuggest(!e.currentTarget.value)}
+            onBlur={() => setSuggest(false)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') setSuggest(false);
+            }}
+          />
+          {suggest && remembered && (
+            <div
+              id="last-user"
+              className="absolute top-full right-0 left-0 z-10 mt-1.5 flex items-center gap-1 rounded-2xl bg-white p-1.5 shadow-[0_14px_34px_-12px_rgba(0,0,0,.35)]"
+              // Evita o blur do campo antes do clique.
+              onMouseDown={(e) => e.preventDefault()}
+            >
+              <ul role="listbox" aria-label="Último acesso" className="min-w-0 flex-1">
+                <li
+                  role="option"
+                  aria-selected="false"
+                  tabIndex={-1}
+                  onClick={() => {
+                    if (userRef.current) userRef.current.value = remembered;
+                    setSuggest(false);
+                    passwordRef.current?.focus();
+                  }}
+                  className="cursor-pointer truncate rounded-xl px-3 py-2.5 text-[15px] text-[#1d1d1f] hover:bg-black/5"
+                >
+                  {remembered}
+                </li>
+              </ul>
+              <button
+                type="button"
+                aria-label="Esquecer"
+                title="Esquecer neste aparelho"
+                onClick={() => {
+                  forgetUser();
+                  setRemembered(undefined);
+                }}
+                className="grid size-9 flex-none place-items-center rounded-xl text-lg text-[#515154] hover:bg-black/5"
+              >
+                ×
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
       <label className="flex flex-col gap-2 text-[13px] font-semibold text-[#3a3a3c]">
         Senha
         <input
+          ref={passwordRef}
           name="password"
           type="password"
           className="field"
@@ -124,7 +200,8 @@ export function LoginForm() {
         Entrar
       </button>
       <Note>
-        Cada acesso é registrado. Heads confirmam a entrada com o código do app autenticador.
+        Cada acesso é registrado. Head e Diretoria confirmam a entrada com o código do app
+        autenticador.
       </Note>
     </form>
   );

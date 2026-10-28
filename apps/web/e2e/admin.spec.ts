@@ -12,7 +12,7 @@ test.afterAll(async () => closeTestConnections());
 
 async function login(page: Page, email: string) {
   await page.goto('/login');
-  await page.getByLabel('E-mail').fill(email);
+  await page.getByLabel('Usuário', { exact: true }).fill(email.split('@')[0]!);
   await page.getByLabel('Senha').fill(E2E_PASSWORD);
   await page.getByRole('button', { name: 'Entrar' }).click();
 }
@@ -39,6 +39,7 @@ test('HEAD convida usuário, vê auditoria e registra pedido LGPD', async ({ pag
   await page.waitForURL(/\/admin/);
   await page.getByLabel('Nome', { exact: true }).fill('Pessoa Convidada');
   await page.getByLabel('E-mail', { exact: true }).fill('convidada@npac.test');
+  await page.getByLabel('Usuário', { exact: true }).fill('convidada');
   await page.getByLabel('Prospecta').check();
   await page.getByRole('button', { name: 'Convidar', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Senha temporária' })).toBeVisible();

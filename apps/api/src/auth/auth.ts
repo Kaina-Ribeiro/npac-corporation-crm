@@ -5,11 +5,14 @@ import { betterAuth, type BetterAuthPlugin } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { createAuthMiddleware, getSessionFromCtx, isAPIError } from 'better-auth/api';
 import { twoFactor } from 'better-auth/plugins/two-factor';
+import { username } from 'better-auth/plugins/username';
 import { eq } from 'drizzle-orm';
 import type { AuditService } from '../audit/audit.service.js';
 import type { Env } from '../config/env.js';
 
-const SIGN_IN_PATHS = new Set(['/sign-in/email', '/two-factor/verify-totp']);
+// Login é por usuário + senha; o login por e-mail fica desligado (disabledPaths).
+const SIGN_IN = '/sign-in/username';
+const SIGN_IN_PATHS = new Set([SIGN_IN, '/two-factor/verify-totp']);
 
 const reqMeta = (headers: Headers | undefined) => ({
   ip: headers?.get('x-forwarded-for')?.split(',')[0]?.trim(),
@@ -49,14 +52,14 @@ function auditPlugin(db: Db, audit: AuditService): BetterAuthPlugin {
                 actorId: null,
                 action: 'auth.sign_in.failure',
                 entityType: 'user',
-                data: { step: ctx.path === '/sign-in/email' ? 'password' : 'totp' },
+                data: { step: ctx.path === SIGN_IN ? 'password' : 'totp' },
                 ...reqMeta(ctx.headers),
               });
               return;
             }
             // verify-totp com sessão já aberta é a ativação do MFA, não um login.
             const created = ctx.context.newSession;
-            if (!created || (ctx.path !== '/sign-in/email' && ctx.context.session)) return;
+            if (!created || (ctx.path !== SIGN_IN && ctx.context.session)) return;
             await audit.record({
               actorId: created.user.id,
               action: 'auth.sign_in.success',
@@ -118,13 +121,19 @@ export function createAuth(db: Db, env: Env, audit: AuditService) {
         verify: ({ hash: h, password }) => verify(h, password),
       },
     },
-    plugins: [twoFactor({ issuer: 'NPAC Corporation' }), auditPlugin(db, audit)],
+    // Sem /is-username-available: não deixa descobrir quem tem conta.
+    disabledPaths: ['/sign-in/email', '/is-username-available'],
+    plugins: [
+      username({ minUsernameLength: 3, maxUsernameLength: 30 }),
+      twoFactor({ issuer: 'NPAC Corporation' }),
+      auditPlugin(db, audit),
+    ],
     // 30 dias logado (cookie persistente); renova a validade uma vez por dia de uso.
     session: { expiresIn: 30 * 86_400, updateAge: 86_400 },
     rateLimit: {
       enabled: true,
       storage: 'database',
-      customRules: { '/sign-in/email': { window: 60, max: 5 } },
+      customRules: { [SIGN_IN]: { window: 60, max: 5 } },
     },
     user: {
       additionalFields: {

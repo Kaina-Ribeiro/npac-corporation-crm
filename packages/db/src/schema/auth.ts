@@ -7,6 +7,9 @@ export const user = pgTable('user', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   email: text('email').notNull().unique(),
+  // Plugin username do Better Auth: o login é por usuário (minúsculo); e-mail fica como contato.
+  username: text('username').unique(),
+  displayUsername: text('display_username'),
   emailVerified: boolean('email_verified').notNull().default(false),
   image: text('image'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

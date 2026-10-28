@@ -18,6 +18,10 @@
 
 Modelo: cada usuário tem **um papel** (`DIRETOR`, `HEAD`, `SDR`, `CLOSER`) + duas flags (`can_prospect`, `can_close`).
 
+Login: **usuário + senha** (mínimo 8 caracteres), com MFA para a liderança. O e-mail fica no cadastro
+como contato; o login por e-mail é desligado. A tela de login sugere o último usuário do aparelho
+(cookie restrito a `/login`, nunca localStorage).
+
 Hierarquia: **Diretoria** (`DIRETOR`) > **Head** > SDR / Closer. A Diretoria tem o mesmo acesso a
 dados do Head e é a única que dá ou tira cargo de liderança (Head ou Diretoria) e administra contas de
 liderança (desativar, nova senha, resetar MFA). O Head administra só SDRs e closers. MFA é obrigatório

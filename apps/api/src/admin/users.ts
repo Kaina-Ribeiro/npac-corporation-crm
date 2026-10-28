@@ -29,6 +29,12 @@ const invite = z
   .object({
     name: z.string().trim().min(1).max(120),
     email: z.email().trim().toLowerCase().max(200),
+    // Mesmo formato aceito pelo login (plugin username do Better Auth), sempre minúsculo.
+    username: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .regex(/^[a-z0-9_.]{3,30}$/, 'Use 3 a 30 letras, números, ponto ou _'),
     role: z.enum(ROLES),
     canProspect: z.boolean(),
     canClose: z.boolean(),
@@ -66,6 +72,7 @@ export class AdminUsersService {
         id: user.id,
         name: user.name,
         email: user.email,
+        username: user.username,
         role: user.role,
         canProspect: user.canProspect,
         canClose: user.canClose,
@@ -102,7 +109,9 @@ export class AdminUsersService {
     const passwordHash = await hash(password);
     await this.db
       .transaction(async (tx) => {
-        await tx.insert(user).values({ id, ...input, mustChangePassword: true });
+        await tx
+          .insert(user)
+          .values({ id, ...input, displayUsername: input.username, mustChangePassword: true });
         await tx.insert(account).values({
           id: randomUUID(),
           accountId: id,
@@ -113,7 +122,7 @@ export class AdminUsersService {
       })
       .catch((e: { code?: string; cause?: { code?: string } }) => {
         if ((e.cause?.code ?? e.code) === '23505')
-          throw new ConflictException('E-mail já cadastrado');
+          throw new ConflictException('E-mail ou usuário já cadastrado');
         throw e;
       });
     await this.record(actor, 'admin.user.invite', id, ['role', 'canProspect', 'canClose']);

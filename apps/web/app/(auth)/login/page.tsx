@@ -1,13 +1,18 @@
 import type { Metadata } from 'next';
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { LiquidGold } from '@/components/login/liquid-gold';
 import { LoginForm } from '@/components/login/login-form';
+import { LAST_USER_COOKIE } from '@/lib/last-user';
 import { getSession } from '@/lib/session';
 
 export const metadata: Metadata = { title: 'Entrar' };
 
 export default async function LoginPage() {
   if (await getSession()) redirect('/dashboard');
+  // Gravado pelo próprio formulário após um login bem-sucedido neste aparelho.
+  const last = (await cookies()).get(LAST_USER_COOKIE)?.value;
+  const lastUser = last && /^[a-z0-9_.]{3,30}$/.test(last) ? last : undefined;
 
   return (
     <main className="relative flex min-h-dvh items-center overflow-hidden bg-[radial-gradient(60%_60%_at_70%_30%,#5a4210,#0a0805_70%)] text-ink">
@@ -40,7 +45,7 @@ export default async function LoginPage() {
         </section>
 
         <div className="w-full max-w-[440px] rounded-[32px] bg-white/[.62] p-6 shadow-[inset_0_1.5px_0_#fff,inset_0_0_0_.5px_rgba(255,255,255,.8),0_40px_90px_-30px_rgba(0,0,0,.7)] backdrop-blur-[40px] backdrop-saturate-200 md:p-[34px]">
-          <LoginForm />
+          <LoginForm lastUser={lastUser} />
         </div>
       </div>
 

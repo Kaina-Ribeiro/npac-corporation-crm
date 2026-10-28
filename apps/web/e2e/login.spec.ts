@@ -13,11 +13,11 @@ test.beforeEach(async () => {
 test.afterAll(async () => closeTestConnections());
 
 const errorAlert = (page: Page) =>
-  page.getByRole('alert').and(page.getByText('E-mail ou senha inválidos'));
+  page.getByRole('alert').and(page.getByText('Usuário ou senha inválidos'));
 
 async function login(page: Page, email: string, password = E2E_PASSWORD) {
   await page.goto('/login');
-  await page.getByLabel('E-mail').fill(email);
+  await page.getByLabel('Usuário', { exact: true }).fill(email.split('@')[0]!);
   await page.getByLabel('Senha').fill(password);
   await page.getByRole('button', { name: 'Entrar' }).click();
 }
@@ -125,7 +125,7 @@ test('senha errada mostra erro genérico', async ({ page }) => {
   await expect(page).toHaveURL(/\/login/);
 });
 
-test('e-mail inexistente mostra o mesmo erro', async ({ page }) => {
+test('usuário inexistente mostra o mesmo erro', async ({ page }) => {
   await login(page, 'ninguem@npac.com.br', 'senha-errada-123');
   await expect(errorAlert(page)).toBeVisible();
 });

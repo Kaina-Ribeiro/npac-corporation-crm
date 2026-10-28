@@ -76,8 +76,9 @@ export function api(app: NestFastifyApplication) {
     request(server).patch(path).set('Origin', ORIGIN).set('Cookie', cookie).send(body);
   const del = (path: string, body: object, cookie: Cookie) =>
     request(server).delete(path).set('Origin', ORIGIN).set('Cookie', cookie).send(body);
+  /** Login por usuário; os testes passam o e-mail e o usuário é a parte antes do @. */
   const signInRaw = (email: string, password = TEST_PASSWORD) =>
-    post('/api/auth/sign-in/email', { email, password });
+    post('/api/auth/sign-in/username', { username: email.split('@')[0], password });
   /** Faz login (zerando a troca obrigatória de senha) e devolve o cookie de sessão. */
   const signIn = async (email: string): Promise<Cookie> => {
     await owner`update "user" set must_change_password = false where email = ${email}`;

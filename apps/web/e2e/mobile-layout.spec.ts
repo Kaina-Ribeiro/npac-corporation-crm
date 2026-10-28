@@ -30,7 +30,7 @@ function overflowing(page: Page) {
 
 test('nenhum campo estoura o container no iPhone', async ({ page }) => {
   await page.goto('/login');
-  await page.getByLabel('E-mail').fill('ale@npac.com.br');
+  await page.getByLabel('Usuário', { exact: true }).fill('ale');
   await page.getByLabel('Senha').fill(E2E_PASSWORD);
   await page.getByRole('button', { name: 'Entrar' }).click();
   await page.waitForURL(/\/dashboard/);

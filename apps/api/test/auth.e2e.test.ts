@@ -65,6 +65,21 @@ describe('autenticação', () => {
     expect(await auditCount('auth.sign_in.success')).toBe(1);
   });
 
+  it('login é por usuário (sem diferenciar maiúsculas); por e-mail não existe mais', async () => {
+    await owner`update "user" set must_change_password = false where email = 'ale@npac.com.br'`;
+    const ok = await h.post('/api/auth/sign-in/username', {
+      username: 'ALE',
+      password: TEST_PASSWORD,
+    });
+    expect(ok.status).toBe(200);
+    const byEmail = await h.post('/api/auth/sign-in/email', {
+      email: 'ale@npac.com.br',
+      password: TEST_PASSWORD,
+    });
+    expect(byEmail.status).toBe(404);
+    expect((await h.post('/api/auth/is-username-available', { username: 'ale' })).status).toBe(404);
+  });
+
   it('senha errada → 401 e auditado', async () => {
     expect((await h.signInRaw('ale@npac.com.br', 'errada-errada')).status).toBe(401);
     expect(await auditCount('auth.sign_in.failure')).toBe(1);

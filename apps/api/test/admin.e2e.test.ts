@@ -45,6 +45,7 @@ describe('usuários', () => {
       {
         name: 'Nova SDR',
         email: 'nova@novo.test',
+        username: 'nova',
         role: 'SDR',
         canProspect: true,
         canClose: false,
@@ -59,11 +60,31 @@ describe('usuários', () => {
       { must_change_password: boolean }[]
     >`select must_change_password from "user" where email = 'nova@novo.test'`;
     expect(u!.must_change_password).toBe(true);
+    const badUsername = await h.post(
+      '/api/admin/users',
+      {
+        name: 'Espaço',
+        email: 'espaco@novo.test',
+        username: 'com espaço',
+        role: 'SDR',
+        canProspect: true,
+        canClose: false,
+      },
+      head,
+    );
+    expect(badUsername.status).toBe(400);
     expect(
       (
         await h.post(
           '/api/admin/users',
-          { name: 'Dup', email: 'nova@novo.test', role: 'SDR', canProspect: true, canClose: false },
+          {
+            name: 'Dup',
+            email: 'nova@novo.test',
+            username: 'nova',
+            role: 'SDR',
+            canProspect: true,
+            canClose: false,
+          },
           head,
         )
       ).status,
@@ -115,6 +136,7 @@ describe('Diretoria', () => {
       {
         name: 'Outro Head',
         email: 'head@novo.test',
+        username: 'outrohead',
         role: 'HEAD',
         canProspect: false,
         canClose: true,

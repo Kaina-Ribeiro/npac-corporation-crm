@@ -25,33 +25,63 @@ const STAGES: { key: StageKey; label: string }[] = [
   { key: 'PERDIDO', label: 'Sem Perfil' },
 ];
 
-const TEAM: { name: string; email: string; role: Role; canProspect: boolean; canClose: boolean }[] =
-  [
-    { name: 'Ana', email: 'ana@npac.com.br', role: 'HEAD', canProspect: true, canClose: false },
-    {
-      name: 'Ronaldo',
-      email: 'ronaldo@npac.com.br',
-      role: 'HEAD',
-      canProspect: false,
-      canClose: true,
-    },
-    { name: 'Ale', email: 'ale@npac.com.br', role: 'SDR', canProspect: true, canClose: false },
-    {
-      name: 'Murilo',
-      email: 'murilo@npac.com.br',
-      role: 'SDR',
-      canProspect: true,
-      canClose: false,
-    },
-    { name: 'Igor', email: 'igor@npac.com.br', role: 'SDR', canProspect: true, canClose: false },
-    {
-      name: 'Sônia',
-      email: 'sonia@npac.com.br',
-      role: 'CLOSER',
-      canProspect: false,
-      canClose: true,
-    },
-  ];
+const TEAM: {
+  name: string;
+  username: string;
+  email: string;
+  role: Role;
+  canProspect: boolean;
+  canClose: boolean;
+}[] = [
+  {
+    name: 'Ana',
+    username: 'ana',
+    email: 'ana@npac.com.br',
+    role: 'HEAD',
+    canProspect: true,
+    canClose: false,
+  },
+  {
+    name: 'Ronaldo',
+    username: 'ronaldo',
+    email: 'ronaldo@npac.com.br',
+    role: 'HEAD',
+    canProspect: false,
+    canClose: true,
+  },
+  {
+    name: 'Ale',
+    username: 'ale',
+    email: 'ale@npac.com.br',
+    role: 'SDR',
+    canProspect: true,
+    canClose: false,
+  },
+  {
+    name: 'Murilo',
+    username: 'murilo',
+    email: 'murilo@npac.com.br',
+    role: 'SDR',
+    canProspect: true,
+    canClose: false,
+  },
+  {
+    name: 'Igor',
+    username: 'igor',
+    email: 'igor@npac.com.br',
+    role: 'SDR',
+    canProspect: true,
+    canClose: false,
+  },
+  {
+    name: 'Sônia',
+    username: 'sonia',
+    email: 'sonia@npac.com.br',
+    role: 'CLOSER',
+    canProspect: false,
+    canClose: true,
+  },
+];
 
 export async function seed(db: Db, opts: SeedOptions): Promise<void> {
   if (opts.initialPassword.length < MIN_INITIAL_PASSWORD) {

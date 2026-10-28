@@ -10,6 +10,7 @@ type User = {
   id: string;
   name: string;
   email: string;
+  username: string | null;
   role: Role;
   canProspect: boolean;
   canClose: boolean;
@@ -167,6 +168,7 @@ export function Admin({
                   const r = await clientApi('/api/admin/users', 'POST', {
                     name: String(f.get('name')),
                     email: String(f.get('email')),
+                    username: String(f.get('username')).trim().toLowerCase(),
                     role: String(f.get('role')),
                     canProspect: f.get('canProspect') === 'on',
                     canClose: f.get('canClose') === 'on',
@@ -181,6 +183,21 @@ export function Admin({
               </Field>
               <Field label="E-mail">
                 <input name="email" type="email" className={control} required />
+              </Field>
+              <Field label="Usuário">
+                <input
+                  name="username"
+                  className={control}
+                  required
+                  minLength={3}
+                  maxLength={30}
+                  pattern="[a-zA-Z0-9_.]+"
+                  title="3 a 30 letras, números, ponto ou _"
+                  placeholder="ex.: maria.silva"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                />
               </Field>
               <Field label="Papel">
                 <select name="role" className={control} defaultValue="SDR">
@@ -211,6 +228,7 @@ export function Admin({
                       {u.name} {!u.active && <span className="text-xs text-danger">inativo</span>}
                     </p>
                     <p className="text-xs text-ink2">
+                      {u.username && <b className="font-semibold text-ink">{u.username} · </b>}
                       {u.email} · {ROLE_LABEL[u.role]}
                       {u.twoFactorEnabled ? ' · MFA ativo' : ''}
                     </p>

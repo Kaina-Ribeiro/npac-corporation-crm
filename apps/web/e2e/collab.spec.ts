@@ -12,7 +12,7 @@ test.afterAll(async () => closeTestConnections());
 async function login(page: Page, email: string) {
   page.on('pageerror', (e) => console.log('PAGEERROR', e.stack));
   await page.goto('/login');
-  await page.getByLabel('E-mail').fill(email);
+  await page.getByLabel('Usuário', { exact: true }).fill(email.split('@')[0]!);
   await page.getByLabel('Senha').fill(E2E_PASSWORD);
   await page.getByRole('button', { name: 'Entrar' }).click();
   await page.waitForURL(/\/dashboard/);
