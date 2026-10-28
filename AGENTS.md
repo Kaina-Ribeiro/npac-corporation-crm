@@ -2,11 +2,11 @@
 
 ## Estado e escopo
 
-- Monorepo pnpm/Turborepo. Planos 01 (Fundação), 02 (CRM base) e 03 (Vendas,
-  Dashboard e Relatórios) implementados. Planejamento em `docs/superpowers/plans/`.
+- Monorepo pnpm/Turborepo. Planos 01–06 implementados (Fundação, CRM base, Vendas,
+  Colaboração, Admin/LGPD, Migração/deploy). Planejamento em `docs/superpowers/plans/`.
 - Leia `docs/spec.md`, o roadmap e o plano da tarefa antes de alterar comportamento.
-- Próximos subsistemas: colaboração (04), Admin/LGPD (05), migração/deploy (06).
-  Não apresente placeholders “Em breve” como recursos concluídos.
+- Fora da v1 (spec §8): API WhatsApp/Instagram, IA no playbook, metas/comissões.
+  Go-live real (VM Oracle, Cloudflare, export do Firebase) segue `docs/deploy.md`.
 - O usuário prefere execução direta, comunicação em português, respostas curtas,
   testes focados e commits frequentes. Não abra subagentes sem solicitação.
 - Um novo plano deve ser apresentado antes de iniciar sua implementação.
@@ -40,6 +40,12 @@
   parâmetros SQL. Nunca imprima `.env`, senhas, chaves ou dados reais nas ferramentas.
 - Telefone: normalização BR/E.164, AES-256-GCM e índice HMAC. Renda somente em faixas
   ≥ R$ 5 mil; nunca guardar renda exata.
+- Chat: DM privada por RLS (`chat_can_read`), inclusive para HEAD; mensagens append-only;
+  menção guarda só o ID do lead e o nome é resolvido pela RLS do leitor.
+- `audit_log` tem RLS: INSERT livre, SELECT só HEAD. Admin de usuários não tem RLS
+  (Better Auth lê `user`): a guarda é `admin:manage` + auditoria.
+- LGPD: eliminação via `lgpd_anonymize_lead` (SECURITY DEFINER, só HEAD); retenção via
+  `lgpd_retention` como owner. Não crie outro caminho que apague fatos financeiros.
 - CSV com contato somente HEAD, auditado e com neutralização de fórmulas. Resumo
   WhatsApp não inclui telefone. Links externos WhatsApp exigem gesto do usuário.
 
@@ -110,6 +116,10 @@ pnpm exec prettier --check .
   Fixtures owner não provam RLS: exercite as políticas como `npac_app`.
 - Seeds são idempotentes e não redefinem senhas. Não apague volumes para migrar.
 - Playwright sobe API 4100/web 3100 e usa banco `npac_e2e`; dev usa 4000/3000.
+  Specs compartilham o banco: cada teste que depende de MFA/estado de usuário o redefine.
+- Testes que fazem `truncate leads` incluem as tabelas com FK para leads
+  (`lgpd_requests`, `chat_*`, `payments`, `deals`, atividades, `meetings`).
+- Em efeitos React, não retorne o valor de `scrollIntoView` (Chromium devolve Promise).
   Não rode dois builds web ou duas suites da mesma base de teste em paralelo.
 - Migrations aplicadas devem receber sucessoras, não ser reescritas. Inclua SQL,
   snapshots e journal. Revise RLS/grants/triggers manuais além do schema Drizzle.

@@ -1,6 +1,6 @@
 # Plano 04 — Colaboração
 
-**Status: proposto em 28/10/2026, aguardando aprovação.**
+**Status: concluído em 28/10/2026, em execução direta.**
 
 Parte do código real dos Planos 01–03: `withUser`/RLS, timeline e auditoria
 transacionais, SSE que só emite `{ type }`, permissões em `@npac/shared` e
@@ -32,3 +32,15 @@ casca responsiva (`[secao]` ainda mostra “Em breve” para Chat, Equipe e Play
 
 Admin/LGPD (05) e migração/deploy (06). Anexos, reações e edição de mensagem
 ficam fora da v1.
+
+## Evidências de conclusão
+
+Migration `0015_collaboration.sql` (chat, DMs via `chat_open_dm`, leituras, playbook) com
+RLS provada como npac_app: DM invisível a HEAD não membro, mensagens append-only,
+menção a lead invisível recusada. API `chat`, `leads/:id/handoff`, `team`, `playbook`
+com testes de integração; SSE inclui revisão do chat. Telas Chat (mobile/desktop),
+Equipe, Playbook e ações de handoff/Agenda na ficha, com e2e e screenshots.
+
+Decisões: busca do playbook é local (conteúdo não pessoal, lista pequena); mensagens
+não têm edição/exclusão na v1; menções não geram auditoria por mensagem; o link do
+Google Agenda leva só perfil e link da ficha (sem nome/contato).

@@ -135,9 +135,9 @@ describe('auditoria e LGPD', () => {
     const res = await h.post('/api/admin/audit/search', { action: 'auth.sign_in.success' }, head);
     expect(res.status).toBe(200);
     expect(res.body.items.length).toBeGreaterThan(0);
-    expect(res.body.items.every((i: { action: string }) => i.action === 'auth.sign_in.success')).toBe(
-      true,
-    );
+    expect(
+      res.body.items.every((i: { action: string }) => i.action === 'auth.sign_in.success'),
+    ).toBe(true);
   });
 
   it('acesso exporta dados do titular; eliminação anonimiza ao concluir', async () => {

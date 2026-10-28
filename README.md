@@ -3,10 +3,12 @@
 CRM comercial. Monorepo pnpm/Turborepo: Next.js (`apps/web`), NestJS/Fastify
 (`apps/api`), Postgres/Drizzle (`packages/db`) e contratos (`packages/shared`).
 
-Planos 01, 02 e 03 implementados: login individual, MFA para HEAD, permissões com RLS,
-auditoria, cadastro/ficha de leads, notas, tarefas, reuniões, Pipeline, Hoje e
-atualizações entre sessões, vendas com parcelas/recebimentos/estorno, Dashboard e
-Relatórios. Faltam colaboração (04), Admin/LGPD (05) e migração/deploy (06).
+Planos 01 a 06 implementados: login individual, MFA para HEAD, permissões com RLS,
+auditoria, leads/ficha/notas/tarefas/reuniões, Pipeline, Hoje, tempo real, vendas com
+parcelas/recebimentos/estorno, Dashboard, Relatórios, chat (Geral + DMs privadas),
+handoff/Google Agenda, Equipe, Playbook, Admin (usuários, catálogo, etapas, auditoria),
+pedidos LGPD com anonimização e worker de retenção, importador do Firebase e
+infraestrutura de produção (Docker + Caddy + backups). Deploy: `docs/deploy.md`.
 
 ## Desenvolvimento
 
@@ -68,9 +70,15 @@ O Playwright sobe os servidores automaticamente; exige Postgres já disponível.
 - Dashboard/Relatórios calculam métricas em SQL e respeitam o escopo do usuário.
   CSV com contatos é exclusivo de HEAD e auditado; resumo WhatsApp omite contatos.
 - `TRUST_PROXY=true` só atrás de proxy confiável com acesso direto à API bloqueado.
+- DMs são privadas no banco (nem HEAD lê); menção `#lead` só revela o nome a quem vê o lead.
+- Auditoria: inserção por qualquer processo, leitura só HEAD, sem UPDATE/DELETE.
+- Eliminação LGPD anonimiza contato e textos livres e preserva fatos financeiros sem PII.
+- `pnpm --filter @npac/db retention` (diário em produção) anonimiza excluídos há 180 dias
+  ou com retenção vencida; `pnpm --filter @npac/api import:firebase arquivo.json [--apply]`
+  importa o legado com dry-run por padrão.
 - Guarde `.env`, chaves de cifra e backups fora do Git. Chaves perdidas impedem decifrar contatos.
 
 Veja `AGENTS.md`, `docs/spec.md`, o roadmap, `docs/revisao-fundacao.md`,
-`docs/revisao-crm-base.md` e `docs/revisao-vendas-relatorios.md`
+`docs/revisao-crm-base.md`, `docs/revisao-vendas-relatorios.md` e `docs/deploy.md`
 para escopo e evidências. Em uma instalação existente, atualize o banco com
 `pnpm --filter @npac/db migrate` antes de iniciar a versão nova da aplicação.

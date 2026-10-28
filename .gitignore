@@ -8,3 +8,6 @@ coverage
 !.env.example
 .review-*.log
 .review-*.json
+!.env.prod.example
+backups/
+.superpowers/

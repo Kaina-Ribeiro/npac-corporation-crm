@@ -1,0 +1,102 @@
+# Produção (Oracle Cloud São Paulo): docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+# Só o Caddy expõe portas; Postgres e API ficam na rede interna.
+name: npac
+x-app-env: &app-env
+  NODE_ENV: production
+  DATABASE_URL: postgresql://npac_owner:${OWNER_DB_PASSWORD}@postgres:5432/npac
+  APP_DATABASE_URL: postgresql://npac_app:${APP_DB_PASSWORD}@postgres:5432/npac
+  BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?}
+  FIELD_ENCRYPTION_KEY: ${FIELD_ENCRYPTION_KEY:?}
+  BLIND_INDEX_KEY: ${BLIND_INDEX_KEY:?}
+  WEB_ORIGIN: https://${DOMAIN:?}
+  API_PORT: '4000'
+  TRUST_PROXY: 'true'
+  LOG_LEVEL: info
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: npac_owner
+      POSTGRES_PASSWORD: ${OWNER_DB_PASSWORD:?}
+      POSTGRES_DB: npac
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U npac_owner -d npac']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  migrate:
+    image: ${REGISTRY:-npac}/api:${TAG:-latest}
+    build: { context: ., target: api }
+    environment: *app-env
+    command: ['node', 'node_modules/@npac/db/dist/migrate-cli.js']
+    depends_on: { postgres: { condition: service_healthy } }
+    restart: 'no'
+
+  api:
+    image: ${REGISTRY:-npac}/api:${TAG:-latest}
+    build: { context: ., target: api }
+    restart: unless-stopped
+    environment: *app-env
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  web:
+    image: ${REGISTRY:-npac}/web:${TAG:-latest}
+    build: { context: ., target: web, args: { API_INTERNAL_URL: 'http://api:4000' } }
+    restart: unless-stopped
+    environment:
+      API_INTERNAL_URL: http://api:4000
+    depends_on:
+      api: { condition: service_healthy }
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports: ['80:80', '443:443', '443:443/udp']
+    environment:
+      DOMAIN: ${DOMAIN:?}
+      ACME_EMAIL: ${ACME_EMAIL:?}
+    volumes:
+      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [web]
+
+  # Worker LGPD diário: anonimiza titulares vencidos e limpa sessões expiradas.
+  retention:
+    image: ${REGISTRY:-npac}/api:${TAG:-latest}
+    restart: unless-stopped
+    environment: *app-env
+    entrypoint: ['/bin/sh', '-c']
+    command: ['while true; do node node_modules/@npac/db/dist/retention-cli.js; sleep 86400; done']
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  # Backup diário (pg_dump custom) com retenção local; envio externo em BACKUP_REMOTE.
+  backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      PGHOST: postgres
+      PGUSER: npac_owner
+      PGPASSWORD: ${OWNER_DB_PASSWORD:?}
+      PGDATABASE: npac
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+    volumes:
+      - ./infra/backup:/scripts:ro
+      - ${BACKUP_DIR:-./backups}:/backups
+    entrypoint: ['/bin/sh', '-c']
+    command: ['while true; do /scripts/backup.sh; sleep 86400; done']
+    depends_on: { postgres: { condition: service_healthy } }
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:
