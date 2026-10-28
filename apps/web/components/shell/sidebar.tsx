@@ -1,7 +1,7 @@
-import { SIDEBAR_ITEMS } from './nav-items';
+import { ADMIN_ITEM, SIDEBAR_ITEMS } from './nav-items';
 import { NavLink } from './nav-link';
 
-export function Sidebar() {
+export function Sidebar({ head = false }: { head?: boolean }) {
   return (
     <aside className="glass sticky top-2.5 m-2.5 mr-0 hidden h-[calc(100dvh-20px)] w-[236px] flex-none flex-col gap-4 rounded-3xl px-2.5 py-3 md:flex">
       <div className="flex items-center gap-2.5 px-2 pt-1">
@@ -9,7 +9,7 @@ export function Sidebar() {
         <b className="text-[15px] font-semibold">NPAC Corporation</b>
       </div>
       <nav aria-label="Navegação lateral" className="flex flex-col gap-px">
-        {SIDEBAR_ITEMS.map((item) => (
+        {(head ? [...SIDEBAR_ITEMS, ADMIN_ITEM] : SIDEBAR_ITEMS).map((item) => (
           <NavLink
             key={item.href}
             item={item}

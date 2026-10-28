@@ -1,6 +1,8 @@
 import Link from 'next/link';
+import { getSession } from '@/lib/session';
 export const metadata = { title: 'Mais' };
-export default function MorePage() {
+export default async function MorePage() {
+  const me = await getSession();
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-5">
       <h1 className="text-[34px] font-bold">Mais</h1>
@@ -11,6 +13,7 @@ export default function MorePage() {
           ['/chat', 'Chat'],
           ['/equipe', 'Equipe'],
           ['/playbook', 'Playbook'],
+          ...(me?.role === 'HEAD' ? [['/admin', 'Admin']] : []),
         ].map(([href, label]) => (
           <Link
             key={href}

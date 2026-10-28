@@ -38,6 +38,12 @@ const ICONS = {
     </>,
   ),
   playbook: svg(<path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17a3 3 0 0 1 3-3h11" />),
+  admin: svg(
+    <>
+      <path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z" />
+      <path d="M9 12l2 2 4-4" />
+    </>,
+  ),
   mais: svg(
     <>
       <circle cx="5" cy="12" r="1.6" />
@@ -58,6 +64,14 @@ export const SIDEBAR_ITEMS: NavItem[] = [
   { href: '/equipe', label: 'Equipe', ready: true, icon: ICONS.equipe },
   { href: '/playbook', label: 'Playbook', ready: true, icon: ICONS.playbook },
 ];
+
+/** Só HEAD: usuários, catálogo, etapas, auditoria e LGPD. */
+export const ADMIN_ITEM: NavItem = {
+  href: '/admin',
+  label: 'Admin',
+  ready: true,
+  icon: ICONS.admin,
+};
 
 /** Mobile: barra inferior com cinco destinos. */
 export const BOTTOM_ITEMS: NavItem[] = [

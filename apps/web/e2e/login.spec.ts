@@ -1,8 +1,8 @@
 import { gzipSync } from 'node:zlib';
-import { createHmac } from 'node:crypto';
 import { expect, test, type Page } from '@playwright/test';
 import { closeTestConnections, ownerSql } from '@npac/db/testing';
 import { E2E_DB, E2E_PASSWORD, WEB_ORIGIN } from './env.js';
+import { totp } from './totp.js';
 
 const owner = ownerSql(E2E_DB);
 
@@ -133,6 +133,8 @@ test('sem sessão redireciona para /login', async ({ page }) => {
 });
 
 test('HEAD sem MFA é levado para configurar o autenticador', async ({ page }) => {
+  await owner`update "user" set two_factor_enabled=false where email='ana@npac.com.br'`;
+  await owner`delete from two_factor where user_id=(select id from "user" where email='ana@npac.com.br')`;
   await login(page, 'ana@npac.com.br');
   await expect(page).toHaveURL(/\/conta\/mfa/);
 });
@@ -196,20 +198,12 @@ test('busca mantém contato fora da URL e alterna o tema', async ({ page }) => {
   await expect(page.locator('html')).toHaveClass(/dark/);
 });
 
-function totp(secret: string): string {
-  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-  const bits = [...secret].map((c) => alphabet.indexOf(c).toString(2).padStart(5, '0')).join('');
-  const key = Buffer.from((bits.match(/.{8}/g) ?? []).map((b) => parseInt(b, 2)));
-  const counter = Buffer.alloc(8);
-  counter.writeBigUInt64BE(BigInt(Math.floor(Date.now() / 30_000)));
-  const hmac = createHmac('sha1', key).update(counter).digest();
-  const offset = hmac[19]! & 15;
-  return String((hmac.readUInt32BE(offset) & 0x7fffffff) % 1_000_000).padStart(6, '0');
-}
-
 for (const head of ['ana', 'ronaldo']) {
   test(`${head}: configura MFA e próximo login exige TOTP`, async ({ page }) => {
-    await login(page, `${head}@npac.com.br`);
+    const email = `${head}@npac.com.br`;
+    await owner`update "user" set two_factor_enabled=false where email=${email}`;
+    await owner`delete from two_factor where user_id=(select id from "user" where email=${email})`;
+    await login(page, email);
     await expect(page).toHaveURL(/\/conta\/mfa/);
     await page.getByLabel('Senha', { exact: true }).fill(E2E_PASSWORD);
     await page.getByRole('button', { name: 'Continuar' }).click();
