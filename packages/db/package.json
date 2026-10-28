@@ -15,15 +15,21 @@
       "default": "./dist/testing.js"
     }
   },
-  "files": ["dist", "drizzle"],
+  "files": [
+    "dist",
+    "drizzle"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "test": "vitest run",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "generate": "drizzle-kit generate"
+    "generate": "drizzle-kit generate",
+    "seed": "node --env-file-if-exists=../../.env dist/seed-cli.js",
+    "migrate": "node --env-file-if-exists=../../.env dist/migrate-cli.js"
   },
   "dependencies": {
+    "@node-rs/argon2": "^2.2.2",
     "@npac/shared": "workspace:*",
     "drizzle-orm": "^0.44.0",
     "postgres": "^3.4.0"

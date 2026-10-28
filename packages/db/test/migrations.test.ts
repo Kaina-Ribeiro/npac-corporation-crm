@@ -9,7 +9,9 @@ afterAll(async () => {
 
 describe('migrations', () => {
   it('aplica migrations e cria tabelas', async () => {
-    const rows = await ownerSql(DB)`select table_name from information_schema.tables where table_schema='public'`;
+    const rows = await ownerSql(
+      DB,
+    )`select table_name from information_schema.tables where table_schema='public'`;
     expect(rows.map((r) => r.table_name)).toEqual(
       expect.arrayContaining([
         'user',
@@ -27,7 +29,9 @@ describe('migrations', () => {
   });
 
   it('npac_app não é dono nem ignora RLS', async () => {
-    const [r] = await ownerSql(DB)`select rolbypassrls, rolsuper from pg_roles where rolname='npac_app'`;
+    const [r] = await ownerSql(
+      DB,
+    )`select rolbypassrls, rolsuper from pg_roles where rolname='npac_app'`;
     expect(r).toEqual({ rolbypassrls: false, rolsuper: false });
   });
 

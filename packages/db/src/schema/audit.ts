@@ -12,5 +12,7 @@ export const auditLog = pgTable('audit_log', {
   entityId: text('entity_id'),
   ip: inet('ip'),
   userAgent: text('user_agent'),
-  data: jsonb('data').notNull().default(sql`'{}'::jsonb`),
+  data: jsonb('data')
+    .notNull()
+    .default(sql`'{}'::jsonb`),
 });
