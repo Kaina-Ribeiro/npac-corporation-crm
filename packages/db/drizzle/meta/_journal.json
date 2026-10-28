@@ -113,6 +113,13 @@
       "when": 1793162538846,
       "tag": "0015_collaboration",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1793163383103,
+      "tag": "0016_admin_lgpd",
+      "breakpoints": true
     }
   ]
 }

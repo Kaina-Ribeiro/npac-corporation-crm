@@ -7,3 +7,4 @@ export * from './audit.js';
 export * from './activity.js';
 export * from './finance.js';
 export * from './collab.js';
+export * from './lgpd.js';

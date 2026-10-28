@@ -16,7 +16,7 @@ beforeAll(async () => {
 afterAll(async () => closeTestApp(app));
 beforeEach(async () => {
   await resetAuthState();
-  await owner`truncate chat_reads, chat_messages, chat_members, payments, deals, lead_notes, lead_tasks, lead_timeline, meetings, leads`;
+  await owner`truncate lgpd_requests, chat_reads, chat_messages, chat_members, payments, deals, lead_notes, lead_tasks, lead_timeline, meetings, leads`;
   await owner`delete from chat_channels where kind = 'DM'`;
   ale = await h.signIn('ale@npac.com.br');
   murilo = await h.signIn('murilo@npac.com.br');

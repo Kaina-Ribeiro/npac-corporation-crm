@@ -3,3 +3,4 @@ export * from './migrate.js';
 export * from './schema/index.js';
 export * from './with-user.js';
 export * from './seed.js';
+export { runRetention } from './retention.js';

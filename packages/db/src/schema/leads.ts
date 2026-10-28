@@ -46,6 +46,7 @@ export const leads = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
+    anonymizedAt: timestamp('anonymized_at', { withTimezone: true }),
   },
   (t) => [
     index('leads_sdr_id_idx').on(t.sdrId),

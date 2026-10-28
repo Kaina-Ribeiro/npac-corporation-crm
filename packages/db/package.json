@@ -26,7 +26,8 @@
     "typecheck": "tsc --noEmit",
     "generate": "drizzle-kit generate",
     "seed": "node --env-file-if-exists=../../.env dist/seed-cli.js",
-    "migrate": "node --env-file-if-exists=../../.env dist/migrate-cli.js"
+    "migrate": "node --env-file-if-exists=../../.env dist/migrate-cli.js",
+    "retention": "node --env-file-if-exists=../../.env dist/retention-cli.js"
   },
   "dependencies": {
     "@node-rs/argon2": "^2.2.2",
