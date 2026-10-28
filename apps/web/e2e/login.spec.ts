@@ -427,3 +427,26 @@ test('tema automático segue o sistema', async ({ page }) => {
   await expect(page.locator('html')).not.toHaveClass(/dark/);
   await page.getByRole('radio', { name: 'Claro' }).click();
 });
+
+test('primeiro acesso da liderança: cria a senha e vai direto ao QR, sem pedir a senha de novo', async ({
+  page,
+}) => {
+  const [before] = await owner<{ password: string }[]>`
+    select a.password from account a join "user" u on u.id = a.user_id where u.email = 'ronaldo@npac.com.br'`;
+  await owner`update "user" set must_change_password = true, two_factor_enabled = false where email = 'ronaldo@npac.com.br'`;
+  await owner`delete from two_factor where user_id = (select id from "user" where email = 'ronaldo@npac.com.br')`;
+  try {
+    await login(page, 'ronaldo@npac.com.br');
+    await expect(page).toHaveURL(/\/conta\/senha/);
+    await page.getByLabel('Senha atual').fill(E2E_PASSWORD);
+    await page.getByLabel('Nova senha', { exact: true }).fill('ronaldo-nova-1');
+    await page.getByLabel('Confirme a nova senha').fill('ronaldo-nova-1');
+    await page.getByRole('button', { name: 'Salvar senha' }).click();
+    await expect(page).toHaveURL(/\/conta\/mfa/);
+    await expect(page.getByRole('heading', { name: 'Escaneie o QR' })).toBeVisible();
+    await expect(page.getByLabel('Senha', { exact: true })).toHaveCount(0);
+  } finally {
+    await owner`update account set password = ${before!.password} where user_id = (select id from "user" where email = 'ronaldo@npac.com.br')`;
+    await owner`update "user" set must_change_password = false where email = 'ronaldo@npac.com.br'`;
+  }
+});

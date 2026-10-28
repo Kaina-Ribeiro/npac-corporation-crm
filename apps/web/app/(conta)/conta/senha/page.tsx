@@ -8,5 +8,5 @@ export const metadata: Metadata = { title: 'Trocar senha' };
 export default async function SenhaPage() {
   const me = await getSession();
   if (me && !me.mustChangePassword) redirect('/dashboard');
-  return <ChangePasswordForm />;
+  return <ChangePasswordForm mfaNext={!!me?.mfaPending} />;
 }

@@ -1,8 +1,9 @@
 'use client';
 import { useRouter } from 'next/navigation';
 import QRCode from 'qrcode';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { authClient } from '@/lib/auth-client';
+import { takePassword } from '@/lib/mfa-handoff';
 
 /** Ativação do TOTP: confirma a senha, mostra o QR e valida o primeiro código. */
 export function MfaSetup() {
@@ -13,9 +14,24 @@ export function MfaSetup() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  // Vindo da troca de senha agora há pouco: usa a senha nova da memória e pula a confirmação.
+  const started = useRef(false);
+  const [auto, setAuto] = useState(false);
+  useEffect(() => {
+    if (started.current) return;
+    started.current = true;
+    const password = takePassword();
+    if (!password) return;
+    setAuto(true);
+    void enable(password).finally(() => setAuto(false));
+  }, []);
+
   async function onPassword(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const password = String(new FormData(e.currentTarget).get('password') ?? '');
+    await enable(String(new FormData(e.currentTarget).get('password') ?? ''));
+  }
+
+  async function enable(password: string) {
     setBusy(true);
     setError(null);
     const { data, error: err } = await authClient.twoFactor.enable({ password });
@@ -38,13 +54,21 @@ export function MfaSetup() {
     router.refresh();
   }
 
+  if (!qr && auto) {
+    return (
+      <p role="status" className="py-10 text-center text-sm text-ink2">
+        Preparando o autenticador…
+      </p>
+    );
+  }
+
   if (!qr) {
     return (
       <form className="flex flex-col gap-4" onSubmit={onPassword} aria-label="Confirmar senha">
         <h1 className="text-[28px] font-bold tracking-[-0.035em]">Proteja o seu acesso</h1>
         <p className="-mt-2 text-[15px] text-ink2">
-          Heads entram com senha e com o código de um app autenticador (Google Authenticator,
-          1Password, Authy…). Confirme a sua senha para começar.
+          Head e Diretoria entram com senha e com o código de um app autenticador (Google
+          Authenticator, 1Password, Authy…). Confirme a sua senha para começar.
         </p>
         <label className="flex flex-col gap-2 text-[13px] font-semibold text-ink2">
           Senha

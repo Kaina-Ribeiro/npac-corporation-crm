@@ -161,14 +161,17 @@ export function SdrTable({ rows, period }: { rows: ReportRow[]; period: string }
   );
 }
 
-/** Atividade da equipe (só Head): últimas mudanças nos leads, atualizada ao vivo. */
+/** Atividade da equipe (só liderança): últimas mudanças nos leads, atualizada ao vivo. */
 export function TeamFeed({ initial }: { initial: TeamActivityDTO }) {
   const [items, setItems] = useState(initial.items);
   useCrmRefresh(async () => {
     setItems((await clientApi<TeamActivityDTO>('/api/reports/activity')).items);
   });
   return (
-    <ChartCard title="Atividade da equipe" subtitle="Registro de auditoria · visível para Heads">
+    <ChartCard
+      title="Atividade da equipe"
+      subtitle="Registro de auditoria · visível para a liderança"
+    >
       {items.length ? (
         <ul className="grid gap-x-6 gap-y-3 md:grid-cols-2">
           {items.map((i) => (

@@ -2,10 +2,12 @@
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import { authClient } from '@/lib/auth-client';
+import { handOffPassword } from '@/lib/mfa-handoff';
 
 const MIN = 8;
 
-export function ChangePasswordForm() {
+/** `mfaNext`: a próxima etapa é ativar o autenticador (liderança sem MFA). */
+export function ChangePasswordForm({ mfaNext = false }: { mfaNext?: boolean }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -27,6 +29,11 @@ export function ChangePasswordForm() {
     });
     setBusy(false);
     if (err) return setError('Não foi possível trocar a senha. Confira a senha atual.');
+    if (mfaNext) {
+      handOffPassword(newPassword);
+      router.replace('/conta/mfa');
+      return;
+    }
     router.replace('/dashboard');
     router.refresh();
   }
