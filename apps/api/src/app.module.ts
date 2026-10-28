@@ -12,6 +12,7 @@ import { TodayModule } from './today/today.module.js';
 import { EventsModule } from './events/events.module.js';
 import { FinanceModule } from './finance/finance.module.js';
 import { CollabModule } from './collab/collab.module.js';
+import { AdminModule } from './admin/admin.module.js';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { CollabModule } from './collab/collab.module.js';
     EventsModule,
     FinanceModule,
     CollabModule,
+    AdminModule,
   ],
   controllers: [HealthController, MeController],
 })
