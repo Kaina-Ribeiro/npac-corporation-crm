@@ -6,7 +6,7 @@ export function ThemeToggle() {
   return (
     <button
       type="button"
-      className="rounded-full px-3 py-2 text-sm text-ink2"
+      className="h-9 rounded-full px-3 text-sm whitespace-nowrap text-ink2 transition-colors hover:bg-black/5 hover:text-ink"
       onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
     >
       Alternar tema

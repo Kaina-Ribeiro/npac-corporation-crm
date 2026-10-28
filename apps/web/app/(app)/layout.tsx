@@ -12,30 +12,51 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const pending = pendingStep(me);
   if (pending) redirect(pending);
 
+  const avatar = (
+    <span
+      aria-hidden="true"
+      className="inline-flex h-9 w-9 flex-none items-center justify-center rounded-full bg-[linear-gradient(160deg,#7fe0a6,#1e9e70)] text-[13px] font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,.28)]"
+    >
+      {me.name.slice(0, 1)}
+    </span>
+  );
+  const who = (
+    <span className="min-w-0 leading-tight">
+      <b className="block truncate text-sm font-semibold">{me.name}</b>
+      <small className="block text-xs text-ink2">{ROLE_LABEL[me.role]}</small>
+    </span>
+  );
+
   return (
     <div className="flex min-h-dvh">
       <LiveUpdates />
-      <Sidebar head={me.role === 'HEAD'} />
+      <Sidebar
+        head={me.role === 'HEAD'}
+        footer={
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2.5 px-1">
+              {avatar}
+              {who}
+            </div>
+            <div className="flex items-center gap-1">
+              <SignOutButton />
+              <ThemeToggle />
+            </div>
+          </div>
+        }
+      />
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-10 flex h-[52px] items-center gap-2.5 bg-[rgba(242,242,247,.6)] px-4 shadow-[0_.5px_0_var(--line)] backdrop-blur-[30px] backdrop-saturate-200 md:bg-transparent md:shadow-none md:backdrop-blur-none">
-          <span className="mark h-7 w-7 rounded-lg text-[15px] md:hidden">N</span>
-          <b className="text-base font-semibold md:hidden">NPAC</b>
-          <div className="ml-auto flex items-center gap-2">
-            <span className="text-right leading-tight">
-              <b className="block text-sm font-semibold">{me.name}</b>
-              <small className="block text-xs text-ink2">{ROLE_LABEL[me.role]}</small>
-            </span>
-            <span
-              aria-hidden="true"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[linear-gradient(160deg,#7fe0a6,#1e9e70)] text-[13px] font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,.28)]"
-            >
-              {me.name.slice(0, 1)}
-            </span>
+        {/* Só no celular: barra fixa com fundo de vidro (no desktop a pessoa fica na sidebar). */}
+        <header className="sticky top-0 z-20 flex h-[52px] items-center gap-2.5 bg-[rgba(242,242,247,.82)] px-4 shadow-[0_.5px_0_var(--line)] backdrop-blur-[30px] backdrop-saturate-200 md:hidden dark:bg-[rgba(11,11,13,.82)]">
+          <span className="mark h-7 w-7 rounded-lg text-[15px]">N</span>
+          <b className="text-base font-semibold">NPAC</b>
+          <div className="ml-auto flex min-w-0 items-center gap-1.5">
+            {avatar}
             <SignOutButton />
             <ThemeToggle />
           </div>
         </header>
-        <main className="flex-1 px-4 pt-2 pb-32 md:px-8 md:pb-10">{children}</main>
+        <main className="flex-1 px-4 pt-2 pb-32 md:px-8 md:pt-6 md:pb-10">{children}</main>
       </div>
       <BottomNav />
     </div>

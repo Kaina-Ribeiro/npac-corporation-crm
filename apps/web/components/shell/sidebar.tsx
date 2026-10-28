@@ -1,7 +1,8 @@
 import { ADMIN_ITEM, SIDEBAR_ITEMS } from './nav-items';
 import { NavLink } from './nav-link';
 
-export function Sidebar({ head = false }: { head?: boolean }) {
+/** Desktop: navegação + bloco da pessoa logada no rodapé, sempre visível (a sidebar é fixa). */
+export function Sidebar({ head = false, footer }: { head?: boolean; footer?: React.ReactNode }) {
   return (
     <aside className="glass sticky top-2.5 m-2.5 mr-0 hidden h-[calc(100dvh-20px)] w-[236px] flex-none flex-col gap-4 rounded-3xl px-2.5 py-3 md:flex">
       <div className="flex items-center gap-2.5 px-2 pt-1">
@@ -24,6 +25,7 @@ export function Sidebar({ head = false }: { head?: boolean }) {
           </NavLink>
         ))}
       </nav>
+      {footer && <div className="mt-auto border-t border-line px-1 pt-3">{footer}</div>}
     </aside>
   );
 }
