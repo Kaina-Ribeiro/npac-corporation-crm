@@ -36,62 +36,28 @@ const fold = (s: string) =>
     .replace(/\p{Diacritic}/gu, '')
     .toLowerCase();
 
-/** Abre a paleta de qualquer lugar (botão da sidebar, tela Mais). */
-export const openCommandPalette = () => window.dispatchEvent(new Event('crm:command'));
-
-/** Botão "Buscar  Ctrl K" da sidebar e da tela Mais. */
-export function SearchButton({ className = '' }: { className?: string }) {
-  return (
-    <button type="button" onClick={openCommandPalette} className={className}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-        <circle cx="11" cy="11" r="7" />
-        <path d="m20 20-3.5-3.5" />
-      </svg>
-      <span className="flex-1 text-left">Buscar</span>
-      <kbd className="rounded-md border border-line px-1.5 font-sans text-[11px] text-ink3">
-        Ctrl K
-      </kbd>
-    </button>
-  );
-}
-
-const typing = (t: EventTarget | null) =>
-  t instanceof HTMLElement &&
-  (t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName));
-
 /**
- * Ctrl/⌘+K (ou "/"): busca leads do escopo e leva a qualquer tela ou ação, só com teclado.
+ * Painel do Ctrl/⌘+K: busca leads do escopo e leva a qualquer tela ou ação, só com teclado.
  * A busca vai por POST, como a lista de leads, para o termo não ficar em URL ou histórico.
+ * Carregado sob demanda pelo `CommandPalette` (command-trigger.tsx) na primeira abertura.
  */
-export function CommandPalette({ head }: { head: boolean }) {
+export default function PaletteDialog({
+  head,
+  open,
+  setOpen,
+}: {
+  head: boolean;
+  open: boolean;
+  setOpen: (open: boolean) => void;
+}) {
   const router = useRouter();
   const { resolvedTheme, setTheme } = useTheme();
-  const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [leads, setLeads] = useState<LeadDTO[]>([]);
   const [stages, setStages] = useState<Record<string, string>>({});
   const [active, setActive] = useState(0);
   const input = useRef<HTMLInputElement>(null);
   const listId = useId();
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        setOpen((o) => !o);
-      } else if (e.key === '/' && !typing(e.target)) {
-        e.preventDefault();
-        setOpen(true);
-      }
-    };
-    const onOpen = () => setOpen(true);
-    window.addEventListener('keydown', onKey);
-    window.addEventListener('crm:command', onOpen);
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      window.removeEventListener('crm:command', onOpen);
-    };
-  }, []);
 
   useEffect(() => {
     if (!open) return;

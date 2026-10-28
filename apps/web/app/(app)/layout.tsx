@@ -2,7 +2,7 @@ import { Suspense } from 'react';
 import { isLeader } from '@npac/shared/enums';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { CommandPalette } from '@/components/shell/command-palette';
+import { CommandPalette } from '@/components/shell/command-trigger';
 import { LiveUpdates } from '@/components/shell/live-updates';
 import { NavProgress } from '@/components/shell/nav-progress';
 import { ThemeToggle } from '@/components/shell/theme-toggle';

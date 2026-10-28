@@ -2,7 +2,7 @@ import { ADMIN_ITEM, SIDEBAR_ITEMS } from './nav-items';
 import { NavLink } from './nav-link';
 import { InboxLink } from '../inbox';
 import { Suspense } from 'react';
-import { SearchButton } from './command-palette';
+import { SearchButton } from './command-trigger';
 import { SavedViewsNav } from './saved-views-nav';
 
 /** Desktop: navegação + bloco da pessoa logada no rodapé, sempre visível (a sidebar é fixa). */
