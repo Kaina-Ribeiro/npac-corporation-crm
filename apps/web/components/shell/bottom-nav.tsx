@@ -13,7 +13,7 @@ export function BottomNav() {
           key={item.href}
           item={item}
           className="relative flex flex-col items-center justify-center gap-0.5 rounded-[28px] text-[10px] font-medium text-ink2 transition-all [&_svg]:h-[22px] [&_svg]:w-[22px]"
-          activeClassName="glass-pill font-semibold !text-ink"
+          activeClassName="bg-[var(--on)] font-semibold !text-ink shadow-[inset_0_1px_0_#fff,0_2px_10px_rgba(0,0,0,.08)]"
         >
           {item.icon}
           {item.label}

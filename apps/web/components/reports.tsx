@@ -250,7 +250,9 @@ export function Reports({
                 disabled={busy}
                 onClick={() => void pick(p)}
                 className={`min-h-9 rounded-full px-4 text-sm font-semibold whitespace-nowrap transition-all first-letter:uppercase ${
-                  preset === p ? 'glass-pill text-ink' : 'text-ink2'
+                  preset === p
+                    ? 'bg-[var(--on)] text-ink shadow-[0_2px_10px_rgba(0,0,0,.08)]'
+                    : 'text-ink2'
                 }`}
               >
                 {p === 'TODAY' ? 'Hoje' : p === 'WEEK' ? '7 dias' : monthName()}
@@ -354,8 +356,8 @@ export function Reports({
       )}
       <FormError message={error} />
       {dashboard ? (
-        // `dash-lift`: cards do dashboard sobem de leve ao passar o mouse (globals.css).
-        <div className="dash-lift contents">
+        // `dash-lift`: cards sobem de leve no hover; `liquid`: liquid glass (globals.css).
+        <div className="dash-lift liquid contents">
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {(
               [

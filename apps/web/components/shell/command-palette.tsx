@@ -2,12 +2,33 @@
 import type { LeadCatalog, LeadDTO, Page } from '@npac/shared';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { Fragment, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { clientApi } from '@/lib/client-api';
 import { ADMIN_ITEM, SIDEBAR_ITEMS } from './nav-items';
 import { useSavedViews } from './saved-views-nav';
 
-type Item = { id: string; label: string; hint?: string; icon?: ReactNode; run: () => void };
+type Item = {
+  id: string;
+  label: string;
+  /** Seção da lista (como no Spotlight): Leads, Ações, Ir para… */
+  group: string;
+  hint?: string;
+  icon?: ReactNode;
+  run: () => void;
+};
+
+const glyph = (d: string) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+    <path d={d} strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+const ICON = {
+  lead: glyph('M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 8a7 7 0 0 1 14 0'),
+  plus: glyph('M12 5v14M5 12h14'),
+  filter: glyph('M4 6h16M7 12h10M10 18h4'),
+  theme: glyph('M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z'),
+  search: glyph('m20 20-4.2-4.2M11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14Z'),
+};
 
 const fold = (s: string) =>
   s
@@ -112,24 +133,26 @@ export function CommandPalette({ head }: { head: boolean }) {
     router.push(href);
   };
   const commands: Item[] = [
-    { id: 'new', label: 'Novo lead', hint: 'Criar', run: go('/leads/new') },
+    { id: 'new', label: 'Novo lead', group: 'Ações', icon: ICON.plus, run: go('/leads/new') },
     ...(head ? [...SIDEBAR_ITEMS, ADMIN_ITEM] : SIDEBAR_ITEMS).map((n) => ({
       id: n.href,
       label: n.label,
-      hint: 'Ir para',
+      group: 'Ir para',
       icon: n.icon,
       run: go(n.href),
     })),
     ...views.map((v) => ({
       id: `view-${v.id}`,
       label: v.name,
-      hint: 'Filtro salvo',
+      group: 'Filtros salvos',
+      icon: ICON.filter,
       run: go(`/leads?view=${v.id}`),
     })),
     {
       id: 'theme',
       label: resolvedTheme === 'dark' ? 'Usar tema claro' : 'Usar tema escuro',
-      hint: 'Aparência',
+      group: 'Ações',
+      icon: ICON.theme,
       run: () => {
         setOpen(false);
         setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
@@ -141,6 +164,8 @@ export function CommandPalette({ head }: { head: boolean }) {
     ...leads.map((l) => ({
       id: l.id,
       label: l.name,
+      group: 'Leads',
+      icon: ICON.lead,
       hint: [l.tier, stages[l.stageKey], l.sdr.name].filter(Boolean).join(' · '),
       run: go(`/leads/${l.id}`),
     })),
@@ -151,72 +176,92 @@ export function CommandPalette({ head }: { head: boolean }) {
   if (!open) return null;
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/30 px-4 pt-[12vh] backdrop-blur-[2px]"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/15 px-4 pt-[14vh] dark:bg-black/35"
       onMouseDown={(e) => e.target === e.currentTarget && setOpen(false)}
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-label="Busca rápida"
-        className="glass w-full max-w-xl overflow-hidden rounded-2xl shadow-[0_24px_60px_-20px_rgba(0,0,0,.45)] [--gl:rgba(255,255,255,.86)] dark:[--gl:rgba(28,28,32,.9)]"
+        className="w-full max-w-[640px] overflow-hidden rounded-[22px] bg-[rgba(246,246,248,.94)] shadow-[0_0_0_.5px_rgba(0,0,0,.12),0_30px_80px_-24px_rgba(0,0,0,.4)] backdrop-blur-2xl backdrop-saturate-150 dark:bg-[rgba(30,30,34,.94)] dark:shadow-[0_0_0_.5px_rgba(255,255,255,.12),0_30px_80px_-24px_rgba(0,0,0,.7)]"
       >
-        <input
-          ref={input}
-          role="combobox"
-          aria-label="Buscar leads ou ir para…"
-          aria-expanded="true"
-          aria-controls={listId}
-          aria-activedescendant={items[current] ? `${listId}-${current}` : undefined}
-          autoComplete="off"
-          placeholder="Buscar leads ou ir para…"
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setActive(0);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-              e.preventDefault();
-              const d = e.key === 'ArrowDown' ? 1 : -1;
-              setActive((current + d + items.length) % Math.max(1, items.length));
-            } else if (e.key === 'Enter') {
-              e.preventDefault();
-              items[current]?.run();
-            } else if (e.key === 'Escape') {
-              e.preventDefault();
-              setOpen(false);
-            }
-          }}
-          className="h-14 w-full border-b border-line bg-transparent px-5 text-base outline-none placeholder:text-ink3"
-        />
+        <div className="flex items-center gap-3 border-b border-line px-5 [&_svg]:size-[22px] [&_svg]:flex-none [&_svg]:text-ink3">
+          {ICON.search}
+          <input
+            ref={input}
+            role="combobox"
+            aria-label="Buscar leads ou ir para…"
+            aria-expanded="true"
+            aria-controls={listId}
+            aria-activedescendant={items[current] ? `${listId}-${current}` : undefined}
+            autoComplete="off"
+            placeholder="Buscar leads ou ir para…"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setActive(0);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                const d = e.key === 'ArrowDown' ? 1 : -1;
+                setActive((current + d + items.length) % Math.max(1, items.length));
+              } else if (e.key === 'Enter') {
+                e.preventDefault();
+                items[current]?.run();
+              } else if (e.key === 'Escape') {
+                e.preventDefault();
+                setOpen(false);
+              }
+            }}
+            className="h-16 min-w-0 flex-1 bg-transparent text-[20px] tracking-[-0.01em] outline-none placeholder:text-ink3 focus-visible:outline-none!"
+          />
+        </div>
         <ul
           id={listId}
           role="listbox"
           aria-label="Resultados"
-          className="max-h-[50vh] overflow-y-auto p-2"
+          className="max-h-[52vh] overflow-y-auto px-2 pb-2"
         >
           {items.map((it, i) => (
-            <li
-              key={it.id}
-              id={`${listId}-${i}`}
-              role="option"
-              aria-selected={i === current}
-              onMouseMove={() => setActive(i)}
-              onClick={it.run}
-              className={`flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-sm ${
-                i === current ? 'bg-black/5 dark:bg-white/10' : ''
-              } [&_svg]:size-4 [&_svg]:flex-none [&_svg]:text-ink2`}
-            >
-              {it.icon}
-              <span className="min-w-0 flex-1 truncate font-medium">{it.label}</span>
-              {it.hint && <span className="truncate text-xs text-ink2">{it.hint}</span>}
-            </li>
+            <Fragment key={it.id}>
+              {it.group !== items[i - 1]?.group && (
+                <li
+                  role="presentation"
+                  className="px-3 pt-2.5 pb-1 text-[11px] font-semibold tracking-wide text-ink3 uppercase"
+                >
+                  {it.group}
+                </li>
+              )}
+              <li
+                id={`${listId}-${i}`}
+                role="option"
+                aria-selected={i === current}
+                onMouseMove={() => setActive(i)}
+                onClick={it.run}
+                className={`flex h-10 cursor-pointer items-center gap-3 rounded-[10px] px-3 text-[14px] [&_svg]:size-[18px] [&_svg]:flex-none ${
+                  i === current
+                    ? 'bg-[#0a7af0] text-white [&_svg]:text-white'
+                    : 'text-ink [&_svg]:text-ink2'
+                }`}
+              >
+                {it.icon}
+                <span className="min-w-0 flex-1 truncate">{it.label}</span>
+                {it.hint && (
+                  <span
+                    className={`truncate text-xs ${i === current ? 'text-white/80' : 'text-ink2'}`}
+                  >
+                    {it.hint}
+                  </span>
+                )}
+              </li>
+            </Fragment>
           ))}
           {!items.length && (
             <li className="px-3 py-6 text-center text-sm text-ink2">Nada encontrado.</li>
           )}
         </ul>
-        <p className="flex gap-4 border-t border-line px-5 py-2.5 text-xs text-ink3">
+        <p className="flex gap-4 border-t border-line px-5 py-2 text-[11px] text-ink3">
           <span>↑↓ navegar</span>
           <span>Enter abrir</span>
           <span>Esc fechar</span>

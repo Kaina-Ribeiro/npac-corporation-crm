@@ -125,7 +125,8 @@ test('filtro salvo aparece na sidebar e reabre a lista já filtrada', async ({ p
   // Também pelo Ctrl+K.
   await page.keyboard.press('Control+k');
   await page.getByRole('combobox', { name: 'Buscar leads ou ir para…' }).fill('Meus P1');
-  await expect(page.getByRole('option', { name: /Meus P1.*Filtro salvo/ })).toBeVisible();
+  await expect(page.getByRole('option', { name: 'Meus P1' })).toBeVisible();
+  await expect(page.getByRole('listbox').getByText('Filtros salvos')).toBeVisible();
   await page.keyboard.press('Escape');
 
   await page.getByRole('button', { name: 'Apagar filtro Meus P1' }).click();
