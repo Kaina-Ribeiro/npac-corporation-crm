@@ -21,6 +21,10 @@
   --gold-ring: rgba(194, 146, 46, 0.75);
   --danger: #d7264a;
   --on: rgba(255, 255, 255, 0.8);
+  /* Gráficos: ordem fixa (dinheiro, volume, terceira série), validada para daltonismo. */
+  --viz-1: #a87818;
+  --viz-2: #0a7af0;
+  --viz-3: #d9467a;
   --wash:
     radial-gradient(80% 38% at 100% 0%, rgba(226, 187, 102, 0.38), transparent 70%),
     radial-gradient(70% 40% at 0% 100%, rgba(110, 145, 255, 0.22), transparent 70%),
@@ -38,6 +42,9 @@
   --glhi: inset 0 1px 0 rgba(255, 255, 255, 0.1), inset 0 0 0 0.5px rgba(255, 255, 255, 0.08);
   --gld: 0 14px 34px -14px rgba(0, 0, 0, 0.6);
   --on: rgba(255, 255, 255, 0.12);
+  --viz-1: #b5862e;
+  --viz-2: #3f8cf2;
+  --viz-3: #db5f8c;
   --wash:
     radial-gradient(80% 38% at 100% 0%, rgba(226, 187, 102, 0.18), transparent 70%),
     radial-gradient(70% 40% at 0% 100%, rgba(110, 145, 255, 0.12), transparent 70%);

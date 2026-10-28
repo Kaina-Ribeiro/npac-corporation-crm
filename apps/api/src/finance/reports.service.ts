@@ -27,6 +27,8 @@ function window(q: ReportQuery) {
     if (!q.from || !q.to || q.from > q.to) throw new BadRequestException('Intervalo inválido');
     start = spDayRange(new Date(`${q.from}T12:00:00Z`)).start;
     end = spDayRange(new Date(`${q.to}T12:00:00Z`)).end;
+    if (end.getTime() - start.getTime() > 367 * 86_400_000)
+      throw new BadRequestException('Intervalo máximo de 1 ano');
   }
   if (q.period === 'MONTH') {
     const parts = new Intl.DateTimeFormat('en-CA', {
@@ -36,8 +38,25 @@ function window(q: ReportQuery) {
     }).formatToParts(new Date());
     const v = (key: string) => parts.find((p) => p.type === key)!.value;
     start = spDayRange(new Date(`${v('year')}-${v('month')}-01T12:00:00Z`)).start;
+    // Comparação: os mesmos dias do mês anterior (1º até o dia de hoje).
+    const prevMonth = new Date(`${v('year')}-${v('month')}-01T12:00:00Z`);
+    prevMonth.setUTCMonth(prevMonth.getUTCMonth() - 1);
+    const prevStart = spDayRange(prevMonth).start;
+    return {
+      start,
+      end,
+      prevStart,
+      prevEnd: new Date(
+        Math.min(start.getTime(), prevStart.getTime() + (end.getTime() - start.getTime())),
+      ),
+    };
   }
-  return { start, end };
+  return {
+    start,
+    end,
+    prevStart: new Date(start.getTime() - (end.getTime() - start.getTime())),
+    prevEnd: start,
+  };
 }
 function scope(q: ReportQuery) {
   const a: SQL[] = [sql`l.deleted_at is null`];
@@ -58,7 +77,7 @@ function scope(q: ReportQuery) {
 function numeric(row: Record<string, unknown>) {
   return Object.fromEntries(
     Object.entries(row).map(([k, v]) => {
-      if (k === 'name' || k === 'id') return [k, v];
+      if (k === 'name' || k === 'id' || k === 'date') return [k, v];
       const n = Number(v ?? 0);
       if (!Number.isSafeInteger(n)) throw new BadRequestException('Total fora do limite suportado');
       return [k, n];
@@ -79,7 +98,7 @@ export class ReportsService {
     private readonly crypto: FieldCrypto,
   ) {}
   async search(u: AuthUser, q: ReportQuery, opts: { audit?: boolean } = {}) {
-    const { start, end } = window(q);
+    const { start, end, prevStart, prevEnd } = window(q);
     const result = await withUser(
       this.db,
       u.id,
@@ -87,7 +106,8 @@ export class ReportsService {
         const base = sql`with scope as(select l.* from leads l join pipeline_stages s on s.id=l.stage_id where ${scope(q)}),
     sales as(select d.* from deals d where d.lead_id in(select id from scope) and d.reversed_at is null and d.closed_at>=${start.toISOString()} and d.closed_at<${end.toISOString()}
       and (${q.sdrId ?? null}::text is null or d.sdr_id=${q.sdrId ?? null}) and (${q.closerId ?? null}::text is null or d.closer_id=${q.closerId ?? null}) and (${q.productId ?? null}::uuid is null or d.product_id=${q.productId ?? null}::uuid)),
-    calls as(select m.* from meetings m where m.lead_id in(select id from scope) and m.canceled_at is null and (${q.closerId ?? null}::text is null or m.closer_id=${q.closerId ?? null}))`;
+    calls as(select m.* from meetings m where m.lead_id in(select id from scope) and m.canceled_at is null and (${q.closerId ?? null}::text is null or m.closer_id=${q.closerId ?? null})),
+    paid as(select p.amount_cents, p.paid_at from payments p join deals d on d.id=p.deal_id where d.lead_id in(select id from scope) and d.reversed_at is null and (${q.sdrId ?? null}::text is null or d.sdr_id=${q.sdrId ?? null}) and (${q.closerId ?? null}::text is null or d.closer_id=${q.closerId ?? null}) and (${q.productId ?? null}::uuid is null or d.product_id=${q.productId ?? null}::uuid) and p.paid_at>=${start.toISOString()} and p.paid_at<${end.toISOString()})`;
         const metrics = await tx.execute<Record<string, unknown>>(sql`${base} select
    (select count(*) from scope where created_at>=${start.toISOString()} and created_at<${end.toISOString()}) as "leads",
    (select count(*) from scope where tier='P0' and created_at>=${start.toISOString()} and created_at<${end.toISOString()}) as "p0",
@@ -130,12 +150,35 @@ export class ReportsService {
         select u.id,u.name,coalesce(a.meetings,0) as meetings,coalesce(a.done,0) as done,coalesce(a.no_show,0) as "noShow",coalesce(b.sales,0) as sales,coalesce(b.cents,0) as "soldCents",coalesce(round(10000.0*b.sales/nullif(a.done,0)),0) as "conversionBps",coalesce(round(10000.0*a.no_show/nullif(a.done+a.no_show,0)),0) as "noShowBps"
         from actors x join "user" u on u.id=x.id left join a on a.id=x.id left join b on b.id=x.id order by coalesce(b.cents,0) desc,u.name`,
         );
+        // Um ponto por dia (Brasília) para os gráficos; dias sem movimento entram zerados.
+        const daily = await tx.execute<Record<string, unknown>>(
+          sql`${base}, days as(select generate_series((${start.toISOString()}::timestamptz at time zone 'America/Sao_Paulo')::date,
+            ((${end.toISOString()}::timestamptz - interval '1 millisecond') at time zone 'America/Sao_Paulo')::date, interval '1 day')::date as day)
+          select to_char(x.day, 'YYYY-MM-DD') as date,
+            (select count(*) from scope where (created_at at time zone 'America/Sao_Paulo')::date = x.day and created_at>=${start.toISOString()} and created_at<${end.toISOString()}) as leads,
+            (select count(*) from calls where (created_at at time zone 'America/Sao_Paulo')::date = x.day and created_at>=${start.toISOString()} and created_at<${end.toISOString()}) as meetings,
+            (select coalesce(sum(total_cents),0) from sales where (closed_at at time zone 'America/Sao_Paulo')::date = x.day) as "soldCents",
+            (select coalesce(sum(amount_cents),0) from paid where (paid_at at time zone 'America/Sao_Paulo')::date = x.day) as "receivedCents"
+          from days x order by x.day`,
+        );
+        // Vendido por dia no período anterior equivalente (mesmo escopo e filtros).
+        const previousDaily = await tx.execute<Record<string, unknown>>(
+          sql`with scope as(select l.* from leads l join pipeline_stages s on s.id=l.stage_id where ${scope(q)}),
+          prev as(select d.* from deals d where d.lead_id in(select id from scope) and d.reversed_at is null and d.closed_at>=${prevStart.toISOString()} and d.closed_at<${prevEnd.toISOString()}
+            and (${q.sdrId ?? null}::text is null or d.sdr_id=${q.sdrId ?? null}) and (${q.closerId ?? null}::text is null or d.closer_id=${q.closerId ?? null}) and (${q.productId ?? null}::uuid is null or d.product_id=${q.productId ?? null}::uuid)),
+          days as(select generate_series(0, ${daily.length - 1}) as i)
+          select to_char((${prevStart.toISOString()}::timestamptz at time zone 'America/Sao_Paulo')::date + x.i, 'YYYY-MM-DD') as date,
+            (select coalesce(sum(total_cents),0) from prev where (closed_at at time zone 'America/Sao_Paulo')::date = (${prevStart.toISOString()}::timestamptz at time zone 'America/Sao_Paulo')::date + x.i) as "soldCents"
+          from days x order by x.i`,
+        );
         const rows = await tx.execute<{ id: string; name: string; stage: string; tier: string }>(
           sql`${base} select l.id,l.name,s.label as stage,l.tier from scope l join pipeline_stages s on s.id=l.stage_id where l.created_at>=${start.toISOString()} and l.created_at<${end.toISOString()} order by l.created_at desc,l.id limit ${q.pageSize ?? 20} offset ${((q.page ?? 1) - 1) * (q.pageSize ?? 20)}`,
         );
         return {
           metrics: { ...numeric(metrics[0]!), ...numeric(conversion[0]!), ...numeric(rates[0]!) },
           byProduct: byProduct.map(numeric),
+          daily: daily.map(numeric),
+          previousDaily: previousDaily.map(numeric),
           bySdr: bySdr.map(numeric),
           byCloser: byCloser.map(numeric),
           leads: [...rows],

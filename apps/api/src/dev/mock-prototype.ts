@@ -297,6 +297,159 @@ const LEADS: Mock[] = [
   },
 ];
 
+/**
+ * Volume para o Dashboard: ~320 leads nos últimos 60 dias, gerados de forma determinística
+ * (mesma semente → mesmos dados; rodar de novo não duplica). Nomes e telefones fictícios.
+ */
+function bulk(): Mock[] {
+  let seed = 20261028;
+  const rnd = () => (seed = (seed * 1103515245 + 12345) % 2 ** 31) / 2 ** 31;
+  const pick = <T>(xs: readonly T[]) => xs[Math.floor(rnd() * xs.length)]!;
+  const FIRST = [
+    'Lucas',
+    'Mariana',
+    'Pedro',
+    'Fernanda',
+    'Bruno',
+    'Aline',
+    'Rodrigo',
+    'Carla',
+    'Felipe',
+    'Daniela',
+    'Thiago',
+    'Priscila',
+    'Gustavo',
+    'Letícia',
+    'Rafael',
+    'Bianca',
+    'Eduardo',
+    'Natália',
+    'Leonardo',
+    'Sabrina',
+    'Vinícius',
+    'Tatiane',
+    'Matheus',
+    'Paula',
+    'Ricardo',
+    'Amanda',
+    'Caio',
+    'Débora',
+    'Fábio',
+    'Helena',
+  ];
+  const LAST = [
+    'Almeida',
+    'Barbosa',
+    'Cardoso',
+    'Dias',
+    'Esteves',
+    'Freitas',
+    'Gomes',
+    'Henriques',
+    'Lima',
+    'Machado',
+    'Nunes',
+    'Oliveira',
+    'Pereira',
+    'Queiroz',
+    'Ramos',
+    'Souza',
+    'Teixeira',
+    'Vieira',
+    'Xavier',
+    'Zanetti',
+    'Castro',
+    'Moreira',
+    'Rocha',
+    'Pinto',
+  ];
+  const SDRS = ['Igor', 'Igor', 'Ale', 'Ale', 'Murilo', 'Murilo', 'Ana'];
+  const HOURS = ['09:00', '10:30', '11:00', '14:00', '15:30', '17:00', '19:00', '20:00'];
+  const out: Mock[] = [];
+  for (let i = 0; i < 320; i++) {
+    const r = rnd();
+    const tier: Mock['tier'] = r < 0.15 ? 'P0' : r < 0.6 ? 'P1' : 'P2';
+    const renda =
+      tier === 'P0'
+        ? 50000 + Math.round(rnd() * 80) * 1000
+        : tier === 'P1'
+          ? 10000 + Math.round(rnd() * 30) * 1000
+          : 5000 + Math.round(rnd() * 5) * 1000;
+    const closer = tier === 'P0' ? 'Ronaldo' : 'Sônia';
+    // Mais recentes pesam mais: o mês atual cresce sobre o anterior.
+    const dias = Math.floor(60 * rnd() ** 1.35);
+    const nome = `${pick(FIRST)} ${pick(LAST)}`;
+    const l: Mock = {
+      id: `b${i}`,
+      nome,
+      tier,
+      stage: 'SONDAGEM',
+      sdr: pick(SDRS),
+      closer: null,
+      renda,
+      insta: `mock.lead.${i}`,
+      phone: `119${String(70000000 + i * 7919).padStart(8, '0')}`,
+      dias,
+      nota: `Lead de teste ${i + 1}: veio pelo Instagram, renda ${tier}.`,
+    };
+    const meets = rnd() < 0.58;
+    if (!meets) {
+      l.stage = pick(['SONDAGEM', 'SONDAGEM', 'EM_FOLLOW', 'EM_FOLLOW', 'PERDIDO']);
+      if (l.stage !== 'PERDIDO' && rnd() < 0.5)
+        l.task = {
+          dia: Math.floor(rnd() * 5) - 2,
+          hora: pick(HOURS),
+          acao: pick([
+            'Retomar conversa no direct',
+            'Enviar convite para a call',
+            'Responder dúvida sobre a turma',
+          ]),
+        };
+      out.push(l);
+      continue;
+    }
+    l.closer = closer;
+    l.ag = rnd() < 0.6 ? 'D' : 'F';
+    const callDia = Math.min(2, -dias + 1 + Math.floor(rnd() * 6));
+    const hora = pick(HOURS);
+    if (callDia > 0 || (callDia === 0 && rnd() < 0.5)) {
+      l.call = { dia: callDia, hora };
+      l.stage = l.ag === 'D' ? 'AGENDADO_DIRETO' : 'AGENDADO_FOLLOW';
+    } else if (rnd() < 0.27) {
+      l.call = { dia: callDia, hora, res: 'noshow' };
+      l.stage = 'NO_SHOW';
+    } else {
+      l.call = { dia: callDia, hora, res: 'feita' };
+      if (rnd() < 0.5) {
+        l.stage = 'VENDA';
+        const [produto, valor] =
+          tier === 'P0'
+            ? pick([
+                ['Mentoria RDV', 18000],
+                ['Mentoria 2 Meses', 30000],
+                ['Mentoria 6 Meses', 80000],
+              ] as const)
+            : pick([
+                ['Nação Promocional', 2500],
+                ['Nação Padrão', 3000],
+                ['Nação Completo', 3500],
+              ] as const);
+        const partial = rnd() < 0.3;
+        l.venda = {
+          produto,
+          valor,
+          pago: partial ? valor / 2 : valor,
+          dia: callDia,
+          saldoDia: partial ? callDia + 30 : undefined,
+        };
+      } else l.stage = pick(['AGENDOU_PAGAMENTO', 'EM_FOLLOW', 'PERDIDO']);
+    }
+    out.push(l);
+  }
+  return out;
+}
+LEADS.push(...bulk());
+
 const CHAT_GERAL: [string, string, string | null][] = [
   ['Ana', 'Bom dia, time. Foco em resgatar os no-shows da semana passada antes do almoço.', null],
   [

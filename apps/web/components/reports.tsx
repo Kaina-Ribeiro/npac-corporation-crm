@@ -5,6 +5,16 @@ import Link from 'next/link';
 import { useState, type FormEvent } from 'react';
 import { clientApi } from '@/lib/client-api';
 import { button, control, Field, FormError, quietButton } from './crm-ui';
+import {
+  ChartCard,
+  DailyBars,
+  Funnel,
+  RankBars,
+  RevenueHero,
+  Sparkline,
+  TierDonut,
+  chartColors,
+} from './dashboard-charts';
 import { useCrmRefresh } from './shell/live-updates';
 
 function Breakdown({ title, rows }: { title: string; rows: ReportRow[] }) {
@@ -180,107 +190,212 @@ export function Reports({
           <Field label="Até">
             <input name="to" type="date" className={control} />
           </Field>
-          <Field label="SDR do relatório">
-            <select name="sdrId" className={control}>
-              <option value="">Todos no meu escopo</option>
-              {catalog.team
-                .filter((u) => u.canProspect)
-                .map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.name}
-                  </option>
-                ))}
-            </select>
-          </Field>
-          <Field label="Closer do relatório">
-            <select name="closerId" className={control}>
-              <option value="">Todos no meu escopo</option>
-              {catalog.team
-                .filter((u) => u.canClose)
-                .map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.name}
-                  </option>
-                ))}
-            </select>
-          </Field>
-          <Field label="Etapa do relatório">
-            <select name="stage" className={control}>
-              <option value="">Todas</option>
-              {catalog.stages.map((s) => (
-                <option key={s.id} value={s.key}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Perfil do relatório">
-            <select name="tier" className={control}>
-              <option value="">Todos</option>
-              {['P0', 'P1', 'P2'].map((t) => (
-                <option key={t}>{t}</option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Origem do relatório">
-            <select name="source" className={control}>
-              <option value="">Todas</option>
-              {['INSTAGRAM', 'WHATSAPP', 'INDICACAO', 'OUTRO'].map((s) => (
-                <option key={s}>{s}</option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Produto do relatório">
-            <select name="productId" className={control}>
-              <option value="">Todos</option>
-              {products.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </Field>
+          {!dashboard && (
+            <>
+              <Field label="SDR do relatório">
+                <select name="sdrId" className={control}>
+                  <option value="">Todos no meu escopo</option>
+                  {catalog.team
+                    .filter((u) => u.canProspect)
+                    .map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.name}
+                      </option>
+                    ))}
+                </select>
+              </Field>
+              <Field label="Closer do relatório">
+                <select name="closerId" className={control}>
+                  <option value="">Todos no meu escopo</option>
+                  {catalog.team
+                    .filter((u) => u.canClose)
+                    .map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.name}
+                      </option>
+                    ))}
+                </select>
+              </Field>
+              <Field label="Etapa do relatório">
+                <select name="stage" className={control}>
+                  <option value="">Todas</option>
+                  {catalog.stages.map((s) => (
+                    <option key={s.id} value={s.key}>
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Perfil do relatório">
+                <select name="tier" className={control}>
+                  <option value="">Todos</option>
+                  {['P0', 'P1', 'P2'].map((t) => (
+                    <option key={t}>{t}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Origem do relatório">
+                <select name="source" className={control}>
+                  <option value="">Todas</option>
+                  {['INSTAGRAM', 'WHATSAPP', 'INDICACAO', 'OUTRO'].map((s) => (
+                    <option key={s}>{s}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Produto do relatório">
+                <select name="productId" className={control}>
+                  <option value="">Todos</option>
+                  {products.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </>
+          )}
         </div>
         <button className={`${button} mt-4`} disabled={busy}>
-          Atualizar relatório
+          {dashboard ? 'Atualizar' : 'Atualizar relatório'}
         </button>
       </form>
       <FormError message={error} />
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {cards.map(([label, value], i) => (
-          <article key={label} className="glass-card p-5">
-            <p className="text-sm text-ink2">{label}</p>
-            <p
-              className={`mt-2 text-3xl font-bold tracking-tight ${i >= 3 ? 'text-gold-deep' : ''}`}
+      {dashboard ? (
+        <>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {(
+              [
+                [
+                  'Leads novos',
+                  String(m.leads ?? 0),
+                  `P0 ${m.p0 ?? 0} · P1 ${m.p1 ?? 0} · P2 ${m.p2 ?? 0}`,
+                  'leads',
+                  chartColors.volume,
+                ],
+                [
+                  'Reuniões agendadas',
+                  String(m.meetings ?? 0),
+                  `${m.direct ?? 0} diretas · ${m.follow ?? 0} do follow`,
+                  'meetings',
+                  chartColors.volume,
+                ],
+                [
+                  'Vendido',
+                  money(m.soldCents ?? 0),
+                  `${m.sales ?? 0} vendas · conversão ${((m.conversionBps ?? 0) / 100).toFixed(0)}%`,
+                  'soldCents',
+                  chartColors.money,
+                ],
+                [
+                  'Recebido',
+                  money(m.receivedCents ?? 0),
+                  `A receber: ${money(m.outstandingCents ?? 0)}`,
+                  'receivedCents',
+                  chartColors.money,
+                ],
+              ] as const
+            ).map(([label, value, foot, key, color]) => (
+              <article key={label} className="glass-card flex flex-col gap-1 p-5">
+                <p className="text-sm text-ink2">{label}</p>
+                <p
+                  className={`text-3xl font-bold tracking-tight tabular-nums ${key.endsWith('Cents') ? 'text-gold-deep' : ''}`}
+                >
+                  {value}
+                </p>
+                <p className="text-xs text-ink2">{foot}</p>
+                <Sparkline values={data.daily.map((d) => d[key])} color={color} />
+              </article>
+            ))}
+          </div>
+          <div className="grid gap-5 lg:grid-cols-3">
+            <RevenueHero
+              daily={data.daily}
+              previous={data.previousDaily}
+              receivedCents={m.receivedCents ?? 0}
+              outstandingCents={m.outstandingCents ?? 0}
+              monthly={(filters.period ?? 'MONTH') === 'MONTH'}
+            />
+            <ChartCard
+              title="Funil"
+              subtitle={`No-show ${((m.noShowBps ?? 0) / 100).toFixed(0)}% das reuniões decididas`}
             >
-              {value}
-            </p>
-          </article>
-        ))}
-      </div>
-      <section className="glass-card flex flex-wrap gap-x-8 gap-y-3 p-5 text-sm">
-        <span>
-          P0: <b>{m.p0}</b> · P1: <b>{m.p1}</b> · P2: <b>{m.p2}</b>
-        </span>
-        <span>
-          Direto: <b>{m.direct}</b> · Follow: <b>{m.follow}</b>
-        </span>
-        <span>
-          Realizadas: <b>{m.done}</b> · No-show: <b>{m.noShow}</b>
-        </span>
-        <span>
-          Comparecimento: <b>{((m.attendanceBps ?? 0) / 100).toFixed(2)}%</b> · No-show:{' '}
-          <b>{((m.noShowBps ?? 0) / 100).toFixed(2)}%</b>
-        </span>
-        <span>
-          Conversão: <b>{((m.conversionBps ?? 0) / 100).toFixed(2)}%</b>
-        </span>
-      </section>
-      <div className="grid items-start gap-5">
-        <Breakdown title="Por SDR" rows={data.bySdr} />
-        <Breakdown title="Por closer" rows={data.byCloser} />
-        <Breakdown title="Por produto" rows={data.byProduct} />
-      </div>
+              <Funnel metrics={m} />
+            </ChartCard>
+            <ChartCard title="Leads novos por dia" className="lg:col-span-2">
+              <DailyBars daily={data.daily} field="leads" label="Leads" />
+            </ChartCard>
+            <ChartCard title="Perfil dos leads">
+              <TierDonut p0={m.p0 ?? 0} p1={m.p1 ?? 0} p2={m.p2 ?? 0} />
+            </ChartCard>
+            <ChartCard title="Closers" subtitle="Vendido no período">
+              <RankBars
+                rows={data.byCloser}
+                value={(r) => r.soldCents}
+                format={money}
+                color={chartColors.money}
+                detail={(r) =>
+                  `${r.sales} vendas · conv. ${((r.conversionBps ?? 0) / 100).toFixed(0)}%`
+                }
+              />
+            </ChartCard>
+            <ChartCard title="Ranking de SDRs" subtitle="Reuniões agendadas no período">
+              <RankBars
+                rows={data.bySdr}
+                value={(r) => r.meetings ?? 0}
+                format={(v) => String(v)}
+                detail={(r) => `${r.sales} vendas`}
+              />
+            </ChartCard>
+            <ChartCard title="Produtos" subtitle="Vendido por produto">
+              <RankBars
+                rows={data.byProduct}
+                value={(r) => r.soldCents}
+                format={money}
+                color={chartColors.money}
+                detail={(r) => `${r.sales}×`}
+              />
+            </ChartCard>
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {cards.map(([label, value], i) => (
+              <article key={label} className="glass-card p-5">
+                <p className="text-sm text-ink2">{label}</p>
+                <p
+                  className={`mt-2 text-3xl font-bold tracking-tight ${i >= 3 ? 'text-gold-deep' : ''}`}
+                >
+                  {value}
+                </p>
+              </article>
+            ))}
+          </div>
+          <section className="glass-card flex flex-wrap gap-x-8 gap-y-3 p-5 text-sm">
+            <span>
+              P0: <b>{m.p0}</b> · P1: <b>{m.p1}</b> · P2: <b>{m.p2}</b>
+            </span>
+            <span>
+              Direto: <b>{m.direct}</b> · Follow: <b>{m.follow}</b>
+            </span>
+            <span>
+              Realizadas: <b>{m.done}</b> · No-show: <b>{m.noShow}</b>
+            </span>
+            <span>
+              Comparecimento: <b>{((m.attendanceBps ?? 0) / 100).toFixed(2)}%</b> · No-show:{' '}
+              <b>{((m.noShowBps ?? 0) / 100).toFixed(2)}%</b>
+            </span>
+            <span>
+              Conversão: <b>{((m.conversionBps ?? 0) / 100).toFixed(2)}%</b>
+            </span>
+          </section>
+          <div className="grid items-start gap-5">
+            <Breakdown title="Por SDR" rows={data.bySdr} />
+            <Breakdown title="Por closer" rows={data.byCloser} />
+            <Breakdown title="Por produto" rows={data.byProduct} />
+          </div>
+        </>
+      )}
       {!dashboard && (
         <>
           <div className="flex flex-wrap gap-3">

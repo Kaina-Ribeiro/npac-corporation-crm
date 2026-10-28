@@ -31,6 +31,16 @@ export type ReportDTO = {
   byProduct: ReportRow[];
   bySdr: ReportRow[];
   byCloser: ReportRow[];
+  /** Um ponto por dia do período (Brasília), dias vazios zerados. */
+  daily: {
+    date: string;
+    leads: number;
+    meetings: number;
+    soldCents: number;
+    receivedCents: number;
+  }[];
+  /** Vendido por dia no período anterior equivalente, alinhado dia a dia com `daily`. */
+  previousDaily: { date: string; soldCents: number }[];
   leads: { id: string; name: string; stage: string; tier: string }[];
   from: string;
   to: string;

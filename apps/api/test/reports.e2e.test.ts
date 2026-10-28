@@ -95,3 +95,51 @@ it('leads excluídos não entram em métricas, linhas nem CSV do HEAD', async ()
   const csv = await h.post('/api/reports/csv', { period: 'TODAY' }, head);
   expect(csv.text).not.toContain('rel.gone');
 });
+
+it('série diária do período fecha com as métricas e cobre todos os dias', async () => {
+  const r = await h.post(
+    '/api/reports/search',
+    { period: 'RANGE', from: '2026-01-01', to: '2030-12-31' },
+    head,
+  );
+  expect(r.status).toBe(400);
+  const month = await h.post('/api/reports/search', { period: 'MONTH' }, head);
+  const days: {
+    date: string;
+    leads: number;
+    meetings: number;
+    soldCents: number;
+    receivedCents: number;
+  }[] = month.body.daily;
+  expect(days.length).toBeGreaterThanOrEqual(1);
+  expect(days.at(-1)!.date).toBe(
+    new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date()),
+  );
+  const sum = (k: 'leads' | 'meetings' | 'soldCents' | 'receivedCents') =>
+    days.reduce((a, d) => a + d[k], 0);
+  expect(sum('soldCents')).toBe(month.body.metrics.soldCents);
+  expect(sum('receivedCents')).toBe(month.body.metrics.receivedCents);
+  expect(sum('leads')).toBe(month.body.metrics.leads);
+  expect(sum('meetings')).toBe(month.body.metrics.meetings);
+  const mine = await h.post('/api/reports/search', { period: 'MONTH' }, ale);
+  expect(mine.body.daily.reduce((a: number, d: { soldCents: number }) => a + d.soldCents, 0)).toBe(
+    250000,
+  );
+});
+
+it('traz o período anterior de mesmo tamanho para comparar o faturamento', async () => {
+  await owner`update deals set closed_at = (date_trunc('month', now() at time zone 'America/Sao_Paulo') - interval '1 month' + interval '12 hours') at time zone 'America/Sao_Paulo'
+    where total_cents = 300000`;
+  const r = await h.post('/api/reports/search', { period: 'MONTH' }, head);
+  expect(r.body.previousDaily).toHaveLength(r.body.daily.length);
+  const prev = r.body.previousDaily.reduce(
+    (a: number, d: { soldCents: number }) => a + d.soldCents,
+    0,
+  );
+  expect(prev).toBe(300000);
+  expect(r.body.metrics.soldCents).toBe(250000);
+  const mine = await h.post('/api/reports/search', { period: 'MONTH' }, ale);
+  expect(
+    mine.body.previousDaily.reduce((a: number, d: { soldCents: number }) => a + d.soldCents, 0),
+  ).toBe(0);
+});
