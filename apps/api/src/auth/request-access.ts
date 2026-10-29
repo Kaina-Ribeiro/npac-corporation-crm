@@ -30,6 +30,8 @@ export function requestAccessPlugin(db: Db, audit: AuditService): BetterAuthPlug
           await db
             .delete(accessRequests)
             .where(lt(accessRequests.createdAt, accessRequestCutoff()));
+          // Hash sempre, antes de olhar o usuário: o tempo de resposta não revela quem tem conta.
+          const passwordHash = await hash(password);
           const [taken] = await db
             .select({ id: user.id })
             .from(user)
@@ -37,7 +39,7 @@ export function requestAccessPlugin(db: Db, audit: AuditService): BetterAuthPlug
           if (!taken) {
             const [created] = await db
               .insert(accessRequests)
-              .values({ name, username, email, passwordHash: await hash(password) })
+              .values({ name, username, email, passwordHash })
               .onConflictDoNothing({ target: accessRequests.username })
               .returning({ id: accessRequests.id });
             if (created)
