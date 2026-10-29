@@ -2,36 +2,37 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Tokens do protótipo aprovado: iOS claro, liquid glass médio, dourado para dinheiro. */
+/* Tokens do protótipo aprovado: iOS claro, liquid glass médio, dourado para dinheiro.
+   Claro suavizado (29/10/2026): fundo cinza levemente quente e vidro menos branco, para não ofuscar. */
 :root {
-  --bg: #f2f2f7;
-  --ink: #1d1d1f;
+  --bg: #e1e0e4;
+  --ink: #232326;
   --ink2: #6e6e73;
   --ink3: #8e8e93;
   --line: rgba(60, 60, 67, 0.14);
-  --gl: rgba(255, 255, 255, 0.58);
-  --gl2: rgba(255, 255, 255, 0.66);
-  --gl-solid: #fbfbfd;
+  --gl: rgba(255, 255, 255, 0.4);
+  --gl2: rgba(255, 255, 255, 0.46);
+  --gl-solid: #f1f0f3;
   /* Liquid glass (só em conteúdo, classe .liquid): mais translúcido, reflexo na borda
      (luz de cima/esquerda) e brilho interno do topo. */
-  --gl-liquid: rgba(255, 255, 255, 0.42);
+  --gl-liquid: rgba(255, 255, 255, 0.3);
   --rim: linear-gradient(
     150deg,
-    rgba(255, 255, 255, 0.95),
-    rgba(255, 255, 255, 0.25) 35%,
+    rgba(255, 255, 255, 0.8),
+    rgba(255, 255, 255, 0.2) 35%,
     rgba(255, 255, 255, 0) 60%,
     rgba(255, 255, 255, 0.45)
   );
   --sheen: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.6),
-    rgba(255, 255, 255, 0.12) 45%,
+    rgba(255, 255, 255, 0.28),
+    rgba(255, 255, 255, 0.06) 45%,
     rgba(255, 255, 255, 0) 70%
   );
   /* Sombra fina por dentro embaixo: dá volume e contraste à borda clara no tema claro. */
   --liquid-depth: inset 0 -1px 0 rgba(0, 0, 0, 0.05), inset 0 -10px 20px -14px rgba(0, 0, 0, 0.08);
   --glhi:
-    inset 0 1.5px 0 #fff, inset 0 -1px 2px rgba(255, 255, 255, 0.45),
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.8), inset 0 -1px 2px rgba(255, 255, 255, 0.45),
     inset 0 0 0 0.5px rgba(255, 255, 255, 0.75);
   --gld: 0 0 0 0.5px rgba(0, 0, 0, 0.04), 0 14px 34px -14px rgba(0, 0, 0, 0.18);
   --blur: blur(30px) saturate(2.1);
@@ -175,7 +176,7 @@ body {
     border: 0;
     padding: 0 14px;
     font-size: 16px;
-    background: rgba(255, 255, 255, 0.72);
+    background: rgba(255, 255, 255, 0.58);
     box-shadow:
       inset 0 0 0 0.5px rgba(60, 60, 67, 0.2),
       inset 0 1px 2px rgba(0, 0, 0, 0.05);
@@ -211,7 +212,7 @@ body {
   }
   .field:focus {
     outline: none;
-    background: #fff;
+    background: rgba(255, 255, 255, 0.85);
     box-shadow:
       inset 0 0 0 1px var(--gold-ring),
       0 0 0 4px rgba(194, 146, 46, 0.18);
