@@ -125,13 +125,15 @@ test('senha errada mostra erro genérico', async ({ page }) => {
   await expect(page).toHaveURL(/\/login/);
 });
 
-test('ambiente de testes: "Esqueci minha senha" lembra a senha de teste', async ({ page }) => {
+test('"Esqueci minha senha" orienta a pedir redefinição à liderança', async ({ page }) => {
   await page.goto('/login');
   const forgot = page.getByRole('button', { name: 'Esqueci minha senha' });
-  await expect(page.getByText('a senha de todas as contas é')).toHaveCount(0);
   await forgot.click();
   await expect(forgot).toHaveAttribute('aria-expanded', 'true');
-  await expect(page.getByRole('status').filter({ hasText: 'Ambiente de testes' })).toBeVisible();
+  await expect(
+    page.getByRole('status').filter({ hasText: 'Peça para a liderança redefinir a sua senha' }),
+  ).toBeVisible();
+  await expect(page.getByText('a senha de todas as contas')).toHaveCount(0);
 });
 
 test('usuário inexistente mostra o mesmo erro', async ({ page }) => {

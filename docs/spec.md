@@ -91,7 +91,7 @@ Navegação mobile: barra inferior com **Hoje · Pipeline · Leads · Chat · Ma
 Desktop: sidebar com as mesmas seções + Dashboard e Relatórios.
 
 ### 5.1 Login
-E-mail + senha (cada um tem o seu). MFA (TOTP) opcional, escolhido por cada pessoa. Sem cadastro aberto: HEAD convida.
+E-mail + senha (cada um tem o seu). MFA (TOTP) opcional, escolhido por cada pessoa. Sem cadastro aberto: quem não tem conta pede acesso na tela de login e a liderança (Head ou Diretoria) aprova escolhendo o cargo; a liderança também pode convidar direto.
 
 ### 5.2 Dashboard (Cockpit)
 Seletor **Hoje / Mês / Período**. KPIs: leads novos, P0/P1/P2, agendados (direto × follow), no-show %,

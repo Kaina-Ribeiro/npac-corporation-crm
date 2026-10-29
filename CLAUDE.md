@@ -45,6 +45,7 @@ Pacotes: `@npac/web`, `@npac/api`, `@npac/db`, `@npac/shared`.
 | Avisos (inbox) / filtros salvos                     | `apps/api/src/notifications/notifications.ts`, `views.ts`                                 |
 | Chat, handoff, equipe, playbook                     | `apps/api/src/collab/*`                                                                   |
 | Admin usuários/catálogo/LGPD                        | `apps/api/src/admin/users.ts`, `catalog.ts`, `lgpd.ts`                                    |
+| Pedido de acesso (público / aprovação)              | `apps/api/src/auth/request-access.ts` / `admin/access-requests.ts`                        |
 | SSE (tempo real)                                    | `apps/api/src/events/events.controller.ts`                                                |
 | Import do Firebase                                  | `apps/api/src/import/*`                                                                   |
 | Dados do protótipo no dev                           | `apps/api/src/dev/mock-prototype.ts`                                                      |
@@ -77,7 +78,11 @@ compartilhadas ficam em arquivo sem `'use client'` (ex.: `lib/last-user.ts`, `ro
 - Flags `canProspect`/`canClose` são dados; autorização nunca depende de nomes de pessoas.
 - Login por **usuário** (`/sign-in/username`, `[a-z0-9_.]{3,30}`, minúsculo); login por
   e-mail e `/is-username-available` desligados. Senha mínima 3 (provisório, decisão do usuário em
-  29/10/2026: no dev todas as senhas são `123`; as regras voltam no fim). Sem cadastro aberto.
+  29/10/2026: no dev todas as senhas são `123`; as regras voltam no fim).
+- **Pedido de acesso** (decisão do usuário em 29/10/2026): `/login/solicitar` grava em
+  `access_requests` (fora de `user`: pendente não loga). Head/Diretoria aprovam em Admin escolhendo o
+  cargo (`guardLeadership`); recusar apaga; expira em 7 dias; 3 pedidos/hora por IP; a resposta não
+  revela se o usuário existe. "Esqueci minha senha" orienta a pedir redefinição à liderança.
 - MFA (TOTP) **opcional** para todos (decisão do usuário em 28/10/2026): cada um ativa ou
   desativa em `/conta/mfa` (link "Autenticador" na sidebar e em Mais); quem ativou confirma
   o login com o código, que é enviado sozinho ao completar 6 dígitos (`lib/otp-input.ts`).

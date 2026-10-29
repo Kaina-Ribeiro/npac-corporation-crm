@@ -20,11 +20,8 @@ function forgetUser() {
 
 const GENERIC_ERROR = 'Usuário ou senha inválidos';
 
-/**
- * Login em dois passos: usuário + senha, depois o código do autenticador (se exigido).
- * `testHint`: provisório enquanto o time testa, "Esqueci minha senha" lembra a senha do dev.
- */
-export function LoginForm({ lastUser, testHint }: { lastUser?: string; testHint?: boolean }) {
+/** Login em dois passos: usuário + senha, depois o código do autenticador (se exigido). */
+export function LoginForm({ lastUser }: { lastUser?: string }) {
   const router = useRouter();
   const [hint, setHint] = useState(false);
   const [remembered, setRemembered] = useState(lastUser);
@@ -211,24 +208,22 @@ export function LoginForm({ lastUser, testHint }: { lastUser?: string; testHint?
           {error}
         </p>
       )}
-      {testHint && (
-        <div className="-mt-1 text-sm">
-          <button
-            type="button"
-            aria-expanded={hint}
-            aria-controls="password-hint"
-            onClick={() => setHint((v) => !v)}
-            className="min-h-8 font-medium text-[#515154] underline-offset-2 hover:underline"
-          >
-            Esqueci minha senha
-          </button>
-          {hint && (
-            <p id="password-hint" role="status" className="mt-1 text-[#3a3a3c]">
-              Ambiente de testes: a senha de todas as contas é <b>123</b>.
-            </p>
-          )}
-        </div>
-      )}
+      <div className="-mt-1 text-sm">
+        <button
+          type="button"
+          aria-expanded={hint}
+          aria-controls="password-hint"
+          onClick={() => setHint((v) => !v)}
+          className="min-h-8 font-medium text-[#515154] underline-offset-2 hover:underline"
+        >
+          Esqueci minha senha
+        </button>
+        {hint && (
+          <p id="password-hint" role="status" className="mt-1 text-[#3a3a3c]">
+            Peça para a liderança redefinir a sua senha em Admin.
+          </p>
+        )}
+      </div>
       <button className="btn-dark" type="submit" disabled={busy}>
         Login
       </button>

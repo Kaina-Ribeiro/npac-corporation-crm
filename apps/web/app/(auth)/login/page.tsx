@@ -13,12 +13,10 @@ export default async function LoginPage() {
   // Gravado pelo próprio formulário após um login bem-sucedido neste aparelho.
   const last = (await cookies()).get(LAST_USER_COOKIE)?.value;
   const lastUser = last && /^[a-z0-9_.]{3,30}$/.test(last) ? last : undefined;
-  // Provisório: dica da senha de teste só no dev ou num ambiente de testes que liga LOGIN_TEST_HINT.
-  const testHint = process.env.NODE_ENV !== 'production' || process.env.LOGIN_TEST_HINT === 'true';
 
   return (
     <AuthShell>
-      <LoginForm lastUser={lastUser} testHint={testHint} />
+      <LoginForm lastUser={lastUser} />
     </AuthShell>
   );
 }

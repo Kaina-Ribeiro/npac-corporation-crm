@@ -37,7 +37,6 @@ export default defineConfig({
       env: {
         ...process.env,
         API_INTERNAL_URL: `http://localhost:${API_PORT}`,
-        LOGIN_TEST_HINT: 'true',
       } as Record<string, string>,
       reuseExistingServer: false,
       timeout: 300_000,
