@@ -19,7 +19,7 @@ async function login(page: Page, email: string, password = E2E_PASSWORD) {
   await page.goto('/login');
   await page.getByLabel('Usuário', { exact: true }).fill(email.split('@')[0]!);
   await page.getByLabel('Senha').fill(password);
-  await page.getByRole('button', { name: 'Entrar' }).click();
+  await page.getByRole('button', { name: 'Login', exact: true }).click();
 }
 
 test('SDR cadastra lead, escreve nota e conclui tarefa na ficha', async ({ page }) => {
@@ -123,6 +123,15 @@ test('senha errada mostra erro genérico', async ({ page }) => {
   await login(page, 'ale@npac.com.br', 'senha-errada-123');
   await expect(errorAlert(page)).toBeVisible();
   await expect(page).toHaveURL(/\/login/);
+});
+
+test('ambiente de testes: "Esqueci minha senha" lembra a senha de teste', async ({ page }) => {
+  await page.goto('/login');
+  const forgot = page.getByRole('button', { name: 'Esqueci minha senha' });
+  await expect(page.getByText('a senha de todas as contas é')).toHaveCount(0);
+  await forgot.click();
+  await expect(forgot).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.getByRole('status').filter({ hasText: 'Ambiente de testes' })).toBeVisible();
 });
 
 test('usuário inexistente mostra o mesmo erro', async ({ page }) => {
@@ -307,7 +316,7 @@ test('primeiro acesso exige trocar a senha', async ({ page }) => {
   // Sair no meio do primeiro acesso não pode prender a pessoa: volta ao login e entra de novo.
   await page.getByRole('button', { name: 'Sair' }).click();
   await page.waitForURL(/\/login/);
-  await expect(page.getByRole('button', { name: 'Entrar' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Login', exact: true })).toBeVisible();
   await login(page, 'igor@npac.com.br');
   await expect(page).toHaveURL(/\/conta\/senha/);
   await page.getByLabel('Senha atual', { exact: true }).fill(E2E_PASSWORD);

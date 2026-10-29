@@ -6,13 +6,15 @@ import { LoginForm } from '@/components/login/login-form';
 import { LAST_USER_COOKIE } from '@/lib/last-user';
 import { getSession } from '@/lib/session';
 
-export const metadata: Metadata = { title: 'Entrar' };
+export const metadata: Metadata = { title: 'Login' };
 
 export default async function LoginPage() {
   if (await getSession()) redirect('/dashboard');
   // Gravado pelo próprio formulário após um login bem-sucedido neste aparelho.
   const last = (await cookies()).get(LAST_USER_COOKIE)?.value;
   const lastUser = last && /^[a-z0-9_.]{3,30}$/.test(last) ? last : undefined;
+  // Provisório: dica da senha de teste só no dev ou num ambiente de testes que liga LOGIN_TEST_HINT.
+  const testHint = process.env.NODE_ENV !== 'production' || process.env.LOGIN_TEST_HINT === 'true';
 
   return (
     <main className="relative flex min-h-dvh items-center overflow-hidden bg-[radial-gradient(60%_60%_at_70%_30%,#5a4210,#0a0805_70%)] text-ink">
@@ -45,7 +47,7 @@ export default async function LoginPage() {
         </section>
 
         <div className="w-full max-w-[440px] rounded-[32px] bg-white/[.62] p-6 shadow-[inset_0_1.5px_0_#fff,inset_0_0_0_.5px_rgba(255,255,255,.8),0_40px_90px_-30px_rgba(0,0,0,.7)] backdrop-blur-[40px] backdrop-saturate-200 md:p-[34px]">
-          <LoginForm lastUser={lastUser} />
+          <LoginForm lastUser={lastUser} testHint={testHint} />
         </div>
       </div>
 

@@ -9,7 +9,7 @@ Projeto `npac`, ambiente `production`:
 | ----------- | ----------------------------------- | ---------------------------- | -------------- |
 | `api`       | `deploy/cubeship/api.Dockerfile`    | —                            | não (interno)  |
 | `retention` | `deploy/cubeship/api.Dockerfile`    | `NPAC_PROCESS=retention`     | não            |
-| `web`       | `deploy/cubeship/web.Dockerfile`    | —                            | sim, porta 3000 |
+| `web`       | `deploy/cubeship/web.Dockerfile`    | `LOGIN_TEST_HINT=true` só no ambiente de testes (provisório: "Esqueci minha senha" mostra a senha `123`) | sim, porta 3000 |
 
 - A API migra o banco ao subir (`deploy/cubeship/start-api.sh`); não há passo de release.
 - O web resolve `/api/*` no build para `http://cubeship-npac-production-api:4000`

@@ -34,10 +34,11 @@ export default defineConfig({
     {
       command: `pnpm build && pnpm exec next start --port ${WEB_PORT}`,
       url: `${WEB_ORIGIN}/login`,
-      env: { ...process.env, API_INTERNAL_URL: `http://localhost:${API_PORT}` } as Record<
-        string,
-        string
-      >,
+      env: {
+        ...process.env,
+        API_INTERNAL_URL: `http://localhost:${API_PORT}`,
+        LOGIN_TEST_HINT: 'true',
+      } as Record<string, string>,
       reuseExistingServer: false,
       timeout: 300_000,
     },

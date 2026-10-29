@@ -8,7 +8,8 @@ if (existsSync(rootEnv)) process.loadEnvFile(rootEnv);
 export const E2E_DB = 'npac_e2e';
 export const E2E_PASSWORD = 'senha-do-e2e-123';
 export const API_PORT = 4100;
-export const WEB_PORT = 3100;
+// E2E_WEB_PORT: quando outro projeto local já ocupa a 3100.
+export const WEB_PORT = Number(process.env.E2E_WEB_PORT ?? 3100);
 export const WEB_ORIGIN = `http://localhost:${WEB_PORT}`;
 
 export function e2eDbUrl(user?: string, password?: string): string {

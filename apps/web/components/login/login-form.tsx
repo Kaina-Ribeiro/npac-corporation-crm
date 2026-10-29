@@ -19,9 +19,13 @@ function forgetUser() {
 
 const GENERIC_ERROR = 'Usuário ou senha inválidos';
 
-/** Login em dois passos: usuário + senha, depois o código do autenticador (se exigido). */
-export function LoginForm({ lastUser }: { lastUser?: string }) {
+/**
+ * Login em dois passos: usuário + senha, depois o código do autenticador (se exigido).
+ * `testHint`: provisório enquanto o time testa, "Esqueci minha senha" lembra a senha do dev.
+ */
+export function LoginForm({ lastUser, testHint }: { lastUser?: string; testHint?: boolean }) {
   const router = useRouter();
+  const [hint, setHint] = useState(false);
   const [remembered, setRemembered] = useState(lastUser);
   const [suggest, setSuggest] = useState(false);
   const userRef = useRef<HTMLInputElement>(null);
@@ -119,7 +123,7 @@ export function LoginForm({ lastUser }: { lastUser?: string }) {
   }
 
   return (
-    <form key="password" className="flex flex-col gap-4" aria-label="Entrar" onSubmit={onPassword}>
+    <form key="password" className="flex flex-col gap-4" aria-label="Login" onSubmit={onPassword}>
       <h2 className="text-[28px] font-bold tracking-[-0.035em]">Bem-vindo de volta</h2>
       <p className="-mt-2 mb-1 text-[15px] text-[#515154]">
         Entre com o seu usuário da NPAC e a sua senha.
@@ -206,8 +210,26 @@ export function LoginForm({ lastUser }: { lastUser?: string }) {
           {error}
         </p>
       )}
+      {testHint && (
+        <div className="-mt-1 text-sm">
+          <button
+            type="button"
+            aria-expanded={hint}
+            aria-controls="password-hint"
+            onClick={() => setHint((v) => !v)}
+            className="min-h-8 font-medium text-[#515154] underline-offset-2 hover:underline"
+          >
+            Esqueci minha senha
+          </button>
+          {hint && (
+            <p id="password-hint" role="status" className="mt-1 text-[#3a3a3c]">
+              Ambiente de testes: a senha de todas as contas é <b>123</b>.
+            </p>
+          )}
+        </div>
+      )}
       <button className="btn-dark" type="submit" disabled={busy}>
-        Entrar
+        Login
       </button>
       <Note>
         Cada acesso é registrado. Quem ativou o autenticador confirma a entrada com o código do app.

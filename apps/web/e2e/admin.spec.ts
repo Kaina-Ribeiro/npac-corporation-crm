@@ -13,7 +13,7 @@ async function login(page: Page, email: string) {
   await page.goto('/login');
   await page.getByLabel('Usuário', { exact: true }).fill(email.split('@')[0]!);
   await page.getByLabel('Senha').fill(E2E_PASSWORD);
-  await page.getByRole('button', { name: 'Entrar' }).click();
+  await page.getByRole('button', { name: 'Login', exact: true }).click();
 }
 
 async function headLogin(page: Page) {

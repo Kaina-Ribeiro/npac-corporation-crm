@@ -32,7 +32,7 @@ test('nenhum campo estoura o container no iPhone', async ({ page }) => {
   await page.goto('/login');
   await page.getByLabel('Usuário', { exact: true }).fill('ale');
   await page.getByLabel('Senha').fill(E2E_PASSWORD);
-  await page.getByRole('button', { name: 'Entrar' }).click();
+  await page.getByRole('button', { name: 'Login', exact: true }).click();
   await page.waitForURL(/\/dashboard/);
   const [lead] = await owner<{ id: string }[]>`select id from leads where name = 'Lead do Ale'`;
   const problems: Record<string, unknown> = {};
