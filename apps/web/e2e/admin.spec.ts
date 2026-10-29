@@ -46,7 +46,12 @@ test('HEAD convida usuário, vê auditoria e registra pedido LGPD', async ({ pag
   await expect(page.getByText('Ale agora é Closer')).toBeVisible();
   await page.getByLabel('Cargo de Ale').selectOption('SDR');
   await expect(page.getByText('Ale agora é SDR')).toBeVisible();
-  await expect(page.getByText('Só a Diretoria altera esta conta')).toBeVisible();
+  await expect(
+    page
+      .getByRole('listitem')
+      .filter({ hasText: 'ronaldo@npac.com.br' })
+      .getByText('Só a Diretoria altera esta conta'),
+  ).toBeVisible();
   await page.screenshot({ path: 'test-results/admin.png', fullPage: true });
 
   await page.getByRole('tab', { name: 'Auditoria' }).click();

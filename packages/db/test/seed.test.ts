@@ -43,10 +43,10 @@ describe('seed', () => {
     expect(p!.n).toBeGreaterThanOrEqual(6);
     expect(p!.topics).toBeGreaterThanOrEqual(4);
   });
-  it('é idempotente: 6 usuários e 8 etapas', async () => {
+  it('é idempotente: 7 usuários e 8 etapas', async () => {
     const [u] = await owner<{ n: number }[]>`select count(*)::int as n from "user"`;
     const [s] = await owner<{ n: number }[]>`select count(*)::int as n from pipeline_stages`;
-    expect(u?.n).toBe(6);
+    expect(u?.n).toBe(7);
     expect(s?.n).toBe(8);
   });
 
@@ -79,6 +79,7 @@ describe('seed', () => {
       can_close: false,
     });
     expect(by['ronaldo@npac.com.br']).toMatchObject({ role: 'HEAD', can_close: true });
+    expect(by['diretor@npac.com.br']).toMatchObject({ role: 'DIRETOR' });
     expect(by['sonia@npac.com.br']).toMatchObject({
       role: 'CLOSER',
       can_close: true,
@@ -94,7 +95,7 @@ describe('seed', () => {
       select count(a.id)::int as n, min(a.password) as pw, bool_and(u.must_change_password) as must
       from "user" u left join account a on a.user_id = u.id and a.provider_id = 'credential'
       group by u.id`;
-    expect(rows).toHaveLength(6);
+    expect(rows).toHaveLength(7);
     for (const r of rows) {
       expect(r.n).toBe(1);
       expect(r.pw).toBe('hashed:senha-inicial-123');

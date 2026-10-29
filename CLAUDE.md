@@ -138,8 +138,8 @@ pnpm exec prettier --write <arquivos>
 - Testes só recriam `npac_test*`/`npac_e2e*`; nunca aponte para outro banco.
 - API e e2e compartilham usuários: teste que mexe em MFA/senha/papel restaura no fim; `truncate leads`
   inclui as tabelas com FK.
-- e2e loga com `email.split('@')[0]`. Seeds: ana/ronaldo (HEAD), ale/murilo/igor (SDR), sonia
-  (CLOSER), `@npac.com.br`; Diretoria em teste = `update "user" set role = 'DIRETOR'` e restaurar.
+- e2e loga com `email.split('@')[0]`. Seeds: diretor (DIRETOR), ana/ronaldo (HEAD), ale/murilo/igor
+  (SDR), sonia (CLOSER), `@npac.com.br`; teste que troca papel: `update "user" set role = …` e restaurar.
 - Playwright: `filter({ visible: true })`/`exact: true` (layout mobile oculto duplica controles);
   `role=alert` também pega o anunciador de rotas do Next; nada de `networkidle` (SSE).
 - JS de `/leads` < 150 KB gzip (teste; hoje ~148). Sem libs pesadas no cliente, nem zod; prefira server components.

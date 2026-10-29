@@ -1,6 +1,7 @@
 // `pnpm --filter @npac/api mock:prototype`: carrega no banco de DEV os dados de exemplo do
 // protótipo aprovado (leads, reuniões, vendas, tarefas, notas e chat). Usa DATABASE_URL (owner).
-// Idempotente pelos legacy_id `mock-*`. Recusa rodar em produção. Telefones são fictícios.
+// Idempotente pelos legacy_id `mock-*`. Telefones são fictícios. Em produção só roda com
+// MOCK_EM_PRODUCAO=sim e carrega só DEMO (demonstração antes do go-live; depois o banco é zerado).
 import postgres from 'postgres';
 import { FieldCrypto } from '../common/crypto/field-crypto.js';
 import { loadEnv } from '../config/env.js';
@@ -448,7 +449,13 @@ function bulk(): Mock[] {
   }
   return out;
 }
-LEADS.push(...bulk());
+
+/**
+ * Demonstração em produção: 10 leads que cobrem as 8 etapas, P0/P1/P2, todos os SDRs e closers,
+ * reunião hoje (direto e follow), realizada e no-show, venda à vista, venda de hoje, venda com
+ * saldo futuro e tarefas atrasada, de hoje e futura. Sem o volume do `bulk()`.
+ */
+const DEMO = new Set(['l1', 'l3', 'l5', 'l6', 'l8', 'l9', 'l10', 'l11', 'l12', 'l14']);
 
 const CHAT_GERAL: [string, string, string | null][] = [
   ['Ana', 'Bom dia, time. Foco em resgatar os no-shows da semana passada antes do almoço.', null],
@@ -476,7 +483,11 @@ function brt(dia: number, hora = '12:00'): string {
 }
 
 const env = loadEnv(process.env);
-if (env.NODE_ENV === 'production') throw new Error('mock:prototype não roda em produção');
+if (env.NODE_ENV === 'production' && process.env.MOCK_EM_PRODUCAO !== 'sim') {
+  throw new Error('mock:prototype não roda em produção sem MOCK_EM_PRODUCAO=sim');
+}
+const leads =
+  env.NODE_ENV === 'production' ? LEADS.filter((l) => DEMO.has(l.id)) : [...LEADS, ...bulk()];
 const url = process.env.DATABASE_URL;
 if (!url) throw new Error('DATABASE_URL não definida');
 const sql = postgres(url, { max: 1 });
@@ -489,7 +500,7 @@ try {
     crypto,
     {
       leads: Object.fromEntries(
-        LEADS.map((l) => [
+        leads.map((l) => [
           mid(l),
           {
             nome: l.nome,
@@ -506,25 +517,29 @@ try {
           },
         ]),
       ),
-      reunioes: LEADS.filter((l) => l.call && l.closer).map((l) => ({
-        id: `${mid(l)}-call`,
-        leadId: mid(l),
-        closer: l.closer,
-        data: brt(l.call!.dia, l.call!.hora),
-        origem: l.ag === 'F' ? 'follow' : 'direto',
-        status: l.call!.res === 'feita' ? 'realizada' : l.call!.res === 'noshow' ? 'no-show' : '',
-        criadoEm: brt(Math.min(l.call!.dia, 0) - 1, '10:00'),
-      })),
-      vendas: LEADS.filter((l) => l.venda).map((l) => ({
-        id: `${mid(l)}-venda`,
-        leadId: mid(l),
-        produto: l.venda!.produto,
-        valor: l.venda!.valor,
-        data: brt(l.venda!.dia, '17:00'),
-        closer: l.closer,
-        pago: l.venda!.pago === l.venda!.valor,
-        forma: l.venda!.pago === l.venda!.valor ? 'pix' : 'parcial',
-      })),
+      reunioes: leads
+        .filter((l) => l.call && l.closer)
+        .map((l) => ({
+          id: `${mid(l)}-call`,
+          leadId: mid(l),
+          closer: l.closer,
+          data: brt(l.call!.dia, l.call!.hora),
+          origem: l.ag === 'F' ? 'follow' : 'direto',
+          status: l.call!.res === 'feita' ? 'realizada' : l.call!.res === 'noshow' ? 'no-show' : '',
+          criadoEm: brt(Math.min(l.call!.dia, 0) - 1, '10:00'),
+        })),
+      vendas: leads
+        .filter((l) => l.venda)
+        .map((l) => ({
+          id: `${mid(l)}-venda`,
+          leadId: mid(l),
+          produto: l.venda!.produto,
+          valor: l.venda!.valor,
+          data: brt(l.venda!.dia, '17:00'),
+          closer: l.closer,
+          pago: l.venda!.pago === l.venda!.valor,
+          forma: l.venda!.pago === l.venda!.valor ? 'pix' : 'parcial',
+        })),
     },
     { dryRun: false },
   );
@@ -542,7 +557,7 @@ try {
         select legacy_id, id from leads where legacy_id like 'mock-%'`
       ).map((r) => [r.legacy_id, r.id]),
     );
-    for (const l of LEADS) {
+    for (const l of leads) {
       const id = leadId.get(mid(l));
       if (!id) continue;
       const sdr = users.get(l.sdr)!;
