@@ -59,6 +59,7 @@ Pacotes: `@npac/web`, `@npac/api`, `@npac/db`, `@npac/shared`.
 | Lista de leads (inline, massa, filtros salvos)      | `components/leads-browser.tsx`, `lead-filters.tsx`                                        |
 | Ficha do lead / venda                               | `components/lead-detail.tsx`, `sale-flow.tsx`, `finance-panel.tsx`                        |
 | Pipeline / Hoje / Relatórios / Dashboard            | `components/pipeline.tsx`, `today.tsx`, `reports.tsx`, `dashboard-*.tsx`                  |
+| Cards do dashboard reordenáveis (ordem / molas)     | `components/dashboard-board.tsx`, `lib/dashboard-layout.ts` / `lib/board-motion.ts`       |
 | Ctrl+K / avisos / textos de atividade               | `components/shell/command-palette.tsx`, `components/inbox.tsx`, `lib/activity-text.ts`    |
 | Spec do produto / deploy                            | `docs/spec.md`, `docs/deploy.md` (Oracle) / `docs/deploy-cubeship.md` (VPS com Cubeship); planos em `docs/superpowers/plans/`                     |
 
@@ -88,6 +89,8 @@ compartilhadas ficam em arquivo sem `'use client'` (ex.: `lib/last-user.ts`, `ro
   o login com o código, que é enviado sozinho ao completar 6 dígitos (`lib/otp-input.ts`).
   Primeiro acesso só obriga trocar a senha.
 - Último usuário do aparelho: cookie `npac_last_user` com `Path=/login` (nunca localStorage).
+- Ordem dos cards do dashboard: cookie por pessoa `npac_dash_<hash do id>` com `Path=/dashboard`,
+  só IDs de cards; o servidor lê e já renderiza na ordem (sem tabela de preferências).
 
 ## Segurança e privacidade (não negociável)
 
@@ -154,7 +157,8 @@ pnpm exec prettier --write <arquivos>     # formatar só o que mudou
 - **Dev sobe pelo painel do app**: `preview_start` com `npac-dev` (`.claude/launch.json`), nunca
   `pnpm dev` em segundo plano (os dois disputam a porta 3000). e2e e dev também disputam portas
   e `.next`: antes do e2e, `preview_stop` e mate 3000/4000; depois, `rm -rf apps/web/.next` e
-  `preview_start` de novo. e2e usa API 4100/web 3100 e banco `npac_e2e`.
+  `preview_start` de novo. e2e usa API 4100/web 3100 e banco `npac_e2e`; se outro projeto
+  ocupar a 3100, rode com `E2E_WEB_PORT=3200`.
 - Testes só recriam bancos `npac_test*`/`npac_e2e*`. Não aponte teste para outro banco.
 - API e e2e compartilham estado de usuários: teste que mexe em MFA/senha/papel restaura no fim.
 - `truncate leads` em teste precisa incluir as tabelas com FK (lista acima).
