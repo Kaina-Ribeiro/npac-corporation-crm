@@ -8,3 +8,4 @@ export * from './activity.js';
 export * from './finance.js';
 export * from './collab.js';
 export * from './lgpd.js';
+export * from './access-requests.js';
