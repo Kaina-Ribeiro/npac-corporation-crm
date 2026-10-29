@@ -25,7 +25,7 @@ import {
   withUser,
   type Db,
 } from '@npac/db';
-import { isLeader, ROLES, type AuthUser, type Role } from '@npac/shared';
+import { isLeader, ROLES, usernameSchema, type AuthUser, type Role } from '@npac/shared';
 import { and, asc, count, eq, isNull, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { AuditService } from '../audit/audit.service.js';
@@ -38,12 +38,7 @@ const invite = z
   .object({
     name: z.string().trim().min(1).max(120),
     email: z.email().trim().toLowerCase().max(200),
-    // Mesmo formato aceito pelo login (plugin username do Better Auth), sempre minúsculo.
-    username: z
-      .string()
-      .trim()
-      .toLowerCase()
-      .regex(/^[a-z0-9_.]{3,30}$/, 'Use 3 a 30 letras, números, ponto ou _'),
+    username: usernameSchema,
     role: z.enum(ROLES),
     canProspect: z.boolean(),
     canClose: z.boolean(),

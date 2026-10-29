@@ -7,3 +7,4 @@ export * from './dto.js';
 export * from './today.js';
 export * from './finance.js';
 export * from './schemas/lead-update.js';
+export * from './schemas/account.js';

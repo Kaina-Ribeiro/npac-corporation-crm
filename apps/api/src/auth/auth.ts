@@ -9,6 +9,7 @@ import { username } from 'better-auth/plugins/username';
 import { eq } from 'drizzle-orm';
 import type { AuditService } from '../audit/audit.service.js';
 import type { Env } from '../config/env.js';
+import { REQUEST_ACCESS_PATH, requestAccessPlugin } from './request-access.js';
 
 // Login é por usuário + senha; o login por e-mail fica desligado (disabledPaths).
 const SIGN_IN = '/sign-in/username';
@@ -127,6 +128,7 @@ export function createAuth(db: Db, env: Env, audit: AuditService) {
     plugins: [
       username({ minUsernameLength: 3, maxUsernameLength: 30 }),
       twoFactor({ issuer: 'NPAC Corporation' }),
+      requestAccessPlugin(db, audit),
       auditPlugin(db, audit),
     ],
     // 30 dias logado (cookie persistente); renova a validade uma vez por dia de uso.
@@ -134,7 +136,10 @@ export function createAuth(db: Db, env: Env, audit: AuditService) {
     rateLimit: {
       enabled: true,
       storage: 'database',
-      customRules: { [SIGN_IN]: { window: 60, max: 5 } },
+      customRules: {
+        [SIGN_IN]: { window: 60, max: 5 },
+        [REQUEST_ACCESS_PATH]: { window: 3600, max: 3 },
+      },
     },
     user: {
       additionalFields: {
