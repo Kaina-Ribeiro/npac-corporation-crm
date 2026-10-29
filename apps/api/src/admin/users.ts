@@ -137,7 +137,7 @@ export class AdminUsersService {
    * Cargo de liderança (Diretoria ou Head) só a Diretoria dá, tira ou administra: o Head
    * gerencia SDRs e closers, mas não cria outro Head nem mexe na conta de um.
    */
-  private async guardLeadership(actor: AuthUser, targetId: string | null, newRole?: Role) {
+  async guardLeadership(actor: AuthUser, targetId: string | null, newRole?: Role) {
     if (actor.role === 'DIRETOR') return;
     if (newRole && isLeader(newRole))
       throw new ForbiddenException('Só a Diretoria pode dar cargo de Head ou Diretoria');
