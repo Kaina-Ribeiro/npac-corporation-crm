@@ -9,11 +9,14 @@ export default async function AdminPage() {
   const me = await getSession();
   if (!me) redirect('/login');
   if (!isLeader(me.role)) notFound();
-  const [users, products, stages, lgpd] = await Promise.all([
+  const [users, products, stages, lgpd, requests] = await Promise.all([
     apiGet<AdminData['users']>('/api/admin/users'),
     apiGet<AdminData['products']>('/api/admin/products'),
     apiGet<AdminData['stages']>('/api/admin/stages'),
     apiGet<AdminData['lgpd']>('/api/admin/lgpd'),
+    apiGet<AdminData['requests']>('/api/admin/access-requests'),
   ]);
-  return <Admin initial={{ users, products, stages, lgpd }} meId={me.id} meRole={me.role} />;
+  return (
+    <Admin initial={{ users, products, stages, lgpd, requests }} meId={me.id} meRole={me.role} />
+  );
 }

@@ -1,12 +1,21 @@
 import { ADMIN_ITEM, SIDEBAR_ITEMS } from './nav-items';
-import { NavLink } from './nav-link';
+import { CountBadge, NavLink } from './nav-link';
 import { InboxLink } from '../inbox';
 import { Suspense } from 'react';
 import { SearchButton } from './command-palette';
 import { SavedViewsNav } from './saved-views-nav';
 
 /** Desktop: navegação + bloco da pessoa logada no rodapé, sempre visível (a sidebar é fixa). */
-export function Sidebar({ head = false, footer }: { head?: boolean; footer?: React.ReactNode }) {
+export function Sidebar({
+  head = false,
+  adminBadge = 0,
+  footer,
+}: {
+  head?: boolean;
+  /** Pedidos de acesso esperando a liderança. */
+  adminBadge?: number;
+  footer?: React.ReactNode;
+}) {
   return (
     <aside className="glass sticky top-2.5 m-2.5 mr-0 hidden h-[calc(100dvh-20px)] w-[236px] flex-none flex-col gap-4 rounded-3xl px-2.5 py-3 md:flex">
       <div className="flex items-center gap-2.5 px-2 pt-1">
@@ -25,6 +34,9 @@ export function Sidebar({ head = false, footer }: { head?: boolean; footer?: Rea
           >
             {item.icon}
             {item.label}
+            {item.href === ADMIN_ITEM.href && adminBadge > 0 && (
+              <CountBadge n={adminBadge} label={`${adminBadge} pedidos de acesso`} />
+            )}
             {!item.ready && (
               <span className="ml-auto text-[11px] font-medium text-ink3">Em breve</span>
             )}

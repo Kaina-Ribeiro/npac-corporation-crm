@@ -2,8 +2,10 @@
 import type { Role } from '@npac/shared';
 import { isLeader } from '@npac/shared/enums';
 import { money, parseCents } from '@npac/shared/money';
+import { useRouter } from 'next/navigation';
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { clientApi } from '@/lib/client-api';
+import { AccessRequests, type AccessRequest } from './access-requests';
 import { ROLE_LABEL, RoleTag } from './role-tag';
 import { button, control, Field, FormError, quietButton } from './crm-ui';
 
@@ -50,7 +52,13 @@ type AuditItem = {
   entityId: string | null;
   actorName: string | null;
 };
-export type AdminData = { users: User[]; products: Product[]; stages: Stage[]; lgpd: Lgpd[] };
+export type AdminData = {
+  users: User[];
+  products: Product[];
+  stages: Stage[];
+  lgpd: Lgpd[];
+  requests: AccessRequest[];
+};
 
 const TABS = ['Usuários', 'Produtos', 'Etapas', 'Auditoria', 'LGPD'] as const;
 const KIND: Record<Lgpd['kind'], string> = {
@@ -87,6 +95,7 @@ export function Admin({
   // Mesma regra da API: só a Diretoria dá cargo de liderança ou mexe em conta de Head/Diretoria.
   const diretor = meRole === 'DIRETOR';
   const roles: Role[] = diretor ? ['SDR', 'CLOSER', 'HEAD', 'DIRETOR'] : ['SDR', 'CLOSER'];
+  const router = useRouter();
   const [tab, setTab] = useState<(typeof TABS)[number]>('Usuários');
   const [data, setData] = useState(initial);
   const [error, setError] = useState<string>();
@@ -98,13 +107,16 @@ export function Admin({
     setNotice(undefined);
     try {
       await fn();
-      const [users, products, stages, lgpd] = await Promise.all([
+      const [users, products, stages, lgpd, requests] = await Promise.all([
         clientApi<User[]>('/api/admin/users'),
         clientApi<Product[]>('/api/admin/products'),
         clientApi<Stage[]>('/api/admin/stages'),
         clientApi<Lgpd[]>('/api/admin/lgpd'),
+        clientApi<AccessRequest[]>('/api/admin/access-requests'),
       ]);
-      setData({ users, products, stages, lgpd });
+      setData({ users, products, stages, lgpd, requests });
+      // Contador de pedidos no item Admin da navegação.
+      if (requests.length !== data.requests.length) router.refresh();
       if (done) setNotice(done);
     } catch (e) {
       setError((e as Error).message);
@@ -129,6 +141,22 @@ export function Admin({
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-5">
       <h1 className="mt-1.5 text-[34px] leading-tight font-bold tracking-[-0.04em]">Admin</h1>
+      <AccessRequests
+        requests={data.requests}
+        roles={roles}
+        onApprove={(r, approval) =>
+          void run(
+            () => clientApi(`/api/admin/access-requests/${r.id}/approve`, 'POST', approval),
+            `${r.name} aprovado como ${ROLE_LABEL[approval.role]}.`,
+          )
+        }
+        onReject={(r) =>
+          void run(
+            () => clientApi(`/api/admin/access-requests/${r.id}`, 'DELETE'),
+            `Pedido de ${r.name} recusado.`,
+          )
+        }
+      />
       <div role="tablist" aria-label="Seções do admin" className="flex flex-wrap gap-2">
         {TABS.map((t) => (
           <button

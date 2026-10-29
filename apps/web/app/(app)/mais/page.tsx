@@ -1,4 +1,5 @@
 import { isLeader } from '@npac/shared/enums';
+import { pendingAccessRequests } from '@/lib/access-requests';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { ADMIN_ITEM, MORE_ITEMS } from '@/components/shell/nav-items';
@@ -24,6 +25,7 @@ export default async function MorePage() {
   const me = await getSession();
   if (!me) redirect('/login');
   const items = [...MORE_ITEMS, ...(isLeader(me.role) ? [ADMIN_ITEM] : [])];
+  const requests = await pendingAccessRequests(me.role);
   const flags = [me.canProspect && 'Prospecta', me.canClose && 'Fecha'].filter(Boolean);
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-5 pt-2">
@@ -66,7 +68,11 @@ export default async function MorePage() {
             </span>
             <span>
               <b className="block font-semibold">{item.label}</b>
-              <small className="block text-xs text-ink2">{HINT[item.href]}</small>
+              <small className="block text-xs text-ink2">
+                {item.href === ADMIN_ITEM.href && requests > 0
+                  ? `${requests} ${requests === 1 ? 'pedido' : 'pedidos'} de acesso`
+                  : HINT[item.href]}
+              </small>
             </span>
           </Link>
         ))}

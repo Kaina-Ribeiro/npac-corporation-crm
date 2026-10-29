@@ -38,6 +38,7 @@ export async function clientApi<T>(path: string, method = 'GET', body?: object):
     if (res.status === 403) throw new Error('Seu acesso não permite esta ação.');
     throw new Error('Não foi possível salvar. Confira os campos e tente novamente.');
   }
+  if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
 }
 

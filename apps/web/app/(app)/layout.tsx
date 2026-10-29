@@ -10,6 +10,7 @@ import { BottomNav } from '@/components/shell/bottom-nav';
 import { Sidebar } from '@/components/shell/sidebar';
 import { SignOutButton } from '@/components/shell/sign-out-button';
 import { RoleTag } from '@/components/role-tag';
+import { pendingAccessRequests } from '@/lib/access-requests';
 import { getSession, pendingStep } from '@/lib/session';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -17,6 +18,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!me) redirect('/login');
   const pending = pendingStep(me);
   if (pending) redirect(pending);
+  const requests = await pendingAccessRequests(me.role);
 
   const avatar = (
     <span
@@ -51,6 +53,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <CommandPalette head={isLeader(me.role)} />
       <Sidebar
         head={isLeader(me.role)}
+        adminBadge={requests}
         footer={
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2.5 px-1">
