@@ -28,6 +28,17 @@ const order = (page: Page) =>
       .map((c) => c.id),
   );
 
+/** Entrada da página terminada (as capturas saem com os cards já visíveis). */
+const revealed = (page: Page) =>
+  page.waitForFunction(() =>
+    document
+      .getAnimations()
+      .every(
+        (a) =>
+          a.playState !== 'running' || !(a instanceof CSSAnimation) || a.animationName !== 'reveal',
+      ),
+  );
+
 /** Molas assentadas: nenhum card deslocado nem pousando. */
 const settled = (page: Page) =>
   expect
@@ -77,6 +88,14 @@ test('dashboard: arrasta e reordena cards, a ordem persiste e volta ao padrão',
   await page.mouse.move(t.x + 24, t.y + t.height / 2, { steps: 30 });
   // Os outros abrem espaço antes de soltar.
   await expect.poll(() => order(page)).toEqual(['funnel', ...without('funnel')]);
+  await expect
+    .poll(() =>
+      page
+        .locator('.dash-item:not([data-lifted])')
+        .evaluateAll((els) => els.every((el) => !(el as HTMLElement).style.transform)),
+    )
+    .toBe(true);
+  await page.screenshot({ path: 'test-results/dashboard-drag.png' });
   await page.mouse.up();
   await settled(page);
   await expect(page.locator('[data-card="funnel"]')).not.toHaveAttribute('data-lifted', '');
@@ -89,6 +108,8 @@ test('dashboard: arrasta e reordena cards, a ordem persiste e volta ao padrão',
 
   await page.reload();
   await expect.poll(() => order(page)).toEqual(['funnel', ...without('funnel')]);
+  await revealed(page);
+  await page.screenshot({ path: 'test-results/dashboard-reordered.png' });
 
   // Teclado: espaço levanta, setas movem, espaço solta; o foco fica no puxador.
   await grip.focus();
@@ -120,5 +141,6 @@ test('dashboard: arrasta e reordena cards, a ordem persiste e volta ao padrão',
   expect((await context.cookies()).some((c) => c.name.startsWith('npac_dash_'))).toBe(false);
   await page.reload();
   await expect.poll(() => order(page)).toEqual(DEFAULT);
+  await revealed(page);
   await page.screenshot({ path: 'test-results/dashboard-reorder.png', fullPage: true });
 });
