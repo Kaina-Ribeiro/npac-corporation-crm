@@ -76,7 +76,8 @@ compartilhadas ficam em arquivo sem `'use client'` (ex.: `lib/last-user.ts`, `ro
   cancelada dele. Invisível e inexistente respondem **404** (nunca 403).
 - Flags `canProspect`/`canClose` são dados; autorização nunca depende de nomes de pessoas.
 - Login por **usuário** (`/sign-in/username`, `[a-z0-9_.]{3,30}`, minúsculo); login por
-  e-mail e `/is-username-available` desligados. Senha mínima 8. Sem cadastro aberto.
+  e-mail e `/is-username-available` desligados. Senha mínima 3 (provisório, decisão do usuário em
+  29/10/2026: no dev todas as senhas são `123`; as regras voltam no fim). Sem cadastro aberto.
 - MFA (TOTP) **opcional** para todos (decisão do usuário em 28/10/2026): cada um ativa ou
   desativa em `/conta/mfa` (link "Autenticador" na sidebar e em Mais); quem ativou confirma
   o login com o código, que é enviado sozinho ao completar 6 dígitos (`lib/otp-input.ts`).

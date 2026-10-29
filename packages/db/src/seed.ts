@@ -12,8 +12,6 @@ export interface SeedOptions {
   initialPassword: string;
 }
 
-export const MIN_INITIAL_PASSWORD = 12;
-
 const STAGES: { key: StageKey; label: string }[] = [
   { key: 'SONDAGEM', label: 'Criando Relacionamento' },
   { key: 'AGENDADO_DIRETO', label: 'Agendado Direto' },
@@ -84,9 +82,6 @@ const TEAM: {
 ];
 
 export async function seed(db: Db, opts: SeedOptions): Promise<void> {
-  if (opts.initialPassword.length < MIN_INITIAL_PASSWORD) {
-    throw new Error(`A senha inicial precisa ter pelo menos ${MIN_INITIAL_PASSWORD} caracteres`);
-  }
   const hash = await opts.hashPassword(opts.initialPassword);
 
   await db.transaction(async (tx) => {

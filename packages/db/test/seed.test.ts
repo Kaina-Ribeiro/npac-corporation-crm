@@ -102,7 +102,8 @@ describe('seed', () => {
     }
   });
 
-  it('recusa senha inicial com menos de 12 caracteres', async () => {
-    await expect(seed(client.db, { ...opts, initialPassword: '12345678' })).rejects.toThrow(/12/);
+  // Provisório para os testes do time: sem tamanho mínimo (as regras voltam no fim).
+  it('aceita senha inicial curta', async () => {
+    await expect(seed(client.db, { ...opts, initialPassword: '123' })).resolves.toBeUndefined();
   });
 });

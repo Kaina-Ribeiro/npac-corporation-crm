@@ -161,15 +161,15 @@ describe('autenticação', () => {
       where user_id = (select id from "user" where email = 'murilo@npac.com.br')`;
   });
 
-  it('senha nova aceita a partir de 8 caracteres', async () => {
+  it('senha nova aceita a partir de 3 caracteres', async () => {
     const [before] = await owner<{ password: string }[]>`
       select a.password from account a join "user" u on u.id = a.user_id
       where u.email = 'igor@npac.com.br'`;
     const s = cookiesOf(await h.signInRaw('igor@npac.com.br'));
     const change = (newPassword: string) =>
       h.post('/api/auth/change-password', { currentPassword: TEST_PASSWORD, newPassword }, s);
-    expect((await change('1234567')).status).toBe(400);
-    expect((await change('npac2026')).status).toBe(200);
+    expect((await change('12')).status).toBe(400);
+    expect((await change('123')).status).toBe(200);
     await owner`
       update account set password = ${before?.password ?? ''}
       where user_id = (select id from "user" where email = 'igor@npac.com.br')`;

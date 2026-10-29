@@ -18,7 +18,7 @@
 
 Modelo: cada usuário tem **um papel** (`DIRETOR`, `HEAD`, `SDR`, `CLOSER`) + duas flags (`can_prospect`, `can_close`).
 
-Login: **usuário + senha** (mínimo 8 caracteres). MFA (TOTP) é opcional: cada pessoa ativa ou desativa em "Autenticador", e quem ativou confirma o login com o código. O e-mail fica no cadastro
+Login: **usuário + senha** (provisório: mínimo 3 caracteres enquanto o time testa; as regras voltam no fim). MFA (TOTP) é opcional: cada pessoa ativa ou desativa em "Autenticador", e quem ativou confirma o login com o código. O e-mail fica no cadastro
 como contato; o login por e-mail é desligado. A tela de login sugere o último usuário do aparelho
 (cookie restrito a `/login`, nunca localStorage).
 

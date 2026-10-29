@@ -18,7 +18,7 @@ Requer Node >= 22, pnpm 12.14, Git e Docker Desktop com engine Linux.
 2. Defina senhas distintas para owner e app; repita os valores nas URLs correspondentes.
    Senhas hexadecimais evitam caracteres que exigem escape em URLs.
 3. Gere separadamente os três segredos: `openssl rand -base64 32` (uma execução por chave).
-4. Defina `SEED_INITIAL_PASSWORD` com pelo menos 12 caracteres.
+4. Defina `SEED_INITIAL_PASSWORD` (provisório: sem tamanho mínimo; no dev usamos `123`).
 
 ```sh
 pnpm install --frozen-lockfile

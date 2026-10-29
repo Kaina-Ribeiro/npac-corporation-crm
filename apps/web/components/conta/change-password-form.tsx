@@ -4,7 +4,8 @@ import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import { authClient } from '@/lib/auth-client';
 
-const MIN = 8;
+// Igual ao `minPasswordLength` da API (provisório enquanto o time testa).
+const MIN = 3;
 
 /** `first`: primeiro acesso, troca obrigatória; senão, troca voluntária pelo menu. */
 export function ChangePasswordForm({ first = true }: { first?: boolean }) {

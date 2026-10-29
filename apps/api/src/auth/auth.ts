@@ -115,7 +115,8 @@ export function createAuth(db: Db, env: Env, audit: AuditService) {
     emailAndPassword: {
       enabled: true,
       disableSignUp: true,
-      minPasswordLength: 8,
+      // Provisório enquanto o time testa (senhas como "123"); as regras voltam no fim.
+      minPasswordLength: 3,
       password: {
         hash: (p) => hash(p),
         verify: ({ hash: h, password }) => verify(h, password),
