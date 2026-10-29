@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useRef, useState, type FormEvent } from 'react';
 import { authClient } from '@/lib/auth-client';
@@ -234,6 +235,15 @@ export function LoginForm({ lastUser, testHint }: { lastUser?: string; testHint?
       <Note>
         Cada acesso é registrado. Quem ativou o autenticador confirma a entrada com o código do app.
       </Note>
+      <p className="-mt-1 text-center text-sm text-[#515154]">
+        Não tem conta?{' '}
+        <Link
+          href="/login/solicitar"
+          className="font-semibold text-ink underline-offset-2 hover:underline"
+        >
+          Solicitar acesso
+        </Link>
+      </p>
     </form>
   );
 }

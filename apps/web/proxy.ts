@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
 const SESSION_COOKIES = ['better-auth.session_token', '__Secure-better-auth.session_token'];
-const PUBLIC_PATHS = ['/login'];
+const PUBLIC_PATHS = ['/login', '/login/solicitar'];
 
 function csp(nonce: string): string {
   const dev = process.env.NODE_ENV === 'development';
