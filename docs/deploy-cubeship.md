@@ -79,6 +79,13 @@ Chaves novas (nunca as de dev) e guardadas no cofre: sem `FIELD_ENCRYPTION_KEY` 
    `SEED_INITIAL_PASSWORD=... node node_modules/@npac/db/dist/seed-cli.js`
 4. Confira `https://<domínio>/api/health` e o login.
 
+### Senha esquecida sem ninguém da Diretoria para redefinir
+
+No shell do app `api`:
+`node node_modules/@npac/db/dist/reset-password-cli.js <usuário>` (acrescente `--mfa` se o
+autenticador também se perdeu). Ele mostra uma senha temporária só nesse terminal, obriga a
+troca no próximo login, derruba as sessões e grava `cli.user.reset_password` na auditoria.
+
 ## 4. Backup
 
 O backup do datastore no Cubeship é ligado ao banco configurado nele (`npac_db`, vazio),
