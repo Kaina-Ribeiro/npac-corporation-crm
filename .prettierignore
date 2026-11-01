@@ -10,3 +10,7 @@ docs
 **/test-results/**
 **/playwright-report/**
 .review-*
+# release-kit: kept byte-identical to upstream so install.sh can update it
+.github/scripts/release.mjs
+.github/rulesets
+RELEASING.md
