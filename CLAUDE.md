@@ -8,6 +8,8 @@ indicar. Mantenha denso; ao mudar arquitetura, regra ou comando, atualize aqui.
 - **Pergunta não é pedido** ("o que acha?", "dá pra…?", "faz sentido…?"): opinar, dar opções e
   recomendação, esperar o "faz". Sem editar nem rodar nada.
 - Português, respostas curtas, execução direta quando o pedido é explícito. Commits frequentes; push só se pedirem.
+- Branch, PR, tag e release seguem `RELEASING.md` (release-kit): branch `tipo/NPAC-N-nome` a partir da
+  `release/vX.Y` aberta, PR `tipo(NPAC-N): resumo` em minúsculas, squash. Tags só pela automação.
 - Sem subagentes sem pedido. Plano novo grande: apresentar antes de implementar.
 - Régua: CRMs robustos (Linear, Attio).
 - Bug: teste que falha (RED) → correção → teste focado → suíte ao fechar.
@@ -45,7 +47,7 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   (cards reordenáveis: `dashboard-board.tsx`, `lib/dashboard-layout.ts`, `lib/board-motion.ts`) ·
   admin `admin.tsx`, `access-requests.tsx` · Ctrl+K `shell/command-palette.tsx` · avisos `inbox.tsx` ·
   textos de atividade `lib/activity-text.ts`
-- **Docs:** `docs/spec.md`; deploy `docs/deploy.md` (Oracle), `docs/deploy-cubeship.md`; planos `docs/superpowers/plans/`
+- **Docs:** `docs/spec.md`; deploy `docs/deploy.md` (Oracle), `docs/deploy-cubeship.md`; planos `docs/superpowers/plans/`; releases `RELEASING.md`
 
 Next 16 tem APIs incompatíveis: em dúvida, `web/node_modules/next/dist/docs/`. Valor exportado de
 módulo `'use client'` não é legível em server component: constantes compartilhadas ficam em arquivo
@@ -148,5 +150,5 @@ pnpm exec prettier --write <arquivos>
 
 ## Não commitar
 
-`.env`, dumps, `test-results/`, logs, `node_modules`, `.claude/`. Commits terminam com a linha
-`Co-Authored-By` do ambiente.
+`.env`, dumps, `test-results/`, logs, `node_modules`, `.claude/`. Commits sem linha de
+atribuição.
