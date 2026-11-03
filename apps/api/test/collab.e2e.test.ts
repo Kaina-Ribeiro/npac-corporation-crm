@@ -140,7 +140,7 @@ describe('handoff', () => {
 
   it('reunião em andamento ou sem resultado ainda é a reunião do handoff', async () => {
     await owner`insert into meetings (lead_id, closer_id, scheduled_at, origin, created_by)
-      values (${leadId}, ${ids.sonia}, now() - interval '30 minutes', 'DIRETO', ${ids.ale})`;
+      values (${leadId}, ${ids.sonia!}, now() - interval '30 minutes', 'DIRETO', ${ids.ale!})`;
     const res = await h.get(`/api/leads/${leadId}/handoff`, ale);
     expect(res.body.text).not.toContain('a agendar');
     expect(res.body.text).toContain('com Sônia');
@@ -183,9 +183,9 @@ describe('equipe', () => {
     const [p] = await owner<{ id: string }[]>`select id from products where code = 'NACAO_PROMO'`;
     // 1) Ale prospectou, Sônia fechou · 2) Murilo prospectou, Ale fechou · 3) Ale fez os dois.
     for (const [lead, sdr, closer, cents] of [
-      [leadId, ids.ale, ids.sonia, 100_00],
-      [other.body.id, ids.murilo, ids.ale, 200_00],
-      [third.body.id, ids.ale, ids.ale, 400_00],
+      [leadId, ids.ale!, ids.sonia!, 100_00],
+      [other.body.id, ids.murilo!, ids.ale!, 200_00],
+      [third.body.id, ids.ale!, ids.ale!, 400_00],
     ] as const) {
       await owner`insert into deals (lead_id, product_id, product_name, catalog_price_cents, closer_id, sdr_id, total_cents, method, request_key, created_by)
         values (${lead}, ${p!.id}, 'Nação', ${cents}, ${closer}, ${sdr}, ${cents}, 'PIX', gen_random_uuid(), ${sdr})`;
