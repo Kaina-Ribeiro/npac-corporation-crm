@@ -10,7 +10,7 @@ import { INCOME_BAND_LABELS, LEAD_SOURCES, TIERS, isLeader } from '@npac/shared/
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import { brasiliaInput, clientApi } from '@/lib/client-api';
-import { button, control, Field, FormError } from './crm-ui';
+import { button, control, Field, FormError, StageOptions } from './crm-ui';
 
 export function LeadForm({
   catalog,
@@ -149,11 +149,7 @@ export function LeadForm({
         </Field>
         <Field label="Etapa">
           <select className={control} name="stageKey" defaultValue={lead?.stageKey ?? 'SONDAGEM'}>
-            {catalog.stages.map((s) => (
-              <option key={s.id} value={s.key}>
-                {s.label}
-              </option>
-            ))}
+            <StageOptions stages={catalog.stages} current={lead?.stageKey ?? 'SONDAGEM'} />
           </select>
         </Field>
         <Field label="Próximo contato (Brasília)">

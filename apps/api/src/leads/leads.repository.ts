@@ -100,7 +100,8 @@ export class LeadsRepository {
   }
 
   async findById(tx: Tx, id: string): Promise<LeadRow | undefined> {
-    const [row] = await this.baseQuery(tx).where(eq(leads.id, id));
+    // Excluído responde 404 como inexistente, igual a lockLead (a liderança ainda o vê na RLS).
+    const [row] = await this.baseQuery(tx).where(and(eq(leads.id, id), isNull(leads.deletedAt)));
     return row;
   }
 
