@@ -35,13 +35,19 @@ e "lead excluído não abre nem para a liderança".
   dão 404; a página web cai em not-found. Lead excluído continua legível até a anonimização (180 dias).
 - **Correção:** `findById` com `isNull(leads.deletedAt)` (mesmo critério do `lockLead`).
 
+## Fluxos corrigidos no segundo bloco (03/11/2026)
+
+4. **Admin sem UI para `canProspect`/`canClose`** — cada linha da equipe ganhou as caixas
+   "Prospecta" e "Fecha" (`admin.tsx`, PATCH que a API já aceitava). Playwright `admin.spec.ts`.
+5. **Filtro salvo com `period=RANGE` sem datas** — `viewInput` recusa (400 "Intervalo inválido",
+   mesma regra da lista); `/leads?view=<id>` com filtro antigo inválido abre a lista sem ele em vez
+   de quebrar (`leads/page.tsx`). Teste `views.e2e` "intervalo salvo exige datas válidas".
+6. **Reunião com resultado** — não remarca, não troca closer nem cancela (409 "A reunião já tem
+   resultado"); só a liderança corrige o resultado. Ficha esconde esses controles
+   (`lead-detail.tsx`). Teste `meetings.e2e` "reunião com resultado não remarca…".
+
 ## Fluxos quebrados ou incompletos (não testados em runtime, lidos no código)
 
-4. **Admin troca cargo sem mexer em `canProspect`/`canClose`** (`admin.tsx:270`): um SDR promovido a
-   Closer nunca vira closer de verdade e não há UI para ajustar as flags (a API já aceita).
-5. **Filtro salvo com `period=RANGE` sem datas** (`notifications/views.ts:32`): `/leads?view=<id>`
-   recebe 400 no server component e vira página de erro até apagar a view.
-6. **Resultado de reunião sobrescrevível e remarcável depois de realizada** (`meetings.service.ts:66`).
 7. **Tarefa criada pela liderança na ficha não aparece no Hoje do SDR** (`lead-activity.service.ts:87`,
    `assigneeId` sempre = criador).
 8. **Pedido de acesso com e-mail já cadastrado** passa e trava na aprovação com 409

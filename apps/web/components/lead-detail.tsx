@@ -230,8 +230,8 @@ export function LeadDetail({
               {!m.canceledAt && (
                 <>
                   <div className="flex flex-wrap gap-2">
-                    {/* Resultado só depois do horário marcado (a API recusa antes). */}
-                    {started(m.scheduledAt) && (
+                    {/* Resultado só depois do horário marcado (a API recusa antes); registrado, só a liderança corrige. */}
+                    {started(m.scheduledAt) && (!m.outcome || isLeader(me.role)) && (
                       <>
                         <button
                           className={quietButton}
@@ -259,40 +259,47 @@ export function LeadDetail({
                         </button>
                       </>
                     )}
-                    <button
-                      className={quietButton}
-                      disabled={busy}
-                      onClick={() =>
-                        void mutate(`/api/meetings/${m.id}/cancel`, 'POST', { version: m.version })
-                      }
-                    >
-                      Cancelar reunião
-                    </button>
+                    {/* Com resultado a reunião está encerrada: não cancela, não remarca, não troca closer. */}
+                    {!m.outcome && (
+                      <button
+                        className={quietButton}
+                        disabled={busy}
+                        onClick={() =>
+                          void mutate(`/api/meetings/${m.id}/cancel`, 'POST', {
+                            version: m.version,
+                          })
+                        }
+                      >
+                        Cancelar reunião
+                      </button>
+                    )}
                   </div>
-                  <form
-                    className="flex flex-col gap-2"
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      const f = new FormData(e.currentTarget);
-                      void mutate(`/api/meetings/${m.id}`, 'PATCH', {
-                        version: m.version,
-                        scheduledAt: brasiliaInput(String(f.get('scheduledAt') ?? '')),
-                      });
-                    }}
-                  >
-                    <Field label="Novo horário (Brasília)">
-                      <input
-                        name="scheduledAt"
-                        type="datetime-local"
-                        className={control}
-                        required
-                      />
-                    </Field>
-                    <button disabled={busy} className={`${quietButton} self-start`}>
-                      Reagendar
-                    </button>
-                  </form>
-                  {isLeader(me.role) && (
+                  {!m.outcome && (
+                    <form
+                      className="flex flex-col gap-2"
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        const f = new FormData(e.currentTarget);
+                        void mutate(`/api/meetings/${m.id}`, 'PATCH', {
+                          version: m.version,
+                          scheduledAt: brasiliaInput(String(f.get('scheduledAt') ?? '')),
+                        });
+                      }}
+                    >
+                      <Field label="Novo horário (Brasília)">
+                        <input
+                          name="scheduledAt"
+                          type="datetime-local"
+                          className={control}
+                          required
+                        />
+                      </Field>
+                      <button disabled={busy} className={`${quietButton} self-start`}>
+                        Reagendar
+                      </button>
+                    </form>
+                  )}
+                  {isLeader(me.role) && !m.outcome && (
                     <Field label="Reatribuir closer">
                       <select
                         className={control}
