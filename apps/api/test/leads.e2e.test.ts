@@ -83,6 +83,16 @@ describe('leads', () => {
       ).status,
     ).toBe(400);
   });
+  it('SDR que não prospecta não cadastra lead', async () => {
+    await owner`update "user" set can_prospect = false where email = 'ale@npac.com.br'`;
+    try {
+      const res = await h.post('/api/leads', lead(), ale);
+      expect(res.status).toBe(403);
+      expect(res.body.message).toBe('Seu usuário não prospecta. Peça à liderança.');
+    } finally {
+      await owner`update "user" set can_prospect = true where email = 'ale@npac.com.br'`;
+    }
+  });
   it('ficha guarda notas e tarefas com timeline sem copiar conteúdo', async () => {
     const id = await create(lead(), ale);
     expect(
@@ -180,6 +190,19 @@ describe('leads', () => {
     expect(timeline.map((r) => r.kind)).toContain('lead.deleted');
     expect(JSON.stringify(timeline)).not.toContain('Maria');
   });
+  it('lead não nasce em Venda: a etapa só entra registrando a venda', async () => {
+    const res = await h.post('/api/leads', lead({ stageKey: 'VENDA' }), ale);
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe('SALE_REQUIRED');
+  });
+
+  it('lead excluído não abre nem para a liderança', async () => {
+    const id = await create(lead({ phone: '11988887777' }), ale);
+    expect((await h.del(`/api/leads/${id}`, { version: 1 }, ronaldo)).status).toBe(200);
+    expect((await h.get(`/api/leads/${id}`, ronaldo)).status).toBe(404);
+    expect(await owner`select 1 from audit_log where action = 'lead.view'`).toHaveLength(0);
+  });
+
   it('cadastros simultâneos do mesmo contato criam apenas um lead', async () => {
     const body = lead({ phone: '(11) 98888-7777' });
     const responses = await Promise.all([

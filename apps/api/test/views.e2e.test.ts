@@ -39,3 +39,24 @@ it('recusa termo de busca e critérios desconhecidos', async () => {
   }
   expect((await h.post('/api/views', { name: '', filters: { tier: 'P0' } }, ale)).status).toBe(400);
 });
+
+it('intervalo salvo exige datas válidas, senão a página do filtro quebraria', async () => {
+  for (const filters of [
+    { period: 'RANGE' },
+    { period: 'RANGE', from: '2030-01-01' },
+    { period: 'RANGE', from: '2030-02-01', to: '2030-01-01' },
+  ]) {
+    const res = await h.post('/api/views', { name: 'x', filters }, ale);
+    expect(res.status).toBe(400);
+    expect(res.body.issues.fieldErrors.filters).toContain('Intervalo inválido');
+  }
+  expect(
+    (
+      await h.post(
+        '/api/views',
+        { name: 'Janeiro', filters: { period: 'RANGE', from: '2030-01-01', to: '2030-01-31' } },
+        ale,
+      )
+    ).status,
+  ).toBe(201);
+});

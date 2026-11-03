@@ -165,6 +165,23 @@ it('etapa Venda só entra registrando a venda e só sai pelo estorno', async () 
   ).toBe(200);
 });
 
+it('venda acompanha o lead quando o SDR muda', async () => {
+  expect((await h.post('/api/finance/deals', sale(), ale)).status).toBe(201);
+  const [m] = await owner<
+    { id: string }[]
+  >`select id from "user" where email = 'murilo@npac.com.br'`;
+  expect((await h.patch('/api/leads/' + leadId, { version: 2, sdrId: m!.id }, head)).status).toBe(
+    200,
+  );
+  // O novo SDR enxerga a venda e continua preso à etapa Venda; o antigo perde o lead inteiro.
+  expect((await h.get('/api/finance/leads/' + leadId, murilo)).body).toHaveLength(1);
+  const out = await h.patch('/api/leads/' + leadId, { version: 3, stageKey: 'PERDIDO' }, murilo);
+  expect(out.status).toBe(409);
+  expect(out.body.code).toBe('ACTIVE_SALE');
+  expect((await h.post('/api/finance/deals', { ...sale(), version: 3 }, murilo)).status).toBe(409);
+  expect((await h.get('/api/finance/leads/' + leadId, ale)).status).toBe(404);
+});
+
 it.each(['CARD', 'PIX', 'BANK_SLIP'] as const)(
   'forma %s concilia pagamentos e saldo',
   async (method) => {

@@ -101,3 +101,32 @@ it('cancelar revoga acesso, não pode ser desfeito por campo arbitrário', async
     await owner`select kind from lead_timeline where lead_id = ${leadId} and kind = 'meeting.canceled'`;
   expect(rows).toHaveLength(1);
 });
+it('reunião com resultado não remarca, não cancela e só a liderança corrige o resultado', async () => {
+  const id = await schedule();
+  await owner`update meetings set scheduled_at = now() - interval '1 hour' where id = ${id}`;
+  expect(
+    (await h.post(`/api/meetings/${id}/outcome`, { version: 1, outcome: 'NO_SHOW' }, sonia)).status,
+  ).toBe(200);
+  const again = await h.post(`/api/meetings/${id}/outcome`, { version: 2, outcome: 'DONE' }, sonia);
+  expect(again.status).toBe(409);
+  expect(again.body.message).toBe('A reunião já tem resultado');
+  expect(
+    (
+      await h.patch(
+        `/api/meetings/${id}`,
+        { version: 2, scheduledAt: '2030-01-13T10:00:00-03:00' },
+        ale,
+      )
+    ).status,
+  ).toBe(409);
+  expect(
+    (await h.patch(`/api/meetings/${id}`, { version: 2, closerId: ids.ronaldo }, head)).status,
+  ).toBe(409);
+  expect((await h.post(`/api/meetings/${id}/cancel`, { version: 2 }, sonia)).status).toBe(409);
+  // A liderança corrige um resultado errado; a versão avança e a timeline registra.
+  expect(
+    (await h.post(`/api/meetings/${id}/outcome`, { version: 2, outcome: 'DONE' }, head)).status,
+  ).toBe(200);
+  const [m] = await h.get(`/api/meetings?leadId=${leadId}`, ale).then((r) => r.body);
+  expect(m).toMatchObject({ outcome: 'DONE', version: 3, canceledAt: null });
+});

@@ -88,7 +88,11 @@ export function LeadDetail({
       'POST',
       kind === 'notes'
         ? { body: f.get('body') }
-        : { title: f.get('title'), dueAt: brasiliaInput(String(f.get('dueAt') ?? '')) },
+        : {
+            title: f.get('title'),
+            dueAt: brasiliaInput(String(f.get('dueAt') ?? '')),
+            ...(f.get('assigneeId') ? { assigneeId: f.get('assigneeId') } : {}),
+          },
     ).then((ok) => {
       if (ok) form.reset();
     });
@@ -181,7 +185,11 @@ export function LeadDetail({
                 <p className={`text-sm ${t.completedAt ? 'line-through text-ink2' : ''}`}>
                   {t.title}
                 </p>
-                {t.dueAt && <small className="text-xs text-ink2">{date(t.dueAt)}</small>}
+                <small className="text-xs text-ink2">
+                  {[t.dueAt && date(t.dueAt), t.assigneeId !== me.id && person(t.assigneeId)]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </small>
               </div>
               <button
                 className={quietButton}
@@ -205,6 +213,14 @@ export function LeadDetail({
             <Field label="Vencimento (Brasília)">
               <input name="dueAt" type="datetime-local" className={control} />
             </Field>
+            {isLeader(me.role) && lead.sdr.id !== me.id && (
+              <Field label="Responsável">
+                <select name="assigneeId" className={control} defaultValue={lead.sdr.id}>
+                  <option value={lead.sdr.id}>{lead.sdr.name} (SDR do lead)</option>
+                  <option value={me.id}>Eu</option>
+                </select>
+              </Field>
+            )}
             <button className={`${button} self-start`} disabled={busy}>
               Adicionar tarefa
             </button>
@@ -230,8 +246,8 @@ export function LeadDetail({
               {!m.canceledAt && (
                 <>
                   <div className="flex flex-wrap gap-2">
-                    {/* Resultado só depois do horário marcado (a API recusa antes). */}
-                    {started(m.scheduledAt) && (
+                    {/* Resultado só depois do horário marcado (a API recusa antes); registrado, só a liderança corrige. */}
+                    {started(m.scheduledAt) && (!m.outcome || isLeader(me.role)) && (
                       <>
                         <button
                           className={quietButton}
@@ -259,40 +275,47 @@ export function LeadDetail({
                         </button>
                       </>
                     )}
-                    <button
-                      className={quietButton}
-                      disabled={busy}
-                      onClick={() =>
-                        void mutate(`/api/meetings/${m.id}/cancel`, 'POST', { version: m.version })
-                      }
-                    >
-                      Cancelar reunião
-                    </button>
+                    {/* Com resultado a reunião está encerrada: não cancela, não remarca, não troca closer. */}
+                    {!m.outcome && (
+                      <button
+                        className={quietButton}
+                        disabled={busy}
+                        onClick={() =>
+                          void mutate(`/api/meetings/${m.id}/cancel`, 'POST', {
+                            version: m.version,
+                          })
+                        }
+                      >
+                        Cancelar reunião
+                      </button>
+                    )}
                   </div>
-                  <form
-                    className="flex flex-col gap-2"
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      const f = new FormData(e.currentTarget);
-                      void mutate(`/api/meetings/${m.id}`, 'PATCH', {
-                        version: m.version,
-                        scheduledAt: brasiliaInput(String(f.get('scheduledAt') ?? '')),
-                      });
-                    }}
-                  >
-                    <Field label="Novo horário (Brasília)">
-                      <input
-                        name="scheduledAt"
-                        type="datetime-local"
-                        className={control}
-                        required
-                      />
-                    </Field>
-                    <button disabled={busy} className={`${quietButton} self-start`}>
-                      Reagendar
-                    </button>
-                  </form>
-                  {isLeader(me.role) && (
+                  {!m.outcome && (
+                    <form
+                      className="flex flex-col gap-2"
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        const f = new FormData(e.currentTarget);
+                        void mutate(`/api/meetings/${m.id}`, 'PATCH', {
+                          version: m.version,
+                          scheduledAt: brasiliaInput(String(f.get('scheduledAt') ?? '')),
+                        });
+                      }}
+                    >
+                      <Field label="Novo horário (Brasília)">
+                        <input
+                          name="scheduledAt"
+                          type="datetime-local"
+                          className={control}
+                          required
+                        />
+                      </Field>
+                      <button disabled={busy} className={`${quietButton} self-start`}>
+                        Reagendar
+                      </button>
+                    </form>
+                  )}
+                  {isLeader(me.role) && !m.outcome && (
                     <Field label="Reatribuir closer">
                       <select
                         className={control}

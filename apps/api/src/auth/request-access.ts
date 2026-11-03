@@ -3,7 +3,7 @@ import { accessRequests, user, type Db } from '@npac/db';
 import { accessRequestSchema } from '@npac/shared';
 import type { BetterAuthPlugin } from 'better-auth';
 import { createAuthEndpoint } from 'better-auth/api';
-import { eq, lt } from 'drizzle-orm';
+import { eq, lt, or } from 'drizzle-orm';
 import type { AuditService } from '../audit/audit.service.js';
 
 /** Pedido sem resposta some depois disso. */
@@ -32,10 +32,11 @@ export function requestAccessPlugin(db: Db, audit: AuditService): BetterAuthPlug
             .where(lt(accessRequests.createdAt, accessRequestCutoff()));
           // Hash sempre, antes de olhar o usuário: o tempo de resposta não revela quem tem conta.
           const passwordHash = await hash(password);
+          // Usuário ou e-mail já cadastrado: nada a aprovar (a aprovação daria 409).
           const [taken] = await db
             .select({ id: user.id })
             .from(user)
-            .where(eq(user.username, username));
+            .where(or(eq(user.username, username), eq(user.email, email)));
           if (!taken) {
             const [created] = await db
               .insert(accessRequests)
