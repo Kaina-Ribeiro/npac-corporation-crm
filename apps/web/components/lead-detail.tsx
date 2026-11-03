@@ -88,7 +88,11 @@ export function LeadDetail({
       'POST',
       kind === 'notes'
         ? { body: f.get('body') }
-        : { title: f.get('title'), dueAt: brasiliaInput(String(f.get('dueAt') ?? '')) },
+        : {
+            title: f.get('title'),
+            dueAt: brasiliaInput(String(f.get('dueAt') ?? '')),
+            ...(f.get('assigneeId') ? { assigneeId: f.get('assigneeId') } : {}),
+          },
     ).then((ok) => {
       if (ok) form.reset();
     });
@@ -181,7 +185,11 @@ export function LeadDetail({
                 <p className={`text-sm ${t.completedAt ? 'line-through text-ink2' : ''}`}>
                   {t.title}
                 </p>
-                {t.dueAt && <small className="text-xs text-ink2">{date(t.dueAt)}</small>}
+                <small className="text-xs text-ink2">
+                  {[t.dueAt && date(t.dueAt), t.assigneeId !== me.id && person(t.assigneeId)]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </small>
               </div>
               <button
                 className={quietButton}
@@ -205,6 +213,14 @@ export function LeadDetail({
             <Field label="Vencimento (Brasília)">
               <input name="dueAt" type="datetime-local" className={control} />
             </Field>
+            {isLeader(me.role) && lead.sdr.id !== me.id && (
+              <Field label="Responsável">
+                <select name="assigneeId" className={control} defaultValue={lead.sdr.id}>
+                  <option value={lead.sdr.id}>{lead.sdr.name} (SDR do lead)</option>
+                  <option value={me.id}>Eu</option>
+                </select>
+              </Field>
+            )}
             <button className={`${button} self-start`} disabled={busy}>
               Adicionar tarefa
             </button>

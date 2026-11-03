@@ -1,4 +1,5 @@
 import type { LeadCatalog, LeadDTO, Page, SavedViewDTO } from '@npac/shared';
+import { isLeader } from '@npac/shared/enums';
 import type { Metadata } from 'next';
 import { LeadsBrowser } from '@/components/leads-browser';
 import { ApiError, apiGet } from '@/lib/api';
@@ -36,7 +37,7 @@ export default async function LeadsPage({
     <LeadsBrowser
       key={active?.id ?? 'all'}
       initialData={data}
-      canCreate={me?.role !== 'CLOSER'}
+      canCreate={!!me && (isLeader(me.role) || me.canProspect)}
       catalog={catalog}
       role={me?.role ?? 'SDR'}
       views={views}

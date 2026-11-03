@@ -83,6 +83,16 @@ describe('leads', () => {
       ).status,
     ).toBe(400);
   });
+  it('SDR que não prospecta não cadastra lead', async () => {
+    await owner`update "user" set can_prospect = false where email = 'ale@npac.com.br'`;
+    try {
+      const res = await h.post('/api/leads', lead(), ale);
+      expect(res.status).toBe(403);
+      expect(res.body.message).toBe('Seu usuário não prospecta. Peça à liderança.');
+    } finally {
+      await owner`update "user" set can_prospect = true where email = 'ale@npac.com.br'`;
+    }
+  });
   it('ficha guarda notas e tarefas com timeline sem copiar conteúdo', async () => {
     const id = await create(lead(), ale);
     expect(

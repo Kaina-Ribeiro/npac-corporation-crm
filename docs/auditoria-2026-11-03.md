@@ -46,15 +46,20 @@ e "lead excluído não abre nem para a liderança".
    resultado"); só a liderança corrige o resultado. Ficha esconde esses controles
    (`lead-detail.tsx`). Teste `meetings.e2e` "reunião com resultado não remarca…".
 
+## Fluxos corrigidos no terceiro bloco (03/11/2026)
+
+7. **Tarefa da ficha é de quem trabalha o lead** — a liderança cria para o SDR do lead por padrão
+   (ou escolhe "Eu" no select "Responsável"); `assigneeId` fora de {SDR do lead, quem cria} → 400.
+   A lista mostra para quem é. Teste `today.e2e` "tarefa que a liderança cria na ficha…".
+8. **Pedido de acesso com e-mail já cadastrado** — tratado como usuário existente: resposta neutra e
+   nada gravado (`request-access.ts`). Teste `access-requests.e2e` "e-mail já cadastrado responde igual".
+11. **SDR com `canProspect=false`** — `POST /leads` → 403 "Seu usuário não prospecta"; botão "Novo lead"
+   e `/leads/new` seguem a flag, não o cargo. Teste `leads.e2e` "SDR que não prospecta não cadastra lead".
+
 ## Fluxos quebrados ou incompletos (não testados em runtime, lidos no código)
 
-7. **Tarefa criada pela liderança na ficha não aparece no Hoje do SDR** (`lead-activity.service.ts:87`,
-   `assigneeId` sempre = criador).
-8. **Pedido de acesso com e-mail já cadastrado** passa e trava na aprovação com 409
-   (`request-access.ts:35`).
 9. **Hoje da liderança lista tarefas pessoais de todo mundo** (`today.service.ts:105` + RLS 0010).
 10. **Handoff diz "a agendar" assim que a reunião começa** (`handoff.ts:48`, exige `scheduled_at > now()`).
-11. **SDR com `canProspect=false` ainda cria leads** (`leads.service.ts:92`).
 12. **Equipe: vendas de quem prospecta e fecha usam `max`, não soma** (`collab/team.ts:51`).
 13. **Sessão expira 30 dias após o login mesmo com uso diário** (`auth.ts:135`) — plausível, não
     verificado: o `SessionGuard` não repassa o cookie renovado ao navegador.

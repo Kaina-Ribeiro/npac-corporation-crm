@@ -1,4 +1,5 @@
 import type { LeadCatalog } from '@npac/shared';
+import { isLeader } from '@npac/shared/enums';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { LeadForm } from '@/components/lead-form';
@@ -9,7 +10,8 @@ export const metadata = { title: 'Novo lead' };
 export default async function NewLeadPage() {
   const me = await getSession();
   if (!me) redirect('/login');
-  if (me.role === 'CLOSER') redirect('/leads');
+  // Cadastrar é de quem prospecta (dado), não do cargo.
+  if (!isLeader(me.role) && !me.canProspect) redirect('/leads');
   const catalog = await apiGet<LeadCatalog>('/api/leads/catalog');
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-5">

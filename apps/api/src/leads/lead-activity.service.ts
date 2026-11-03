@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Inject,
@@ -79,12 +80,21 @@ export class LeadActivityService {
       return row;
     });
   }
-  async task(u: AuthUser, id: string, input: { title: string; dueAt?: Date | null }) {
+  async task(
+    u: AuthUser,
+    id: string,
+    { assigneeId, ...input }: { title: string; dueAt?: Date | null; assigneeId?: string },
+  ) {
     return withUser(this.db, u.id, async (tx) => {
-      await lockLead(tx, id);
+      const lead = await lockLead(tx, id);
+      // Tarefa da ficha é de quem trabalha o lead: a liderança delega ao SDR por padrão
+      // (ou fica com ela); ninguém atribui a quem não enxerga o lead.
+      const assignee = assigneeId ?? (isLeader(u.role) ? lead.sdrId : u.id);
+      if (assignee !== lead.sdrId && assignee !== u.id)
+        throw new BadRequestException('A tarefa só pode ser do SDR do lead ou sua');
       const [row] = await tx
         .insert(leadTasks)
-        .values({ ...input, leadId: id, assigneeId: u.id, createdBy: u.id })
+        .values({ ...input, leadId: id, assigneeId: assignee, createdBy: u.id })
         .returning();
       await recordActivity(tx, u, id, 'task.created', [], row!.id);
       return row;

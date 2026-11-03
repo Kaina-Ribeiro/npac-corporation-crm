@@ -7,9 +7,13 @@ let app: NestFastifyApplication;
 let h: ReturnType<typeof api>;
 let ale: string, murilo: string;
 let a: string, m: string;
+let users: Record<string, string>;
+const ids = (name: string) => users[name]!;
 beforeAll(async () => {
   app = await createTestApp();
   h = api(app);
+  const rows = await owner<{ id: string; email: string }[]>`select id, email from "user"`;
+  users = Object.fromEntries(rows.map((u) => [u.email.split('@')[0], u.id]));
 });
 afterAll(async () => closeTestApp(app));
 beforeEach(async () => {
@@ -71,4 +75,34 @@ it('tarefas avulsas são pessoais e podem ser concluídas sem lead', async () =>
     (await h.patch(`/api/tasks/${res.body.id}`, { version: 1, completed: true }, ale)).status,
   ).toBe(200);
   expect((await h.post('/api/today/search', {}, ale)).body.tasks).toHaveLength(0);
+});
+it('tarefa que a liderança cria na ficha vai para o SDR do lead e aparece no Hoje dele', async () => {
+  const head = await h.signIn('ronaldo@npac.com.br');
+  await owner`update "user" set two_factor_enabled = true where email = 'ronaldo@npac.com.br'`;
+  const task = await h.post(`/api/leads/${a}/tasks`, { title: 'Cobrar retorno' }, head);
+  expect(task.status).toBe(201);
+  expect(task.body.assigneeId).toBe(ids('ale'));
+  expect(
+    (await h.post('/api/today/search', {}, ale)).body.tasks.map((t: { id: string }) => t.id),
+  ).toEqual([task.body.id]);
+  expect((await h.post('/api/today/search', {}, murilo)).body.tasks).toHaveLength(0);
+  // A liderança pode ficar com a tarefa; fora do SDR do lead ou de si mesma, não.
+  const mine = await h.post(
+    `/api/leads/${a}/tasks`,
+    { title: 'Revisar proposta', assigneeId: ids('ronaldo') },
+    head,
+  );
+  expect(mine.status).toBe(201);
+  expect((await h.post('/api/today/search', {}, ale)).body.tasks).toHaveLength(1);
+  const other = await h.post(
+    `/api/leads/${a}/tasks`,
+    { title: 'Errado', assigneeId: ids('murilo') },
+    head,
+  );
+  expect(other.status).toBe(400);
+  // O SDR continua criando para si mesmo e não escolhe outra pessoa.
+  expect(
+    (await h.post(`/api/leads/${a}/tasks`, { title: 'Minha', assigneeId: ids('murilo') }, ale))
+      .status,
+  ).toBe(400);
 });
