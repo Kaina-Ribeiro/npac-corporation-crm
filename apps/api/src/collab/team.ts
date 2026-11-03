@@ -39,6 +39,22 @@ export class TeamService {
     const r = await this.reports.search(u, { period: 'MONTH', pageSize: 1 }, { audit: false });
     const bySdr = new Map((r.bySdr as Row[]).map((x) => [x.id, x]));
     const byCloser = new Map((r.byCloser as Row[]).map((x) => [x.id, x]));
+    // Vendas por pessoa: cada venda conta uma vez para quem prospectou e uma para quem fechou
+    // (a mesma pessoa nos dois papéis conta uma só), com o mesmo recorte do relatório.
+    const sales = new Map(
+      (
+        await withUser(this.db, u.id, (tx) =>
+          tx.execute<{ id: string; sales: string; cents: string }>(sql`
+            select t.id, count(*) as sales, coalesce(sum(t.total_cents), 0) as cents
+            from (select distinct x.id, d.id as deal_id, d.total_cents
+              from deals d
+              join leads l on l.id = d.lead_id and l.deleted_at is null
+              cross join lateral (values (d.sdr_id), (d.closer_id)) x(id)
+              where d.reversed_at is null and d.closed_at >= ${r.from} and d.closed_at < ${r.to}) t
+            group by t.id`),
+        )
+      ).map((x) => [x.id, x]),
+    );
     const stats = (id: string): TeamStats | null => {
       if (!isLeader(u.role) && id !== u.id) return null;
       const s = bySdr.get(id);
@@ -48,8 +64,8 @@ export class TeamService {
         leads: n(s?.leads),
         meetings: n(s?.meetings) + n(c?.meetings),
         done: n(s?.done) + n(c?.done),
-        sales: Math.max(n(s?.sales), n(c?.sales)),
-        soldCents: Math.max(n(s?.soldCents), n(c?.soldCents)),
+        sales: n(sales.get(id)?.sales),
+        soldCents: n(sales.get(id)?.cents),
       };
     };
     return {

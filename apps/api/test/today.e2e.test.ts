@@ -106,3 +106,19 @@ it('tarefa que a liderança cria na ficha vai para o SDR do lead e aparece no Ho
       .status,
   ).toBe(400);
 });
+it('Hoje da liderança mostra as próprias tarefas pessoais, não as de todo mundo', async () => {
+  const head = await h.signIn('ronaldo@npac.com.br');
+  await owner`update "user" set two_factor_enabled = true where email = 'ronaldo@npac.com.br'`;
+  const personal = await h.post('/api/tasks', { title: 'Treinar pitch' }, ale);
+  const own = await h.post('/api/tasks', { title: 'Revisar metas' }, head);
+  const onLead = await h.post(`/api/leads/${a}/tasks`, { title: 'Ligar' }, ale);
+  const titles = (res: { body: { tasks: { id: string }[] } }) => res.body.tasks.map((t) => t.id);
+  // Sem filtro: tarefas dos leads (de todos) + só as pessoais da própria liderança.
+  expect(titles(await h.post('/api/today/search', {}, head)).sort()).toEqual(
+    [own.body.id, onLead.body.id].sort(),
+  );
+  // Olhando o dia de um SDR, as tarefas pessoais dele aparecem.
+  expect(titles(await h.post('/api/today/search', { sdrId: ids('ale') }, head)).sort()).toEqual(
+    [personal.body.id, onLead.body.id].sort(),
+  );
+});

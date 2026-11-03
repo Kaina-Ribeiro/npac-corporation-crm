@@ -56,11 +56,17 @@ e "lead excluído não abre nem para a liderança".
 11. **SDR com `canProspect=false`** — `POST /leads` → 403 "Seu usuário não prospecta"; botão "Novo lead"
    e `/leads/new` seguem a flag, não o cargo. Teste `leads.e2e` "SDR que não prospecta não cadastra lead".
 
+## Fluxos corrigidos no quarto bloco (03/11/2026)
+
+9. **Hoje da liderança** — tarefas pessoais só as próprias; as de outra pessoa aparecem ao filtrar
+   por ela (`today.service.ts`). Teste `today.e2e` "Hoje da liderança mostra as próprias tarefas pessoais".
+10. **Handoff** — a reunião é a pendente mais próxima (futura primeiro; em andamento ou sem resultado
+   também vale), não só `scheduled_at > now()` (`handoff.ts`). Teste `collab.e2e` "reunião em andamento…".
+12. **Equipe** — vendas por pessoa = vendas distintas em que ela é SDR ou closer, no recorte do mês
+   (`collab/team.ts`, antes `Math.max`). Teste `collab.e2e` "vendas de quem prospecta e também fecha somam".
+
 ## Fluxos quebrados ou incompletos (não testados em runtime, lidos no código)
 
-9. **Hoje da liderança lista tarefas pessoais de todo mundo** (`today.service.ts:105` + RLS 0010).
-10. **Handoff diz "a agendar" assim que a reunião começa** (`handoff.ts:48`, exige `scheduled_at > now()`).
-12. **Equipe: vendas de quem prospecta e fecha usam `max`, não soma** (`collab/team.ts:51`).
 13. **Sessão expira 30 dias após o login mesmo com uso diário** (`auth.ts:135`) — plausível, não
     verificado: o `SessionGuard` não repassa o cookie renovado ao navegador.
 
