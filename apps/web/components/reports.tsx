@@ -435,7 +435,7 @@ export function Reports({
         ['A receber das vendas do período', money(m.outstandingCents ?? 0)],
       ];
   const page = (
-    <div className="mx-auto flex max-w-6xl flex-col gap-5">
+    <div className="mx-auto flex max-w-[1920px] flex-col gap-5">
       {dashboard ? (
         <header className="reveal flex flex-wrap items-end justify-between gap-4">
           <div className="min-w-0">
@@ -594,7 +594,7 @@ export function Reports({
         />
       ) : (
         <>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 3xl:grid-cols-4">
             {cards.map(([label, value], i) => (
               <article key={label} className="glass-card p-5">
                 <p className="text-sm text-ink2">{label}</p>

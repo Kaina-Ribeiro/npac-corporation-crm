@@ -82,6 +82,9 @@
 }
 
 @theme inline {
+  /* Telas largas: 3xl ≈ 1792 px (monitores 1920), 4xl = 2400 px (ultrawide/2560+). */
+  --breakpoint-3xl: 112rem;
+  --breakpoint-4xl: 150rem;
   --font-sans:
     -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', var(--font-geist),
     system-ui, sans-serif;
@@ -698,4 +701,13 @@ html[data-dash-dragging] * {
   transition:
     width 0.2s ease-out,
     opacity 0.3s ease 0.15s;
+}
+
+/* Rolagem interna discreta (colunas do Pipeline, listas do Chat): trilho fino e transparente. */
+.scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.16) transparent;
+}
+.dark .scroll-thin {
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
 }
