@@ -19,7 +19,7 @@ export function QuickAction({
   run: (body: object) => Promise<void>;
 }) {
   const [mode, setMode] = useState<Mode | null>(null);
-  const chip = `${quietButton} min-h-11 transition-[transform,background-color] hover:bg-black/5 active:scale-[.97] dark:hover:bg-white/10`;
+  const chip = `${quietButton} min-h-11 transition-[transform,background-color] hover:bg-black/5 active:scale-[.97] dark:hover:bg-white/10 aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-[var(--bg)]`;
   function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
