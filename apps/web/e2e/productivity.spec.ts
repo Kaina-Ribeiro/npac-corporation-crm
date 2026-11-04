@@ -240,6 +240,47 @@ test('hoje: ação rápida de chamado, remarcado e próxima ação', async ({ pa
   await page.screenshot({ path: 'test-results/hoje-acao-rapida.png', fullPage: true });
 });
 
+test('hoje: ação rápida da reunião marca realizada e remarca', async ({ page }) => {
+  await login(page, 'ale@npac.com.br');
+  const ids: string[] = [];
+  for (const name of ['Reunião Feita', 'Reunião Remarcar']) {
+    const res = await page.request.post('/api/leads', {
+      data: {
+        name,
+        instagram: `@reuniao.${Date.now()}.${ids.length}`,
+        incomeBand: 'R5_8K',
+        tier: 'P0',
+      },
+    });
+    ids.push(((await res.json()) as { id: string }).id);
+  }
+  await owner`insert into meetings (lead_id, closer_id, scheduled_at, origin, created_by)
+    select l.id, c.id, now() - interval '1 minute', 'DIRETO', s.id
+    from leads l, "user" c, "user" s
+    where l.id in ${owner(ids)} and c.email = 'sonia@npac.com.br' and s.email = 'ale@npac.com.br'`;
+  await page.goto('/hoje');
+  const section = page.locator('section', {
+    has: page.getByRole('heading', { name: /^Reuniões de hoje/ }),
+  });
+  const row = (name: string) => section.locator('article', { hasText: name });
+  await expect(row('Reunião Feita').getByRole('link', { name: 'Abrir ficha' })).toBeVisible();
+
+  await row('Reunião Feita').getByRole('button', { name: 'Ação rápida' }).click();
+  await row('Reunião Feita').getByRole('button', { name: 'Realizada', exact: true }).click();
+  await expect(row('Reunião Feita').getByText(/· Realizada/)).toBeVisible();
+  await expect(row('Reunião Feita').getByRole('button', { name: 'Ação rápida' })).toHaveCount(0);
+
+  await row('Reunião Remarcar').getByRole('button', { name: 'Ação rápida' }).click();
+  await row('Reunião Remarcar').getByRole('button', { name: 'Remarcar', exact: true }).click();
+  const tomorrow = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(
+    new Date(Date.now() + 86_400_000),
+  );
+  await row('Reunião Remarcar').getByLabel('Novo horário').fill(`${tomorrow}T10:00`);
+  await row('Reunião Remarcar').getByRole('button', { name: 'Salvar' }).click();
+  await expect(row('Reunião Remarcar')).toHaveCount(0);
+  await page.screenshot({ path: 'test-results/hoje-reuniao-acao.png', fullPage: true });
+});
+
 test('hoje: contato que vence com a página aberta vai para atrasados pelo navegador', async ({
   page,
 }) => {

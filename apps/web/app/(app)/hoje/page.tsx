@@ -20,6 +20,7 @@ export default async function HojePage() {
       name={me.name}
       head={isLeader(me.role)}
       quick={me.role !== 'CLOSER'}
+      charges={me.role !== 'SDR'}
     />
   );
 }
