@@ -87,7 +87,7 @@ export function LeadForm({
           </button>
         </div>
       )}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3 4xl:grid-cols-4">
         <Field label="Nome">
           <input
             className={control}

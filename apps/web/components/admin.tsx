@@ -73,9 +73,14 @@ const date = (at: string) =>
     timeStyle: 'short',
   });
 
+/** Coluna lateral (formulário) + conteúdo principal; empilha abaixo de xl. */
+const split =
+  'grid items-start gap-5 xl:grid-cols-[minmax(320px,400px)_minmax(0,1fr)] 4xl:grid-cols-[460px_minmax(0,1fr)]';
+
 function Card({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="glass-card flex flex-col gap-3 p-5">
+    // @container: o formulário escolhe 1 ou 2 colunas pela largura do card, não da tela.
+    <section className="glass-card @container flex min-w-0 flex-col gap-3 p-5">
       <h2 className="text-lg font-bold tracking-[-0.03em]">{title}</h2>
       {children}
     </section>
@@ -139,7 +144,7 @@ export function Admin({
   const sdrs = data.users.filter((u) => u.active && u.canProspect);
 
   return (
-    <div className="mx-auto flex max-w-7xl flex-col gap-5">
+    <div className="flex w-full flex-col gap-5">
       <h1 className="mt-1.5 text-[34px] leading-tight font-bold tracking-[-0.04em]">Admin</h1>
       <AccessRequests
         requests={data.requests}
@@ -182,69 +187,73 @@ export function Admin({
       )}
 
       {tab === 'Usuários' && (
-        <>
-          <Card title="Convidar">
-            <form
-              className="grid gap-3 sm:grid-cols-2"
-              onSubmit={(e: FormEvent<HTMLFormElement>) => {
-                e.preventDefault();
-                const f = new FormData(e.currentTarget);
-                const form = e.currentTarget;
-                void run(async () => {
-                  const r = await clientApi('/api/admin/users', 'POST', {
-                    name: String(f.get('name')),
-                    email: String(f.get('email')),
-                    username: String(f.get('username')).trim().toLowerCase(),
-                    role: String(f.get('role')),
-                    canProspect: f.get('canProspect') === 'on',
-                    canClose: f.get('canClose') === 'on',
+        <div className={split}>
+          <div className="xl:sticky xl:top-6">
+            <Card title="Convidar">
+              <form
+                className="grid gap-3 @lg:grid-cols-2"
+                onSubmit={(e: FormEvent<HTMLFormElement>) => {
+                  e.preventDefault();
+                  const f = new FormData(e.currentTarget);
+                  const form = e.currentTarget;
+                  void run(async () => {
+                    const r = await clientApi('/api/admin/users', 'POST', {
+                      name: String(f.get('name')),
+                      email: String(f.get('email')),
+                      username: String(f.get('username')).trim().toLowerCase(),
+                      role: String(f.get('role')),
+                      canProspect: f.get('canProspect') === 'on',
+                      canClose: f.get('canClose') === 'on',
+                    });
+                    form.reset();
+                    setTimeout(() => setNotice(temp(r)));
                   });
-                  form.reset();
-                  setTimeout(() => setNotice(temp(r)));
-                });
-              }}
-            >
-              <Field label="Nome">
-                <input name="name" className={control} required maxLength={120} />
-              </Field>
-              <Field label="E-mail">
-                <input name="email" type="email" className={control} required />
-              </Field>
-              <Field label="Usuário">
-                <input
-                  name="username"
-                  className={control}
-                  required
-                  minLength={3}
-                  maxLength={30}
-                  pattern="[a-zA-Z0-9_.]+"
-                  title="3 a 30 letras, números, ponto ou _"
-                  placeholder="ex.: maria.silva"
-                  autoCapitalize="none"
-                  autoCorrect="off"
-                  spellCheck={false}
-                />
-              </Field>
-              <Field label="Papel">
-                <select name="role" className={control} defaultValue="SDR">
-                  {roles.map((r) => (
-                    <option key={r} value={r}>
-                      {ROLE_LABEL[r]}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <div className="flex items-end gap-4 text-sm font-semibold">
-                <label className="flex items-center gap-2">
-                  <input type="checkbox" name="canProspect" /> Prospecta
-                </label>
-                <label className="flex items-center gap-2">
-                  <input type="checkbox" name="canClose" /> Fecha
-                </label>
-              </div>
-              <button className={`${button} sm:col-span-2 sm:justify-self-start`}>Convidar</button>
-            </form>
-          </Card>
+                }}
+              >
+                <Field label="Nome">
+                  <input name="name" className={control} required maxLength={120} />
+                </Field>
+                <Field label="E-mail">
+                  <input name="email" type="email" className={control} required />
+                </Field>
+                <Field label="Usuário">
+                  <input
+                    name="username"
+                    className={control}
+                    required
+                    minLength={3}
+                    maxLength={30}
+                    pattern="[a-zA-Z0-9_.]+"
+                    title="3 a 30 letras, números, ponto ou _"
+                    placeholder="ex.: maria.silva"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                  />
+                </Field>
+                <Field label="Papel">
+                  <select name="role" className={control} defaultValue="SDR">
+                    {roles.map((r) => (
+                      <option key={r} value={r}>
+                        {ROLE_LABEL[r]}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <div className="flex items-end gap-4 text-sm font-semibold">
+                  <label className="flex items-center gap-2">
+                    <input type="checkbox" name="canProspect" /> Prospecta
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input type="checkbox" name="canClose" /> Fecha
+                  </label>
+                </div>
+                <button className={`${button} @lg:col-span-2 @lg:justify-self-start`}>
+                  Convidar
+                </button>
+              </form>
+            </Card>
+          </div>
           <Card title="Equipe">
             <ul className="divide-y divide-line">
               {data.users.map((u) => (
@@ -430,114 +439,120 @@ export function Admin({
               ))}
             </ul>
           </Card>
-        </>
+        </div>
       )}
 
       {tab === 'Produtos' && (
-        <Card title="Produtos e preços">
-          <p className="text-xs text-ink2">
-            Vendas antigas guardam nome e preço da época; mudar o catálogo não as altera.
-          </p>
-          <ul className="divide-y divide-line">
-            {data.products.map((p) => (
-              <li key={p.id} className="py-3">
-                <form
-                  className="flex flex-wrap items-end gap-2"
-                  aria-label={`Produto ${p.name}`}
-                  onSubmit={(e: FormEvent<HTMLFormElement>) => {
-                    e.preventDefault();
-                    const f = new FormData(e.currentTarget);
-                    void run(
-                      () =>
-                        clientApi(`/api/admin/products/${p.id}`, 'PATCH', {
-                          name: String(f.get('name')),
-                          priceCents: parseCents(String(f.get('price'))),
-                          closerId: String(f.get('closerId')),
-                        }),
-                      `${p.name} atualizado`,
-                    );
-                  }}
-                >
-                  <Field label="Nome">
-                    <input name="name" className={control} defaultValue={p.name} required />
-                  </Field>
-                  <Field label="Preço (R$)">
-                    <input
-                      name="price"
-                      className={control}
-                      inputMode="decimal"
-                      defaultValue={(p.priceCents / 100).toFixed(2).replace('.', ',')}
-                      required
-                    />
-                  </Field>
-                  <Field label="Closer">
-                    <select name="closerId" className={control} defaultValue={p.closerId}>
-                      {closers.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
-                  </Field>
-                  <button className={quietButton}>Salvar</button>
-                  <button
-                    type="button"
-                    className={quietButton}
-                    onClick={() =>
-                      void run(() =>
-                        clientApi(`/api/admin/products/${p.id}`, 'PATCH', { active: !p.active }),
-                      )
-                    }
+        <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(320px,400px)] 4xl:grid-cols-[minmax(0,1fr)_460px]">
+          <Card title="Produtos e preços">
+            <p className="text-xs text-ink2">
+              Vendas antigas guardam nome e preço da época; mudar o catálogo não as altera.
+            </p>
+            <ul className="divide-y divide-line">
+              {data.products.map((p) => (
+                <li key={p.id} className="py-3">
+                  <form
+                    className="flex flex-wrap items-end gap-2"
+                    aria-label={`Produto ${p.name}`}
+                    onSubmit={(e: FormEvent<HTMLFormElement>) => {
+                      e.preventDefault();
+                      const f = new FormData(e.currentTarget);
+                      void run(
+                        () =>
+                          clientApi(`/api/admin/products/${p.id}`, 'PATCH', {
+                            name: String(f.get('name')),
+                            priceCents: parseCents(String(f.get('price'))),
+                            closerId: String(f.get('closerId')),
+                          }),
+                        `${p.name} atualizado`,
+                      );
+                    }}
                   >
-                    {p.active ? 'Desativar' : 'Reativar'}
-                  </button>
-                  <span className="pb-2 text-xs text-ink2">
-                    {p.code} · {money(p.priceCents)}
-                    {!p.active && ' · inativo'}
-                  </span>
-                </form>
-              </li>
-            ))}
-          </ul>
-          <form
-            className="flex flex-wrap items-end gap-2 border-t border-line pt-3"
-            aria-label="Novo produto"
-            onSubmit={(e: FormEvent<HTMLFormElement>) => {
-              e.preventDefault();
-              const f = new FormData(e.currentTarget);
-              const form = e.currentTarget;
-              void run(async () => {
-                await clientApi('/api/admin/products', 'POST', {
-                  code: String(f.get('code')).toUpperCase(),
-                  name: String(f.get('name')),
-                  priceCents: parseCents(String(f.get('price'))),
-                  closerId: String(f.get('closerId')),
-                });
-                form.reset();
-              }, 'Produto criado');
-            }}
-          >
-            <Field label="Código">
-              <input name="code" className={control} required pattern="[A-Za-z0-9_]{2,40}" />
-            </Field>
-            <Field label="Nome">
-              <input name="name" className={control} required />
-            </Field>
-            <Field label="Preço (R$)">
-              <input name="price" className={control} inputMode="decimal" required />
-            </Field>
-            <Field label="Closer">
-              <select name="closerId" className={control}>
-                {closers.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <button className={button}>Criar produto</button>
-          </form>
-        </Card>
+                    <Field label="Nome">
+                      <input name="name" className={control} defaultValue={p.name} required />
+                    </Field>
+                    <Field label="Preço (R$)">
+                      <input
+                        name="price"
+                        className={control}
+                        inputMode="decimal"
+                        defaultValue={(p.priceCents / 100).toFixed(2).replace('.', ',')}
+                        required
+                      />
+                    </Field>
+                    <Field label="Closer">
+                      <select name="closerId" className={control} defaultValue={p.closerId}>
+                        {closers.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <button className={quietButton}>Salvar</button>
+                    <button
+                      type="button"
+                      className={quietButton}
+                      onClick={() =>
+                        void run(() =>
+                          clientApi(`/api/admin/products/${p.id}`, 'PATCH', { active: !p.active }),
+                        )
+                      }
+                    >
+                      {p.active ? 'Desativar' : 'Reativar'}
+                    </button>
+                    <span className="pb-2 text-xs text-ink2">
+                      {p.code} · {money(p.priceCents)}
+                      {!p.active && ' · inativo'}
+                    </span>
+                  </form>
+                </li>
+              ))}
+            </ul>
+          </Card>
+          <Card title="Novo produto">
+            <form
+              className="grid gap-3 @lg:grid-cols-2"
+              aria-label="Novo produto"
+              onSubmit={(e: FormEvent<HTMLFormElement>) => {
+                e.preventDefault();
+                const f = new FormData(e.currentTarget);
+                const form = e.currentTarget;
+                void run(async () => {
+                  await clientApi('/api/admin/products', 'POST', {
+                    code: String(f.get('code')).toUpperCase(),
+                    name: String(f.get('name')),
+                    priceCents: parseCents(String(f.get('price'))),
+                    closerId: String(f.get('closerId')),
+                  });
+                  form.reset();
+                }, 'Produto criado');
+              }}
+            >
+              <Field label="Código">
+                <input name="code" className={control} required pattern="[A-Za-z0-9_]{2,40}" />
+              </Field>
+              <Field label="Nome">
+                <input name="name" className={control} required />
+              </Field>
+              <Field label="Preço (R$)">
+                <input name="price" className={control} inputMode="decimal" required />
+              </Field>
+              <Field label="Closer">
+                <select name="closerId" className={control}>
+                  {closers.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <button className={`${button} @lg:col-span-2 @lg:justify-self-start`}>
+                Criar produto
+              </button>
+            </form>
+          </Card>
+        </div>
       )}
 
       {tab === 'Etapas' && (
@@ -545,25 +560,27 @@ export function Admin({
           <p className="text-xs text-ink2">
             O nome exibido pode mudar; a ordem e as regras (ex.: Venda) seguem a chave.
           </p>
-          {data.stages.map((s) => (
-            <form
-              key={s.id}
-              className="flex items-end gap-2"
-              onSubmit={(e: FormEvent<HTMLFormElement>) => {
-                e.preventDefault();
-                const label = String(new FormData(e.currentTarget).get('label'));
-                void run(
-                  () => clientApi(`/api/admin/stages/${s.id}`, 'PATCH', { label }),
-                  'Etapa renomeada',
-                );
-              }}
-            >
-              <Field label={`${s.position}. ${s.key}`}>
-                <input name="label" className={control} defaultValue={s.label} required />
-              </Field>
-              <button className={quietButton}>Salvar</button>
-            </form>
-          ))}
+          <div className="grid gap-x-6 gap-y-3 md:grid-cols-2 2xl:grid-cols-3 4xl:grid-cols-4">
+            {data.stages.map((s) => (
+              <form
+                key={s.id}
+                className="flex items-end gap-2 [&>div]:flex-1"
+                onSubmit={(e: FormEvent<HTMLFormElement>) => {
+                  e.preventDefault();
+                  const label = String(new FormData(e.currentTarget).get('label'));
+                  void run(
+                    () => clientApi(`/api/admin/stages/${s.id}`, 'PATCH', { label }),
+                    'Etapa renomeada',
+                  );
+                }}
+              >
+                <Field label={`${s.position}. ${s.key}`}>
+                  <input name="label" className={control} defaultValue={s.label} required />
+                </Field>
+                <button className={quietButton}>Salvar</button>
+              </form>
+            ))}
+          </div>
         </Card>
       )}
 
@@ -616,45 +633,47 @@ export function Admin({
       )}
 
       {tab === 'LGPD' && (
-        <>
-          <Card title="Novo pedido do titular">
-            <form
-              className="grid gap-3 sm:grid-cols-2"
-              onSubmit={(e: FormEvent<HTMLFormElement>) => {
-                e.preventDefault();
-                const f = new FormData(e.currentTarget);
-                const form = e.currentTarget;
-                const leadId = String(f.get('leadId') ?? '').trim();
-                void run(async () => {
-                  await clientApi('/api/admin/lgpd', 'POST', {
-                    kind: String(f.get('kind')),
-                    description: String(f.get('description')),
-                    ...(leadId ? { leadId } : {}),
-                  });
-                  form.reset();
-                }, 'Pedido registrado; prazo de 15 dias');
-              }}
-            >
-              <Field label="Tipo">
-                <select name="kind" className={control}>
-                  {Object.entries(KIND).map(([k, v]) => (
-                    <option key={k} value={k}>
-                      {v}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="ID do lead (copie da ficha)">
-                <input name="leadId" className={control} pattern="[0-9a-fA-F-]{36}" />
-              </Field>
-              <div className="sm:col-span-2">
-                <Field label="Descrição (sem telefone ou documentos)">
-                  <textarea name="description" className={control} required maxLength={2000} />
+        <div className={split}>
+          <div className="xl:sticky xl:top-6">
+            <Card title="Novo pedido do titular">
+              <form
+                className="grid gap-3 @lg:grid-cols-2"
+                onSubmit={(e: FormEvent<HTMLFormElement>) => {
+                  e.preventDefault();
+                  const f = new FormData(e.currentTarget);
+                  const form = e.currentTarget;
+                  const leadId = String(f.get('leadId') ?? '').trim();
+                  void run(async () => {
+                    await clientApi('/api/admin/lgpd', 'POST', {
+                      kind: String(f.get('kind')),
+                      description: String(f.get('description')),
+                      ...(leadId ? { leadId } : {}),
+                    });
+                    form.reset();
+                  }, 'Pedido registrado; prazo de 15 dias');
+                }}
+              >
+                <Field label="Tipo">
+                  <select name="kind" className={control}>
+                    {Object.entries(KIND).map(([k, v]) => (
+                      <option key={k} value={k}>
+                        {v}
+                      </option>
+                    ))}
+                  </select>
                 </Field>
-              </div>
-              <button className={`${button} sm:justify-self-start`}>Registrar</button>
-            </form>
-          </Card>
+                <Field label="ID do lead (copie da ficha)">
+                  <input name="leadId" className={control} pattern="[0-9a-fA-F-]{36}" />
+                </Field>
+                <div className="@lg:col-span-2">
+                  <Field label="Descrição (sem telefone ou documentos)">
+                    <textarea name="description" className={control} required maxLength={2000} />
+                  </Field>
+                </div>
+                <button className={`${button} @lg:justify-self-start`}>Registrar</button>
+              </form>
+            </Card>
+          </div>
           <Card title="Pedidos">
             {data.lgpd.length === 0 && <p className="text-sm text-ink2">Nenhum pedido.</p>}
             <ul className="divide-y divide-line">
@@ -663,7 +682,7 @@ export function Admin({
                   <p className="font-semibold">
                     {KIND[r.kind]} · {r.status === 'OPEN' ? `prazo ${date(r.dueAt)}` : r.status}
                   </p>
-                  <p className="text-sm text-ink2">{r.description}</p>
+                  <p className="max-w-prose text-sm text-ink2">{r.description}</p>
                   {r.resolution && <p className="text-sm">Resposta: {r.resolution}</p>}
                   <div className="flex flex-wrap gap-2">
                     {r.leadId && r.kind === 'ACCESS' && (
@@ -704,7 +723,7 @@ export function Admin({
               ))}
             </ul>
           </Card>
-        </>
+        </div>
       )}
     </div>
   );

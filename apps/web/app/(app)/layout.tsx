@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import { isLeader } from '@npac/shared/enums';
+import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { CommandPalette } from '@/components/shell/command-palette';
@@ -9,10 +10,12 @@ import { NavProgress } from '@/components/shell/nav-progress';
 import { ThemeToggle } from '@/components/shell/theme-toggle';
 import { BottomNav } from '@/components/shell/bottom-nav';
 import { Sidebar } from '@/components/shell/sidebar';
+import { SidebarShell } from '@/components/shell/sidebar-shell';
 import { SignOutButton } from '@/components/shell/sign-out-button';
 import { RoleTag } from '@/components/role-tag';
 import { pendingAccessRequests } from '@/lib/access-requests';
 import { getSession, pendingStep } from '@/lib/session';
+import { SIDEBAR_COOKIE } from '@/lib/sidebar';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const me = await getSession();
@@ -46,7 +49,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   );
 
   return (
-    <div className="flex min-h-dvh">
+    <SidebarShell initialCollapsed={(await cookies()).get(SIDEBAR_COOKIE)?.value === '1'}>
       <Suspense>
         <NavProgress />
       </Suspense>
@@ -57,14 +60,18 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         head={isLeader(me.role)}
         adminBadge={requests}
         footer={
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2.5 px-1">
+          <div className="flex flex-col">
+            <div className="side-who flex items-center gap-2.5 px-1">
               {avatar}
-              {who}
+              <span className="side-hide min-w-0">{who}</span>
             </div>
-            <div className="flex items-center gap-1">
-              <SignOutButton />
-              <ThemeToggle />
+            <div className="side-fold">
+              <div>
+                <div className="flex items-center gap-1 pt-2">
+                  <SignOutButton />
+                  <ThemeToggle />
+                </div>
+              </div>
             </div>
           </div>
         }
@@ -75,6 +82,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </main>
       </div>
       <BottomNav />
-    </div>
+    </SidebarShell>
   );
 }

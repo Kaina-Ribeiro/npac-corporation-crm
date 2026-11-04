@@ -69,7 +69,7 @@ export function TabTitle() {
 function Badge({ n }: { n: number }) {
   if (!n) return null;
   return (
-    <span className="ml-auto min-w-5 rounded-full bg-danger px-1.5 text-center text-[11px] leading-5 font-semibold text-white tabular-nums">
+    <span className="nav-badge ml-auto min-w-5 rounded-full bg-danger px-1.5 text-center text-[11px] leading-5 font-semibold text-white tabular-nums">
       {n > 99 ? '99+' : n}
     </span>
   );
@@ -91,7 +91,7 @@ export function InboxLink() {
       }`}
     >
       {bell}
-      Avisos
+      <span className="side-label">Avisos</span>
       <Badge n={n} />
     </Link>
   );

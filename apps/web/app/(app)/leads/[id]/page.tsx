@@ -30,7 +30,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
       sells ? apiGet<ProductDTO[]>('/api/finance/products') : [],
     ]);
     return (
-      <div className="mx-auto flex max-w-[1600px] flex-col gap-5">
+      <div className="flex w-full flex-col gap-5">
         <Link href="/leads" className="text-sm text-ink2">
           ‹ Leads
         </Link>

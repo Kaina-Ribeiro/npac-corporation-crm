@@ -461,6 +461,12 @@ body {
     --span: 3;
   }
 }
+/* Ultrawide (4xl): os seis indicadores cabem numa linha só. */
+@media (width >= 150rem) {
+  .dash-item[data-size='kpi'] {
+    --span: 2;
+  }
+}
 /* No toque, segurar o card levanta: sem seleção de texto nem menu do sistema. */
 @media (hover: none) {
   .dash-item {
@@ -701,6 +707,181 @@ html[data-dash-dragging] * {
   transition:
     width 0.2s ease-out,
     opacity 0.3s ease 0.15s;
+}
+
+/* Sidebar recolhível (desktop), como a barra lateral do macOS: 236 px ↔ trilho de 56 px.
+   O estado é `data-side` em `.shell` (SidebarShell, cookie npac_sidebar), então o servidor já
+   renderiza certo. Os ícones não se mexem: 10 px do aside + 10 px do item centram o ícone de
+   16 px em 56 px; só a largura anda e os rótulos somem com fade. Movimento reduzido: a regra
+   global de `prefers-reduced-motion` zera as transições. */
+.shell {
+  --side-w: 236px;
+  --side-t: 260ms;
+  --side-ease: cubic-bezier(0.32, 0.72, 0, 1);
+}
+.shell[data-side='collapsed'] {
+  --side-w: 56px;
+}
+.side {
+  width: var(--side-w);
+  transition: width var(--side-t) var(--side-ease);
+}
+.side-label,
+.side-search > :not(svg) {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: opacity 180ms ease 80ms;
+}
+.side-hide {
+  transition:
+    opacity 180ms ease 80ms,
+    visibility 0s;
+}
+[data-side='collapsed'] :is(.side-label, .side-hide, .side-search > :not(svg)) {
+  opacity: 0;
+  transition: opacity 110ms ease;
+}
+/* Some de vez (sai do Tab) quando o que está dentro é clicável: perfil, filtros salvos. */
+[data-side='collapsed'] .side-hide {
+  visibility: hidden;
+  transition:
+    opacity 110ms ease,
+    visibility 0s linear var(--side-t);
+}
+/* Bloco que encolhe na altura (Sair/Tema no rodapé): grid 1fr → 0fr. */
+.side-fold {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition:
+    grid-template-rows var(--side-t) var(--side-ease),
+    opacity 180ms ease 80ms,
+    visibility 0s;
+}
+.side-fold > * {
+  min-height: 0;
+  overflow: hidden;
+}
+[data-side='collapsed'] .side-fold {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    grid-template-rows var(--side-t) var(--side-ease),
+    opacity 110ms ease,
+    visibility 0s linear var(--side-t);
+}
+.side-head,
+.side-foot,
+.side-who {
+  position: relative;
+  transition: padding var(--side-t) var(--side-ease);
+}
+[data-side='collapsed'] :is(.side-foot, .side-who) {
+  padding-inline: 0;
+}
+[data-side='collapsed'] .side-head {
+  padding-inline: 2px;
+}
+/* Botão de recolher: à direita do nome; no trilho fica sobre a marca e aparece no hover. */
+.side-toggle {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin-left: auto;
+  border-radius: 8px;
+  color: var(--ink2);
+  transition:
+    background-color 150ms ease,
+    color 150ms ease,
+    opacity 160ms ease,
+    transform 120ms ease;
+}
+.side-toggle svg {
+  width: 18px;
+  height: 18px;
+}
+.side-toggle:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--ink);
+}
+.dark .side-toggle:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+.side-toggle:active {
+  transform: scale(0.9);
+}
+.side-head .mark {
+  transition: opacity 160ms ease;
+}
+[data-side='collapsed'] .side-toggle {
+  position: absolute;
+  top: 4px;
+  left: 2px;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  opacity: 0;
+}
+[data-side='collapsed'] .side-head:hover .side-toggle,
+[data-side='collapsed'] .side-toggle:focus-visible {
+  opacity: 1;
+}
+[data-side='collapsed'] .side-head:is(:hover, :has(.side-toggle:focus-visible)) .mark {
+  opacity: 0;
+}
+/* Contadores (Avisos, Admin): no trilho viram um selo sobre o canto do ícone. */
+.side-nav a {
+  position: relative;
+}
+[data-side='collapsed'] .side-nav .nav-badge {
+  position: absolute;
+  top: 2px;
+  left: 19px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  font-size: 9.5px;
+  line-height: 15px;
+  box-shadow: 0 0 0 1.5px var(--bg);
+  animation: rail-badge-in 220ms var(--ease-out);
+}
+@keyframes rail-badge-in {
+  from {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+}
+/* Tooltip dos itens no trilho (um só, posicionado pelo SidebarShell). */
+.side-tip {
+  position: fixed;
+  z-index: 60;
+  padding: 5px 9px;
+  border-radius: 8px;
+  background: rgba(28, 28, 30, 0.92);
+  box-shadow:
+    0 8px 24px -8px rgba(0, 0, 0, 0.4),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: pre;
+  pointer-events: none;
+  transform: translateY(-50%);
+  backdrop-filter: blur(12px);
+  animation: tip-in 180ms var(--ease-out);
+}
+.dark .side-tip {
+  background: rgba(242, 242, 247, 0.94);
+  color: #1c1c1e;
+}
+@keyframes tip-in {
+  from {
+    opacity: 0;
+    transform: translate(-6px, -50%);
+  }
 }
 
 /* Rolagem interna discreta (colunas do Pipeline, listas do Chat): trilho fino e transparente. */
