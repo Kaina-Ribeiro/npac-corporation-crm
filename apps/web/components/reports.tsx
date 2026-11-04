@@ -154,14 +154,17 @@ export function Reports({
     [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
     [copied, setCopied] = useState(false),
-    [preset, setPreset] = useState<Preset>('MONTH');
+    [preset, setPreset] = useState<Preset>('MONTH'),
+    [sdrId, setSdrId] = useState('');
   async function load(selected = filters) {
     setData(await clientApi<ReportDTO>('/api/reports/search', 'POST', selected));
   }
   useCrmRefresh(() => load());
-  async function pick(preset: Preset) {
-    const f = presetFilters(preset);
+  /** Dashboard da liderança: o SDR escolhido acompanha a troca de período. */
+  async function pick(preset: Preset, sdr = sdrId) {
+    const f = { ...presetFilters(preset), ...(sdr ? { sdrId: sdr } : {}) };
     setPreset(preset);
+    setSdrId(sdr);
     setFilters(f);
     setBusy(true);
     setError('');
@@ -397,11 +400,32 @@ export function Reports({
           <div className="min-w-0">
             <h1 className="text-[34px] font-bold tracking-tight">{greeting(name)}</h1>
             <p className="text-sm text-ink2 first-letter:uppercase">
-              {head ? 'Toda a equipe' : 'Seu escopo'} · {todayLabel()}
+              {head
+                ? (catalog.team.find((u) => u.id === sdrId)?.name ?? 'Toda a equipe')
+                : 'Seu escopo'}{' '}
+              · {todayLabel()}
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
             <RestoreOrder />
+            {head && (
+              <select
+                aria-label="SDR"
+                value={sdrId}
+                disabled={busy}
+                onChange={(e) => void pick(preset, e.target.value)}
+                className="min-h-11 rounded-full border border-line bg-[var(--on)] px-4 text-sm font-semibold text-ink transition-colors hover:border-ink2/40"
+              >
+                <option value="">Todos os SDRs</option>
+                {catalog.team
+                  .filter((u) => u.canProspect)
+                  .map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.name}
+                    </option>
+                  ))}
+              </select>
+            )}
             <div
               role="group"
               aria-label="Período"

@@ -144,3 +144,33 @@ test('dashboard: arrasta e reordena cards, a ordem persiste e volta ao padrão',
   await revealed(page);
   await page.screenshot({ path: 'test-results/dashboard-reorder.png', fullPage: true });
 });
+
+test('head filtra o dashboard por SDR', async ({ page }) => {
+  const [ale] = await owner<
+    { id: string }[]
+  >`select id from "user" where email = 'ale@npac.com.br'`;
+  await login(page, 'ana@npac.com.br');
+  const request = page.waitForRequest(
+    (r) => r.url().endsWith('/api/reports/search') && r.postDataJSON()?.sdrId === ale!.id,
+  );
+  await page
+    .getByLabel('SDR', { exact: true })
+    .filter({ visible: true })
+    .selectOption({ label: 'Ale' });
+  await request;
+  // O período continua o escolhido e o SDR segue junto ao trocar de período.
+  const again = page.waitForRequest(
+    (r) =>
+      r.url().endsWith('/api/reports/search') &&
+      r.postDataJSON()?.sdrId === ale!.id &&
+      r.postDataJSON()?.period === 'TODAY',
+  );
+  await page.getByRole('group', { name: 'Período' }).getByRole('button', { name: 'Hoje' }).click();
+  await again;
+});
+
+test('SDR não tem filtro de SDR no dashboard', async ({ page }) => {
+  await login(page, 'ale@npac.com.br');
+  await expect(page.getByRole('group', { name: 'Período' })).toBeVisible();
+  await expect(page.getByLabel('SDR', { exact: true })).toHaveCount(0);
+});
