@@ -6,6 +6,7 @@ import { money } from '@npac/shared/money';
 import { brasiliaInput, clientApi } from '@/lib/client-api';
 import { button, control, Field, FormError, quietButton } from './crm-ui';
 import { useCrmRefresh } from './shell/live-updates';
+import { QuickAction } from './today-quick-action';
 
 const when = (at: string | null) =>
   at
@@ -42,11 +43,14 @@ export function Today({
   name,
   catalog,
   head,
+  quick = false,
 }: {
   initial: TodayDTO;
   name: string;
   catalog: LeadCatalog;
   head: boolean;
+  /** Ação rápida (Chamado/Remarcado/Próxima ação): quem edita lead, ou seja, não o Closer. */
+  quick?: boolean;
 }) {
   const [data, setData] = useState(initial);
   const receiptKeys = useRef(new Map<string, string>());
@@ -89,16 +93,29 @@ export function Today({
   }
   const contacts = (items: TodayDTO['contacts']) =>
     items.map((l) => (
-      <div key={l.id} className="flex items-center justify-between gap-3 border-b border-line py-3">
-        <div>
+      <div
+        key={l.id}
+        data-lead-row
+        className="flex flex-wrap items-center justify-between gap-3 border-b border-line py-3"
+      >
+        <div className="min-w-0">
           <Link href={`/leads/${l.id}`} className="text-sm font-semibold">
             {l.name}
           </Link>
           <p className="text-xs text-ink2">{when(l.nextContactAt)}</p>
         </div>
-        <Link href={`/leads/${l.id}`} className={quietButton}>
-          Abrir ficha
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href={`/leads/${l.id}`} className={`${quietButton} min-h-11 content-center`}>
+            Abrir ficha
+          </Link>
+        </div>
+        {quick && (
+          <QuickAction
+            version={l.version}
+            busy={busy}
+            run={(body) => action(`/api/leads/${l.id}/quick-action`, 'POST', body)}
+          />
+        )}
       </div>
     ));
   return (

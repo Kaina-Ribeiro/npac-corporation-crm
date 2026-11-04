@@ -196,3 +196,46 @@ test('leads: liderança exporta CSV; SDR não vê a opção', async ({ page }) =
   await expect(page.getByRole('heading', { name: 'Leads' })).toBeVisible();
   await expect(page.getByText('Exportar', { exact: true })).toHaveCount(0);
 });
+
+test('hoje: ação rápida de chamado, remarcado e próxima ação', async ({ page }) => {
+  await login(page, 'ale@npac.com.br');
+  const ids: string[] = [];
+  for (const name of ['Rápido Chamado', 'Rápido Remarcado', 'Rápido Próxima']) {
+    const res = await page.request.post('/api/leads', {
+      data: {
+        name,
+        instagram: `@rapido.${Date.now()}.${ids.length}`,
+        incomeBand: 'R5_8K',
+        tier: 'P1',
+      },
+    });
+    ids.push(((await res.json()) as { id: string }).id);
+  }
+  await owner`update leads set next_contact_at = now() - interval '2 hours' where id in ${owner(ids)}`;
+  await page.goto('/hoje');
+  const overdue = page.locator('section', {
+    has: page.getByRole('heading', { name: /^Atrasados/ }),
+  });
+  const row = (name: string) => overdue.locator('[data-lead-row]', { hasText: name });
+
+  await row('Rápido Chamado').getByRole('button', { name: 'Ação rápida' }).click();
+  await row('Rápido Chamado').getByRole('button', { name: 'Chamado', exact: true }).click();
+  await expect(row('Rápido Chamado')).toHaveCount(0);
+
+  await row('Rápido Remarcado').getByRole('button', { name: 'Ação rápida' }).click();
+  await row('Rápido Remarcado').getByRole('button', { name: 'Remarcado', exact: true }).click();
+  const tomorrow = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(
+    new Date(Date.now() + 86_400_000),
+  );
+  await row('Rápido Remarcado').getByLabel('Nova data').fill(`${tomorrow}T10:00`);
+  await row('Rápido Remarcado').getByRole('button', { name: 'Salvar' }).click();
+  await expect(row('Rápido Remarcado')).toHaveCount(0);
+
+  await row('Rápido Próxima').getByRole('button', { name: 'Ação rápida' }).click();
+  await row('Rápido Próxima').getByRole('button', { name: 'Próxima ação', exact: true }).click();
+  await row('Rápido Próxima').getByLabel('O que fazer').fill('Enviar proposta e2e');
+  await row('Rápido Próxima').getByLabel('Prazo').fill(`${tomorrow}T09:00`);
+  await row('Rápido Próxima').getByRole('button', { name: 'Salvar' }).click();
+  await expect(row('Rápido Próxima')).toHaveCount(0);
+  await page.screenshot({ path: 'test-results/hoje-acao-rapida.png', fullPage: true });
+});
