@@ -141,6 +141,9 @@ export class AdminUsersService {
     if (actor.role === 'DIRETOR') return;
     if (newRole && isLeader(newRole))
       throw new ForbiddenException('Só a Diretoria pode dar cargo de Head ou Diretoria');
+    // Acompanhamento lê dados sensíveis de mentorados: só a Diretoria concede (D10).
+    if (newRole === 'ACOMPANHAMENTO')
+      throw new ForbiddenException('Só a Diretoria pode dar cargo de Acompanhamento');
     if (!targetId) return;
     const [target] = await this.db
       .select({ role: user.role })
@@ -149,6 +152,8 @@ export class AdminUsersService {
     if (!target) throw new NotFoundException();
     if (isLeader(target.role))
       throw new ForbiddenException('Só a Diretoria administra contas de Head ou Diretoria');
+    if (target.role === 'ACOMPANHAMENTO')
+      throw new ForbiddenException('Só a Diretoria administra contas de Acompanhamento');
   }
 
   async invite(actor: AuthUser, input: z.output<typeof invite>) {

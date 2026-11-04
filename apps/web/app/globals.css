@@ -299,6 +299,10 @@ body {
     --role-bg: #fbe4ec;
     --role-fg: #a8285a;
   }
+  .role-ACOMPANHAMENTO {
+    --role-bg: #dcf3ea;
+    --role-fg: #11704f;
+  }
   .dark .role-DIRETOR {
     --role-bg: #c9a24e;
     --role-fg: #241800;
@@ -314,6 +318,10 @@ body {
   .dark .role-CLOSER {
     --role-bg: rgba(219, 95, 140, 0.2);
     --role-fg: #f5a6c3;
+  }
+  .dark .role-ACOMPANHAMENTO {
+    --role-bg: rgba(46, 170, 120, 0.2);
+    --role-fg: #8fdcbc;
   }
 }
 
