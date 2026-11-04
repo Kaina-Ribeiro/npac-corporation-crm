@@ -9,6 +9,14 @@ import { AppModule } from './app.module.js';
 export async function configureApp(app: NestFastifyApplication): Promise<void> {
   await app.register(helmet);
   app.setGlobalPrefix('api');
+  // Importação do Acompanhamento aceita até 25 MB (R10); as demais rotas, o padrão (1 MB).
+  app
+    .getHttpAdapter()
+    .getInstance()
+    .addHook('onRoute', (route) => {
+      if (/^\/api\/mentoria\/[^/]+\/importar(\/previa)?$/.test(route.url))
+        route.bodyLimit = 25 * 1024 * 1024;
+    });
   // Respostas podem carregar dado pessoal: nada vai para cache.
   app
     .getHttpAdapter()
