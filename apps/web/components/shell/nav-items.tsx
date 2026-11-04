@@ -1,4 +1,11 @@
-export type NavItem = { href: string; label: string; ready: boolean; icon: React.ReactNode };
+export type NavItem = {
+  href: string;
+  label: string;
+  ready: boolean;
+  icon: React.ReactNode;
+  /** Prefixo que deixa o item ativo, quando difere do href (ex.: todas as telas do módulo). */
+  match?: string;
+};
 
 const svg = (d: React.ReactNode) => (
   <svg
@@ -79,6 +86,7 @@ export const ADMIN_ITEM: NavItem = {
 /** Módulo de mentorados: só para quem tem `modules.mentoria` (Diretoria e Acompanhamento). */
 export const ACOMPANHAMENTO_ITEM: NavItem = {
   href: '/acompanhamento/dashboard',
+  match: '/acompanhamento',
   label: 'Acompanhamento',
   ready: true,
   icon: ICONS.acompanhamento,
