@@ -174,3 +174,25 @@ test('closer não vê Novo lead no pipeline', async ({ page }) => {
     page.getByRole('link', { name: 'Novo lead', exact: true }).filter({ visible: true }),
   ).toHaveCount(0);
 });
+
+test('leads: liderança exporta CSV; SDR não vê a opção', async ({ page }) => {
+  await login(page, 'ana@npac.com.br');
+  await page.goto('/leads');
+  await page.getByText('Exportar', { exact: true }).click();
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Todos os leads', exact: true }).click();
+  expect((await download).suggestedFilename()).toBe('npac-leads.csv');
+  // Por período manda as datas de criação.
+  await page.getByLabel('Criados de', { exact: true }).fill('2026-01-01');
+  await page.getByLabel('Criados até', { exact: true }).fill('2026-12-31');
+  const request = page.waitForRequest(
+    (r) => r.url().endsWith('/api/leads/csv') && r.postDataJSON()?.createdFrom === '2026-01-01',
+  );
+  await page.getByRole('button', { name: 'Exportar período', exact: true }).click();
+  await request;
+  await page.context().clearCookies();
+  await login(page, 'ale@npac.com.br');
+  await page.goto('/leads');
+  await expect(page.getByRole('heading', { name: 'Leads' })).toBeVisible();
+  await expect(page.getByText('Exportar', { exact: true })).toHaveCount(0);
+});

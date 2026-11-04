@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { clientApi } from '@/lib/client-api';
 import { StageOptions } from './crm-ui';
 import { LeadFilters, readFilters } from './lead-filters';
+import { CsvExport } from './csv-export';
 import { useCrmRefresh } from './shell/live-updates';
 
 type Change = Partial<Pick<LeadDTO, 'stageKey' | 'tier'>> & {
@@ -246,6 +247,18 @@ export function LeadsBrowser({
             {data.total} {data.total === 1 ? 'lead' : 'leads'}
           </p>
         </div>
+        {canAssign && (
+          <CsvExport
+            label="Exportar"
+            endpoint="/api/leads/csv"
+            filename="npac-leads.csv"
+            period={(createdFrom, createdTo) => ({ createdFrom, createdTo })}
+            options={[
+              { label: 'Com os filtros atuais', body: () => ({ ...filters, search: q }) },
+              { label: 'Todos os leads', body: () => ({}) },
+            ]}
+          />
+        )}
         {canCreate && (
           <Link
             href="/leads/new"

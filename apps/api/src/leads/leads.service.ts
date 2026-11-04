@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { leadContactTaken, pipelineStages, user, withUser, type Db } from '@npac/db';
 import {
+  spDayRange,
   normalizeInstagram,
   normalizePhoneBR,
   type AuthUser,
@@ -18,6 +19,7 @@ import {
 } from '@npac/shared';
 import { asc, eq, sql } from 'drizzle-orm';
 import { AuditService } from '../audit/audit.service.js';
+import { toCsv } from '../common/csv.js';
 import { FieldCrypto } from '../common/crypto/field-crypto.js';
 import { DB } from '../common/db/db.module.js';
 import { recordActivity } from './activity.js';
@@ -39,6 +41,16 @@ export interface LeadListQuery extends Omit<LeadFilters, 'search'> {
   page: number;
   pageSize: number;
 }
+
+/** Exportar: filtros da lista + período de criação opcional (dias de Brasília). */
+export interface LeadExportQuery extends Omit<LeadFilters, 'search' | 'sort' | 'direction'> {
+  search?: string;
+  createdFrom?: string;
+  createdTo?: string;
+}
+
+const brDate = (d: Date) =>
+  new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo' }).format(d);
 
 @Injectable()
 export class LeadsService {
@@ -157,6 +169,44 @@ export class LeadsService {
       ...meta,
     });
     return { items: rows.map((r) => this.toDTO(r)), total, page, pageSize };
+  }
+
+  /** CSV com contato (só liderança, pela rota): período, filtros atuais ou todos. */
+  async csv(u: AuthUser, q: LeadExportQuery, meta: RequestMeta): Promise<string> {
+    const { search, createdFrom, createdTo, ...filters } = q;
+    if (!createdFrom !== !createdTo || (createdFrom && createdTo && createdFrom > createdTo))
+      throw new BadRequestException('Intervalo inválido');
+    const created =
+      createdFrom && createdTo
+        ? {
+            start: spDayRange(new Date(`${createdFrom}T12:00:00Z`)).start,
+            end: spDayRange(new Date(`${createdTo}T12:00:00Z`)).end,
+          }
+        : undefined;
+    const rows = await withUser(this.db, u.id, (tx) =>
+      this.repo.exportRows(tx, { ...filters, search: this.parseSearch(search) }, created),
+    );
+    if (rows.length > 10_000)
+      throw new BadRequestException('Reduza o filtro para exportar até 10 mil leads');
+    await this.audit.record({
+      actorId: u.id,
+      action: 'lead.export.csv',
+      entityType: 'lead',
+      data: { count: rows.length },
+      ...meta,
+    });
+    return toCsv([
+      ['Nome', 'Telefone', 'Instagram', 'Perfil', 'Etapa', 'SDR', 'Criado em'],
+      ...rows.map((r) => [
+        r.name,
+        r.phoneEnc ? this.crypto.decrypt(r.phoneEnc) : '',
+        r.instagram ?? '',
+        r.tier,
+        r.stage,
+        r.sdrName,
+        brDate(r.createdAt),
+      ]),
+    ]);
   }
 
   async get(u: AuthUser, id: string, meta: RequestMeta): Promise<LeadDTO> {

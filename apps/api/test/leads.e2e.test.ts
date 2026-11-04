@@ -339,3 +339,59 @@ describe('leads', () => {
   it('resposta tem Cache-Control no-store', async () =>
     expect((await h.get('/api/leads', ale)).headers['cache-control']).toContain('no-store'));
 });
+
+describe('exportar leads (período, filtro ou total)', () => {
+  const csv = (body: object, cookie: Cookie) => h.post('/api/leads/csv', body, cookie);
+
+  it('só liderança exporta', async () => {
+    await create(lead(), ale);
+    expect((await csv({}, ale)).status).toBe(403);
+  });
+
+  it('total traz todos os leads visíveis com contato decifrado e auditoria', async () => {
+    await create(lead({ name: 'Exporta Ale', phone: '11987654321', tier: 'P0' }), ale);
+    await create(lead({ name: '=1+1', tier: 'P2' }), murilo);
+    const res = await csv({}, ronaldo);
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toContain('text/csv');
+    const [header, ...lines] = res.text.replace('﻿', '').split('\r\n');
+    expect(header).toBe('"Nome";"Telefone";"Instagram";"Perfil";"Etapa";"SDR";"Criado em"');
+    expect(lines).toHaveLength(2);
+    expect(res.text).toContain('+5511987654321');
+    expect(res.text).toContain('"\'=1+1"');
+    const [audit] = await owner<{ data: { count: number } }[]>`
+      select data from audit_log where action = 'lead.export.csv' order by id desc limit 1`;
+    expect(audit!.data.count).toBe(2);
+  });
+
+  it('com filtro respeita os filtros da lista', async () => {
+    await create(lead({ name: 'Só P0', tier: 'P0' }), ale);
+    await create(lead({ name: 'Um P2', tier: 'P2' }), ale);
+    const res = await csv({ tier: 'P0' }, ronaldo);
+    expect(res.text).toContain('Só P0');
+    expect(res.text).not.toContain('Um P2');
+  });
+
+  it('por período usa a data de criação em dias de Brasília', async () => {
+    const old = await create(lead({ name: 'Antigo' }), ale);
+    await create(lead({ name: 'Recente' }), ale);
+    await owner`update leads set created_at = '2025-03-10T12:00:00-03:00' where id = ${old}`;
+    const res = await csv({ createdFrom: '2025-03-10', createdTo: '2025-03-10' }, ronaldo);
+    expect(res.text).toContain('Antigo');
+    expect(res.text).not.toContain('Recente');
+  });
+
+  it('sem resultado sai só o cabeçalho; acima de 10 mil recusa', async () => {
+    const empty = await csv({ tier: 'P0' }, ronaldo);
+    expect(empty.text.replace('﻿', '').split('\r\n')).toHaveLength(1);
+    const id = await create(lead(), ale);
+    await owner`insert into leads (name, income_band, source, tier, stage_id, sdr_id, created_by)
+      select 'Massa', income_band, source, tier, stage_id, sdr_id, created_by
+      from leads, generate_series(1, 10000) where id = ${id}`;
+    const big = await csv({}, ronaldo);
+    expect(big.status).toBe(400);
+    expect(big.body.message).toBe('Reduza o filtro para exportar até 10 mil leads');
+    const invalid = await csv({ tier: 'P9' }, ronaldo);
+    expect(invalid.status).toBe(400);
+  });
+});

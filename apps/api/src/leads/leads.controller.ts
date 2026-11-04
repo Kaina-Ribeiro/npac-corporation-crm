@@ -11,6 +11,7 @@ import {
   Post,
   Query,
   Req,
+  Res,
 } from '@nestjs/common';
 import {
   leadCreateSchema,
@@ -21,7 +22,8 @@ import {
   type LeadDTO,
   type Page,
 } from '@npac/shared';
-import type { FastifyRequest } from 'fastify';
+import type { FastifyReply, FastifyRequest } from 'fastify';
+import { csvHeaders } from '../common/csv.js';
 import { z } from 'zod';
 import { Can } from '../auth/can.decorator.js';
 import { CurrentUser, type SessionUser } from '../auth/current-user.decorator.js';
@@ -50,6 +52,11 @@ const listQuerySchema = z.object({
     .default(20)
     .transform((n) => Math.min(n, MAX_PAGE_SIZE)),
 });
+
+const exportQuerySchema = listQuerySchema
+  .omit({ page: true, pageSize: true, sort: true, direction: true })
+  .extend({ createdFrom: z.iso.date().optional(), createdTo: z.iso.date().optional() })
+  .strict();
 
 const uuid = z.uuid();
 
@@ -151,6 +158,20 @@ export class LeadsController {
     @Req() req: FastifyRequest,
   ): Promise<Page<LeadDTO>> {
     return this.leads.list(u, parse(listQuerySchema, body), meta(req));
+  }
+
+  @Post('csv')
+  @HttpCode(200)
+  @Can('export:csv')
+  async csv(
+    @CurrentUser() u: SessionUser,
+    @Body() body: unknown,
+    @Req() req: FastifyRequest,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ): Promise<string> {
+    const csv = await this.leads.csv(u, parse(exportQuerySchema, body), meta(req));
+    csvHeaders(reply, 'npac-leads.csv');
+    return csv;
   }
 
   @Get(':id')
