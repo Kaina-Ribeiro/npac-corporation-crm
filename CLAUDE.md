@@ -92,6 +92,9 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   Diretoria e Acompanhamento, 404 para os demais. Texto sensível cifrado com AAD
   (`MENTORADO_ENCRYPTION_KEY`); mídia fora do banco em `MEDIA_DIR`; sem DELETE para `npac_app`
   (exclusão só pelas funções, que enfileiram a mídia). Filhos usam a `version` do pai (D5).
+- **Siglas das mentorias** (Gabriel, 04/11/2026): RDV = Rico de Verdade · IDR = Introdução da
+  Riqueza · PME = Plano Mensal de Enriquecimento · 2M = Marco e Mudança · 6M = sem definição ainda.
+  Nas telas vale o texto literal do PDF.
 - Cookies em vez de localStorage: último usuário `npac_last_user` (`Path=/login`); ordem dos cards
   `npac_dash_<hash do id>` (`Path=/dashboard`, só IDs, o servidor já renderiza na ordem).
 
