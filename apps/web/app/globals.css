@@ -869,13 +869,8 @@ html[data-dash-dragging] * {
   font-weight: 600;
   white-space: pre;
   pointer-events: none;
-  opacity: 0;
   transform: translateY(-50%);
   backdrop-filter: blur(12px);
-  transition: opacity 120ms ease;
-}
-.side-tip[data-on] {
-  opacity: 1;
   animation: tip-in 180ms var(--ease-out);
 }
 .dark .side-tip {

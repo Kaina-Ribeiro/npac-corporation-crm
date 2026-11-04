@@ -38,7 +38,7 @@ test('sidebar recolhe em trilho, mostra tooltip e lembra a escolha após recarre
     name: 'Leads',
   });
   await leads.hover();
-  await expect(page.locator('.side-tip[data-on]')).toHaveText('Leads');
+  await expect(page.locator('.side-tip')).toHaveText('Leads');
 
   // O servidor já renderiza recolhida (cookie), sem piscar aberta antes da hidratação.
   const html = await (await page.request.get('/leads')).text();
