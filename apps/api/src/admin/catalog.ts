@@ -16,6 +16,7 @@ import {
 import { randomBytes } from 'node:crypto';
 import {
   auditLog,
+  deals,
   leads,
   pipelineStages,
   products,
@@ -185,6 +186,14 @@ export class AdminCatalogService {
         .where(and(eq(leads.stageId, id), isNull(leads.deletedAt)))
         .limit(1);
       if (busy) throw new ConflictException('Mova os leads desta coluna antes de excluir');
+      // A venda guarda a etapa anterior (volta para ela no estorno) e é imutável.
+      const [sold] = await tx
+        .select({ id: deals.id })
+        .from(deals)
+        .where(eq(deals.previousStageId, id))
+        .limit(1);
+      if (sold)
+        throw new ConflictException('Esta coluna tem venda registrada e não pode ser excluída');
       const [first] = await tx
         .select({ id: pipelineStages.id })
         .from(pipelineStages)

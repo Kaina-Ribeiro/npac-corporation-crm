@@ -409,6 +409,31 @@ describe('colunas do pipeline (pedido do cliente de 04/11)', () => {
     expect(late.body.message).toBe('Etapa inexistente');
   });
 
+  it('coluna que já teve venda não é excluída (venda é imutável)', async () => {
+    const col = (await h.post('/api/admin/stages', { label: 'Com venda' }, head)).body;
+    const lead = await h.post(
+      '/api/leads',
+      {
+        name: 'Vendeu na coluna',
+        instagram: '@venda.col',
+        incomeBand: 'R5_8K',
+        tier: 'P1',
+        stageKey: col.key,
+      },
+      ale,
+    );
+    const [p] = await owner<{ id: string; closer_id: string }[]>`
+      select id, closer_id from products where code = 'NACAO_PROMO'`;
+    await owner`insert into deals (lead_id, product_id, product_name, catalog_price_cents, closer_id, sdr_id, total_cents, method, request_key, created_by, previous_stage_id)
+      values (${lead.body.id}, ${p!.id}, 'Nação', 250000, ${p!.closer_id}, ${ids.ale!}, 250000, 'PIX', gen_random_uuid(), ${ids.ale!}, ${col.id})`;
+    await owner`update leads set stage_id = (select id from pipeline_stages where key = 'VENDA') where id = ${lead.body.id}`;
+    const res = await h.del(`/api/admin/stages/${col.id}`, {}, head);
+    expect(res.status).toBe(409);
+    expect(res.body.message).toBe('Esta coluna tem venda registrada e não pode ser excluída');
+    await owner`delete from payments where deal_id in (select id from deals where lead_id = ${lead.body.id})`;
+    await owner`delete from deals where lead_id = ${lead.body.id}`;
+  });
+
   it('SDR não mexe nas colunas', async () => {
     const id = (await catalog())[0]!.id;
     expect((await h.post('/api/admin/stages', { label: 'X' }, ale)).status).toBe(403);
