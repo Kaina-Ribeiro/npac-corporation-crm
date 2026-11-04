@@ -1,5 +1,4 @@
 'use client';
-import { disablePush } from '@/lib/push';
 // fetch direto (sem o client do Better Auth) para manter o JS das telas do app enxuto.
 export function SignOutButton({ className }: { className?: string }) {
   return (
@@ -11,7 +10,7 @@ export function SignOutButton({ className }: { className?: string }) {
       }
       onClick={async () => {
         // Sair tira os avisos deste aparelho (outra pessoa pode usar o mesmo navegador).
-        await disablePush();
+        await import('@/lib/push').then((m) => m.disablePush()).catch(() => {});
         await fetch('/api/auth/sign-out', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },

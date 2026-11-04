@@ -37,7 +37,7 @@ test('chat: selo no menu e (N) no título sem recarregar; abrir a conversa zera'
   const murilo = await browser.newPage();
   await login(murilo, 'murilo@npac.com.br');
   await murilo.goto('/hoje');
-  const badge = murilo.getByLabel('1 mensagem não lida').filter({ visible: true });
+  const badge = murilo.getByLabel('1 não lida no chat').filter({ visible: true });
   await expect(badge).toHaveCount(0);
   await expect(murilo).not.toHaveTitle(/^\(\d+\)/);
 
@@ -55,7 +55,7 @@ test('chat: selo no menu e (N) no título sem recarregar; abrir a conversa zera'
   await capture(murilo, 'menu-selo-chat');
   await murilo.setViewportSize({ width: 375, height: 812 });
   await murilo.goto('/mais');
-  await expect(murilo.getByLabel('1 mensagem não lida').filter({ visible: true })).toBeVisible();
+  await expect(murilo.getByLabel('1 não lida no chat').filter({ visible: true })).toBeVisible();
   await murilo.screenshot({ path: 'test-results/mais-selo-chat-375.png', fullPage: true });
   await murilo.setViewportSize({ width: 1280, height: 720 });
 
