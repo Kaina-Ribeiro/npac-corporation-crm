@@ -1,5 +1,6 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { initials } from '../src/collab/handoff.js';
 import { api, closeTestApp, createTestApp, owner, resetAuthState } from './helpers.js';
 
 let app: NestFastifyApplication;
@@ -114,6 +115,11 @@ describe('chat', () => {
 });
 
 describe('handoff', () => {
+  it('sigla são as 2 primeiras letras do nome', () => {
+    expect(initials('Igor')).toBe('IG');
+    expect(initials('  ana  ')).toBe('AN');
+  });
+
   it('texto sem telefone e link de agenda sem contato', async () => {
     await h.post(
       '/api/meetings',
@@ -134,7 +140,14 @@ describe('handoff', () => {
     const url = new URL(res.body.calendarUrl);
     expect(url.hostname).toBe('calendar.google.com');
     expect(url.searchParams.get('dates')).toBe('20300110T230000Z/20300110T235900Z');
-    expect(res.body.calendarUrl).not.toContain('Maria');
+    // Pedido do cliente (04/11): título com lead, perfil e sigla de quem agendou; descrição = handoff.
+    expect(url.searchParams.get('text')).toBe('Reunião Maria Handoff (P1) AL');
+    const details = url.searchParams.get('details')!;
+    expect(details).toContain('Handoff NPAC');
+    expect(details).toContain('SDR: Ale');
+    expect(details).toContain('Resumo: Quer mentoria');
+    expect(details).toContain(`/leads/${leadId}`);
+    expect(res.body.calendarUrl).not.toMatch(/9876|collab\.lead/);
     expect((await h.get(`/api/leads/${leadId}/handoff`, murilo)).status).toBe(404);
   });
 
