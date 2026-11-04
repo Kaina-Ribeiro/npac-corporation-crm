@@ -203,6 +203,21 @@ export class FichasService {
     });
   }
 
+  /** Impressão da ficha (D25, R18): registra quem imprimiu, só com o id. */
+  imprimir(u: AuthUser, id: string) {
+    return withUser(this.db, u.id, async (tx) => {
+      const [f] = await tx
+        .select({ id: mentoriaFichas.id })
+        .from(mentoriaFichas)
+        .where(eq(mentoriaFichas.id, id));
+      if (!f) throw new NotFoundException();
+      await this.audit.record(
+        { actorId: u.id, action: 'mentoria.print', entityType: 'ficha', entityId: id, data: {} },
+        tx,
+      );
+    });
+  }
+
   /** Nova conquista vazia (a equipe preenche data e descrição na galeria). Sem data padrão. */
   novaConquista(u: AuthUser, fichaId: string, version: number) {
     return withUser(this.db, u.id, async (tx) => {

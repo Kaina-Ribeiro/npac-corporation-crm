@@ -41,6 +41,12 @@ export class FichasController {
     );
   }
 
+  @Post(':id/imprimir')
+  @HttpCode(204)
+  async imprimir(@CurrentUser() u: SessionUser, @Param('id') id: string) {
+    await this.fichas.imprimir(u, entityId(id));
+  }
+
   @Post(':id/conquistas')
   @HttpCode(201)
   novaConquista(@CurrentUser() u: SessionUser, @Param('id') id: string, @Body() body: unknown) {

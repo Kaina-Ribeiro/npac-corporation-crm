@@ -719,3 +719,17 @@ html[data-dash-dragging] * {
 .dark .scroll-thin {
   scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
 }
+
+/* Impressão da ficha do Acompanhamento (lado a lado): só o conteúdo, sem vidro nem sombra. */
+@media print {
+  [role='tablist'],
+  .no-print {
+    display: none !important;
+  }
+  .ficha-imprimivel .glass-card {
+    box-shadow: none !important;
+    background: white !important;
+    border: 1px solid #ddd;
+    break-inside: avoid;
+  }
+}

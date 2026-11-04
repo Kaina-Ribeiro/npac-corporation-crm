@@ -207,4 +207,16 @@ describe('fichas', () => {
     expect((await h.post(`${F}/search`, {}, ale)).status).toBe(404);
     expect((await h.post(`${F}/${f.id}/conquistas`, { version: 1 }, ale)).status).toBe(404);
   });
+
+  it('imprimir grava audit mentoria.print com id e sem nome', async () => {
+    const f = await criar();
+    expect((await h.post(`${F}/${f.id}/imprimir`, {}, carla)).status).toBe(204);
+    const rows = await owner<{ entity_type: string; entity_id: string; data: unknown }[]>`
+      select entity_type, entity_id, data from audit_log where action = 'mentoria.print'`;
+    expect(rows).toEqual([{ entity_type: 'ficha', entity_id: f.id, data: {} }]);
+    expect(JSON.stringify(rows)).not.toContain('Fictício');
+    expect(
+      (await h.post(`${F}/00000000-0000-4000-8000-000000000000/imprimir`, {}, carla)).status,
+    ).toBe(404);
+  });
 });
