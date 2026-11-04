@@ -66,7 +66,7 @@ export function CloserDesk({ rows }: { rows: ReportRow[] }) {
         <ul className="-mx-5 divide-y divide-line">
           {sorted.map((c) => (
             <li key={c.id} className="flex items-center gap-4 px-5 py-4 first:pt-1 last:pb-0">
-              <Ring bps={c.conversionBps ?? 0} />
+              {c.conversionBps !== undefined && <Ring bps={c.conversionBps} />}
               <div className="flex min-w-0 flex-1 flex-col gap-2.5">
                 <div className="flex items-center gap-2">
                   <Initial name={c.name} />
@@ -79,7 +79,10 @@ export function CloserDesk({ rows }: { rows: ReportRow[] }) {
                       ['No-show', String(c.noShow ?? 0)],
                       ['Vendas', String(c.sales)],
                       // Sem centavos quando redondo: cabe na coluna sem cortar o valor.
-                      ['Faturado', money(c.soldCents ?? 0).replace(/,00$/, '')],
+                      // SDR não recebe o faturado (o servidor corta).
+                      ...(c.soldCents !== undefined
+                        ? ([['Faturado', money(c.soldCents).replace(/,00$/, '')]] as const)
+                        : []),
                     ] as const
                   ).map(([label, value]) => (
                     <div key={label} className="flex min-w-0 flex-col">
