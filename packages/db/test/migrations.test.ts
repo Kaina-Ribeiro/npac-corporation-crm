@@ -39,4 +39,11 @@ describe('migrations', () => {
     const rows = await ownerSql(DB)`select extname from pg_extension`;
     expect(rows.map((r) => r.extname)).toEqual(expect.arrayContaining(['pgcrypto', 'pg_trgm']));
   });
+
+  it('enum role contém ACOMPANHAMENTO depois do migrate', async () => {
+    const rows = await ownerSql(DB)`
+      select e.enumlabel from pg_enum e join pg_type t on t.oid = e.enumtypid
+      where t.typname = 'role' order by e.enumsortorder`;
+    expect(rows.map((r) => r.enumlabel)).toContain('ACOMPANHAMENTO');
+  });
 });
