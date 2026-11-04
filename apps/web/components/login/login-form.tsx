@@ -122,9 +122,13 @@ export function LoginForm({ lastUser }: { lastUser?: string }) {
 
   return (
     <form key="password" className="flex flex-col gap-4" aria-label="Login" onSubmit={onPassword}>
-      <h2 className="text-[28px] font-bold tracking-[-0.035em]">Bem-vindo de volta</h2>
+      <h2 className="text-[28px] font-bold tracking-[-0.035em]">
+        {hint ? 'Esqueci minha senha' : 'Bem-vindo de volta'}
+      </h2>
       <p className="-mt-2 mb-1 text-[15px] text-[#515154]">
-        Entre com o seu usuário da NPAC e a sua senha.
+        {hint
+          ? 'A liderança redefine a sua senha. Depois, entre com o seu usuário e a senha nova.'
+          : 'Entre com o seu usuário da NPAC e a sua senha.'}
       </p>
       <div className="flex flex-col gap-2">
         <label htmlFor="username" className="text-[13px] font-semibold text-[#3a3a3c]">
