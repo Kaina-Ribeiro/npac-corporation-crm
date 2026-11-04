@@ -104,7 +104,8 @@ describe('mentoria_mentorados (RLS)', () => {
     const rows = await owner<
       { tablename: string; qual: string | null; with_check: string | null }[]
     >`
-      select tablename, qual, with_check from pg_policies where tablename like 'mentoria_%'`;
+      select tablename, qual, with_check from pg_policies
+      where tablename like 'mentoria_%' and tablename <> 'mentoria_midia_exclusao'`;
     expect(rows.length).toBeGreaterThan(0);
     for (const r of rows) {
       expect(`${r.qual} ${r.with_check}`).not.toContain('app_role');

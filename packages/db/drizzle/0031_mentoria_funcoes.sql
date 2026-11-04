@@ -11,7 +11,8 @@ BEGIN
   END IF;
 END $$;
 --> statement-breakpoint
-GRANT npac_media_worker TO npac_app;
+-- Sem herança: o npac_app não ganha os privilégios do worker, só pode entrar nele (SET ROLE).
+GRANT npac_media_worker TO npac_app WITH INHERIT FALSE, SET TRUE;
 --> statement-breakpoint
 
 CREATE FUNCTION mentoria_exigir_acesso() RETURNS void
