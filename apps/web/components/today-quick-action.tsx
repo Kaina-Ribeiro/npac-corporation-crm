@@ -6,6 +6,34 @@ import { button, control, Field, quietButton } from './crm-ui';
 type Mode = 'menu' | 'RESCHEDULED' | 'NEXT_ACTION';
 
 /**
+ * Gatilho das ações rápidas do Hoje: ícone de raio. Em quem tem mouse aparece ao passar sobre a
+ * linha (ou com foco do teclado); no toque fica sempre visível.
+ */
+function Trigger({ busy, onClick }: { busy: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-label="Ação rápida"
+      title="Ação rápida"
+      disabled={busy}
+      onClick={onClick}
+      className="grid size-9 flex-none place-items-center rounded-full text-ink2 transition-[opacity,transform,background-color,color] duration-150 hover:bg-black/[.06] hover:text-ink active:scale-90 disabled:opacity-40 dark:hover:bg-white/10 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/row:opacity-100 [@media(hover:hover)]:group-focus-within/row:opacity-100 [&_svg]:size-[18px]"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.9"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M13 2.5 4.5 13.5H12l-1 8 8.5-11H12z" />
+      </svg>
+    </button>
+  );
+}
+
+/**
  * Ação rápida de um contato do Hoje (pedido do cliente, 04/11/2026): Chamado tira da lista,
  * Remarcado pede a nova data, Próxima ação vira tarefa com prazo. Horários em Brasília.
  */
@@ -30,12 +58,7 @@ export function QuickAction({
         : { version, action: mode, at },
     );
   }
-  if (!mode)
-    return (
-      <button type="button" className={chip} disabled={busy} onClick={() => setMode('menu')}>
-        Ação rápida
-      </button>
-    );
+  if (!mode) return <Trigger busy={busy} onClick={() => setMode('menu')} />;
   return (
     <div className="flex w-full flex-col gap-2 rounded-xl bg-black/[.03] p-3 dark:bg-white/5">
       <div className="flex flex-wrap gap-2" role="group" aria-label="Ação rápida">
@@ -131,12 +154,7 @@ export function MeetingAction({
     return () => clearInterval(t);
   }, [mode, started, at]);
   const chip = `${quietButton} min-h-11 transition-[transform,background-color] hover:bg-black/5 active:scale-[.97] disabled:cursor-not-allowed disabled:opacity-45 disabled:active:scale-100 dark:hover:bg-white/10 aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-[var(--bg)]`;
-  if (!mode)
-    return (
-      <button type="button" className={chip} disabled={busy} onClick={() => setMode('menu')}>
-        Ação rápida
-      </button>
-    );
+  if (!mode) return <Trigger busy={busy} onClick={() => setMode('menu')} />;
   return (
     <div className="flex w-full flex-col gap-2 rounded-xl bg-black/[.03] p-3 dark:bg-white/5">
       <div className="flex flex-wrap gap-2" role="group" aria-label="Ação rápida da reunião">
