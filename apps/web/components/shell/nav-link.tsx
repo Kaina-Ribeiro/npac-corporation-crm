@@ -34,7 +34,7 @@ export function CountBadge({ n, label }: { n: number; label: string }) {
   return (
     <span
       aria-label={label}
-      className="ml-auto min-w-5 rounded-full bg-danger px-1.5 text-center text-[11px] leading-5 font-semibold text-white tabular-nums"
+      className="nav-badge ml-auto min-w-5 rounded-full bg-danger px-1.5 text-center text-[11px] leading-5 font-semibold text-white tabular-nums"
     >
       {n > 99 ? '99+' : n}
     </span>
