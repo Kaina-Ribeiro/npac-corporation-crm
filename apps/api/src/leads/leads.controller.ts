@@ -58,6 +58,18 @@ const exportQuerySchema = listQuerySchema
   .extend({ createdFrom: z.iso.date().optional(), createdTo: z.iso.date().optional() })
   .strict();
 
+const quickActionSchema = z
+  .object({
+    version: z.number().int().positive(),
+    action: z.enum(['CALLED', 'RESCHEDULED', 'NEXT_ACTION']),
+    at: z.iso
+      .datetime({ offset: true })
+      .transform((v) => new Date(v))
+      .optional(),
+    title: z.string().max(200).optional(),
+  })
+  .strict();
+
 const uuid = z.uuid();
 
 function parse<T extends z.ZodType>(schema: T, input: unknown): z.output<T> {
@@ -90,6 +102,18 @@ export class LeadsController {
   ) {
     if (!uuid.safeParse(id).success) throw new NotFoundException();
     return this.mutations.update(u, id, parse(leadUpdateSchema, body), meta(req));
+  }
+
+  @Post(':id/quick-action')
+  @Can('lead:update')
+  quickAction(
+    @CurrentUser() u: SessionUser,
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @Req() req: FastifyRequest,
+  ) {
+    if (!uuid.safeParse(id).success) throw new NotFoundException();
+    return this.mutations.quickAction(u, id, parse(quickActionSchema, body), meta(req));
   }
 
   @Delete(':id')

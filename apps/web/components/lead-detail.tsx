@@ -31,6 +31,8 @@ const EVENT_LABEL: Record<string, string> = {
   'lead.updated': 'Dados atualizados',
   'lead.moved': 'Etapa alterada',
   'lead.reassigned': 'Responsável alterado',
+  'lead.called': 'Lead chamado',
+  'lead.contact_rescheduled': 'Contato remarcado',
   'note.created': 'Nota adicionada',
   'note.updated': 'Nota atualizada',
   'task.created': 'Tarefa criada',
