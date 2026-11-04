@@ -3,6 +3,7 @@ import { withUser, type Db, type Tx } from '@npac/db';
 import type { AuthUser } from '@npac/shared';
 import { sql } from 'drizzle-orm';
 import { DB } from '../common/db/db.module.js';
+import { PushService } from '../push/push.service.js';
 
 const PAGE = 50;
 
@@ -19,7 +20,10 @@ export type ChatMessageDTO = {
 /** Toda leitura passa pela RLS: Geral para usuários ativos, DM só para os dois membros. */
 @Injectable()
 export class ChatService {
-  constructor(@Inject(DB) private readonly db: Db) {}
+  constructor(
+    @Inject(DB) private readonly db: Db,
+    private readonly push: PushService,
+  ) {}
 
   channels(u: AuthUser) {
     return withUser(this.db, u.id, async (tx) => {
@@ -103,8 +107,8 @@ export class ChatService {
     });
   }
 
-  send(u: AuthUser, channelId: string, input: { body: string; leadId?: string }) {
-    return withUser(this.db, u.id, async (tx) => {
+  async send(u: AuthUser, channelId: string, input: { body: string; leadId?: string }) {
+    const sent = await withUser(this.db, u.id, async (tx) => {
       await this.visible(tx, channelId);
       if (input.leadId) {
         const lead = await tx.execute(
@@ -117,8 +121,26 @@ export class ChatService {
         values (${channelId}, ${u.id}, ${input.body}, ${input.leadId ?? null}) returning id`);
       const id = Number(rows[0]!.id);
       await this.markRead(tx, u, channelId, id);
-      return { id };
+      // Geral: a equipe ativa inteira; DM: o outro membro. Nunca o autor.
+      const [channel] = await tx.execute<{ kind: 'GENERAL' | 'DM'; author: string }>(
+        sql`select kind, (select name from "user" where id = ${u.id}) as author
+          from chat_channels where id = ${channelId}`,
+      );
+      const to = await tx.execute<{ id: string }>(
+        channel!.kind === 'GENERAL'
+          ? sql`select id from "user" where active and id <> ${u.id}`
+          : sql`select m.user_id as id from chat_members m join "user" x on x.id = m.user_id
+              where m.channel_id = ${channelId} and m.user_id <> ${u.id} and x.active`,
+      );
+      return { id, kind: channel!.kind, author: channel!.author, to: to.map((r) => r.id) };
     });
+    // Depois do commit e sem o texto da mensagem (pode ter dado de lead).
+    await this.push.notify(sent.to, {
+      title: sent.kind === 'GENERAL' ? 'Nova mensagem no Chat' : `Nova mensagem de ${sent.author}`,
+      url: '/chat',
+      tag: 'chat',
+    });
+    return { id: sent.id };
   }
 
   read(u: AuthUser, channelId: string, lastReadId: number) {

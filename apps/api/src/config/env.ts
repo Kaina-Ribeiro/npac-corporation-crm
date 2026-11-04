@@ -24,6 +24,11 @@ const envSchema = z.object({
         .filter(Boolean),
     )
     .pipe(z.array(z.url())),
+  /** Web Push (VAPID, base64url). Sem as duas chaves o push fica desligado; a tela continua avisando. */
+  VAPID_PUBLIC_KEY: z.string().min(1).optional(),
+  VAPID_PRIVATE_KEY: z.string().min(1).optional(),
+  /** Contato do remetente exigido pelo Web Push (https: ou mailto:); padrão: WEB_ORIGIN. */
+  VAPID_SUBJECT: z.string().min(1).optional(),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
 });
 

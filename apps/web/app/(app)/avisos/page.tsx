@@ -1,5 +1,5 @@
 import type { NotificationsDTO } from '@npac/shared';
-import { Inbox } from '@/components/inbox';
+import { Inbox } from '@/components/inbox-page';
 import { apiGet } from '@/lib/api';
 
 export const metadata = { title: 'Avisos' };

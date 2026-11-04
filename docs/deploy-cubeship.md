@@ -59,7 +59,13 @@ APP_DATABASE_URL=postgresql://npac_app:<app_pw>@cubeship-db-npac-db:5432/npac
 BETTER_AUTH_SECRET=<openssl rand -base64 32>
 FIELD_ENCRYPTION_KEY=<openssl rand -base64 32>
 BLIND_INDEX_KEY=<openssl rand -base64 32>
+VAPID_PUBLIC_KEY=<npx web-push generate-vapid-keys>
+VAPID_PRIVATE_KEY=<idem>
 ```
+
+As chaves VAPID ligam o push do navegador (avisos do chat e lembretes de reunião). Sem elas
+a API sobe normalmente e só a tela avisa. Trocar o par invalida as inscrições dos aparelhos:
+cada pessoa ativa de novo em `/conta/avisos`.
 
 No `retention`, só `NPAC_PROCESS=retention` e o mesmo `DATABASE_URL` (owner). O `web`
 não recebe nenhuma credencial. Senhas em hex (`openssl rand -hex 24`) para não precisar
