@@ -34,6 +34,17 @@ function moveDue(d: TodayDTO): TodayDTO {
   };
 }
 
+/**
+ * Linha das listas: os dados crescem e os botões ficam juntos à direita, "Abrir ficha" sempre
+ * por último (mesma coluna em todas as linhas). Lembrete e ação rápida aberta (`w-full`)
+ * descem para baixo da linha em vez de empurrar os botões.
+ */
+const row =
+  'flex flex-wrap items-center gap-x-2 gap-y-3 border-b border-line py-3 [&>.w-full]:order-last';
+// Card estreito (celular): os dados ocupam a linha e os botões descem juntos, lado a lado.
+const rowInfo = 'min-w-0 basis-full pr-1 @sm:min-w-44 @sm:flex-1 @sm:basis-0';
+const openLead = `${quietButton} min-h-11 content-center whitespace-nowrap`;
+
 function Section({
   title,
   count,
@@ -44,7 +55,7 @@ function Section({
   children: ReactNode;
 }) {
   return (
-    <section className="glass-card flex flex-col gap-3 p-5">
+    <section className="glass-card @container flex min-w-0 flex-col gap-3 p-5">
       <h2 className="flex justify-between text-lg font-bold">
         {title}
         <span className="text-sm font-medium text-ink2">{count}</span>
@@ -115,21 +126,12 @@ export function Today({
   }
   const contacts = (items: TodayDTO['contacts']) =>
     items.map((l) => (
-      <div
-        key={l.id}
-        data-lead-row
-        className="flex flex-wrap items-center justify-between gap-3 border-b border-line py-3"
-      >
-        <div className="min-w-0">
+      <div key={l.id} data-lead-row className={row}>
+        <div className={rowInfo}>
           <Link href={`/leads/${l.id}`} className="text-sm font-semibold">
             {l.name}
           </Link>
           <p className="text-xs text-ink2">{when(l.nextContactAt)}</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link href={`/leads/${l.id}`} className={`${quietButton} min-h-11 content-center`}>
-            Abrir ficha
-          </Link>
         </div>
         {quick && (
           <QuickAction
@@ -138,6 +140,9 @@ export function Today({
             run={(body) => action(`/api/leads/${l.id}/quick-action`, 'POST', body)}
           />
         )}
+        <Link href={`/leads/${l.id}`} className={openLead}>
+          Abrir ficha
+        </Link>
       </div>
     ));
   return (
@@ -189,11 +194,8 @@ export function Today({
         </Section>
         <Section title="Reuniões de hoje" count={data.meetings.length}>
           {data.meetings.map((m) => (
-            <article
-              key={m.id}
-              className="flex flex-wrap items-center justify-between gap-3 border-b border-line py-3"
-            >
-              <div className="min-w-0">
+            <article key={m.id} className={row}>
+              <div className={rowInfo}>
                 <Link href={`/leads/${m.leadId}`} className="text-sm font-semibold">
                   {m.name}
                 </Link>
@@ -207,14 +209,6 @@ export function Today({
                         ? 'Remarcada'
                         : 'Agendada'}
                 </p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Link
-                  href={`/leads/${m.leadId}`}
-                  className={`${quietButton} min-h-11 content-center`}
-                >
-                  Abrir ficha
-                </Link>
               </div>
               {m.reminders && (
                 <MeetingReminder
@@ -235,17 +229,17 @@ export function Today({
                   reschedule={(body) => action(`/api/meetings/${m.id}`, 'PATCH', body)}
                 />
               )}
+              <Link href={`/leads/${m.leadId}`} className={openLead}>
+                Abrir ficha
+              </Link>
             </article>
           ))}
         </Section>
         {charges && (
           <Section title="Cobranças até hoje" count={data.charges.length}>
             {data.charges.map((p) => (
-              <div
-                key={p.id}
-                className="flex flex-wrap items-center justify-between gap-3 border-b border-line py-3"
-              >
-                <div>
+              <div key={p.id} className={row}>
+                <div className={rowInfo}>
                   <Link href={`/leads/${p.leadId}`} className="text-sm font-semibold">
                     {p.name}
                   </Link>
