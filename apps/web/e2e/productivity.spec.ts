@@ -239,3 +239,29 @@ test('hoje: ação rápida de chamado, remarcado e próxima ação', async ({ pa
   await expect(row('Rápido Próxima')).toHaveCount(0);
   await page.screenshot({ path: 'test-results/hoje-acao-rapida.png', fullPage: true });
 });
+
+test('hoje: contato que vence com a página aberta vai para atrasados pelo navegador', async ({
+  page,
+}) => {
+  const now = Date.now();
+  const end = new Date(
+    `${new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(now)}T23:59:00-03:00`,
+  ).getTime();
+  test.skip(now + 5 * 60_000 > end, 'perto da meia-noite de Brasília');
+  await page.clock.install({ time: now });
+  await login(page, 'ale@npac.com.br');
+  const res = await page.request.post('/api/leads', {
+    data: { name: 'Vence já', instagram: `@vence.${now}`, incomeBand: 'R5_8K', tier: 'P1' },
+  });
+  const { id } = (await res.json()) as { id: string };
+  await owner`update leads set next_contact_at = ${new Date(now + 90_000)} where id = ${id}`;
+  await page.goto('/hoje');
+  const section = (title: RegExp) =>
+    page.locator('section', { has: page.getByRole('heading', { name: title }) });
+  await expect(section(/^Contatos de hoje/).getByText('Vence já')).toBeVisible();
+  // O relógio do servidor é o real (vence só daqui a ~90 s): se o lead mudar de lista agora,
+  // foi o navegador. O SSE da criação pode recarregar uma vez; isso não muda a lista.
+  await page.clock.fastForward('03:00');
+  await expect(section(/^Atrasados/).getByText('Vence já')).toBeVisible();
+  await expect(section(/^Contatos de hoje/).getByText('Vence já')).toHaveCount(0);
+});

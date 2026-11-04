@@ -61,11 +61,27 @@ export function Today({
   async function load(selected = filters) {
     setData(await clientApi<TodayDTO>('/api/today/search', 'POST', selected));
   }
-  // Contato que passa da hora vai sozinho para Atrasados: recarrega a cada minuto.
+  // Contato que passa da hora vai sozinho para Atrasados, no navegador e sem chamar a API
+  // (cada busca do Hoje grava auditoria). Mudanças de dados chegam pelo useCrmRefresh.
   useEffect(() => {
-    const t = setInterval(() => void load().catch(() => {}), 60_000);
+    const tick = () =>
+      setData((d) => {
+        const now = Date.now();
+        const due = d.contacts.filter(
+          (c) => c.nextContactAt && new Date(c.nextContactAt).getTime() < now,
+        );
+        if (!due.length) return d;
+        const at = (c: { nextContactAt: string | null }) =>
+          c.nextContactAt ? new Date(c.nextContactAt).getTime() : 0;
+        return {
+          ...d,
+          contacts: d.contacts.filter((c) => !due.includes(c)),
+          overdue: [...d.overdue, ...due].sort((a, b) => at(a) - at(b)),
+        };
+      });
+    const t = setInterval(tick, 30_000);
     return () => clearInterval(t);
-  });
+  }, []);
   async function action(path: string, method: string, body: object) {
     setBusy(true);
     setError('');
