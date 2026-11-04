@@ -52,6 +52,8 @@ export type MeetingDTO = {
   outcome: import('./enums.js').MeetingOutcome | null;
   canceledAt: string | null;
   version: number;
+  /** Etapas de confirmação ("Confirmação enviada") feitas no horário atual. */
+  confirmations: import('./reminders.js').ReminderStepConfirm[];
 };
 export type PipelineLead = Pick<
   LeadDTO,

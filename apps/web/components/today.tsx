@@ -6,6 +6,7 @@ import { money } from '@npac/shared/money';
 import { brasiliaInput, clientApi } from '@/lib/client-api';
 import { button, control, Field, FormError, quietButton } from './crm-ui';
 import { useCrmRefresh } from './shell/live-updates';
+import { MeetingReminder } from './meeting-reminder';
 import { MeetingAction, QuickAction } from './today-quick-action';
 
 const when = (at: string | null) =>
@@ -215,6 +216,15 @@ export function Today({
                   Abrir ficha
                 </Link>
               </div>
+              {m.reminders && (
+                <MeetingReminder
+                  meetingId={m.id}
+                  leadName={m.name}
+                  scheduledAt={m.scheduledAt}
+                  confirmed={m.reminders.confirmed}
+                  onConfirmed={() => load()}
+                />
+              )}
               {/* Com resultado a reunião está encerrada; correção só pela liderança, na ficha. */}
               {!m.outcome && (
                 <MeetingAction

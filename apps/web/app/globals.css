@@ -711,3 +711,13 @@ html[data-dash-dragging] * {
 .dark .scroll-thin {
   scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
 }
+
+/* Lembrete de reunião que acabou de entrar na etapa (NPAC-26). */
+.reminder-pop {
+  animation: dash-pop 0.45s var(--ease-spring) both;
+}
+
+/* Selo que aparece ou muda de número (chat, avisos). */
+.badge-pop {
+  animation: dash-pop 0.35s var(--ease-spring) both;
+}

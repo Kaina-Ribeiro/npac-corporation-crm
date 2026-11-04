@@ -2,10 +2,13 @@
 import type { NotificationsDTO } from '@npac/shared';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { pendingReminder } from '@npac/shared/reminders';
 import { useEffect, useState } from 'react';
 import { activityVerb, activityWhen } from '@/lib/activity-text';
+import { useAlerts, usePendingReminders, useReminderClock } from '@/lib/alerts';
 import { clientApi } from '@/lib/client-api';
 import { quietButton } from './crm-ui';
+import { ReminderNotice } from './meeting-reminder';
 import { useCrmRefresh } from './shell/live-updates';
 
 const SP = 'America/Sao_Paulo';
@@ -29,18 +32,57 @@ export const bell = (
   </svg>
 );
 
-/** Quantos avisos pedem atenção: não lidos + reuniões das próximas 2h. Atualiza ao vivo. */
+/**
+ * Quantos avisos pedem atenção: não lidos + reuniões das próximas 2h + lembretes de
+ * confirmação vigentes. Atualiza ao vivo (SSE) e pelo relógio, sem polling.
+ */
 function usePending() {
-  const [n, setN] = useState(0);
-  const load = async () => {
-    const r = await clientApi<NotificationsDTO>('/api/notifications');
-    setN(r.unread + r.soon.length);
-  };
+  const alerts = useAlerts();
+  const reminders = usePendingReminders();
+  return alerts ? alerts.unread + alerts.soon.length + reminders.length : 0;
+}
+
+/** Não lidas do chat (soma dos canais da pessoa). */
+export function useChatUnread() {
+  return useAlerts()?.chatUnread ?? 0;
+}
+
+/** Selo de não lidas no item Chat da navegação. */
+export function ChatBadge() {
+  const n = useChatUnread();
+  if (!n) return null;
+  return (
+    <span
+      key={n}
+      aria-label={`${n} ${n === 1 ? 'mensagem não lida' : 'mensagens não lidas'}`}
+      className="badge-pop ml-auto min-w-5 rounded-full bg-danger px-1.5 text-center text-[11px] leading-5 font-semibold text-white tabular-nums"
+    >
+      {n > 99 ? '99+' : n}
+    </span>
+  );
+}
+
+/**
+ * Título da aba: "(N) …" com as não lidas do chat + lembretes pendentes. O Next troca o
+ * <title> a cada navegação; o observador recoloca o número.
+ */
+export function TabTitle() {
+  const chat = useChatUnread();
+  const n = chat + usePendingReminders().length;
   useEffect(() => {
-    void load().catch(() => {});
-  }, []);
-  useCrmRefresh(load);
-  return n;
+    const apply = () => {
+      const base = document.title.replace(/^\(\d+\+?\) /, '');
+      const next = n ? `(${n > 99 ? '99+' : n}) ${base}` : base;
+      if (document.title !== next) document.title = next;
+    };
+    apply();
+    const head = document.querySelector('head');
+    if (!head) return;
+    const obs = new MutationObserver(apply);
+    obs.observe(head, { subtree: true, childList: true, characterData: true });
+    return () => obs.disconnect();
+  }, [n]);
+  return null;
 }
 
 function Badge({ n }: { n: number }) {
@@ -74,9 +116,9 @@ export function InboxLink() {
   );
 }
 
-/** Ponto no "Mais" da barra inferior quando há avisos (no celular os avisos ficam em Mais). */
+/** Ponto no "Mais" da barra inferior com avisos ou chat não lido (no celular ficam em Mais). */
 export function InboxDot() {
-  const n = usePending();
+  const n = usePending() + useChatUnread();
   if (!n) return null;
   return (
     <span
@@ -107,6 +149,11 @@ export function Inbox({ initial }: { initial: NotificationsDTO }) {
   const [busy, setBusy] = useState(false);
   const load = async () => setData(await clientApi<NotificationsDTO>('/api/notifications'));
   useCrmRefresh(load);
+  const clock = useReminderClock(data.reminders.map((r) => ({ scheduledAt: r.at })));
+  const reminders = data.reminders.flatMap((r) => {
+    const step = pendingReminder({ scheduledAt: r.at, confirmed: r.confirmed }, clock);
+    return step ? [{ ...r, step }] : [];
+  });
   async function read(ids?: string[]) {
     setBusy(true);
     try {
@@ -116,7 +163,7 @@ export function Inbox({ initial }: { initial: NotificationsDTO }) {
       setBusy(false);
     }
   }
-  const now = data.soon.length > 0 || data.overdue > 0;
+  const now = data.soon.length > 0 || data.overdue > 0 || reminders.length > 0;
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-5">
       <header className="flex flex-wrap items-end justify-between gap-3">
@@ -137,6 +184,16 @@ export function Inbox({ initial }: { initial: NotificationsDTO }) {
       {now && (
         <section className="glass-card flex flex-col gap-1 p-2" aria-label="Agora">
           <h2 className="px-3 pt-2 pb-1 text-xs font-semibold text-ink2 uppercase">Agora</h2>
+          {reminders.map((r) => (
+            <ReminderNotice
+              key={`${r.id}-${r.step}`}
+              meetingId={r.id}
+              leadName={r.leadName}
+              scheduledAt={r.at}
+              step={r.step}
+              onConfirmed={load}
+            />
+          ))}
           {data.soon.map((m) => (
             <Link
               key={m.id}

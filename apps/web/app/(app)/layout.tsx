@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { CommandPalette } from '@/components/shell/command-palette';
 import { LiveUpdates } from '@/components/shell/live-updates';
+import { TabTitle } from '@/components/inbox';
 import { NavProgress } from '@/components/shell/nav-progress';
 import { ThemeToggle } from '@/components/shell/theme-toggle';
 import { BottomNav } from '@/components/shell/bottom-nav';
@@ -40,6 +41,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <Link href="/conta/mfa" className="underline-offset-2 hover:text-ink hover:underline">
           Autenticador
         </Link>
+        ·
+        <Link href="/conta/avisos" className="underline-offset-2 hover:text-ink hover:underline">
+          Avisos
+        </Link>
       </small>
     </span>
   );
@@ -50,6 +55,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <NavProgress />
       </Suspense>
       <LiveUpdates />
+      <TabTitle />
       <CommandPalette head={isLeader(me.role)} />
       <Sidebar
         head={isLeader(me.role)}

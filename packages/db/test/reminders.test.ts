@@ -144,8 +144,8 @@ describe('inscrições de push', () => {
       { endpoint: 'https://push.test/a' },
     ]);
     await as('u-ale', sql`delete from push_subscriptions`);
-    const [{ n }] = await owner<{ n: number }[]>`select count(*)::int as n from push_subscriptions`;
-    expect(n).toBe(1);
+    const [row] = await owner<{ n: number }[]>`select count(*)::int as n from push_subscriptions`;
+    expect(row!.n).toBe(1);
     await subscribe('u-ale', 'https://push.test/m');
     expect(await as('u-murilo', sql`select endpoint from push_subscriptions`)).toEqual([]);
   });
