@@ -50,6 +50,12 @@ describe('loadEnv', () => {
     );
     expect(() => loadEnv({ ...validEnv, MEDIA_DIR: '' })).toThrow();
   });
+  it('boot em produção sem MEDIA_DIR falha com mensagem clara', () => {
+    expect(() => loadEnv({ ...validEnv, NODE_ENV: 'production' })).toThrow(/MEDIA_DIR/);
+    expect(loadEnv({ ...validEnv, NODE_ENV: 'production', MEDIA_DIR: '/media' }).MEDIA_DIR).toBe(
+      '/media',
+    );
+  });
   it('MENTORADO_ENCRYPTION_KEY precisa ser distinta de FIELD_ENCRYPTION_KEY', () =>
     expect(() => loadEnv({ ...validEnv, MENTORADO_ENCRYPTION_KEY: key })).toThrow(/distinta/));
 });

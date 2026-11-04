@@ -7,7 +7,9 @@ Só o Caddy expõe portas. Worker de retenção LGPD e backup diário rodam no m
 ## 1. VM e rede
 
 1. Crie a VM (2 OCPU / 12 GB basta) com volume de boot de 100 GB e um Block Volume
-   separado montado em `/srv/npac` (dados do Postgres e backups).
+   separado montado em `/srv/npac` (dados do Postgres, backups e a mídia do Acompanhamento em
+   `/srv/npac/media`, que vai em `MEDIA_DIR`; o arquivo fica fora do banco e entra no backup
+   cifrado).
 2. Security List / NSG: libere 80 e 443 **só para os IPs do Cloudflare**
    (https://www.cloudflare.com/ips/) e 22 só para o IP do administrador.
 3. Na VM: `sudo apt install docker.io docker-compose-v2 && sudo usermod -aG docker $USER`.

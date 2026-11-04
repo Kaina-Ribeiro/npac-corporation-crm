@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 import helmet from '@fastify/helmet';
+import multipart from '@fastify/multipart';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Logger } from 'nestjs-pino';
@@ -8,6 +9,8 @@ import { AppModule } from './app.module.js';
 /** Configuração comum (main e testes e2e): segurança, prefixo e no-store. */
 export async function configureApp(app: NestFastifyApplication): Promise<void> {
   await app.register(helmet);
+  // Upload de mídia do Acompanhamento: um arquivo por envio, até 20 MB (limite por rota).
+  await app.register(multipart, { limits: { fileSize: 20 * 1024 * 1024, files: 1 } });
   app.setGlobalPrefix('api');
   // Importação do Acompanhamento aceita até 25 MB (R10); as demais rotas, o padrão (1 MB).
   app

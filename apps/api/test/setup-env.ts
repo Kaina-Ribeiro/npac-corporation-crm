@@ -1,3 +1,7 @@
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 // Os testes da API usam o banco próprio npac_test_api, acessado como npac_app.
 const DB = 'npac_test_api';
 const raw = process.env.TEST_DATABASE_URL;
@@ -10,3 +14,6 @@ url.password = pw;
 process.env.APP_DATABASE_URL = url.toString();
 process.env.NODE_ENV = 'test';
 process.env.LOG_LEVEL = 'silent';
+
+// Mídia do Acompanhamento num diretório temporário por execução (nunca o volume real).
+process.env.MEDIA_DIR = mkdtempSync(join(tmpdir(), 'npac-media-'));
