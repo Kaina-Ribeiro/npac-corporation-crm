@@ -8,3 +8,5 @@ export * from './today.js';
 export * from './finance.js';
 export * from './schemas/lead-update.js';
 export * from './schemas/account.js';
+export * from './mentoria/normalizar.js';
+export * from './mentoria/datas.js';
