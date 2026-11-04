@@ -91,15 +91,24 @@ const shortDay = (iso: string) =>
 export function RevenueHero({
   daily,
   previous,
-  receivedCents,
-  outstandingCents,
+  receivedCents = 0,
+  outstandingCents = 0,
   monthly,
+  title = 'Faturamento acumulado',
+  value = (d) => d.soldCents ?? 0,
+  dayLabel = 'Vendas do dia',
+  foot,
 }: {
   daily: Day[];
   previous: { date: string; soldCents: number }[];
-  receivedCents: number;
-  outstandingCents: number;
+  receivedCents?: number;
+  outstandingCents?: number;
   monthly: boolean;
+  /** Mesmo card para o valor por reunião realizada do SDR (sem período anterior). */
+  title?: string;
+  value?: (d: Day) => number;
+  dayLabel?: string;
+  foot?: ReactNode;
 }) {
   const [hover, setHover] = useState<number | null>(null);
   const W = 600,
@@ -110,7 +119,7 @@ export function RevenueHero({
     X1 = 560;
   let sold = 0,
     prevSum = 0;
-  const cur = daily.map((d) => (sold += d.soldCents));
+  const cur = daily.map((d) => (sold += value(d)));
   const prev = previous.map((d) => (prevSum += d.soldCents));
   const max = niceMax(Math.max(sold, prevSum, 1));
   const last = daily.length - 1;
@@ -131,17 +140,19 @@ export function RevenueHero({
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-sm font-semibold" style={{ color: GOLD }}>
-          Faturamento acumulado
+          {title}
         </h2>
         <ul className="flex gap-4 text-xs text-white/70">
           <li className="flex items-center gap-1.5">
             <span aria-hidden="true" className="h-0.5 w-3.5 rounded" style={{ background: GOLD }} />
             <span className="inline-block first-letter:uppercase">{curName}</span>
           </li>
-          <li className="flex items-center gap-1.5">
-            <span aria-hidden="true" className="w-3.5 border-t border-dashed border-white/60" />
-            <span className="inline-block first-letter:uppercase">{prevName}</span>
-          </li>
+          {previous.length > 0 && (
+            <li className="flex items-center gap-1.5">
+              <span aria-hidden="true" className="w-3.5 border-t border-dashed border-white/60" />
+              <span className="inline-block first-letter:uppercase">{prevName}</span>
+            </li>
+          )}
         </ul>
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-3">
@@ -165,15 +176,19 @@ export function RevenueHero({
         )}
       </div>
       <p className="text-sm text-white/70">
-        Recebido {money(receivedCents)} · a receber{' '}
-        <b style={{ color: GOLD }}>{money(outstandingCents)}</b>
+        {foot ?? (
+          <>
+            Recebido {money(receivedCents)} · a receber{' '}
+            <b style={{ color: GOLD }}>{money(outstandingCents)}</b>
+          </>
+        )}
       </p>
       <div className="relative mt-3">
         <svg
           viewBox={`0 0 ${W} ${H}`}
           className="h-auto w-full touch-none"
           role="img"
-          aria-label={`Vendido acumulado ${money(sold)} contra ${money(prevSum)} no ${prevName}`}
+          aria-label={`${title} ${money(sold)}${previous.length ? ` contra ${money(prevSum)} no ${prevName}` : ''}`}
           onPointerLeave={() => setHover(null)}
           onPointerMove={(e) => {
             const box = e.currentTarget.getBoundingClientRect();
@@ -296,7 +311,9 @@ export function RevenueHero({
                 {money(prev[hover]!)}
               </p>
             )}
-            <p className="text-white/70">Vendas do dia: {money(daily[hover]!.soldCents)}</p>
+            <p className="text-white/70">
+              {dayLabel}: {money(value(daily[hover]!))}
+            </p>
           </div>
         )}
       </div>

@@ -90,7 +90,9 @@ test('SDR registra venda parcial, recebe saldo e vê o relatório', async ({ pag
   ).toHaveCount(0);
   await page.goto('/relatorios');
   await expect(page.getByRole('heading', { name: 'Relatórios', exact: true })).toBeVisible();
-  await expect(page.getByText(/2\.500,00/).first()).toBeVisible();
+  // Pedido do cliente (04/11): SDR vê comparecimento, não o valor da venda.
+  await expect(page.getByText('Valor a receber por reunião realizada')).toBeVisible();
+  await expect(page.getByText(/2\.500,00/)).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'CSV com contatos', exact: true })).toHaveCount(0);
   await page.screenshot({ path: 'test-results/relatorios.png', fullPage: true });
 });
@@ -255,6 +257,9 @@ for (const head of ['ana', 'ronaldo']) {
     await expect(page.getByLabel('Código', { exact: true })).toHaveValue('');
     await page.getByLabel('Código', { exact: true }).fill(totp(secret));
     await page.waitForURL(/\/dashboard/);
+    // MFA é opcional: devolve o estado inicial para os specs seguintes.
+    await owner`update "user" set two_factor_enabled=false where email=${email}`;
+    await owner`delete from two_factor where user_id=(select id from "user" where email=${email})`;
   });
 }
 
@@ -425,6 +430,8 @@ test('duas sessões recebem notas em tempo real e revogam acesso sem recarregar'
     await owner`update "user" set active = false where email = 'sonia@npac.com.br'`;
     await expect(sonia).toHaveURL(/\/login/, { timeout: 10_000 });
   } finally {
+    // Usuários são compartilhados entre os specs: devolve a Sônia ativa.
+    await owner`update "user" set active = true where email = 'sonia@npac.com.br'`;
     await a.close();
     await s.close();
   }

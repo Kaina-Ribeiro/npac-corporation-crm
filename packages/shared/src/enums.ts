@@ -32,12 +32,16 @@ export const STAGE_KEYS = [
   'VENDA',
   'PERDIDO',
 ] as const;
-export type StageKey = (typeof STAGE_KEYS)[number];
+/** Etapas com regra de negócio (não podem ser excluídas). */
+export type SystemStageKey = (typeof STAGE_KEYS)[number];
+/** Chave de etapa: as de sistema ou as criadas pela liderança (`C_` + 8 hex). */
+export type StageKey = string;
+export const STAGE_KEY_PATTERN = /^[A-Z][A-Z0-9_]{1,39}$/;
 
 export const MEETING_ORIGINS = ['DIRETO', 'FOLLOW'] as const;
 export type MeetingOrigin = (typeof MEETING_ORIGINS)[number];
 
-export const MEETING_OUTCOMES = ['DONE', 'NO_SHOW'] as const;
+export const MEETING_OUTCOMES = ['DONE', 'NO_SHOW', 'RESCHEDULED'] as const;
 export type MeetingOutcome = (typeof MEETING_OUTCOMES)[number];
 
 export const LEGAL_BASES = ['LEGITIMATE_INTEREST', 'CONSENT', 'CONTRACT'] as const;

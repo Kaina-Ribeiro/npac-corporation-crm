@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import type { TransactionSql } from 'postgres';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { leads, meetings } from '../src/schema/index.js';
@@ -446,5 +446,38 @@ describe('escritas que não podem ampliar visibilidade', () => {
       tx.select({ id: meetings.id }).from(meetings),
     );
     expect(rows).toEqual([]);
+  });
+});
+
+describe('etapas editáveis (pedido do cliente de 04/11)', () => {
+  beforeEach(seedFixtures);
+  const stages = () =>
+    owner<{ key: string; system: boolean }[]>`select key, system from pipeline_stages`;
+
+  it('etapa de sistema é marcada pela chave; coluna criada aceita chave livre', async () => {
+    await owner`insert into pipeline_stages (key, label, position) values ('C_ABCD1234', 'Reativação', 2)`;
+    const rows = await stages();
+    expect(rows.find((r) => r.key === 'SONDAGEM')!.system).toBe(true);
+    expect(rows.find((r) => r.key === 'C_ABCD1234')!.system).toBe(false);
+  });
+
+  it('liderança exclui coluna criada, nunca a de sistema; SDR não exclui nem cria', async () => {
+    await owner`insert into pipeline_stages (key, label, position) values ('C_ABCD1234', 'Reativação', 2)`;
+    const del = (u: Fixture, key: string) =>
+      withUser(db, u.id, (tx) =>
+        tx.execute(sql`delete from pipeline_stages where key = ${key} returning id`),
+      );
+    expect(await del(ale, 'C_ABCD1234')).toHaveLength(0);
+    expect(await del(ana, 'SONDAGEM')).toHaveLength(0);
+    expect(await del(ana, 'C_ABCD1234')).toHaveLength(1);
+    await expect(
+      pgError(
+        withUser(db, ale.id, (tx) =>
+          tx.execute(
+            sql`insert into pipeline_stages (key, label, position) values ('C_X', 'X', 9)`,
+          ),
+        ),
+      ),
+    ).rejects.toThrow(/row-level security/);
   });
 });

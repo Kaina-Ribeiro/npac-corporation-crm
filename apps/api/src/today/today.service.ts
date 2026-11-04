@@ -50,12 +50,14 @@ export class TodayService {
           .from(leads)
           .innerJoin(pipelineStages, eq(pipelineStages.id, leads.stageId));
       const open = notInArray(pipelineStages.key, ['VENDA', 'PERDIDO']);
+      // Atrasado = já passou da hora (não só de ontem): o contato de hoje vencido sobe sozinho.
+      const now = new Date();
       const overdue = await base()
-        .where(and(...scope, open, lt(leads.nextContactAt, start)))
+        .where(and(...scope, open, lt(leads.nextContactAt, now)))
         .orderBy(asc(leads.nextContactAt), asc(leads.id))
         .limit(100);
       const contacts = await base()
-        .where(and(...scope, open, gte(leads.nextContactAt, start), lt(leads.nextContactAt, end)))
+        .where(and(...scope, open, gte(leads.nextContactAt, now), lt(leads.nextContactAt, end)))
         .orderBy(asc(leads.nextContactAt), asc(leads.id))
         .limit(100);
       const calls = await tx

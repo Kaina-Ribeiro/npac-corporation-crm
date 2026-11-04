@@ -54,18 +54,18 @@ const settled = (page: Page) =>
     .toBe(true);
 
 // SDR: sem o feed da equipe, que é só da liderança.
+/** Ordem padrão do SDR (ale): comparecimento no lugar dos cards de venda (pedido de 04/11). */
 const DEFAULT = [
   'kpi-leads',
   'kpi-meetings',
-  'kpi-sold',
-  'kpi-received',
-  'revenue',
+  'kpi-done',
+  'kpi-missed',
+  'meeting-value',
   'funnel',
   'daily-leads',
   'tiers',
   'closers',
   'sdrs',
-  'products',
 ];
 const without = (id: string) => DEFAULT.filter((c) => c !== id);
 
@@ -143,4 +143,87 @@ test('dashboard: arrasta e reordena cards, a ordem persiste e volta ao padrão',
   await expect.poll(() => order(page)).toEqual(DEFAULT);
   await revealed(page);
   await page.screenshot({ path: 'test-results/dashboard-reorder.png', fullPage: true });
+});
+
+test('head filtra o dashboard por SDR', async ({ page }) => {
+  const [ale] = await owner<
+    { id: string }[]
+  >`select id from "user" where email = 'ale@npac.com.br'`;
+  await login(page, 'ana@npac.com.br');
+  const request = page.waitForRequest(
+    (r) => r.url().endsWith('/api/reports/search') && r.postDataJSON()?.sdrId === ale!.id,
+  );
+  await page
+    .getByLabel('SDR', { exact: true })
+    .filter({ visible: true })
+    .selectOption({ label: 'Ale' });
+  await request;
+  // O período continua o escolhido e o SDR segue junto ao trocar de período.
+  const again = page.waitForRequest(
+    (r) =>
+      r.url().endsWith('/api/reports/search') &&
+      r.postDataJSON()?.sdrId === ale!.id &&
+      r.postDataJSON()?.period === 'TODAY',
+  );
+  await page.getByRole('group', { name: 'Período' }).getByRole('button', { name: 'Hoje' }).click();
+  await again;
+});
+
+test('SDR não tem filtro de SDR no dashboard', async ({ page }) => {
+  await login(page, 'ale@npac.com.br');
+  await expect(page.getByRole('group', { name: 'Período' })).toBeVisible();
+  await expect(page.getByLabel('SDR', { exact: true })).toHaveCount(0);
+});
+
+const card = (page: Page, id: string) => page.locator(`.dash-board [data-card="${id}"]`);
+
+test('SDR vê comparecimento e nenhum valor de venda no dashboard', async ({ page }) => {
+  await login(page, 'ale@npac.com.br');
+  for (const id of ['kpi-done', 'kpi-missed', 'meeting-value'])
+    await expect(card(page, id)).toBeVisible();
+  await expect(card(page, 'kpi-done')).toContainText('Reuniões realizadas');
+  await expect(card(page, 'kpi-missed')).toContainText('No-show / Remarcados');
+  await expect(card(page, 'meeting-value')).toContainText('Valor a receber por reunião realizada');
+  for (const id of ['kpi-sold', 'kpi-received', 'revenue', 'products'])
+    await expect(card(page, id)).toHaveCount(0);
+  // R$ só no card do valor por reunião realizada.
+  const money = await page
+    .locator('.dash-board [data-card]:not([data-card="meeting-value"])')
+    .allInnerTexts();
+  expect(money.join('\n')).not.toContain('R$');
+});
+
+test('closer vê o dashboard de vendas como antes', async ({ page }) => {
+  await login(page, 'sonia@npac.com.br');
+  await expect(card(page, 'kpi-sold')).toContainText('Vendido');
+  await expect(card(page, 'revenue')).toBeVisible();
+  await expect(card(page, 'meeting-value')).toHaveCount(0);
+  await expect(card(page, 'kpi-done')).toHaveCount(0);
+});
+
+test('liderança vê vendas e comparecimento', async ({ page }) => {
+  await login(page, 'ana@npac.com.br');
+  for (const id of ['kpi-sold', 'revenue', 'kpi-done', 'kpi-missed', 'meeting-value'])
+    await expect(card(page, id)).toBeVisible();
+});
+
+test('SDR não vê valores de venda em Relatórios', async ({ page }) => {
+  await login(page, 'ale@npac.com.br');
+  await page.goto('/relatorios');
+  await expect(page.getByText('Valor a receber por reunião realizada')).toBeVisible();
+  await expect(page.getByText('Vendido', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('Recebido no período')).toHaveCount(0);
+});
+
+test('relatórios: liderança exporta CSV de tudo', async ({ page }) => {
+  await login(page, 'ana@npac.com.br');
+  await page.goto('/relatorios');
+  await page.getByText('CSV com contatos', { exact: true }).click();
+  const download = page.waitForEvent('download');
+  const request = page.waitForRequest(
+    (r) => r.url().endsWith('/api/reports/csv') && r.postDataJSON()?.period === 'ALL',
+  );
+  await page.getByRole('button', { name: 'Tudo', exact: true }).click();
+  await request;
+  expect((await download).suggestedFilename()).toBe('npac-relatorio.csv');
 });

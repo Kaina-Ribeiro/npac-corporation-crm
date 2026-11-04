@@ -11,17 +11,19 @@ import {
   Post,
   Query,
   Req,
+  Res,
 } from '@nestjs/common';
 import {
   leadCreateSchema,
   leadUpdateSchema,
   LEAD_SOURCES,
-  STAGE_KEYS,
+  stageKeySchema,
   TIERS,
   type LeadDTO,
   type Page,
 } from '@npac/shared';
-import type { FastifyRequest } from 'fastify';
+import type { FastifyReply, FastifyRequest } from 'fastify';
+import { csvHeaders } from '../common/csv.js';
 import { z } from 'zod';
 import { Can } from '../auth/can.decorator.js';
 import { CurrentUser, type SessionUser } from '../auth/current-user.decorator.js';
@@ -32,7 +34,7 @@ const MAX_PAGE_SIZE = 100;
 
 const listQuerySchema = z.object({
   search: z.string().max(200).optional(),
-  stage: z.enum(STAGE_KEYS).optional(),
+  stage: stageKeySchema.optional(),
   tier: z.enum(TIERS).optional(),
   sdrId: z.string().optional(),
   closerId: z.string().optional(),
@@ -50,6 +52,24 @@ const listQuerySchema = z.object({
     .default(20)
     .transform((n) => Math.min(n, MAX_PAGE_SIZE)),
 });
+
+// A tela manda a ordenação junto com os filtros; o CSV sai por data de criação.
+const exportQuerySchema = listQuerySchema
+  .omit({ page: true, pageSize: true })
+  .extend({ createdFrom: z.iso.date().optional(), createdTo: z.iso.date().optional() })
+  .strict();
+
+const quickActionSchema = z
+  .object({
+    version: z.number().int().positive(),
+    action: z.enum(['CALLED', 'RESCHEDULED', 'NEXT_ACTION']),
+    at: z.iso
+      .datetime({ offset: true })
+      .transform((v) => new Date(v))
+      .optional(),
+    title: z.string().max(200).optional(),
+  })
+  .strict();
 
 const uuid = z.uuid();
 
@@ -83,6 +103,18 @@ export class LeadsController {
   ) {
     if (!uuid.safeParse(id).success) throw new NotFoundException();
     return this.mutations.update(u, id, parse(leadUpdateSchema, body), meta(req));
+  }
+
+  @Post(':id/quick-action')
+  @Can('lead:update')
+  quickAction(
+    @CurrentUser() u: SessionUser,
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @Req() req: FastifyRequest,
+  ) {
+    if (!uuid.safeParse(id).success) throw new NotFoundException();
+    return this.mutations.quickAction(u, id, parse(quickActionSchema, body), meta(req));
   }
 
   @Delete(':id')
@@ -151,6 +183,20 @@ export class LeadsController {
     @Req() req: FastifyRequest,
   ): Promise<Page<LeadDTO>> {
     return this.leads.list(u, parse(listQuerySchema, body), meta(req));
+  }
+
+  @Post('csv')
+  @HttpCode(200)
+  @Can('export:csv')
+  async csv(
+    @CurrentUser() u: SessionUser,
+    @Body() body: unknown,
+    @Req() req: FastifyRequest,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ): Promise<string> {
+    const csv = await this.leads.csv(u, parse(exportQuerySchema, body), meta(req));
+    csvHeaders(reply, 'npac-leads.csv');
+    return csv;
   }
 
   @Get(':id')

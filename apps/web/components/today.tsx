@@ -1,11 +1,12 @@
 'use client';
 import type { LeadCatalog, TodayDTO } from '@npac/shared';
 import Link from 'next/link';
-import { useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { money } from '@npac/shared/money';
 import { brasiliaInput, clientApi } from '@/lib/client-api';
 import { button, control, Field, FormError, quietButton } from './crm-ui';
 import { useCrmRefresh } from './shell/live-updates';
+import { QuickAction } from './today-quick-action';
 
 const when = (at: string | null) =>
   at
@@ -42,11 +43,14 @@ export function Today({
   name,
   catalog,
   head,
+  quick = false,
 }: {
   initial: TodayDTO;
   name: string;
   catalog: LeadCatalog;
   head: boolean;
+  /** Ação rápida (Chamado/Remarcado/Próxima ação): quem edita lead, ou seja, não o Closer. */
+  quick?: boolean;
 }) {
   const [data, setData] = useState(initial);
   const receiptKeys = useRef(new Map<string, string>());
@@ -57,6 +61,27 @@ export function Today({
   async function load(selected = filters) {
     setData(await clientApi<TodayDTO>('/api/today/search', 'POST', selected));
   }
+  // Contato que passa da hora vai sozinho para Atrasados, no navegador e sem chamar a API
+  // (cada busca do Hoje grava auditoria). Mudanças de dados chegam pelo useCrmRefresh.
+  useEffect(() => {
+    const tick = () =>
+      setData((d) => {
+        const now = Date.now();
+        const due = d.contacts.filter(
+          (c) => c.nextContactAt && new Date(c.nextContactAt).getTime() < now,
+        );
+        if (!due.length) return d;
+        const at = (c: { nextContactAt: string | null }) =>
+          c.nextContactAt ? new Date(c.nextContactAt).getTime() : 0;
+        return {
+          ...d,
+          contacts: d.contacts.filter((c) => !due.includes(c)),
+          overdue: [...d.overdue, ...due].sort((a, b) => at(a) - at(b)),
+        };
+      });
+    const t = setInterval(tick, 30_000);
+    return () => clearInterval(t);
+  }, []);
   async function action(path: string, method: string, body: object) {
     setBusy(true);
     setError('');
@@ -84,16 +109,29 @@ export function Today({
   }
   const contacts = (items: TodayDTO['contacts']) =>
     items.map((l) => (
-      <div key={l.id} className="flex items-center justify-between gap-3 border-b border-line py-3">
-        <div>
+      <div
+        key={l.id}
+        data-lead-row
+        className="flex flex-wrap items-center justify-between gap-3 border-b border-line py-3"
+      >
+        <div className="min-w-0">
           <Link href={`/leads/${l.id}`} className="text-sm font-semibold">
             {l.name}
           </Link>
           <p className="text-xs text-ink2">{when(l.nextContactAt)}</p>
         </div>
-        <Link href={`/leads/${l.id}`} className={quietButton}>
-          Abrir ficha
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href={`/leads/${l.id}`} className={`${quietButton} min-h-11 content-center`}>
+            Abrir ficha
+          </Link>
+        </div>
+        {quick && (
+          <QuickAction
+            version={l.version}
+            busy={busy}
+            run={(body) => action(`/api/leads/${l.id}/quick-action`, 'POST', body)}
+          />
+        )}
       </div>
     ));
   return (
@@ -155,7 +193,9 @@ export function Today({
                   ? 'Realizada'
                   : m.outcome === 'NO_SHOW'
                     ? 'No-show'
-                    : 'Agendada'}
+                    : m.outcome === 'RESCHEDULED'
+                      ? 'Remarcada'
+                      : 'Agendada'}
               </p>
               <div className="flex flex-wrap gap-2">
                 <Link href={`/leads/${m.leadId}`} className={quietButton}>
@@ -186,6 +226,18 @@ export function Today({
                       }
                     >
                       No-show
+                    </button>
+                    <button
+                      className={quietButton}
+                      disabled={busy}
+                      onClick={() =>
+                        void action(`/api/meetings/${m.id}/outcome`, 'POST', {
+                          version: m.version,
+                          outcome: 'RESCHEDULED',
+                        })
+                      }
+                    >
+                      Remarcado
                     </button>
                   </>
                 )}

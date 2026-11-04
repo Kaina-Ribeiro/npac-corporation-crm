@@ -86,3 +86,59 @@ test('SDR não acessa o Admin', async ({ page }) => {
   const res = await page.goto('/admin');
   expect(res?.status()).toBe(404);
 });
+
+test.describe('colunas do pipeline', () => {
+  test.afterEach(async () => {
+    await owner`delete from pipeline_stages where not system and not exists (select 1 from leads where stage_id = pipeline_stages.id)`;
+    for (const [i, key] of [
+      'SONDAGEM',
+      'AGENDADO_DIRETO',
+      'EM_FOLLOW',
+      'AGENDADO_FOLLOW',
+      'AGENDOU_PAGAMENTO',
+      'NO_SHOW',
+      'VENDA',
+      'PERDIDO',
+    ].entries())
+      await owner`update pipeline_stages set position = ${i + 1} where key = ${key}`;
+  });
+
+  test('head cria, renomeia, move e exclui coluna no pipeline', async ({ page }) => {
+    await headLogin(page);
+    await page.goto('/pipeline');
+    await page.getByRole('button', { name: 'Editar colunas' }).click();
+    const editor = page.getByRole('region', { name: 'Editar colunas' });
+    await editor.getByLabel('Nova coluna').fill('Reativação e2e');
+    await editor.getByRole('button', { name: 'Adicionar coluna' }).click();
+    const row = editor.locator('li[data-label="Reativação e2e"]');
+    await expect(row).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Reativação e2e' }).first()).toBeVisible();
+    await row.getByLabel('Nome da coluna').fill('Reativar e2e');
+    await row.getByLabel('Nome da coluna').blur();
+    await expect(page.getByRole('heading', { name: 'Reativar e2e' }).first()).toBeVisible();
+    const renamed = editor.locator('li[data-label="Reativar e2e"]');
+    await renamed.getByRole('button', { name: 'Mover para cima' }).click();
+    await expect
+      .poll(() =>
+        editor
+          .getByLabel('Nome da coluna')
+          .evaluateAll((els) => els.map((el) => (el as HTMLInputElement).value).at(-2)),
+      )
+      .toBe('Reativar e2e');
+    // Coluna de sistema não exclui.
+    const system = editor.locator('li[data-system]').first();
+    await expect(system.getByRole('button', { name: /Excluir/ })).toBeDisabled();
+    page.once('dialog', (d) => void d.accept());
+    await renamed.getByRole('button', { name: 'Excluir coluna' }).click();
+    await expect(editor.locator('li[data-label="Reativar e2e"]')).toHaveCount(0);
+    await page.screenshot({ path: 'test-results/pipeline-colunas.png', fullPage: true });
+  });
+
+  test('SDR não edita colunas', async ({ page }) => {
+    await login(page, 'ale@npac.com.br');
+    await page.waitForURL(/\/dashboard/);
+    await page.goto('/pipeline');
+    await expect(page.getByRole('heading', { name: 'Pipeline', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Editar colunas' })).toHaveCount(0);
+  });
+});

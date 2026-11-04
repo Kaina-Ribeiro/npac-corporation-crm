@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
-import { afterAll, beforeAll, beforeEach, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { api, closeTestApp, createTestApp, owner, resetAuthState } from './helpers.js';
 let app: NestFastifyApplication, h: ReturnType<typeof api>, ale: string, head: string;
 beforeAll(async () => {
@@ -53,15 +53,15 @@ it('SQL não duplica faturamento ao juntar duas reuniões e respeita escopo', as
   const mine = await h.post('/api/reports/search', { period: 'TODAY' }, ale);
   expect(mine.status).toBe(200);
   expect(mine.body.bySdr[0]).toMatchObject({ p1: 1, direct: 2, follow: 0 });
-  expect(mine.body.byCloser[0].conversionBps).toBe(5000);
-  expect(mine.body.byProduct[0].ticketCents).toBe(250000);
-  expect(mine.body.metrics).toMatchObject({
-    soldCents: 250000,
-    receivedCents: 250000,
-    sales: 1,
-    meetings: 2,
-    done: 2,
-  });
+  expect(mine.body.metrics).toMatchObject({ sales: 1, meetings: 2, done: 2 });
+  // Valores de venda do SDR: só a liderança vê (filtrando pelo SDR).
+  const aleId = (
+    await owner<{ id: string }[]>`select id from "user" where email='ale@npac.com.br'`
+  )[0]!.id;
+  const asAle = await h.post('/api/reports/search', { period: 'TODAY', sdrId: aleId }, head);
+  expect(asAle.body.byCloser[0].conversionBps).toBe(5000);
+  expect(asAle.body.byProduct[0].ticketCents).toBe(250000);
+  expect(asAle.body.metrics).toMatchObject({ soldCents: 250000, receivedCents: 250000 });
   expect(
     (await h.post('/api/reports/search', { period: 'TODAY' }, head)).body.metrics.soldCents,
   ).toBe(550000);
@@ -121,7 +121,10 @@ it('série diária do período fecha com as métricas e cobre todos os dias', as
   expect(sum('receivedCents')).toBe(month.body.metrics.receivedCents);
   expect(sum('leads')).toBe(month.body.metrics.leads);
   expect(sum('meetings')).toBe(month.body.metrics.meetings);
-  const mine = await h.post('/api/reports/search', { period: 'MONTH' }, ale);
+  const aleId = (
+    await owner<{ id: string }[]>`select id from "user" where email='ale@npac.com.br'`
+  )[0]!.id;
+  const mine = await h.post('/api/reports/search', { period: 'MONTH', sdrId: aleId }, head);
   expect(mine.body.daily.reduce((a: number, d: { soldCents: number }) => a + d.soldCents, 0)).toBe(
     250000,
   );
@@ -158,4 +161,114 @@ it('atividade da equipe: só Head vê, mais recente primeiro, com quem fez e qua
   expect(Object.keys(first).sort()).toEqual(
     ['actorName', 'at', 'id', 'kind', 'leadId', 'leadName'].sort(),
   );
+});
+
+describe('comparecimento (pedido do cliente de 04/11)', () => {
+  let aleId: string, muriloId: string, closerId: string;
+  const ids: Record<string, string> = {};
+  beforeEach(async () => {
+    await owner`delete from meetings`;
+    const users = await owner<{ id: string; email: string }[]>`select id, email from "user"`;
+    const by = (e: string) => users.find((u) => u.email === e)!.id;
+    aleId = by('ale@npac.com.br');
+    muriloId = by('murilo@npac.com.br');
+    closerId = by('sonia@npac.com.br');
+    for (const [key, tier, outcome] of [
+      ['p0done', 'P0', 'DONE'],
+      ['p1done', 'P1', 'DONE'],
+      ['p2noshow', 'P2', 'NO_SHOW'],
+      ['p0resched', 'P0', 'RESCHEDULED'],
+    ] as const) {
+      const lead = await h.post(
+        '/api/leads',
+        { name: `Comp ${key}`, instagram: `@comp.${key}`, incomeBand: 'R5_8K', tier },
+        ale,
+      );
+      ids[key] = lead.body.id;
+      await owner`insert into meetings (lead_id,closer_id,scheduled_at,origin,outcome,outcome_at,created_by)
+        values (${lead.body.id},${closerId},now() - interval '1 hour','DIRETO',${outcome},now(),${aleId})`;
+    }
+  });
+  const today = (cookie: string, extra: object = {}) =>
+    h.post('/api/reports/search', { period: 'TODAY', ...extra }, cookie);
+
+  it('valor por reunião realizada soma só as realizadas', async () => {
+    const r = await today(ale);
+    expect(r.body.metrics).toMatchObject({
+      meetingValueCents: 1600,
+      done: 2,
+      noShow: 1,
+      rescheduled: 1,
+    });
+    const daily = r.body.daily.reduce(
+      (a: number, d: { meetingValueCents: number }) => a + d.meetingValueCents,
+      0,
+    );
+    expect(daily).toBe(1600);
+  });
+
+  it('resultado corrigido para no-show tira o valor', async () => {
+    await owner`update meetings set outcome='NO_SHOW' where lead_id=${ids.p1done!}`;
+    expect((await today(ale)).body.metrics.meetingValueCents).toBe(900);
+  });
+
+  it('perfil mudado depois vale o atual', async () => {
+    await owner`update leads set tier='P2' where id=${ids.p0done!}`;
+    expect((await today(ale)).body.metrics.meetingValueCents).toBe(1200);
+  });
+
+  it('liderança filtra o valor por SDR', async () => {
+    expect((await today(head, { sdrId: muriloId })).body.metrics.meetingValueCents).toBe(0);
+    expect((await today(head, { sdrId: aleId })).body.metrics.meetingValueCents).toBe(1600);
+  });
+
+  it('SDR não recebe valores de venda; liderança recebe', async () => {
+    const r = await today(ale);
+    for (const k of ['soldCents', 'receivedCents', 'outstandingCents', 'conversionBps'])
+      expect(r.body.metrics).not.toHaveProperty(k);
+    expect(r.body.byProduct).toEqual([]);
+    expect(r.body.previousDaily).toEqual([]);
+    expect(r.body.daily[0]).not.toHaveProperty('soldCents');
+    expect(r.body.daily[0]).not.toHaveProperty('receivedCents');
+    for (const row of [...r.body.bySdr, ...r.body.byCloser])
+      expect(row).not.toHaveProperty('soldCents');
+    const summary = await h.post('/api/reports/summary', { period: 'TODAY' }, ale);
+    expect(summary.body.text).not.toMatch(/Vendido|Recebido|vendas do período/);
+    expect(summary.body.text).toContain('Valor a receber por reunião realizada: R$');
+    expect(summary.body.text).toContain('Reuniões realizadas: 2');
+    expect((await today(head)).body.metrics).toHaveProperty('soldCents');
+  });
+});
+
+describe('CSV de relatórios por período, filtro ou total', () => {
+  it('total ignora a data de criação', async () => {
+    await owner`update leads set created_at = now() - interval '2 years' where name = 'Outro lead'`;
+    const month = await h.post('/api/reports/csv', { period: 'MONTH' }, head);
+    expect(month.text).not.toContain('Outro lead');
+    const all = await h.post('/api/reports/csv', { period: 'ALL' }, head);
+    expect(all.status).toBe(200);
+    expect(all.text).toContain('Outro lead');
+    expect(all.text).toContain("'=SUM(1,1)");
+  });
+
+  it('com filtro respeita o SDR escolhido', async () => {
+    const murilo = (
+      await owner<{ id: string }[]>`select id from "user" where email='murilo@npac.com.br'`
+    )[0]!.id;
+    const r = await h.post('/api/reports/csv', { period: 'ALL', sdrId: murilo }, head);
+    expect(r.text).toContain('Outro lead');
+    expect(r.text).not.toContain('SUM(1,1)');
+  });
+
+  it('erro de validação do CSV responde 400 com a mensagem, não 500', async () => {
+    const range = await h.post('/api/reports/csv', { period: 'RANGE' }, head);
+    expect(range.status).toBe(400);
+    expect(range.body.message).toBe('Intervalo inválido');
+    const invalid = await h.post('/api/reports/csv', { period: 'ONTEM' }, head);
+    expect(invalid.status).toBe(400);
+  });
+
+  it('busca da tela não aceita total', async () => {
+    expect((await h.post('/api/reports/search', { period: 'ALL' }, head)).status).toBe(400);
+  });
 });

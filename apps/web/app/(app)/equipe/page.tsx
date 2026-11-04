@@ -11,7 +11,13 @@ type Member = {
   role: Role;
   canProspect: boolean;
   canClose: boolean;
-  stats: { leads: number; meetings: number; done: number; sales: number; soldCents: number } | null;
+  stats: {
+    leads: number;
+    meetings: number;
+    done: number;
+    sales: number;
+    soldCents?: number;
+  } | null;
 };
 
 export default async function EquipePage() {
@@ -60,12 +66,14 @@ export default async function EquipePage() {
                     <dd className="font-semibold tabular-nums">{value}</dd>
                   </div>
                 ))}
-                <div className="col-span-2">
-                  <dt className="text-xs text-ink2">Faturamento</dt>
-                  <dd className="font-semibold text-gold-deep tabular-nums">
-                    {money(m.stats.soldCents)}
-                  </dd>
-                </div>
+                {m.stats.soldCents !== undefined && (
+                  <div className="col-span-2">
+                    <dt className="text-xs text-ink2">Faturamento</dt>
+                    <dd className="font-semibold text-gold-deep tabular-nums">
+                      {money(m.stats.soldCents)}
+                    </dd>
+                  </div>
+                )}
               </dl>
             ) : (
               <p className="text-xs text-ink2">

@@ -6,6 +6,8 @@ const VERB: Record<string, string> = {
   'lead.moved': 'mudou a etapa de',
   'lead.reassigned': 'trocou o responsável de',
   'lead.deleted': 'excluiu',
+  'lead.called': 'marcou como chamado',
+  'lead.contact_rescheduled': 'remarcou o contato de',
   'note.created': 'anotou em',
   'note.updated': 'editou uma nota de',
   'task.created': 'criou uma tarefa para',

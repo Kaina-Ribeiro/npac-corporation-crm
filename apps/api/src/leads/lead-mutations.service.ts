@@ -6,7 +6,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { deals, leadContactTaken, leads, withUser, type Db, type Tx } from '@npac/db';
+import { deals, leadContactTaken, leads, leadTasks, withUser, type Db, type Tx } from '@npac/db';
 import { isLeader, type AuthUser, type LeadUpdateInput } from '@npac/shared';
 import { and, eq, isNull, sql } from 'drizzle-orm';
 import { DB } from '../common/db/db.module.js';
@@ -14,6 +14,14 @@ import { FieldCrypto } from '../common/crypto/field-crypto.js';
 import { recordActivity } from './activity.js';
 import { LeadsRepository } from './leads.repository.js';
 import type { RequestMeta } from './leads.service.js';
+
+/** Ação rápida do Hoje (pedido do cliente, 04/11/2026). */
+export type QuickAction = {
+  version: number;
+  action: 'CALLED' | 'RESCHEDULED' | 'NEXT_ACTION';
+  at?: Date;
+  title?: string;
+};
 
 /** Venda só entra pelo registro da venda (POST /finance/deals), nunca por cadastro ou PATCH. */
 export const saleRequired = () =>
@@ -103,6 +111,49 @@ export class LeadMutationsService {
             ? 'lead.moved'
             : 'lead.updated';
       await recordActivity(tx, u, id, kind, fields, undefined, meta);
+      return { id, version: old.version + 1 };
+    });
+  }
+
+  /**
+   * Chamado: registra e tira o próximo contato. Remarcado: novo próximo contato. Próxima ação:
+   * vira tarefa com prazo e o lead sai da lista de contatos. Tudo numa transação, com versão.
+   */
+  async quickAction(u: AuthUser, id: string, input: QuickAction, meta: RequestMeta) {
+    if (input.action !== 'CALLED' && !input.at) throw new BadRequestException('Informe a data');
+    if (input.action === 'NEXT_ACTION' && !input.title?.trim())
+      throw new BadRequestException('Informe a próxima ação');
+    return withUser(this.db, u.id, async (tx) => {
+      const old = await lockLead(tx, id, input.version);
+      const nextContactAt = input.action === 'RESCHEDULED' ? input.at! : null;
+      await tx
+        .update(leads)
+        .set({ nextContactAt, version: old.version + 1, updatedAt: new Date() })
+        .where(eq(leads.id, id));
+      if (input.action === 'NEXT_ACTION') {
+        const [task] = await tx
+          .insert(leadTasks)
+          .values({
+            leadId: id,
+            title: input.title!.trim(),
+            dueAt: input.at!,
+            // Mesma regra da tarefa da ficha: a liderança delega ao SDR do lead.
+            assigneeId: isLeader(u.role) ? old.sdrId : u.id,
+            createdBy: u.id,
+          })
+          .returning({ id: leadTasks.id });
+        await recordActivity(tx, u, id, 'task.created', [], task!.id, meta);
+      } else {
+        await recordActivity(
+          tx,
+          u,
+          id,
+          input.action === 'CALLED' ? 'lead.called' : 'lead.contact_rescheduled',
+          ['nextContactAt'],
+          undefined,
+          meta,
+        );
+      }
       return { id, version: old.version + 1 };
     });
   }

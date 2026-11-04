@@ -5,12 +5,27 @@ import { useState, type CSSProperties, type FormEvent } from 'react';
 import { clientApi } from '@/lib/client-api';
 import { button, control, FormError, quietButton, StageOptions } from './crm-ui';
 import { LeadFilters, readFilters } from './lead-filters';
+import { PipelineColumnsEditor } from './pipeline-columns-editor';
 import { useCrmRefresh } from './shell/live-updates';
 
-export function Pipeline({ initial, catalog }: { initial: PipelineDTO; catalog: LeadCatalog }) {
+export function Pipeline({
+  initial,
+  catalog,
+  canCreate,
+  canEditColumns = false,
+}: {
+  initial: PipelineDTO;
+  catalog: LeadCatalog;
+  canCreate: boolean;
+  /** Liderança cria, renomeia, reordena e exclui colunas (pedido de 04/11/2026). */
+  canEditColumns?: boolean;
+}) {
   const [columns, setColumns] = useState(initial);
   const [active, setActive] = useState<StageKey>('SONDAGEM');
-  const [visible, setVisible] = useState(catalog.stages.map((s) => s.key));
+  // Etapas vivas (o editor de colunas muda a lista) e as ocultas pela pessoa: coluna nova aparece.
+  const [stages, setStages] = useState(catalog.stages);
+  const [hidden, setHidden] = useState<StageKey[]>([]);
+  const [editing, setEditing] = useState(false);
   const [filters, setFilters] = useState<Record<string, string>>({});
   useCrmRefresh(() => load());
   const [error, setError] = useState('');
@@ -82,7 +97,38 @@ export function Pipeline({ initial, catalog }: { initial: PipelineDTO; catalog: 
   }
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-[34px] font-bold tracking-tight">Pipeline</h1>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <h1 className="text-[34px] font-bold tracking-tight">Pipeline</h1>
+        <div className="flex flex-wrap items-center gap-2">
+          {canEditColumns && (
+            <button
+              type="button"
+              aria-expanded={editing}
+              className={`${quietButton} min-h-10 transition-transform active:scale-[.97]`}
+              onClick={() => setEditing((v) => !v)}
+            >
+              Editar colunas
+            </button>
+          )}
+          {canCreate && (
+            <Link
+              href="/leads/new"
+              className="rounded-xl bg-ink px-4 py-2 text-sm font-semibold text-[var(--bg)] transition-transform active:scale-[.97]"
+            >
+              Novo lead
+            </Link>
+          )}
+        </div>
+      </div>
+      {editing && (
+        <PipelineColumnsEditor
+          stages={stages}
+          onChanged={async () => {
+            setStages((await clientApi<LeadCatalog>('/api/leads/catalog')).stages);
+            await load();
+          }}
+        />
+      )}
       <form id="pipeline-search" onSubmit={submit} className="flex gap-2">
         <input
           name="q"
@@ -98,14 +144,14 @@ export function Pipeline({ initial, catalog }: { initial: PipelineDTO; catalog: 
       <details className="text-sm">
         <summary className="cursor-pointer font-semibold">Colunas visíveis</summary>
         <div className="mt-3 flex flex-wrap gap-3">
-          {catalog.stages.map((s) => (
+          {stages.map((s) => (
             <label key={s.id} className="flex items-center gap-2">
               <input
                 type="checkbox"
-                checked={visible.includes(s.key)}
+                checked={!hidden.includes(s.key)}
                 onChange={(e) =>
-                  setVisible(
-                    e.target.checked ? [...visible, s.key] : visible.filter((k) => k !== s.key),
+                  setHidden(
+                    e.target.checked ? hidden.filter((k) => k !== s.key) : [...hidden, s.key],
                   )
                 }
               />
@@ -117,7 +163,7 @@ export function Pipeline({ initial, catalog }: { initial: PipelineDTO; catalog: 
       <FormError message={error} />
       <nav aria-label="Etapas do Pipeline" className="flex gap-2 overflow-x-auto pb-2 md:hidden">
         {columns
-          .filter((c) => visible.includes(c.stage.key))
+          .filter((c) => !hidden.includes(c.stage.key))
           .map((c) => (
             <button
               key={c.stage.id}
@@ -131,7 +177,7 @@ export function Pipeline({ initial, catalog }: { initial: PipelineDTO; catalog: 
       </nav>
       <div data-own-motion className="flex items-start gap-4 overflow-x-auto pb-4">
         {columns
-          .filter((c) => visible.includes(c.stage.key))
+          .filter((c) => !hidden.includes(c.stage.key))
           .map((c, col) => (
             <section
               key={c.stage.id}
@@ -181,7 +227,7 @@ export function Pipeline({ initial, catalog }: { initial: PipelineDTO; catalog: 
                     disabled={busy}
                     onChange={(e) => void move(l, e.target.value)}
                   >
-                    <StageOptions stages={catalog.stages} current={l.stageKey} />
+                    <StageOptions stages={stages} current={l.stageKey} />
                   </select>
                 </article>
               ))}

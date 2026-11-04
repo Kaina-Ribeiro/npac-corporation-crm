@@ -1,6 +1,6 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { spDayRange } from '@npac/shared';
-import { afterAll, beforeAll, beforeEach, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { api, closeTestApp, createTestApp, owner, resetAuthState } from './helpers.js';
 
 let app: NestFastifyApplication;
@@ -49,6 +49,20 @@ it('Hoje usa o dia BRT e só retorna dados do escopo', async () => {
   await owner`update leads set next_contact_at = ${end} where id = ${m}`;
   expect((await h.post('/api/today/search', {}, murilo)).body.contacts).toEqual([]);
   expect((await h.post('/api/today/search', { sdrId: 'alguem' }, ale)).status).toBe(403);
+});
+it('contato de hoje que já passou da hora está em atrasados', async () => {
+  const now = Date.now();
+  const { end } = spDayRange(new Date());
+  await owner`update leads set next_contact_at = ${new Date(now - 5 * 60_000)} where id = ${a}`;
+  const res = await h.post('/api/today/search', {}, ale);
+  expect(res.body.overdue.map((l: { id: string }) => l.id)).toEqual([a]);
+  expect(res.body.contacts).toEqual([]);
+  if (now + 5 * 60_000 < end.getTime()) {
+    await owner`update leads set next_contact_at = ${new Date(now + 5 * 60_000)} where id = ${a}`;
+    const later = await h.post('/api/today/search', {}, ale);
+    expect(later.body.contacts.map((l: { id: string }) => l.id)).toEqual([a]);
+    expect(later.body.overdue).toEqual([]);
+  }
 });
 it('tarefas concluídas saem da aba Hoje', async () => {
   const task = await h.post(
@@ -121,4 +135,76 @@ it('Hoje da liderança mostra as próprias tarefas pessoais, não as de todo mun
   expect(titles(await h.post('/api/today/search', { sdrId: ids('ale') }, head)).sort()).toEqual(
     [personal.body.id, onLead.body.id].sort(),
   );
+});
+
+describe('ação rápida no Hoje', () => {
+  const quick = (id: string, body: object, cookie = ale) =>
+    h.post(`/api/leads/${id}/quick-action`, body, cookie);
+  const version = async (id: string) =>
+    (await owner<{ version: number }[]>`select version from leads where id = ${id}`)[0]!.version;
+  beforeEach(async () => {
+    await owner`update leads set next_contact_at = now() - interval '1 hour' where id = ${a}`;
+  });
+
+  it('chamado tira o lead da lista e registra na timeline', async () => {
+    const res = await quick(a, { version: await version(a), action: 'CALLED' });
+    expect(res.status).toBe(201);
+    const [row] = await owner<{ next_contact_at: Date | null }[]>`
+      select next_contact_at from leads where id = ${a}`;
+    expect(row!.next_contact_at).toBeNull();
+    const t =
+      await owner`select kind from lead_timeline where lead_id = ${a} and kind = 'lead.called'`;
+    expect(t).toHaveLength(1);
+    const today = await h.post('/api/today/search', {}, ale);
+    expect(today.body.overdue).toEqual([]);
+  });
+
+  it('remarcado muda o próximo contato', async () => {
+    const at = new Date(Date.now() + 2 * 86_400_000).toISOString();
+    const res = await quick(a, { version: await version(a), action: 'RESCHEDULED', at });
+    expect(res.status).toBe(201);
+    const [row] = await owner<{ next_contact_at: Date }[]>`
+      select next_contact_at from leads where id = ${a}`;
+    expect(row!.next_contact_at.toISOString()).toBe(at);
+    const [t] = await owner<{ fields: string[] }[]>`
+      select fields from lead_timeline where lead_id = ${a} and kind = 'lead.contact_rescheduled'`;
+    expect(t!.fields).toEqual(['nextContactAt']);
+  });
+
+  it('próxima ação vira tarefa e tira o lead da lista de contatos', async () => {
+    const at = new Date(Date.now() + 3600_000).toISOString();
+    const res = await quick(a, {
+      version: await version(a),
+      action: 'NEXT_ACTION',
+      at,
+      title: 'Mandar proposta',
+    });
+    expect(res.status).toBe(201);
+    const today = await h.post('/api/today/search', {}, ale);
+    expect(today.body.overdue).toEqual([]);
+    expect(today.body.tasks.map((t: { title: string }) => t.title)).toContain('Mandar proposta');
+    const kinds = await owner<
+      { kind: string }[]
+    >`select kind from lead_timeline where lead_id = ${a}`;
+    expect(kinds.map((k) => k.kind)).toContain('task.created');
+  });
+
+  it('valida data, título, versão e escopo', async () => {
+    const v = await version(a);
+    const noDate = await quick(a, { version: v, action: 'RESCHEDULED' });
+    expect(noDate.status).toBe(400);
+    expect(noDate.body.message).toBe('Informe a data');
+    const noTitle = await quick(a, {
+      version: v,
+      action: 'NEXT_ACTION',
+      at: new Date().toISOString(),
+    });
+    expect(noTitle.status).toBe(400);
+    expect(noTitle.body.message).toBe('Informe a próxima ação');
+    const stale = await quick(a, { version: v - 1 || 99, action: 'CALLED' });
+    expect(stale.status).toBe(409);
+    expect(stale.body.code).toBe('VERSION_CONFLICT');
+    expect(await version(a)).toBe(v);
+    expect((await quick(m, { version: 1, action: 'CALLED' })).status).toBe(404);
+  });
 });

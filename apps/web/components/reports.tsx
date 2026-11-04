@@ -1,5 +1,12 @@
 'use client';
-import type { LeadCatalog, ProductDTO, ReportDTO, ReportRow, TeamActivityDTO } from '@npac/shared';
+import type {
+  LeadCatalog,
+  ProductDTO,
+  ReportDTO,
+  ReportRow,
+  Role,
+  TeamActivityDTO,
+} from '@npac/shared';
 import { money } from '@npac/shared/money';
 import Link from 'next/link';
 import { type CSSProperties, useMemo, useState, type FormEvent } from 'react';
@@ -17,6 +24,7 @@ import {
   chartColors,
 } from './dashboard-charts';
 import { BoardProvider, DashboardBoard, RestoreOrder, type BoardCard } from './dashboard-board';
+import { CsvExport } from './csv-export';
 import { CloserDesk, SdrTable, TeamFeed } from './dashboard-team';
 import { CountUp } from './count-up';
 import { useCrmRefresh } from './shell/live-updates';
@@ -132,6 +140,7 @@ export function Reports({
   catalog,
   products,
   head,
+  role,
   dashboard = false,
   name,
   activity,
@@ -141,6 +150,7 @@ export function Reports({
   catalog: LeadCatalog;
   products: ProductDTO[];
   head: boolean;
+  role: Role;
   dashboard?: boolean;
   /** Primeiro nome para a saudação do dashboard. */
   name?: string;
@@ -154,14 +164,17 @@ export function Reports({
     [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
     [copied, setCopied] = useState(false),
-    [preset, setPreset] = useState<Preset>('MONTH');
+    [preset, setPreset] = useState<Preset>('MONTH'),
+    [sdrId, setSdrId] = useState('');
   async function load(selected = filters) {
     setData(await clientApi<ReportDTO>('/api/reports/search', 'POST', selected));
   }
   useCrmRefresh(() => load());
-  async function pick(preset: Preset) {
-    const f = presetFilters(preset);
+  /** Dashboard da liderança: o SDR escolhido acompanha a troca de período. */
+  async function pick(preset: Preset, sdr = sdrId) {
+    const f = { ...presetFilters(preset), ...(sdr ? { sdrId: sdr } : {}) };
     setPreset(preset);
+    setSdrId(sdr);
     setFilters(f);
     setBusy(true);
     setError('');
@@ -199,31 +212,16 @@ export function Reports({
       setError((e as Error).message);
     }
   }
-  async function csv() {
-    setError('');
-    setBusy(true);
-    try {
-      const response = await fetch('/api/reports/csv', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(filters),
-        cache: 'no-store',
-      });
-      if (!response.ok)
-        throw new Error('Não foi possível exportar; confira o período e seu acesso.');
-      const url = URL.createObjectURL(await response.blob());
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'npac-relatorio.csv';
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  }
   const m = data.metrics;
+  // Pedido do cliente (04/11): SDR vê comparecimento, não venda; Closer segue igual; liderança vê os dois.
+  const sdr = role === 'SDR';
+  const hiddenCards = new Set<string>(
+    sdr
+      ? ['kpi-sold', 'kpi-received', 'revenue', 'products']
+      : role === 'CLOSER'
+        ? ['kpi-done', 'kpi-missed', 'meeting-value']
+        : [],
+  );
   const dashCards: BoardCard[] = !dashboard
     ? []
     : [
@@ -261,6 +259,22 @@ export function Reports({
               'receivedCents',
               chartColors.money,
             ],
+            [
+              'kpi-done',
+              'Reuniões realizadas',
+              m.done ?? 0,
+              `Comparecimento ${((m.attendanceBps ?? 0) / 100).toFixed(0)}% das reuniões decididas`,
+              'meetings',
+              chartColors.volume,
+            ],
+            [
+              'kpi-missed',
+              'No-show / Remarcados',
+              (m.noShow ?? 0) + (m.rescheduled ?? 0),
+              `${m.noShow ?? 0} no-show · ${m.rescheduled ?? 0} remarcados`,
+              'meetings',
+              chartColors.volume,
+            ],
           ] as const
         ).map(([id, label, value, foot, key, color], i): BoardCard => ({
           id,
@@ -279,7 +293,7 @@ export function Reports({
                 />
               </p>
               <p className="text-xs text-ink2">{foot}</p>
-              <Sparkline values={data.daily.map((d) => d[key])} color={color} />
+              <Sparkline values={data.daily.map((d) => d[key] ?? 0)} color={color} />
             </article>
           ),
         })),
@@ -294,6 +308,27 @@ export function Reports({
               receivedCents={m.receivedCents ?? 0}
               outstandingCents={m.outstandingCents ?? 0}
               monthly={preset === 'MONTH'}
+            />
+          ),
+        },
+        {
+          id: 'meeting-value',
+          title: 'Valor a receber por reunião realizada',
+          size: 'wide',
+          node: (
+            <RevenueHero
+              daily={data.daily}
+              previous={[]}
+              monthly={preset === 'MONTH'}
+              title="Valor a receber por reunião realizada"
+              value={(d) => d.meetingValueCents ?? 0}
+              dayLabel="Valor do dia"
+              foot={
+                <>
+                  P0 R$ 9 · P1 R$ 7 · P2 R$ 5 por reunião realizada · {m.done ?? 0}{' '}
+                  {(m.done ?? 0) === 1 ? 'realizada' : 'realizadas'}
+                </>
+              }
             />
           ),
         },
@@ -357,7 +392,7 @@ export function Reports({
             <ChartCard title="Produtos" subtitle="Vendido por produto">
               <RankBars
                 rows={data.byProduct}
-                value={(r) => r.soldCents}
+                value={(r) => r.soldCents ?? 0}
                 format={money}
                 color={chartColors.money}
                 detail={(r) => `${r.sales}×`}
@@ -379,17 +414,26 @@ export function Reports({
   // Ordem padrão: estável entre renderizações (o feed só existe para a liderança).
   const hasFeed = !!activity;
   const dashIds = useMemo(
-    () => DASH_CARDS.filter((id) => dashboard && (id !== 'feed' || hasFeed)),
-    [dashboard, hasFeed],
+    () =>
+      DASH_CARDS.filter((id) => dashboard && (id !== 'feed' || hasFeed) && !hiddenCards.has(id)),
+    [dashboard, hasFeed, role],
   );
-  const cards = [
-    ['Leads novos', String(m.leads ?? 0)],
-    ['Agendamentos', String(m.meetings ?? 0)],
-    ['Vendas', String(m.sales ?? 0)],
-    ['Vendido', money(m.soldCents ?? 0)],
-    ['Recebido no período', money(m.receivedCents ?? 0)],
-    ['A receber das vendas do período', money(m.outstandingCents ?? 0)],
-  ];
+  const cards = sdr
+    ? [
+        ['Leads novos', String(m.leads ?? 0)],
+        ['Agendamentos', String(m.meetings ?? 0)],
+        ['Reuniões realizadas', String(m.done ?? 0)],
+        ['No-show / Remarcados', String((m.noShow ?? 0) + (m.rescheduled ?? 0))],
+        ['Valor a receber por reunião realizada', money(m.meetingValueCents ?? 0)],
+      ]
+    : [
+        ['Leads novos', String(m.leads ?? 0)],
+        ['Agendamentos', String(m.meetings ?? 0)],
+        ['Vendas', String(m.sales ?? 0)],
+        ['Vendido', money(m.soldCents ?? 0)],
+        ['Recebido no período', money(m.receivedCents ?? 0)],
+        ['A receber das vendas do período', money(m.outstandingCents ?? 0)],
+      ];
   const page = (
     <div className="mx-auto flex max-w-6xl flex-col gap-5">
       {dashboard ? (
@@ -397,11 +441,32 @@ export function Reports({
           <div className="min-w-0">
             <h1 className="text-[34px] font-bold tracking-tight">{greeting(name)}</h1>
             <p className="text-sm text-ink2 first-letter:uppercase">
-              {head ? 'Toda a equipe' : 'Seu escopo'} · {todayLabel()}
+              {head
+                ? (catalog.team.find((u) => u.id === sdrId)?.name ?? 'Toda a equipe')
+                : 'Seu escopo'}{' '}
+              · {todayLabel()}
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
             <RestoreOrder />
+            {head && (
+              <select
+                aria-label="SDR"
+                value={sdrId}
+                disabled={busy}
+                onChange={(e) => void pick(preset, e.target.value)}
+                className="min-h-11 rounded-full border border-line bg-[var(--on)] px-4 text-sm font-semibold text-ink transition-colors hover:border-ink2/40"
+              >
+                <option value="">Todos os SDRs</option>
+                {catalog.team
+                  .filter((u) => u.canProspect)
+                  .map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.name}
+                    </option>
+                  ))}
+              </select>
+            )}
             <div
               role="group"
               aria-label="Período"
@@ -523,7 +588,10 @@ export function Reports({
       )}
       <FormError message={error} />
       {dashboard ? (
-        <DashboardBoard cards={dashCards} style={{ '--d': '80ms' } as CSSProperties} />
+        <DashboardBoard
+          cards={dashCards.filter((c) => !hiddenCards.has(c.id))}
+          style={{ '--d': '80ms' } as CSSProperties}
+        />
       ) : (
         <>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -531,7 +599,7 @@ export function Reports({
               <article key={label} className="glass-card p-5">
                 <p className="text-sm text-ink2">{label}</p>
                 <p
-                  className={`mt-2 text-3xl font-bold tracking-tight ${i >= 3 ? 'text-gold-deep' : ''}`}
+                  className={`mt-2 text-3xl font-bold tracking-tight ${(sdr ? i >= 4 : i >= 3) ? 'text-gold-deep' : ''}`}
                 >
                   {value}
                 </p>
@@ -552,9 +620,11 @@ export function Reports({
               Comparecimento: <b>{((m.attendanceBps ?? 0) / 100).toFixed(2)}%</b> · No-show:{' '}
               <b>{((m.noShowBps ?? 0) / 100).toFixed(2)}%</b>
             </span>
-            <span>
-              Conversão: <b>{((m.conversionBps ?? 0) / 100).toFixed(2)}%</b>
-            </span>
+            {m.conversionBps !== undefined && (
+              <span>
+                Conversão: <b>{(m.conversionBps / 100).toFixed(2)}%</b>
+              </span>
+            )}
           </section>
           <div className="grid items-start gap-5">
             <Breakdown title="Por SDR" rows={data.bySdr} />
@@ -573,9 +643,19 @@ export function Reports({
               {copied ? 'Resumo copiado' : 'Copiar resumo sem telefone'}
             </button>
             {head && (
-              <button className={quietButton} disabled={busy} onClick={() => void csv()}>
-                CSV com contatos
-              </button>
+              <CsvExport
+                label="CSV com contatos"
+                endpoint="/api/reports/csv"
+                filename="npac-relatorio.csv"
+                options={[
+                  {
+                    label: 'Só o período',
+                    body: () => ({ period: filters.period, from: filters.from, to: filters.to }),
+                  },
+                  { label: 'Com os filtros atuais', body: () => filters },
+                  { label: 'Tudo', body: () => ({ period: 'ALL' }) },
+                ]}
+              />
             )}
           </div>
           <section className="glass-card p-5">
