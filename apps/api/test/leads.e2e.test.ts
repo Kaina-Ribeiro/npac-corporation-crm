@@ -367,7 +367,9 @@ describe('exportar leads (período, filtro ou total)', () => {
   it('com filtro respeita os filtros da lista', async () => {
     await create(lead({ name: 'Só P0', tier: 'P0' }), ale);
     await create(lead({ name: 'Um P2', tier: 'P2' }), ale);
-    const res = await csv({ tier: 'P0' }, ronaldo);
+    // A tela manda a ordenação junto com os filtros.
+    const res = await csv({ tier: 'P0', sort: 'name', direction: 'asc' }, ronaldo);
+    expect(res.status).toBe(200);
     expect(res.text).toContain('Só P0');
     expect(res.text).not.toContain('Um P2');
   });

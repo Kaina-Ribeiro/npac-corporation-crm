@@ -53,8 +53,9 @@ const listQuerySchema = z.object({
     .transform((n) => Math.min(n, MAX_PAGE_SIZE)),
 });
 
+// A tela manda a ordenação junto com os filtros; o CSV sai por data de criação.
 const exportQuerySchema = listQuerySchema
-  .omit({ page: true, pageSize: true, sort: true, direction: true })
+  .omit({ page: true, pageSize: true })
   .extend({ createdFrom: z.iso.date().optional(), createdTo: z.iso.date().optional() })
   .strict();
 

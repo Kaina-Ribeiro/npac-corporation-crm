@@ -43,7 +43,8 @@ export interface LeadListQuery extends Omit<LeadFilters, 'search'> {
 }
 
 /** Exportar: filtros da lista + período de criação opcional (dias de Brasília). */
-export interface LeadExportQuery extends Omit<LeadFilters, 'search' | 'sort' | 'direction'> {
+/** `sort`/`direction` vêm da tela e são ignorados: o CSV sai por data de criação. */
+export interface LeadExportQuery extends Omit<LeadFilters, 'search'> {
   search?: string;
   createdFrom?: string;
   createdTo?: string;
