@@ -80,8 +80,10 @@ continuam valendo.
 - Mudar o resultado de Realizada para No-show ou Remarcado tira o valor (a conta é sempre em
   cima do resultado atual).
 - SDR vê os próprios números (RLS já restringe); liderança vê todos ou o SDR filtrado.
-- O bloqueio é no servidor: a busca do Dashboard não devolve valores de venda para SDR.
-- Relatórios (liderança) continuam com os valores de venda como hoje.
+- O bloqueio é no servidor: a busca de relatórios (`/reports/search`, que alimenta Dashboard e
+  Relatórios) e o resumo de WhatsApp não devolvem valores de venda para SDR. Consequência: o SDR
+  também deixa de ver R$ na aba Relatórios, que hoje ele acessa.
+- Closer, Head e Diretoria continuam com os valores de venda em Relatórios como hoje.
 
 ## 7. Hoje: atrasados automáticos
 
