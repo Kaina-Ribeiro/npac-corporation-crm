@@ -94,10 +94,10 @@ export class TodayService {
           and(
             or(
               and(isNotNull(leads.id), ...scope),
+              // Tarefa pessoal é só de quem a tem; a liderança vê as de alguém ao filtrar por ela.
               and(
                 isNull(leadTasks.leadId),
-                filters.sdrId ? eq(leadTasks.assigneeId, filters.sdrId) : undefined,
-                filters.closerId ? eq(leadTasks.assigneeId, filters.closerId) : undefined,
+                eq(leadTasks.assigneeId, filters.sdrId ?? filters.closerId ?? u.id),
               ),
             ),
             isNull(leadTasks.completedAt),

@@ -16,6 +16,7 @@ const task = z
       .optional(),
   })
   .strict();
+const newTask = task.extend({ assigneeId: z.string().max(64).optional() }).strict();
 const change = task
   .partial()
   .extend({ version: z.number().int().positive(), completed: z.boolean().optional() })
@@ -52,7 +53,7 @@ export class LeadActivityController {
   @Post('tasks')
   @Can('task:write')
   task(@CurrentUser() u: SessionUser, @Param('leadId') id: string, @Body() body: unknown) {
-    return this.activity.task(u, entityId(id), validate(task, body));
+    return this.activity.task(u, entityId(id), validate(newTask, body));
   }
   @Patch('tasks/:id')
   @Can('task:write')

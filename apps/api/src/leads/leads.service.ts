@@ -21,6 +21,7 @@ import { AuditService } from '../audit/audit.service.js';
 import { FieldCrypto } from '../common/crypto/field-crypto.js';
 import { DB } from '../common/db/db.module.js';
 import { recordActivity } from './activity.js';
+import { saleRequired } from './lead-mutations.service.js';
 import {
   LeadsRepository,
   type LeadFilters,
@@ -89,6 +90,9 @@ export class LeadsService {
   }
 
   async create(u: AuthUser, input: LeadCreateInput, meta: RequestMeta): Promise<{ id: string }> {
+    if (!isLeader(u.role) && !u.canProspect)
+      throw new ForbiddenException('Seu usuário não prospecta. Peça à liderança.');
+    if (input.stageKey === 'VENDA') throw saleRequired();
     const sdrId = this.resolveSdr(u, input.sdrId);
     const bidx = input.phone ? this.crypto.blindIndex(input.phone) : null;
 
