@@ -30,6 +30,7 @@ const colunas = {
   dataEntrada: mentoriaMentorados.dataEntrada,
   status: mentoriaMentorados.status,
   version: mentoriaMentorados.version,
+  pessoaRef: mentoriaMentorados.pessoaRef,
 };
 
 /** Escapa curingas do LIKE: o termo da busca é texto, nunca padrão. */

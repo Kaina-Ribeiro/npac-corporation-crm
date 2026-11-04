@@ -169,10 +169,11 @@ END $$;
 --> statement-breakpoint
 
 -- Enfileira as chaves de mídia dos donos e apaga as linhas de mentoria_midia (regra 7).
-CREATE FUNCTION mentoria_enfileirar_midia(tipos text[], donos uuid[]) RETURNS void
+CREATE FUNCTION mentoria_enfileirar_midia(tipos text[], donos uuid[]) RETURNS int
   LANGUAGE plpgsql VOLATILE SECURITY DEFINER
   SET search_path = public, pg_temp
 AS $$
+DECLARE n int;
 BEGIN
   WITH apagadas AS (
     DELETE FROM mentoria_midia m
@@ -181,17 +182,20 @@ BEGIN
   )
   INSERT INTO mentoria_midia_exclusao (chave_objeto)
     SELECT chave_objeto FROM apagadas WHERE chave_objeto IS NOT NULL;
+  GET DIAGNOSTICS n = ROW_COUNT;
+  RETURN n;
 END $$;
 --> statement-breakpoint
 
 -- Exclusão (regra 6, D11): sem desfazer. Enfileira a mídia do registro e dos filhos e apaga o
--- registro (filhos por ON DELETE CASCADE), tudo na mesma transação.
+-- registro (filhos por ON DELETE CASCADE), tudo na mesma transação. Devolve quantos arquivos
+-- foram para a fila (a auditoria grava a contagem).
 CREATE FUNCTION mentoria_excluir_registro(kind text, alvo uuid, expected_version int)
-  RETURNS void
+  RETURNS int
   LANGUAGE plpgsql VOLATILE SECURITY DEFINER
   SET search_path = public, pg_temp
 AS $$
-DECLARE pai uuid; atual int;
+DECLARE pai uuid; atual int; n int := 0;
 BEGIN
   PERFORM mentoria_exigir_acesso();
   CASE kind
@@ -204,29 +208,29 @@ BEGIN
     DELETE FROM mentoria_mentorados WHERE id = alvo;
   WHEN 'FICHA' THEN
     PERFORM mentoria_travar_ficha(alvo, expected_version);
-    PERFORM mentoria_enfileirar_midia(ARRAY['FICHA_ANTES', 'FICHA_DEPOIS'], ARRAY[alvo]);
-    PERFORM mentoria_enfileirar_midia(ARRAY['CONQUISTA'],
+    n := n + mentoria_enfileirar_midia(ARRAY['FICHA_ANTES', 'FICHA_DEPOIS'], ARRAY[alvo]);
+    n := n + mentoria_enfileirar_midia(ARRAY['CONQUISTA'],
       ARRAY(SELECT id FROM mentoria_conquistas WHERE ficha_id = alvo));
     DELETE FROM mentoria_fichas WHERE id = alvo;
   WHEN 'CONQUISTA' THEN
     SELECT ficha_id INTO pai FROM mentoria_conquistas WHERE id = alvo;
     IF NOT FOUND THEN RAISE EXCEPTION 'Registro não encontrado' USING ERRCODE = 'P0002'; END IF;
     PERFORM mentoria_travar_ficha(pai, expected_version);
-    PERFORM mentoria_enfileirar_midia(ARRAY['CONQUISTA'], ARRAY[alvo]);
+    n := n + mentoria_enfileirar_midia(ARRAY['CONQUISTA'], ARRAY[alvo]);
     DELETE FROM mentoria_conquistas WHERE id = alvo;
   WHEN 'RDV_PESSOA' THEN
     PERFORM mentoria_travar_pessoa(alvo, expected_version);
-    PERFORM mentoria_enfileirar_midia(ARRAY['RDV_PESSOA'], ARRAY[alvo]);
-    PERFORM mentoria_enfileirar_midia(ARRAY['RDV_EVENTO'],
+    n := n + mentoria_enfileirar_midia(ARRAY['RDV_PESSOA'], ARRAY[alvo]);
+    n := n + mentoria_enfileirar_midia(ARRAY['RDV_EVENTO'],
       ARRAY(SELECT id FROM mentoria_rdv_eventos WHERE pessoa_id = alvo));
-    PERFORM mentoria_enfileirar_midia(ARRAY['RDV_QUADRO_ITEM'],
+    n := n + mentoria_enfileirar_midia(ARRAY['RDV_QUADRO_ITEM'],
       ARRAY(SELECT id FROM mentoria_rdv_quadros WHERE pessoa_id = alvo));
     DELETE FROM mentoria_rdv_pessoas WHERE id = alvo;
   WHEN 'RDV_EVENTO' THEN
     SELECT pessoa_id INTO pai FROM mentoria_rdv_eventos WHERE id = alvo;
     IF NOT FOUND THEN RAISE EXCEPTION 'Registro não encontrado' USING ERRCODE = 'P0002'; END IF;
     PERFORM mentoria_travar_pessoa(pai, expected_version);
-    PERFORM mentoria_enfileirar_midia(ARRAY['RDV_EVENTO'], ARRAY[alvo]);
+    n := n + mentoria_enfileirar_midia(ARRAY['RDV_EVENTO'], ARRAY[alvo]);
     DELETE FROM mentoria_rdv_eventos WHERE id = alvo;
   WHEN 'RDV_DUVIDA' THEN
     SELECT pessoa_id INTO pai FROM mentoria_rdv_duvidas WHERE id = alvo;
@@ -237,11 +241,12 @@ BEGIN
     SELECT pessoa_id INTO pai FROM mentoria_rdv_quadros WHERE id = alvo;
     IF NOT FOUND THEN RAISE EXCEPTION 'Registro não encontrado' USING ERRCODE = 'P0002'; END IF;
     PERFORM mentoria_travar_pessoa(pai, expected_version);
-    PERFORM mentoria_enfileirar_midia(ARRAY['RDV_QUADRO_ITEM'], ARRAY[alvo]);
+    n := n + mentoria_enfileirar_midia(ARRAY['RDV_QUADRO_ITEM'], ARRAY[alvo]);
     DELETE FROM mentoria_rdv_quadros WHERE id = alvo;
   ELSE
     RAISE EXCEPTION 'Tipo de registro desconhecido' USING ERRCODE = '22023';
   END CASE;
+  RETURN n;
 END $$;
 --> statement-breakpoint
 

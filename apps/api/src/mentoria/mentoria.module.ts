@@ -6,11 +6,11 @@ import { MentoradosController } from './mentorados.controller.js';
 import { MentoriaCrypto } from './mentoria-crypto.js';
 import { MentoriaGuard } from './mentoria.guard.js';
 import { MentoriaService } from './mentoria.service.js';
-import { RegistrosController } from './registros.controller.js';
+import { PessoasController, RegistrosController } from './registros.controller.js';
 
 /** Acompanhamento de mentorados: base à parte do comercial, só Diretoria e Acompanhamento. */
 @Module({
-  controllers: [MentoradosController, FichasController, RegistrosController],
+  controllers: [MentoradosController, FichasController, RegistrosController, PessoasController],
   providers: [
     MentoriaService,
     EscritaService,

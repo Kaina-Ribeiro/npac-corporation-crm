@@ -247,14 +247,35 @@ export class EscritaService {
   /** Exclusão (regra 6): só pela função SQL, que enfileira a mídia. Sem rota de restauração. */
   excluir(u: AuthUser, kind: KindUrl, id: string, version: number) {
     return withUser(this.db, u.id, async (tx) => {
-      await tx.execute(sql`select mentoria_excluir_registro(${KINDS[kind]}, ${id}, ${version})`);
+      const [r] = await tx.execute<{ midias: number }>(
+        sql`select mentoria_excluir_registro(${KINDS[kind]}, ${id}, ${version}) as midias`,
+      );
       await this.audit.record(
         {
           actorId: u.id,
           action: 'mentoria.delete',
           entityType: KINDS[kind].toLowerCase(),
           entityId: id,
-          data: { kind: KINDS[kind] },
+          data: { kind: KINDS[kind], midias: r?.midias ?? 0 },
+        },
+        tx,
+      );
+    }).catch((e) => erroDoBanco(e));
+  }
+
+  /** Eliminação da mesma pessoa nos três módulos (D37), pelo vínculo `pessoa_ref`. */
+  excluirPessoa(u: AuthUser, ref: string) {
+    return withUser(this.db, u.id, async (tx) => {
+      const [r] = await tx.execute<{ n: { registros: number; midias: number } }>(
+        sql`select mentoria_excluir_pessoa(${ref}) as n`,
+      );
+      await this.audit.record(
+        {
+          actorId: u.id,
+          action: 'mentoria.delete_person',
+          entityType: 'pessoa',
+          entityId: ref,
+          data: r?.n ?? {},
         },
         tx,
       );

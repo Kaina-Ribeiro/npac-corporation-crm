@@ -37,6 +37,8 @@ export const mentoriaMentorados = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
     nome: text('nome').notNull(),
     nomeNorm: text('nome_norm').notNull().unique(),
+    /** Mesma pessoa nos três módulos (D37): preenchido pelo banco no INSERT, pelo nome. */
+    pessoaRef: uuid('pessoa_ref'),
     tipoCadastro: text('tipo_cadastro'),
     tipoMentoria: text('tipo_mentoria'),
     /** Data de entrada como foi colada; `data_entrada` é derivada para ordem e filtro (D9). */
@@ -62,6 +64,8 @@ export const mentoriaFichas = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
     nome: text('nome').notNull(),
     nomeNorm: text('nome_norm').notNull().unique(),
+    /** Mesma pessoa nos três módulos (D37): preenchido pelo banco no INSERT, pelo nome. */
+    pessoaRef: uuid('pessoa_ref'),
     dataInicioTexto: text('data_inicio_texto'),
     dataInicio: date('data_inicio'),
     notasMomentoInicial: text('notas_momento_inicial'),
@@ -127,6 +131,8 @@ export const mentoriaRdvPessoas = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
     nome: text('nome').notNull(),
     nomeNorm: text('nome_norm').notNull().unique(),
+    /** Mesma pessoa nos três módulos (D37): preenchido pelo banco no INSERT, pelo nome. */
+    pessoaRef: uuid('pessoa_ref'),
     /** Campo de fonte (regra 5): só muda pela função de colar link. Só https de allowlist (D38). */
     pastaUrl: text('pasta_url'),
     pastaColadaEm: timestamp('pasta_colada_em', { withTimezone: true }),

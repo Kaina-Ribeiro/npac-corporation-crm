@@ -26,3 +26,15 @@ export class RegistrosController {
     await this.escrita.excluir(u, kind as KindUrl, entityId(id), version);
   }
 }
+
+/** Eliminação da mesma pessoa nos três módulos (D37). A tela confirma antes (regra 6). */
+@MentoriaController('pessoas')
+export class PessoasController {
+  constructor(private readonly escrita: EscritaService) {}
+
+  @Post(':ref/excluir')
+  @HttpCode(204)
+  async excluir(@CurrentUser() u: SessionUser, @Param('ref') ref: string) {
+    await this.escrita.excluirPessoa(u, entityId(ref));
+  }
+}
