@@ -15,3 +15,11 @@ export type MentoradoItem = {
 
 /** Página da lista: 50 itens e cursor opaco (só o id do último, assinado). */
 export type PaginaMentorados = { itens: MentoradoItem[]; cursor: string | null };
+
+/** Primeira página do Dashboard: também os números dos cards e das etiquetas. */
+export type ResumoDashboard = PaginaMentorados & {
+  total: number;
+  contagemPorStatus: Record<MentoradoStatus, number>;
+  contagemPorMentoria: { nome: string; n: number }[];
+  nomesPorStatus: Record<MentoradoStatus, { id: string; nome: string }[]>;
+};

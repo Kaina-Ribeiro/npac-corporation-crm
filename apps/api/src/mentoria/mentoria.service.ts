@@ -1,8 +1,13 @@
 import { hkdfSync } from 'node:crypto';
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { mentoriaMentorados, withUser, type Db } from '@npac/db';
-import { MENTORADO_STATUS, nomeNormalizado, type AuthUser } from '@npac/shared';
-import { and, asc, eq, gt, ilike, or, sql, type SQL } from 'drizzle-orm';
+import { mentoriaMentorados, withUser, type Db, type Tx } from '@npac/db';
+import {
+  MENTORADO_STATUS,
+  nomeNormalizado,
+  type AuthUser,
+  type MentoradoStatus,
+} from '@npac/shared';
+import { and, asc, eq, gt, ilike, isNotNull, or, sql, type SQL } from 'drizzle-orm';
 import { z } from 'zod';
 import { AuditService } from '../audit/audit.service.js';
 import { DB } from '../common/db/db.module.js';
@@ -57,6 +62,7 @@ export class MentoriaService {
         where.push(ilike(mentoriaMentorados.nomeNorm, `%${semCuringa(nomeNormalizado(f.q))}%`));
       if (f.status) where.push(eq(mentoriaMentorados.status, f.status));
       if (f.tipoMentoria) where.push(eq(mentoriaMentorados.tipoMentoria, f.tipoMentoria));
+      const filtros = [...where];
       if (f.cursor) {
         const depoisDe = this.cursor.verify(f.cursor);
         const [ultimo] = await tx
@@ -83,11 +89,54 @@ export class MentoriaService {
         .limit(PAGINA + 1);
       const itens = rows.slice(0, PAGINA);
       const ultimo = itens.at(-1);
-      return {
-        itens,
-        cursor: rows.length > PAGINA && ultimo ? this.cursor.sign(ultimo.id) : null,
-      };
+      const cursor = rows.length > PAGINA && ultimo ? this.cursor.sign(ultimo.id) : null;
+      // "Carregar mais" só precisa das linhas; a primeira página traz os números da tela.
+      if (f.cursor) return { itens, cursor };
+      return { itens, cursor, ...(await this.resumo(tx, filtros)) };
     });
+  }
+
+  /**
+   * Números do Dashboard: total do filtro atual; contagem e nomes por status (cards) e contagem
+   * por tipo de mentoria (etiquetas), sempre da base inteira (regra 1: a mesma base para todos).
+   */
+  private async resumo(tx: Tx, filtros: SQL[]) {
+    const [t] = await tx
+      .select({ n: sql<number>`count(*)::int` })
+      .from(mentoriaMentorados)
+      .where(filtros.length ? and(...filtros) : sql`true`);
+    const nomes = await tx
+      .select({
+        id: mentoriaMentorados.id,
+        nome: mentoriaMentorados.nome,
+        status: mentoriaMentorados.status,
+      })
+      .from(mentoriaMentorados)
+      .orderBy(asc(mentoriaMentorados.nomeNorm), asc(mentoriaMentorados.id));
+    const porMentoria = await tx
+      .select({ nome: mentoriaMentorados.tipoMentoria, n: sql<number>`count(*)::int` })
+      .from(mentoriaMentorados)
+      .where(isNotNull(mentoriaMentorados.tipoMentoria))
+      .groupBy(mentoriaMentorados.tipoMentoria)
+      .orderBy(sql`count(*) desc`, asc(mentoriaMentorados.tipoMentoria));
+    const contagemPorStatus = Object.fromEntries(MENTORADO_STATUS.map((k) => [k, 0])) as Record<
+      MentoradoStatus,
+      number
+    >;
+    const nomesPorStatus = Object.fromEntries(
+      MENTORADO_STATUS.map((k) => [k, [] as { id: string; nome: string }[]]),
+    ) as Record<MentoradoStatus, { id: string; nome: string }[]>;
+    for (const m of nomes) {
+      const st = m.status as MentoradoStatus;
+      contagemPorStatus[st] += 1;
+      nomesPorStatus[st].push({ id: m.id, nome: m.nome });
+    }
+    return {
+      total: t?.n ?? 0,
+      contagemPorStatus,
+      contagemPorMentoria: porMentoria.map((m) => ({ nome: m.nome!, n: m.n })),
+      nomesPorStatus,
+    };
   }
 
   /** Abre um registro e grava `mentoria.open` (só id, sem nome) na mesma transação. */

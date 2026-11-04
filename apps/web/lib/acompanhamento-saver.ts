@@ -127,6 +127,8 @@ export function useFieldSaver() {
       const atual = q.version(key);
       if (atual == null || version > atual) q.setVersion(key, version);
     },
+    /** Version mais nova que a fila conhece (para excluir sem 409 depois de editar). */
+    versionDe: (key: string) => filaDeSalvamento().version(key),
     salvar: (key: string, campo: string, valor: unknown) =>
       filaDeSalvamento().enqueue(key, campo, valor),
   };

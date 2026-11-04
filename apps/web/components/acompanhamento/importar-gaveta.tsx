@@ -34,13 +34,22 @@ type Escolha = { status?: MentoradoStatus; tipoMentoria?: string };
  * linha para o que falta e confirmação. O texto colado e o arquivo ficam só na memória da
  * página: nada vai para URL nem storage.
  */
-export function ImportarGaveta({ modulo, onClose }: { modulo: ModuloImport; onClose: () => void }) {
+export function ImportarGaveta({
+  modulo,
+  modoInicial,
+  onClose,
+}: {
+  modulo: ModuloImport;
+  /** Dashboard: abre já em "Colar planilha" ou em "Arquivo .json". */
+  modoInicial?: 'planilha' | 'json';
+  onClose: () => void;
+}) {
   const router = useRouter();
   const ref = useRef<HTMLDialogElement>(null);
   const titulo = `Importar no ${NOME_MODULO[modulo]}`;
   const tituloId = useId();
   const [modo, setModo] = useState<'planilha' | 'json'>(
-    modulo === 'dashboard' ? 'planilha' : 'json',
+    modulo === 'dashboard' ? (modoInicial ?? 'planilha') : 'json',
   );
   const [texto, setTexto] = useState('');
   const [arquivo, setArquivo] = useState<{ nome: string; json: unknown } | null>(null);

@@ -173,4 +173,18 @@ describe('acesso', () => {
     >`select count(*)::int as n from audit_log where action like 'mentoria.%'`;
     expect(r?.n).toBe(0);
   });
+
+  it('busca devolve total, contagens por status e por tipo de mentoria e os nomes de cada grupo', async () => {
+    const carla = await comMfa('carla@npac.com.br');
+    const r = await h.post(BUSCA, {}, carla);
+    expect(r.body.total).toBe(56);
+    expect(r.body.contagemPorStatus).toEqual({ ENGAJADO: 55, EM_ATENCAO: 0, EM_RISCO: 1 });
+    expect(r.body.contagemPorMentoria).toEqual([{ nome: 'Mentoria Fictícia A', n: 1 }]);
+    expect(r.body.nomesPorStatus.EM_RISCO).toEqual([{ id: idA, nome: 'Ágata Fictícia' }]);
+    expect(r.body.nomesPorStatus.ENGAJADO).toHaveLength(55);
+    const filtrado = await h.post(BUSCA, { status: 'EM_RISCO' }, carla);
+    expect(filtrado.body.total).toBe(1);
+    // As contagens dos cards são da base inteira, não do filtro.
+    expect(filtrado.body.contagemPorStatus.ENGAJADO).toBe(55);
+  });
 });

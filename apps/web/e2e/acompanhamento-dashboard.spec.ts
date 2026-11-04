@@ -87,3 +87,113 @@ test('DIRETOR e Carla veem a mesma base', async ({ page, browser }) => {
   expect(await nomes(outra)).toEqual(carla);
   await ctx.close();
 });
+
+const abrir = async (page: Page) => {
+  await login(page, 'carla@npac.com.br');
+  await page.goto('/acompanhamento/dashboard');
+  await expect(page.getByRole('table', { name: 'Mentorados' })).toBeVisible();
+};
+const card = (page: Page, nome: string) => page.getByRole('region', { name: nome });
+
+test('cards mostram contagem por status e os nomes do grupo', async ({ page }) => {
+  await abrir(page);
+  // 55 fictícios: múltiplos de 5 em risco (11); múltiplos de 3 que não são de 5 em atenção (15).
+  await expect(card(page, 'Em risco').getByRole('button', { name: /Em risco/ })).toContainText(
+    '11',
+  );
+  await expect(card(page, 'Em atenção').getByRole('button', { name: /Em atenção/ })).toContainText(
+    '15',
+  );
+  await expect(card(page, 'Engajados').getByRole('button', { name: /Engajados/ })).toContainText(
+    '30',
+  );
+  await expect(card(page, 'Em risco').getByText('Mentorado Fictício 05')).toBeVisible();
+});
+
+test('clicar no card Em risco filtra a tabela', async ({ page }) => {
+  await abrir(page);
+  await card(page, 'Em risco')
+    .getByRole('button', { name: /Em risco/ })
+    .click();
+  await expect.poll(() => nomes(page).then((n) => n.length)).toBe(11);
+  await expect(page.getByRole('heading', { name: /Em risco/ })).toBeVisible();
+});
+
+test('etiqueta de mentoria mostra contagem e clicar lista só ela', async ({ page }) => {
+  await abrir(page);
+  const tag = page.getByRole('button', { name: /Mentoria Fictícia A/ });
+  await expect(tag).toContainText('27');
+  await tag.click();
+  await expect.poll(() => nomes(page).then((n) => n.length)).toBe(27);
+});
+
+test('editar o nome na célula e sair do campo grava (recarregar mantém)', async ({ page }) => {
+  await abrir(page);
+  const campo = page.getByRole('textbox', { name: 'Nome de Mentorado Fictício 01' });
+  await campo.fill('Mentorado Fictício 01 Silva');
+  await campo.blur();
+  await expect(page.getByRole('status').filter({ hasText: 'Tudo salvo' })).toBeVisible();
+  await expect
+    .poll(
+      async () =>
+        (
+          await owner<
+            { n: number }[]
+          >`select count(*)::int as n from mentoria_mentorados where nome = 'Mentorado Fictício 01 Silva'`
+        )[0]?.n,
+    )
+    .toBe(1);
+  await page.reload();
+  await expect(
+    page.getByRole('textbox', { name: 'Nome de Mentorado Fictício 01 Silva' }),
+  ).toHaveValue('Mentorado Fictício 01 Silva');
+});
+
+test('linha Em risco tem a classe de cor do status e o status só aceita os três valores', async ({
+  page,
+}) => {
+  await abrir(page);
+  const linha = page.getByRole('row', { name: /Mentorado Fictício 05/ });
+  await expect(linha).toHaveAttribute('data-status', 'EM_RISCO');
+  const status = page.getByRole('combobox', { name: 'Status de Mentorado Fictício 05' });
+  await expect(status.locator('option')).toHaveText(['Engajado', 'Em atenção', 'Em risco']);
+  await status.selectOption('ENGAJADO');
+  await expect(linha).toHaveAttribute('data-status', 'ENGAJADO');
+  await expect
+    .poll(
+      async () =>
+        (
+          await owner<
+            { s: string }[]
+          >`select status as s from mentoria_mentorados where nome_norm = 'mentorado ficticio 05'`
+        )[0]?.s,
+    )
+    .toBe('ENGAJADO');
+});
+
+test('tipo aceita texto livre', async ({ page }) => {
+  await abrir(page);
+  const tipo = page.getByRole('textbox', { name: 'Tipo de Mentorado Fictício 02' });
+  await tipo.fill('Casal com filhos (texto livre)');
+  await tipo.blur();
+  await expect
+    .poll(
+      async () =>
+        (
+          await owner<
+            { t: string }[]
+          >`select tipo_cadastro as t from mentoria_mentorados where nome_norm = 'mentorado ficticio 02'`
+        )[0]?.t,
+    )
+    .toBe('Casal com filhos (texto livre)');
+});
+
+test('mobile: nomes do grupo aparecem sem tocar no card', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await abrir(page);
+  await expect(card(page, 'Em risco').getByText('Mentorado Fictício 05')).toBeVisible();
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  expect(overflow).toBeLessThanOrEqual(0);
+});
