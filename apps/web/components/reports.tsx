@@ -24,6 +24,7 @@ import {
   chartColors,
 } from './dashboard-charts';
 import { BoardProvider, DashboardBoard, RestoreOrder, type BoardCard } from './dashboard-board';
+import { CsvExport } from './csv-export';
 import { CloserDesk, SdrTable, TeamFeed } from './dashboard-team';
 import { CountUp } from './count-up';
 import { useCrmRefresh } from './shell/live-updates';
@@ -209,30 +210,6 @@ export function Reports({
       setCopied(true);
     } catch (e) {
       setError((e as Error).message);
-    }
-  }
-  async function csv() {
-    setError('');
-    setBusy(true);
-    try {
-      const response = await fetch('/api/reports/csv', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(filters),
-        cache: 'no-store',
-      });
-      if (!response.ok)
-        throw new Error('Não foi possível exportar; confira o período e seu acesso.');
-      const url = URL.createObjectURL(await response.blob());
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'npac-relatorio.csv';
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy(false);
     }
   }
   const m = data.metrics;
@@ -666,9 +643,19 @@ export function Reports({
               {copied ? 'Resumo copiado' : 'Copiar resumo sem telefone'}
             </button>
             {head && (
-              <button className={quietButton} disabled={busy} onClick={() => void csv()}>
-                CSV com contatos
-              </button>
+              <CsvExport
+                label="CSV com contatos"
+                endpoint="/api/reports/csv"
+                filename="npac-relatorio.csv"
+                options={[
+                  {
+                    label: 'Só o período',
+                    body: () => ({ period: filters.period, from: filters.from, to: filters.to }),
+                  },
+                  { label: 'Com os filtros atuais', body: () => filters },
+                  { label: 'Tudo', body: () => ({ period: 'ALL' }) },
+                ]}
+              />
             )}
           </div>
           <section className="glass-card p-5">

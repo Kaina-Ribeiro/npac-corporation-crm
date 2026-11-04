@@ -239,3 +239,36 @@ describe('comparecimento (pedido do cliente de 04/11)', () => {
     expect((await today(head)).body.metrics).toHaveProperty('soldCents');
   });
 });
+
+describe('CSV de relatórios por período, filtro ou total', () => {
+  it('total ignora a data de criação', async () => {
+    await owner`update leads set created_at = now() - interval '2 years' where name = 'Outro lead'`;
+    const month = await h.post('/api/reports/csv', { period: 'MONTH' }, head);
+    expect(month.text).not.toContain('Outro lead');
+    const all = await h.post('/api/reports/csv', { period: 'ALL' }, head);
+    expect(all.status).toBe(200);
+    expect(all.text).toContain('Outro lead');
+    expect(all.text).toContain("'=SUM(1,1)");
+  });
+
+  it('com filtro respeita o SDR escolhido', async () => {
+    const murilo = (
+      await owner<{ id: string }[]>`select id from "user" where email='murilo@npac.com.br'`
+    )[0]!.id;
+    const r = await h.post('/api/reports/csv', { period: 'ALL', sdrId: murilo }, head);
+    expect(r.text).toContain('Outro lead');
+    expect(r.text).not.toContain('SUM(1,1)');
+  });
+
+  it('erro de validação do CSV responde 400 com a mensagem, não 500', async () => {
+    const range = await h.post('/api/reports/csv', { period: 'RANGE' }, head);
+    expect(range.status).toBe(400);
+    expect(range.body.message).toBe('Intervalo inválido');
+    const invalid = await h.post('/api/reports/csv', { period: 'ONTEM' }, head);
+    expect(invalid.status).toBe(400);
+  });
+
+  it('busca da tela não aceita total', async () => {
+    expect((await h.post('/api/reports/search', { period: 'ALL' }, head)).status).toBe(400);
+  });
+});

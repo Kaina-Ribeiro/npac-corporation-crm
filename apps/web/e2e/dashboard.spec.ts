@@ -214,3 +214,16 @@ test('SDR não vê valores de venda em Relatórios', async ({ page }) => {
   await expect(page.getByText('Vendido', { exact: true })).toHaveCount(0);
   await expect(page.getByText('Recebido no período')).toHaveCount(0);
 });
+
+test('relatórios: liderança exporta CSV de tudo', async ({ page }) => {
+  await login(page, 'ana@npac.com.br');
+  await page.goto('/relatorios');
+  await page.getByText('CSV com contatos', { exact: true }).click();
+  const download = page.waitForEvent('download');
+  const request = page.waitForRequest(
+    (r) => r.url().endsWith('/api/reports/csv') && r.postDataJSON()?.period === 'ALL',
+  );
+  await page.getByRole('button', { name: 'Tudo', exact: true }).click();
+  await request;
+  expect((await download).suggestedFilename()).toBe('npac-relatorio.csv');
+});

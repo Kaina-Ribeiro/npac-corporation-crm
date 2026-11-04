@@ -4,13 +4,14 @@ import { spDayRange, type AuthUser } from '@npac/shared';
 import { MEETING_VALUE_CENTS } from '@npac/shared/money';
 import { sql, type SQL } from 'drizzle-orm';
 import { AuditService } from '../audit/audit.service.js';
+import { toCsv } from '../common/csv.js';
 import { FieldCrypto } from '../common/crypto/field-crypto.js';
 import { DB } from '../common/db/db.module.js';
 
 export type ReportQuery = {
   page?: number;
   pageSize?: number;
-  period: 'TODAY' | 'MONTH' | 'RANGE';
+  period: 'TODAY' | 'MONTH' | 'RANGE' | 'ALL';
   from?: string;
   to?: string;
   sdrId?: string;
@@ -98,12 +99,6 @@ const SALE_FIELDS = new Set([
 ]);
 const dropSales = <T extends Record<string, unknown>>(o: T) =>
   Object.fromEntries(Object.entries(o).filter(([k]) => !SALE_FIELDS.has(k))) as T;
-
-export function csvCell(value: unknown) {
-  let s = String(value ?? '');
-  if (/^[\s]*[=+\-@]|^[\t\r\n]/.test(s)) s = "'" + s;
-  return '"' + s.replace(/"/g, '""') + '"';
-}
 
 @Injectable()
 export class ReportsService {
@@ -242,7 +237,14 @@ export class ReportsService {
     };
   }
   async csv(u: AuthUser, q: ReportQuery) {
-    const { start, end } = window(q);
+    // "Tudo": sem recorte de data de criação (filtros continuam valendo).
+    const created =
+      q.period === 'ALL'
+        ? sql`true`
+        : (() => {
+            const { start, end } = window(q);
+            return sql`l.created_at>=${start.toISOString()} and l.created_at<${end.toISOString()}`;
+          })();
     const rows = await withUser(this.db, u.id, (tx) =>
       tx.execute<{
         id: string;
@@ -251,7 +253,7 @@ export class ReportsService {
         instagram: string | null;
         tier: string;
       }>(
-        sql`select l.id,l.name,l.phone_enc,l.instagram,l.tier from leads l join pipeline_stages s on s.id=l.stage_id where ${scope(q)} and l.created_at>=${start.toISOString()} and l.created_at<${end.toISOString()} order by l.created_at,l.id limit 10001`,
+        sql`select l.id,l.name,l.phone_enc,l.instagram,l.tier from leads l join pipeline_stages s on s.id=l.stage_id where ${scope(q)} and ${created} order by l.created_at,l.id limit 10001`,
       ),
     );
     if (rows.length > 10000)
@@ -262,20 +264,15 @@ export class ReportsService {
       entityType: 'report',
       data: { count: rows.length },
     });
-    return (
-      '\ufeff' +
-      [
-        ['Nome', 'Telefone', 'Instagram', 'Perfil'],
-        ...rows.map((r) => [
-          r.name,
-          r.phone_enc ? this.crypto.decrypt(r.phone_enc) : '',
-          r.instagram ?? '',
-          r.tier,
-        ]),
-      ]
-        .map((r) => r.map(csvCell).join(';'))
-        .join('\r\n')
-    );
+    return toCsv([
+      ['Nome', 'Telefone', 'Instagram', 'Perfil'],
+      ...rows.map((r) => [
+        r.name,
+        r.phone_enc ? this.crypto.decrypt(r.phone_enc) : '',
+        r.instagram ?? '',
+        r.tier,
+      ]),
+    ]);
   }
   async summary(u: AuthUser, q: ReportQuery) {
     const r = await this.search(u, q);
