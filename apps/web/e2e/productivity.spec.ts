@@ -336,8 +336,15 @@ test('hoje: contato que vence com a página aberta vai para atrasados pelo naveg
     page.locator('section', { has: page.getByRole('heading', { name: title }) });
   await expect(section(/^Contatos de hoje/).getByText('Vence já')).toBeVisible();
   // O relógio do servidor é o real (vence só daqui a ~90 s): se o lead mudar de lista agora,
-  // foi o navegador. O SSE da criação pode recarregar uma vez; isso não muda a lista.
+  // foi o navegador. Um recarregamento pelo SSE (ready/invalidate) depois do avanço do relógio
+  // passa pela mesma regra e não devolve o lead a "Contatos de hoje".
   await page.clock.fastForward('03:00');
+  await expect(section(/^Atrasados/).getByText('Vence já')).toBeVisible();
+  await expect(section(/^Contatos de hoje/).getByText('Vence já')).toHaveCount(0);
+  // Recarrega como o SSE faria: o servidor (relógio real) ainda chama de "hoje", o navegador não.
+  const reloaded = page.waitForResponse((r) => r.url().endsWith('/api/today/search'));
+  await page.evaluate(() => window.dispatchEvent(new Event('crm:invalidate')));
+  await reloaded;
   await expect(section(/^Atrasados/).getByText('Vence já')).toBeVisible();
   await expect(section(/^Contatos de hoje/).getByText('Vence já')).toHaveCount(0);
 });

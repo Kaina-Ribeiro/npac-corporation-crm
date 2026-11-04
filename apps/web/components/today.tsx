@@ -18,6 +18,21 @@ const when = (at: string | null) =>
         minute: '2-digit',
       })
     : 'Sem data';
+
+/** Move para Atrasados os contatos vencidos pelo relógio do navegador (mesmo objeto se nada mudou). */
+function moveDue(d: TodayDTO): TodayDTO {
+  const now = Date.now();
+  const at = (c: { nextContactAt: string | null }) =>
+    c.nextContactAt ? new Date(c.nextContactAt).getTime() : 0;
+  const due = d.contacts.filter((c) => c.nextContactAt && at(c) < now);
+  if (!due.length) return d;
+  return {
+    ...d,
+    contacts: d.contacts.filter((c) => !due.includes(c)),
+    overdue: [...d.overdue, ...due].sort((a, b) => at(a) - at(b)),
+  };
+}
+
 function Section({
   title,
   count,
@@ -62,27 +77,14 @@ export function Today({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   async function load(selected = filters) {
-    setData(await clientApi<TodayDTO>('/api/today/search', 'POST', selected));
+    // A resposta passa pela mesma regra do relógio: um recarregamento (SSE) não devolve a
+    // "Contatos de hoje" o que já venceu no navegador.
+    setData(moveDue(await clientApi<TodayDTO>('/api/today/search', 'POST', selected)));
   }
   // Contato que passa da hora vai sozinho para Atrasados, no navegador e sem chamar a API
   // (cada busca do Hoje grava auditoria). Mudanças de dados chegam pelo useCrmRefresh.
   useEffect(() => {
-    const tick = () =>
-      setData((d) => {
-        const now = Date.now();
-        const due = d.contacts.filter(
-          (c) => c.nextContactAt && new Date(c.nextContactAt).getTime() < now,
-        );
-        if (!due.length) return d;
-        const at = (c: { nextContactAt: string | null }) =>
-          c.nextContactAt ? new Date(c.nextContactAt).getTime() : 0;
-        return {
-          ...d,
-          contacts: d.contacts.filter((c) => !due.includes(c)),
-          overdue: [...d.overdue, ...due].sort((a, b) => at(a) - at(b)),
-        };
-      });
-    const t = setInterval(tick, 30_000);
+    const t = setInterval(() => setData(moveDue), 30_000);
     return () => clearInterval(t);
   }, []);
   async function action(path: string, method: string, body: object) {
