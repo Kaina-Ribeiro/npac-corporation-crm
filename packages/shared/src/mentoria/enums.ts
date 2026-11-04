@@ -38,3 +38,11 @@ export const FICHA_CAMPO_ROTULO: Record<FichaCampoChave, string> = {
   INVESTIMENTOS_MENTORIA: 'Investimentos feitos na mentoria',
   AREA_ATUACAO: 'Área de atuação',
 };
+
+/** Pendências do documento de escopo (PDF, 30/10/2026), texto literal. Marcar não persiste (D26). */
+export const PENDENCIAS_PDF = [
+  'Reanexar as fotos e vídeos cadastrados antes da correção do armazenamento (não foram recuperados)',
+  'Publicar o medidor de espaço de mídia (pronto, aguardando OK)',
+  'Verificar o botão Exportar (.json) na página publicada: a plataforma avisou que downloads diretos podem não funcionar para quem acessa pelo link',
+  'Confirmar se "Gegê e Hellen" e "João Carlos (Gegê) e Hellen" são o mesmo casal (hoje há duas fichas no RDV)',
+] as const;

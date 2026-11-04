@@ -16,7 +16,14 @@
 | Igor    | SDR              | ✅ | — |
 | Sônia   | CLOSER           | — | ✅ (Nação Milionária P1/P2) |
 
-Modelo: cada usuário tem **um papel** (`DIRETOR`, `HEAD`, `SDR`, `CLOSER`) + duas flags (`can_prospect`, `can_close`).
+Modelo: cada usuário tem **um papel** (`DIRETOR`, `HEAD`, `SDR`, `CLOSER`, `ACOMPANHAMENTO`) + duas flags (`can_prospect`, `can_close`).
+
+**Acompanhamento** (`ACOMPANHAMENTO`, ex.: Carla): equipe de mentoria. Usa só o módulo
+Acompanhamento de mentorados (Dashboard, Linha do tempo, Linha do tempo RDV, Importação e backup),
+que segue o PDF "Escopo e regras" de 30/10/2026 (plano `docs/superpowers/plans/2026-11-04-08-mentoria.md`).
+Só Diretoria e Acompanhamento acessam o módulo (Head, SDR e Closer recebem 404), as duas com MFA
+obrigatório nele. Só a Diretoria dá ou tira o cargo. O menu é o mesmo de todos os cargos; as telas
+comerciais respondem 404 para o Acompanhamento.
 
 Login: **usuário + senha** (provisório: mínimo 3 caracteres enquanto o time testa; as regras voltam no fim). MFA (TOTP) é opcional: cada pessoa ativa ou desativa em "Autenticador", e quem ativou confirma o login com o código. O e-mail fica no cadastro
 como contato; o login por e-mail é desligado. A tela de login sugere o último usuário do aparelho

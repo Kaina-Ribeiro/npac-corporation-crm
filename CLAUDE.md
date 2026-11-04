@@ -50,6 +50,13 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   admin `admin.tsx`, `access-requests.tsx` · Ctrl+K `shell/command-palette.tsx` · avisos `inbox.tsx` ·
   textos de atividade `lib/activity-text.ts` · editor de colunas `pipeline-columns-editor.tsx` · ação
   rápida do Hoje `today-quick-action.tsx` · menu de CSV `csv-export.tsx` (API: `api/common/csv.ts`)
+- **Acompanhamento (mentorados):** API `api/mentoria/*` (guarda 404 + MFA: `MentoriaController` em
+  `mentoria.guard.ts`; leitura `mentoria.service.ts`, `fichas.service.ts`; escrita `escrita.service.ts`;
+  import/export `.json` `import.service.ts`; mídia `midia.controller.ts`, `media-store.ts`, `media-sniff.ts`,
+  `media-worker.ts`; cifra v2 `mentoria-crypto.ts`) · banco `db/src/schema/mentoria.ts` + 0028–0032
+  (`mentoria_pode()`, funções `mentoria_*`) · lógica pura `sh/mentoria/*` (cliente: `@npac/shared/mentoria`,
+  sem zod) · telas `web/app/(app)/acompanhamento/*`, `web/components/acompanhamento/*`, fila
+  `web/lib/acompanhamento-saver.ts` · backup cifrado `infra/backup/*` (age)
 - **Docs:** `docs/spec.md`; deploy `docs/deploy.md` (Oracle), `docs/deploy-cubeship.md`; planos `docs/superpowers/plans/`; releases `RELEASING.md`
 
 Next 16 tem APIs incompatíveis: em dúvida, `web/node_modules/next/dist/docs/`. Valor exportado de
@@ -80,6 +87,11 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   acesso (3/h) e o TOTP (3/10 s, padrão do plugin) continuam limitados. Religar depois.
 - MFA (TOTP) **opcional** (28/10/2026): cada um liga/desliga em `/conta/mfa`; quem ligou confirma o
   login, código enviado sozinho aos 6 dígitos (`lib/otp-input.ts`). Primeiro acesso só obriga trocar a senha.
+- **Acompanhamento** (`ACOMPANHAMENTO`, 04/11/2026): só o módulo de mentorados; RLS por
+  `mentoria_pode()` (papel cru, nunca `app_role()`), MFA obrigatório nas rotas `mentoria/*` para
+  Diretoria e Acompanhamento, 404 para os demais. Texto sensível cifrado com AAD
+  (`MENTORADO_ENCRYPTION_KEY`); mídia fora do banco em `MEDIA_DIR`; sem DELETE para `npac_app`
+  (exclusão só pelas funções, que enfileiram a mídia). Filhos usam a `version` do pai (D5).
 - Cookies em vez de localStorage: último usuário `npac_last_user` (`Path=/login`); ordem dos cards
   `npac_dash_<hash do id>` (`Path=/dashboard`, só IDs, o servidor já renderiza na ordem).
 

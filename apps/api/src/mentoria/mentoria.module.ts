@@ -3,6 +3,7 @@ import { Inject, Module, type OnModuleDestroy, type OnModuleInit } from '@nestjs
 import type { Db } from '@npac/db';
 import { DB } from '../common/db/db.module.js';
 import { ENV, type Env } from '../config/env.js';
+import { BackupController } from './backup.controller.js';
 import { EscritaService } from './escrita.service.js';
 import { FichasController } from './fichas.controller.js';
 import { FichasService } from './fichas.service.js';
@@ -26,6 +27,7 @@ import { PessoasController, RegistrosController } from './registros.controller.j
     PessoasController,
     ImportController,
     MidiaController,
+    BackupController,
   ],
   providers: [
     MentoriaService,
