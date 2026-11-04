@@ -2,6 +2,7 @@
 // O hash é argon2id (@node-rs/argon2), o mesmo que o Better Auth verifica na API.
 import { hash } from '@node-rs/argon2';
 import { createDb } from './client.js';
+import { seedMentoria } from './seed-mentoria.js';
 import { seed } from './seed.js';
 
 const url = process.env.DATABASE_URL;
@@ -13,6 +14,8 @@ if (!initialPassword)
 const client = createDb(url, { max: 1 });
 try {
   await seed(client.db, { hashPassword: (p) => hash(p), initialPassword });
+  // Mentorados fictícios só fora de produção (demo do Acompanhamento).
+  if (process.env.NODE_ENV !== 'production') await seedMentoria(client.db);
   console.log('Seed concluído.');
 } finally {
   await client.close();
