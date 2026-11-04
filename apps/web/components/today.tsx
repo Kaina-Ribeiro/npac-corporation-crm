@@ -1,7 +1,7 @@
 'use client';
 import type { LeadCatalog, TodayDTO } from '@npac/shared';
 import Link from 'next/link';
-import { useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { money } from '@npac/shared/money';
 import { brasiliaInput, clientApi } from '@/lib/client-api';
 import { button, control, Field, FormError, quietButton } from './crm-ui';
@@ -57,6 +57,11 @@ export function Today({
   async function load(selected = filters) {
     setData(await clientApi<TodayDTO>('/api/today/search', 'POST', selected));
   }
+  // Contato que passa da hora vai sozinho para Atrasados: recarrega a cada minuto.
+  useEffect(() => {
+    const t = setInterval(() => void load().catch(() => {}), 60_000);
+    return () => clearInterval(t);
+  });
   async function action(path: string, method: string, body: object) {
     setBusy(true);
     setError('');

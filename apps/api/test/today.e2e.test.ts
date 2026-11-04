@@ -50,6 +50,20 @@ it('Hoje usa o dia BRT e só retorna dados do escopo', async () => {
   expect((await h.post('/api/today/search', {}, murilo)).body.contacts).toEqual([]);
   expect((await h.post('/api/today/search', { sdrId: 'alguem' }, ale)).status).toBe(403);
 });
+it('contato de hoje que já passou da hora está em atrasados', async () => {
+  const now = Date.now();
+  const { end } = spDayRange(new Date());
+  await owner`update leads set next_contact_at = ${new Date(now - 5 * 60_000)} where id = ${a}`;
+  const res = await h.post('/api/today/search', {}, ale);
+  expect(res.body.overdue.map((l: { id: string }) => l.id)).toEqual([a]);
+  expect(res.body.contacts).toEqual([]);
+  if (now + 5 * 60_000 < end.getTime()) {
+    await owner`update leads set next_contact_at = ${new Date(now + 5 * 60_000)} where id = ${a}`;
+    const later = await h.post('/api/today/search', {}, ale);
+    expect(later.body.contacts.map((l: { id: string }) => l.id)).toEqual([a]);
+    expect(later.body.overdue).toEqual([]);
+  }
+});
 it('tarefas concluídas saem da aba Hoje', async () => {
   const task = await h.post(
     `/api/leads/${a}/tasks`,
