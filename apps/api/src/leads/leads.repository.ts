@@ -125,6 +125,32 @@ export class LeadsRepository {
     return { rows, total: totalRow?.n ?? 0 };
   }
 
+  /** Linhas do CSV de leads (até 10 001, para o chamador recusar acima de 10 mil). */
+  exportRows(tx: Tx, filters: LeadFilters, created?: { start: Date; end: Date }) {
+    return tx
+      .select({
+        name: leads.name,
+        phoneEnc: leads.phoneEnc,
+        instagram: leads.instagram,
+        tier: leads.tier,
+        stage: pipelineStages.label,
+        sdrName: user.name,
+        createdAt: leads.createdAt,
+      })
+      .from(leads)
+      .innerJoin(pipelineStages, eq(pipelineStages.id, leads.stageId))
+      .innerJoin(user, eq(user.id, leads.sdrId))
+      .where(
+        and(
+          this.where(filters),
+          created ? gte(leads.createdAt, created.start) : undefined,
+          created ? lt(leads.createdAt, created.end) : undefined,
+        ),
+      )
+      .orderBy(asc(leads.createdAt), asc(leads.id))
+      .limit(10_001);
+  }
+
   private baseQuery(tx: Tx) {
     return tx
       .select({

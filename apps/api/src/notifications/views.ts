@@ -11,7 +11,7 @@ import {
   Post,
 } from '@nestjs/common';
 import { savedViews, withUser, type Db } from '@npac/db';
-import { LEAD_SOURCES, STAGE_KEYS, TIERS, type AuthUser } from '@npac/shared';
+import { LEAD_SOURCES, stageKeySchema, TIERS, type AuthUser } from '@npac/shared';
 import { asc, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { CurrentUser, type SessionUser } from '../auth/current-user.decorator.js';
@@ -24,7 +24,7 @@ const viewInput = z
     name: z.string().trim().min(1).max(60),
     filters: z
       .object({
-        stage: z.enum(STAGE_KEYS).optional(),
+        stage: stageKeySchema.optional(),
         tier: z.enum(TIERS).optional(),
         source: z.enum(LEAD_SOURCES).optional(),
         sdrId: z.string().max(64).optional(),

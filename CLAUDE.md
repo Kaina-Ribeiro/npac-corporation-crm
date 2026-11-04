@@ -48,7 +48,8 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   `sale-flow.tsx`, `finance-panel.tsx` · `pipeline.tsx`, `today.tsx`, `reports.tsx`, `dashboard-*.tsx`
   (cards reordenáveis: `dashboard-board.tsx`, `lib/dashboard-layout.ts`, `lib/board-motion.ts`) ·
   admin `admin.tsx`, `access-requests.tsx` · Ctrl+K `shell/command-palette.tsx` · avisos `inbox.tsx` ·
-  textos de atividade `lib/activity-text.ts`
+  textos de atividade `lib/activity-text.ts` · editor de colunas `pipeline-columns-editor.tsx` · ação
+  rápida do Hoje `today-quick-action.tsx` · menu de CSV `csv-export.tsx` (API: `api/common/csv.ts`)
 - **Docs:** `docs/spec.md`; deploy `docs/deploy.md` (Oracle), `docs/deploy-cubeship.md`; planos `docs/superpowers/plans/`; releases `RELEASING.md`
 
 Next 16 tem APIs incompatíveis: em dúvida, `web/node_modules/next/dist/docs/`. Valor exportado de
@@ -62,6 +63,10 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   `admin/users.ts`); Head gerencia SDR/closer. Na RLS, `app_role()` devolve `'HEAD'` para DIRETOR (0021).
 - Liderança vê tudo; SDR, os próprios leads; CLOSER, leads com reunião não cancelada dele.
   Invisível e inexistente → **404**, nunca 403. `canProspect`/`canClose` são dados; nada depende de nomes.
+- **SDR não recebe R$ de venda** (pedido do cliente, 04/11/2026): `/reports/search`, `/reports/summary`
+  e `/team` cortam no servidor (`dropSales`); o Dashboard do SDR mostra comparecimento. Closer igual a
+  antes; liderança vê venda + comparecimento, com filtro por SDR. Vendas e pagamentos (ficha,
+  cobranças do Hoje, `sale:register`) são do closer e da liderança; o SDR só marca o resultado da reunião.
 - Login por **usuário** (`/sign-in/username`, `[a-z0-9_.]{3,30}`, minúsculo); login por e-mail e
   `/is-username-available` desligados. Senha mínima 3 (provisório, decisão de 29/10/2026: no dev
   todas são `123`; as regras voltam no fim).
@@ -70,6 +75,9 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   recusar apaga; expira em 7 dias; 3/hora por IP; resposta igual exista ou não o usuário (hash
   sempre, para o tempo não revelar). "Esqueci minha senha" manda pedir redefinição à liderança;
   Diretoria trancada: `reset-password-cli.js <usuário> [--mfa]` no shell da api (`db/src/reset-password.ts`).
+- **Limite de tentativas de login DESLIGADO** (temporário, 04/11/2026: travava os acessos):
+  `customRules[SIGN_IN] = false` em `api/auth/auth.ts`; antes era 5/min por IP. O pedido de
+  acesso (3/h) e o TOTP (3/10 s, padrão do plugin) continuam limitados. Religar depois.
 - MFA (TOTP) **opcional** (28/10/2026): cada um liga/desliga em `/conta/mfa`; quem ligou confirma o
   login, código enviado sozinho aos 6 dígitos (`lib/otp-input.ts`). Primeiro acesso só obriga trocar a senha.
 - Cookies em vez de localStorage: último usuário `npac_last_user` (`Path=/login`); ordem dos cards
@@ -83,7 +91,9 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
 - Usuários e pedidos de acesso não têm RLS (Better Auth lê `user`): guarda = `admin:manage` + auditoria.
   Leads no admin continuam via `withUser`.
 - Contato, termo de busca e conteúdo pessoal nunca em URL, logs, analytics ou localStorage (há e2e
-  que barra `@` e dígitos longos). Buscas/relatórios por POST.
+  que barra `@` e dígitos longos). Buscas/relatórios por POST. Exceção pedida pelo cliente (04/11):
+  o link do Google Agenda leva nome do lead, perfil, sigla de quem agendou e o handoff; nunca
+  telefone nem Instagram.
 - Telefone E.164 BR, AES-256-GCM + blind index HMAC. Renda só em faixas ≥ R$ 5 mil.
 - Timeline append-only: tipo, IDs e nomes de campos, **nunca valores**. Auditoria sem e-mail nem nome.
 - API com `Cache-Control: no-store`. SSE só manda `{ type }`.
@@ -102,12 +112,21 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
 - **Etapa VENDA = venda ativa**: entra só por `POST /finance/deals`, sai só pelo estorno. PATCH recusa
   entrar (409 `SALE_REQUIRED`) e sair com venda (409 `ACTIVE_SALE`). Selects usam `<StageOptions>`
   (Venda desabilitada); ação em massa não oferece Venda.
-- Resultado de reunião só depois do horário (400 "A reunião ainda não aconteceu").
+- Resultado de reunião só depois do horário (400 "A reunião ainda não aconteceu"). Resultados:
+  `DONE`, `NO_SHOW`, `RESCHEDULED`. Valor por reunião realizada = `MEETING_VALUE_CENTS`
+  (P0 900, P1 700, P2 500), pelo perfil **atual** do lead; no-show e remarcada não somam.
+- **Etapas**: `pipeline_stages.key` é texto; `system` é coluna gerada (`key` ∈ `STAGE_KEYS`). A
+  liderança cria (`C_` + 8 hex), renomeia, reordena e exclui; não exclui de sistema, com lead ativo
+  ou referenciada por venda (`deals.previous_stage_id`, imutável). Validação: `stageKeySchema`.
+- Hoje: atrasado = próximo contato < **agora**; a tela move vencidos no navegador (sem polling, que
+  gravaria auditoria). Ação rápida `POST /leads/:id/quick-action` (Chamado/Remarcado/Próxima ação).
 - Desativar usuário derruba sessões; leads dele vão por `POST /admin/users/:id/transfer-leads`.
 - Fuso `America/Sao_Paulo`; `datetime-local` = Brasília (`brasiliaInput`); intervalos [início, fim);
   em `sql` cru, datas como ISO string.
 - Métricas em SQL com CTEs que não multiplicam linhas; vendas contam por `deals`, não por etapa.
-- Paginação no servidor; CSV recusa > 10 mil linhas.
+- Paginação no servidor; CSV recusa > 10 mil linhas; cabeçalhos do CSV com `csvHeaders` depois de
+  gerar o arquivo (com `@Header` fixo, erro de validação virava 500). Leads e Relatórios exportam por
+  período, filtro atual ou tudo (`period: 'ALL'` só no CSV).
 - Erros da API em português para o usuário final (`BadRequestException('…')`); o `clientApi` mostra a
   mensagem, as padrão do Nest viram texto genérico. `clientApi` aceita 204.
 

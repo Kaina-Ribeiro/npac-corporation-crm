@@ -24,6 +24,7 @@ export default async function DashboardPage() {
       initial={initial}
       catalog={catalog}
       products={products}
+      role={me.role}
       head={head}
       dashboard
       name={me.name}

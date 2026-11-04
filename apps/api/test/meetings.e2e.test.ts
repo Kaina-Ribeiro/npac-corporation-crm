@@ -101,6 +101,18 @@ it('cancelar revoga acesso, não pode ser desfeito por campo arbitrário', async
     await owner`select kind from lead_timeline where lead_id = ${leadId} and kind = 'meeting.canceled'`;
   expect(rows).toHaveLength(1);
 });
+it('resultado remarcado é aceito depois do horário', async () => {
+  const id = await schedule();
+  await owner`update meetings set scheduled_at = now() - interval '1 hour' where id = ${id}`;
+  const res = await h.post(
+    `/api/meetings/${id}/outcome`,
+    { version: 1, outcome: 'RESCHEDULED' },
+    sonia,
+  );
+  expect(res.status).toBe(200);
+  const [m] = await owner<{ outcome: string }[]>`select outcome from meetings where id = ${id}`;
+  expect(m!.outcome).toBe('RESCHEDULED');
+});
 it('reunião com resultado não remarca, não cancela e só a liderança corrige o resultado', async () => {
   const id = await schedule();
   await owner`update meetings set scheduled_at = now() - interval '1 hour' where id = ${id}`;

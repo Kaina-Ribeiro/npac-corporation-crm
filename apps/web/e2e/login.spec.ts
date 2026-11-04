@@ -57,7 +57,9 @@ test('SDR cadastra lead, escreve nota e conclui tarefa na ficha', async ({ page 
   await expect(page.getByText('Lead e2e CRM', { exact: true })).toHaveCount(0);
 });
 
-test('SDR registra venda parcial, recebe saldo e vê o relatório', async ({ page }) => {
+test('closer registra venda parcial e recebe; SDR não vê vendas e vê o relatório', async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 375, height: 812 });
   await login(page, 'ale@npac.com.br');
   await page.waitForURL(/\/dashboard/);
@@ -65,6 +67,17 @@ test('SDR registra venda parcial, recebe saldo e vê o relatório', async ({ pag
     data: { name: 'Lead venda e2e', instagram: '@sale.e2e', incomeBand: 'R5_8K', tier: 'P1' },
   });
   const { id } = (await response.json()) as { id: string };
+  // Pedido do cliente (04/11): vendas e pagamentos são do closer; o SDR só marca a reunião.
+  await page.goto(`/leads/${id}`);
+  await expect(page.getByRole('heading', { name: 'Reuniões', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Vendas e pagamentos' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Registrar venda', exact: true })).toHaveCount(0);
+  await owner`insert into meetings (lead_id, closer_id, scheduled_at, origin, created_by)
+    select ${id}, c.id, now(), 'DIRETO', s.id from "user" c, "user" s
+    where c.email = 'sonia@npac.com.br' and s.email = 'ale@npac.com.br'`;
+  await page.context().clearCookies();
+  await login(page, 'sonia@npac.com.br');
+  await page.waitForURL(/\/dashboard/);
   const products = (await (await page.request.get('/api/finance/products')).json()) as {
     id: string;
     name: string;
@@ -88,11 +101,18 @@ test('SDR registra venda parcial, recebe saldo e vê o relatório', async ({ pag
   await expect(
     page.getByRole('button', { name: 'Registrar recebimento', exact: true }),
   ).toHaveCount(0);
+  await page.context().clearCookies();
+  await login(page, 'ale@npac.com.br');
+  await page.waitForURL(/\/dashboard/);
   await page.goto('/relatorios');
   await expect(page.getByRole('heading', { name: 'Relatórios', exact: true })).toBeVisible();
-  await expect(page.getByText(/2\.500,00/).first()).toBeVisible();
+  // Pedido do cliente (04/11): SDR vê comparecimento, não o valor da venda.
+  await expect(page.getByText('Valor a receber por reunião realizada')).toBeVisible();
+  await expect(page.getByText(/2\.500,00/)).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'CSV com contatos', exact: true })).toHaveCount(0);
   await page.screenshot({ path: 'test-results/relatorios.png', fullPage: true });
+  // A venda do closer avisa o SDR; o aviso pendente mudaria o nome do link "Mais" nos outros testes.
+  await owner`delete from notifications where timeline_id in (select id from lead_timeline where lead_id = ${id})`;
 });
 
 test('SDR entra e vê só os próprios leads', async ({ page }) => {
@@ -255,6 +275,9 @@ for (const head of ['ana', 'ronaldo']) {
     await expect(page.getByLabel('Código', { exact: true })).toHaveValue('');
     await page.getByLabel('Código', { exact: true }).fill(totp(secret));
     await page.waitForURL(/\/dashboard/);
+    // MFA é opcional: devolve o estado inicial para os specs seguintes.
+    await owner`update "user" set two_factor_enabled=false where email=${email}`;
+    await owner`delete from two_factor where user_id=(select id from "user" where email=${email})`;
   });
 }
 
@@ -425,6 +448,8 @@ test('duas sessões recebem notas em tempo real e revogam acesso sem recarregar'
     await owner`update "user" set active = false where email = 'sonia@npac.com.br'`;
     await expect(sonia).toHaveURL(/\/login/, { timeout: 10_000 });
   } finally {
+    // Usuários são compartilhados entre os specs: devolve a Sônia ativa.
+    await owner`update "user" set active = true where email = 'sonia@npac.com.br'`;
     await a.close();
     await s.close();
   }

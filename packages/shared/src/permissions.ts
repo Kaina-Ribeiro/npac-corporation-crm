@@ -37,7 +37,8 @@ const MATRIX: Record<Role, ReadonlySet<Action>> = {
     'meeting:schedule',
     'meeting:reschedule',
     'meeting:outcome',
-    'sale:register',
+    // Sem 'sale:register': vendas e pagamentos são do closer e da liderança (pedido do cliente,
+    // 04/11/2026). O SDR só marca o resultado da reunião.
     'note:write',
     'task:write',
     'report:view',

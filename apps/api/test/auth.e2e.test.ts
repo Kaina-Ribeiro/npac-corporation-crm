@@ -85,11 +85,12 @@ describe('autenticação', () => {
     expect(await auditCount('auth.sign_in.failure')).toBe(1);
   });
 
-  it('6ª tentativa em 1 min → 429', async () => {
-    for (let i = 0; i < 5; i++) {
+  // Limite de tentativas desligado por ora (auth.ts, 04/11/2026). Ao religar, volta a esperar 429.
+  it('várias tentativas seguidas não bloqueiam o login (limite desligado)', async () => {
+    for (let i = 0; i < 7; i++) {
       expect((await h.signInRaw('ale@npac.com.br', 'errada-errada')).status).toBe(401);
     }
-    expect((await h.signInRaw('ale@npac.com.br', 'errada-errada')).status).toBe(429);
+    expect((await h.signInRaw('ale@npac.com.br')).status).toBe(200);
   });
 
   it('sem sessão → 401', async () => expect((await h.get(protectedRoute)).status).toBe(401));

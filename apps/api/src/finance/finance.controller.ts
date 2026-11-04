@@ -11,7 +11,11 @@ export class FinanceController {
   @Get('products') products(@CurrentUser() u: SessionUser) {
     return this.finance.catalog(u);
   }
-  @Get('leads/:id') list(@CurrentUser() u: SessionUser, @Param('id') id: string) {
+  // Vendas e pagamentos da ficha: só quem registra venda (closer e liderança).
+  @Get('leads/:id') @Can('sale:register') list(
+    @CurrentUser() u: SessionUser,
+    @Param('id') id: string,
+  ) {
     return this.finance.list(u, entityId(id));
   }
   @Post('deals') @Can('sale:register') create(

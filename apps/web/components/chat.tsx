@@ -132,13 +132,15 @@ export function Chat({
   }
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-4">
+    // Ocupa a altura útil da tela (descontado o respiro do <main> e, no celular, a barra de baixo):
+    // a lista e a conversa esticam, as mensagens rolam por dentro e o campo fica no rodapé.
+    <div className="flex h-[calc(100dvh-max(1rem,env(safe-area-inset-top))-8rem)] min-h-[420px] flex-col gap-4 md:h-[calc(100dvh-4rem)] md:min-h-[520px]">
       <h1 className="mt-1.5 text-[34px] leading-tight font-bold tracking-[-0.04em]">Chat</h1>
       <FormError message={error} />
-      <div className="grid gap-4 md:grid-cols-[260px_1fr]">
+      <div className="grid min-h-0 flex-1 gap-4 md:grid-cols-[280px_minmax(0,1fr)] 2xl:grid-cols-[320px_minmax(0,1fr)]">
         <nav
           aria-label="Conversas"
-          className={`glass-card flex flex-col gap-1 p-3 ${open ? 'hidden md:flex' : ''}`}
+          className={`glass-card scroll-thin flex min-h-0 flex-col gap-1 overflow-y-auto p-3 ${open ? 'hidden md:flex' : ''}`}
         >
           {channels.map((c) => (
             <button
@@ -184,7 +186,7 @@ export function Chat({
         </nav>
         <section
           aria-label={current ? `Conversa ${current.name}` : 'Conversa'}
-          className={`glass-card flex min-h-[60vh] flex-col p-4 ${open ? '' : 'hidden md:flex'}`}
+          className={`glass-card flex min-h-0 flex-col p-4 md:p-5 ${open ? '' : 'hidden md:flex'}`}
         >
           <div className="flex items-center gap-2 border-b border-line pb-3">
             <button
@@ -196,11 +198,11 @@ export function Chat({
             </button>
             <h2 className="text-lg font-bold">{current?.name ?? 'Conversa'}</h2>
           </div>
-          <ol className="flex flex-1 flex-col gap-3 overflow-y-auto py-3">
+          <ol className="scroll-thin flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto py-3">
             {messages.map((m) => (
               <li
                 key={m.id}
-                className={`max-w-[85%] rounded-2xl px-3 py-2 ${
+                className={`max-w-[min(85%,680px)] rounded-2xl px-3 py-2 ${
                   m.authorId === meId
                     ? 'self-end bg-ink text-[var(--bg)]'
                     : 'self-start bg-black/5 dark:bg-white/10'

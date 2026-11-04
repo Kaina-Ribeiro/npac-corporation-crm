@@ -11,19 +11,25 @@ type Member = {
   role: Role;
   canProspect: boolean;
   canClose: boolean;
-  stats: { leads: number; meetings: number; done: number; sales: number; soldCents: number } | null;
+  stats: {
+    leads: number;
+    meetings: number;
+    done: number;
+    sales: number;
+    soldCents?: number;
+  } | null;
 };
 
 export default async function EquipePage() {
   const { members } = await apiGet<{ members: Member[] }>('/api/team');
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-5">
+    <div className="mx-auto flex max-w-[1920px] flex-col gap-5">
       <div>
         <h1 className="mt-1.5 text-[34px] leading-tight font-bold tracking-[-0.04em]">Equipe</h1>
         <p className="text-sm text-ink2">Números do mês corrente (horário de Brasília).</p>
       </div>
       <ul
-        className="reveal-grid grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+        className="reveal-grid grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 4xl:grid-cols-5"
         style={{ '--d': '140ms' } as CSSProperties}
       >
         {members.map((m) => (
@@ -60,12 +66,14 @@ export default async function EquipePage() {
                     <dd className="font-semibold tabular-nums">{value}</dd>
                   </div>
                 ))}
-                <div className="col-span-2">
-                  <dt className="text-xs text-ink2">Faturamento</dt>
-                  <dd className="font-semibold text-gold-deep tabular-nums">
-                    {money(m.stats.soldCents)}
-                  </dd>
-                </div>
+                {m.stats.soldCents !== undefined && (
+                  <div className="col-span-2">
+                    <dt className="text-xs text-ink2">Faturamento</dt>
+                    <dd className="font-semibold text-gold-deep tabular-nums">
+                      {money(m.stats.soldCents)}
+                    </dd>
+                  </div>
+                )}
               </dl>
             ) : (
               <p className="text-xs text-ink2">

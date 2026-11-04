@@ -155,3 +155,196 @@ test('login sugere o último usuário ao clicar no campo, sem usar localStorage'
   await page.getByLabel('Usuário', { exact: true }).click();
   await expect(page.getByRole('option')).toHaveCount(0);
 });
+
+test('pipeline tem botão Novo lead que abre o formulário', async ({ page }) => {
+  await login(page, 'ale@npac.com.br');
+  await page.goto('/pipeline');
+  await page
+    .getByRole('link', { name: 'Novo lead', exact: true })
+    .filter({ visible: true })
+    .click();
+  await page.waitForURL(/\/leads\/new$/);
+});
+
+test('closer não vê Novo lead no pipeline', async ({ page }) => {
+  await login(page, 'sonia@npac.com.br');
+  await page.goto('/pipeline');
+  await expect(page.getByRole('heading', { name: 'Pipeline' }).first()).toBeVisible();
+  await expect(
+    page.getByRole('link', { name: 'Novo lead', exact: true }).filter({ visible: true }),
+  ).toHaveCount(0);
+});
+
+test('leads: liderança exporta CSV; SDR não vê a opção', async ({ page }) => {
+  await login(page, 'ana@npac.com.br');
+  await page.goto('/leads');
+  await page.getByText('Exportar', { exact: true }).click();
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Todos os leads', exact: true }).click();
+  expect((await download).suggestedFilename()).toBe('npac-leads.csv');
+  // Por período manda as datas de criação.
+  await page.getByLabel('Criados de', { exact: true }).fill('2026-01-01');
+  await page.getByLabel('Criados até', { exact: true }).fill('2026-12-31');
+  const request = page.waitForRequest(
+    (r) => r.url().endsWith('/api/leads/csv') && r.postDataJSON()?.createdFrom === '2026-01-01',
+  );
+  await page.getByRole('button', { name: 'Exportar período', exact: true }).click();
+  await request;
+  await page.context().clearCookies();
+  await login(page, 'ale@npac.com.br');
+  await page.goto('/leads');
+  await expect(page.getByRole('heading', { name: 'Leads' })).toBeVisible();
+  await expect(page.getByText('Exportar', { exact: true })).toHaveCount(0);
+});
+
+test('hoje: ação rápida de chamado, remarcado e próxima ação', async ({ page }) => {
+  await login(page, 'ale@npac.com.br');
+  const ids: string[] = [];
+  for (const name of ['Rápido Chamado', 'Rápido Remarcado', 'Rápido Próxima']) {
+    const res = await page.request.post('/api/leads', {
+      data: {
+        name,
+        instagram: `@rapido.${Date.now()}.${ids.length}`,
+        incomeBand: 'R5_8K',
+        tier: 'P1',
+      },
+    });
+    ids.push(((await res.json()) as { id: string }).id);
+  }
+  await owner`update leads set next_contact_at = now() - interval '2 hours' where id in ${owner(ids)}`;
+  await page.goto('/hoje');
+  const overdue = page.locator('section', {
+    has: page.getByRole('heading', { name: /^Atrasados/ }),
+  });
+  const row = (name: string) => overdue.locator('[data-lead-row]', { hasText: name });
+
+  await row('Rápido Chamado').getByRole('button', { name: 'Ação rápida' }).click();
+  await row('Rápido Chamado').getByRole('button', { name: 'Chamado', exact: true }).click();
+  await expect(row('Rápido Chamado')).toHaveCount(0);
+
+  await row('Rápido Remarcado').getByRole('button', { name: 'Ação rápida' }).click();
+  await row('Rápido Remarcado').getByRole('button', { name: 'Remarcado', exact: true }).click();
+  const tomorrow = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(
+    new Date(Date.now() + 86_400_000),
+  );
+  await row('Rápido Remarcado').getByLabel('Nova data').fill(`${tomorrow}T10:00`);
+  await row('Rápido Remarcado').getByRole('button', { name: 'Salvar' }).click();
+  await expect(row('Rápido Remarcado')).toHaveCount(0);
+
+  await row('Rápido Próxima').getByRole('button', { name: 'Ação rápida' }).click();
+  await row('Rápido Próxima').getByRole('button', { name: 'Próxima ação', exact: true }).click();
+  await row('Rápido Próxima').getByLabel('O que fazer').fill('Enviar proposta e2e');
+  await row('Rápido Próxima').getByLabel('Prazo').fill(`${tomorrow}T09:00`);
+  await row('Rápido Próxima').getByRole('button', { name: 'Salvar' }).click();
+  await expect(row('Rápido Próxima')).toHaveCount(0);
+  await page.screenshot({ path: 'test-results/hoje-acao-rapida.png', fullPage: true });
+});
+
+test('hoje: ação rápida da reunião marca realizada e remarca', async ({ page }) => {
+  await login(page, 'ale@npac.com.br');
+  const ids: string[] = [];
+  for (const name of ['Reunião Feita', 'Reunião Remarcar']) {
+    const res = await page.request.post('/api/leads', {
+      data: {
+        name,
+        instagram: `@reuniao.${Date.now()}.${ids.length}`,
+        incomeBand: 'R5_8K',
+        tier: 'P0',
+      },
+    });
+    ids.push(((await res.json()) as { id: string }).id);
+  }
+  await owner`insert into meetings (lead_id, closer_id, scheduled_at, origin, created_by)
+    select l.id, c.id, now() - interval '1 minute', 'DIRETO', s.id
+    from leads l, "user" c, "user" s
+    where l.id in ${owner(ids)} and c.email = 'sonia@npac.com.br' and s.email = 'ale@npac.com.br'`;
+  await page.goto('/hoje');
+  const section = page.locator('section', {
+    has: page.getByRole('heading', { name: /^Reuniões de hoje/ }),
+  });
+  const row = (name: string) => section.locator('article', { hasText: name });
+  await expect(row('Reunião Feita').getByRole('link', { name: 'Abrir ficha' })).toBeVisible();
+
+  await row('Reunião Feita').getByRole('button', { name: 'Ação rápida' }).click();
+  await row('Reunião Feita').getByRole('button', { name: 'Realizada', exact: true }).click();
+  await expect(row('Reunião Feita').getByText(/· Realizada/)).toBeVisible();
+  await expect(row('Reunião Feita').getByRole('button', { name: 'Ação rápida' })).toHaveCount(0);
+
+  await row('Reunião Remarcar').getByRole('button', { name: 'Ação rápida' }).click();
+  await row('Reunião Remarcar').getByRole('button', { name: 'Remarcar', exact: true }).click();
+  const tomorrow = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(
+    new Date(Date.now() + 86_400_000),
+  );
+  await row('Reunião Remarcar').getByLabel('Novo horário').fill(`${tomorrow}T10:00`);
+  await row('Reunião Remarcar').getByRole('button', { name: 'Salvar' }).click();
+  await expect(row('Reunião Remarcar')).toHaveCount(0);
+  await page.screenshot({ path: 'test-results/hoje-reuniao-acao.png', fullPage: true });
+});
+
+test('hoje: reunião futura mostra Realizada/No-show bloqueados e libera no horário', async ({
+  page,
+}) => {
+  const now = Date.now();
+  const end = new Date(
+    `${new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(now)}T23:59:00-03:00`,
+  ).getTime();
+  test.skip(now + 5 * 60_000 > end, 'perto da meia-noite de Brasília');
+  await page.clock.install({ time: now });
+  await login(page, 'ale@npac.com.br');
+  const res = await page.request.post('/api/leads', {
+    data: { name: 'Reunião Logo', instagram: `@logo.${now}`, incomeBand: 'R5_8K', tier: 'P0' },
+  });
+  const { id } = (await res.json()) as { id: string };
+  await owner`insert into meetings (lead_id, closer_id, scheduled_at, origin, created_by)
+    select ${id}, c.id, ${new Date(now + 90_000)}, 'DIRETO', s.id
+    from "user" c, "user" s
+    where c.email = 'sonia@npac.com.br' and s.email = 'ale@npac.com.br'`;
+  await page.goto('/hoje');
+  const row = page
+    .locator('section', { has: page.getByRole('heading', { name: /^Reuniões de hoje/ }) })
+    .locator('article', { hasText: 'Reunião Logo' });
+  await row.getByRole('button', { name: 'Ação rápida' }).click();
+  const done = row.getByRole('button', { name: 'Realizada', exact: true });
+  const noShow = row.getByRole('button', { name: 'No-show', exact: true });
+  await expect(done).toBeDisabled();
+  await expect(noShow).toBeDisabled();
+  await expect(row.getByText(/liberam às \d{2}:\d{2}/)).toBeVisible();
+  await page.screenshot({ path: 'test-results/hoje-reuniao-futura.png', fullPage: true });
+  // Relógio do navegador passa do horário com a tela aberta: os botões liberam sozinhos.
+  await page.clock.fastForward('03:00');
+  await expect(done).toBeEnabled();
+  await expect(noShow).toBeEnabled();
+});
+
+test('hoje: contato que vence com a página aberta vai para atrasados pelo navegador', async ({
+  page,
+}) => {
+  const now = Date.now();
+  const end = new Date(
+    `${new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(now)}T23:59:00-03:00`,
+  ).getTime();
+  test.skip(now + 5 * 60_000 > end, 'perto da meia-noite de Brasília');
+  await page.clock.install({ time: now });
+  await login(page, 'ale@npac.com.br');
+  const res = await page.request.post('/api/leads', {
+    data: { name: 'Vence já', instagram: `@vence.${now}`, incomeBand: 'R5_8K', tier: 'P1' },
+  });
+  const { id } = (await res.json()) as { id: string };
+  await owner`update leads set next_contact_at = ${new Date(now + 90_000)} where id = ${id}`;
+  await page.goto('/hoje');
+  const section = (title: RegExp) =>
+    page.locator('section', { has: page.getByRole('heading', { name: title }) });
+  await expect(section(/^Contatos de hoje/).getByText('Vence já')).toBeVisible();
+  // O relógio do servidor é o real (vence só daqui a ~90 s): se o lead mudar de lista agora,
+  // foi o navegador. Um recarregamento pelo SSE (ready/invalidate) depois do avanço do relógio
+  // passa pela mesma regra e não devolve o lead a "Contatos de hoje".
+  await page.clock.fastForward('03:00');
+  await expect(section(/^Atrasados/).getByText('Vence já')).toBeVisible();
+  await expect(section(/^Contatos de hoje/).getByText('Vence já')).toHaveCount(0);
+  // Recarrega como o SSE faria: o servidor (relógio real) ainda chama de "hoje", o navegador não.
+  const reloaded = page.waitForResponse((r) => r.url().endsWith('/api/today/search'));
+  await page.evaluate(() => window.dispatchEvent(new Event('crm:invalidate')));
+  await reloaded;
+  await expect(section(/^Atrasados/).getByText('Vence já')).toBeVisible();
+  await expect(section(/^Contatos de hoje/).getByText('Vence já')).toHaveCount(0);
+});

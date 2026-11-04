@@ -3,7 +3,13 @@ import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { afterAll, beforeAll, beforeEach, expect, it } from 'vitest';
 import { api, closeTestApp, createTestApp, owner, resetAuthState } from './helpers.js';
 let app: NestFastifyApplication, h: ReturnType<typeof api>;
-let ale: string, murilo: string, head: string, leadId: string, productId: string, closerId: string;
+let ale: string,
+  murilo: string,
+  head: string,
+  closer: string,
+  leadId: string,
+  productId: string,
+  closerId: string;
 beforeAll(async () => {
   app = await createTestApp();
   h = api(app);
@@ -28,6 +34,9 @@ beforeEach(async () => {
       ale,
     )
   ).body.id;
+  // Venda é do closer (pedido do cliente, 04/11): ele enxerga o lead pela reunião.
+  closer = await h.signIn('sonia@npac.com.br');
+  await owner`insert into meetings (lead_id,closer_id,scheduled_at,origin,created_by) select ${leadId},${closerId},now(),'DIRETO',id from "user" where email='ale@npac.com.br'`;
 });
 const sale = () => ({
   leadId,
@@ -44,9 +53,9 @@ it('catálogo contém os seis produtos', async () =>
   expect((await h.get('/api/finance/products', ale)).body).toHaveLength(6));
 it('venda parcial é atômica e repetição não duplica', async () => {
   const input = sale();
-  const res = await h.post('/api/finance/deals', input, ale);
+  const res = await h.post('/api/finance/deals', input, closer);
   expect(res.status).toBe(201);
-  const retry = await h.post('/api/finance/deals', input, ale);
+  const retry = await h.post('/api/finance/deals', input, closer);
   expect(retry.body.id).toBe(res.body.id);
   const other = await h.post(
     '/api/leads',
@@ -54,34 +63,56 @@ it('venda parcial é atômica e repetição não duplica', async () => {
     murilo,
   );
   expect(
-    (await h.post('/api/finance/deals', { ...input, leadId: other.body.id }, murilo)).status,
+    (await h.post('/api/finance/deals', { ...input, leadId: other.body.id }, head)).status,
   ).toBe(409);
-  expect((await h.post('/api/finance/deals', { ...input, totalCents: 260000 }, ale)).status).toBe(
-    409,
-  );
-  const detail = await h.get(`/api/finance/leads/${leadId}`, ale);
+  expect(
+    (await h.post('/api/finance/deals', { ...input, totalCents: 260000 }, closer)).status,
+  ).toBe(409);
+  const detail = await h.get(`/api/finance/leads/${leadId}`, closer);
   expect(detail.status).toBe(200);
   expect(detail.body[0].payments).toHaveLength(2);
   expect((await h.get(`/api/leads/${leadId}`, ale)).body.stageKey).toBe('VENDA');
-  expect((await h.get(`/api/finance/leads/${leadId}`, murilo)).status).toBe(404);
+  // Closer sem reunião no lead não o enxerga.
+  expect((await h.get(`/api/finance/leads/${other.body.id}`, closer)).status).toBe(404);
+});
+it('SDR não registra nem vê vendas e pagamentos (pedido do cliente, 04/11)', async () => {
+  expect((await h.post('/api/finance/deals', sale(), ale)).status).toBe(403);
+  const deal = await h.post('/api/finance/deals', sale(), head);
+  expect(deal.status).toBe(201);
+  expect((await h.get(`/api/finance/leads/${leadId}`, ale)).status).toBe(403);
+  const [pending] = await owner<{ id: string }[]>`
+    update payments set due_at = now() where deal_id = ${deal.body.id} and paid_at is null returning id`;
+  expect(
+    (
+      await h.post(
+        `/api/finance/payments/${pending!.id}/receive`,
+        { version: 1, requestKey: randomUUID() },
+        ale,
+      )
+    ).status,
+  ).toBe(403);
+  expect((await h.post('/api/today/search', {}, ale)).body.charges).toEqual([]);
+  expect((await h.post('/api/today/search', {}, head)).body.charges).toHaveLength(1);
 });
 it('saldo inválido não grava nenhuma venda', async () => {
-  expect((await h.post('/api/finance/deals', { ...sale(), entryCents: 1 }, ale)).status).toBe(400);
+  expect((await h.post('/api/finance/deals', { ...sale(), entryCents: 1 }, closer)).status).toBe(
+    400,
+  );
   const [r] = await owner<{ n: number }[]>`select count(*)::int as n from deals`;
   expect(r!.n).toBe(0);
 });
 it('baixa é idempotente e só HEAD estorna preservando parcelas', async () => {
-  const deal = await h.post('/api/finance/deals', sale(), ale);
+  const deal = await h.post('/api/finance/deals', sale(), closer);
   expect(deal.status).toBe(201);
-  const detail = await h.get(`/api/finance/leads/${leadId}`, ale);
+  const detail = await h.get(`/api/finance/leads/${leadId}`, closer);
   const pending = detail.body[0].payments.find((p: { paidAt: string | null }) => !p.paidAt);
   const receipt = { version: 1, requestKey: randomUUID() };
-  expect((await h.post(`/api/finance/payments/${pending.id}/receive`, receipt, ale)).status).toBe(
-    200,
-  );
-  expect((await h.post(`/api/finance/payments/${pending.id}/receive`, receipt, ale)).status).toBe(
-    200,
-  );
+  expect(
+    (await h.post(`/api/finance/payments/${pending.id}/receive`, receipt, closer)).status,
+  ).toBe(200);
+  expect(
+    (await h.post(`/api/finance/payments/${pending.id}/receive`, receipt, closer)).status,
+  ).toBe(200);
   expect(
     (await h.post(`/api/finance/deals/${deal.body.id}/reverse`, { version: 1 }, ale)).status,
   ).toBe(403);
@@ -96,8 +127,6 @@ it('baixa é idempotente e só HEAD estorna preservando parcelas', async () => {
 });
 
 it('closer registra venda da agenda, mas não escolhe outro closer', async () => {
-  const sonia = await h.signIn('sonia@npac.com.br');
-  await owner`insert into meetings (lead_id,closer_id,scheduled_at,origin,created_by) select ${leadId},${closerId},now(),'DIRETO',id from "user" where email='ale@npac.com.br'`;
   const [other] = await owner<
     { id: string; closer_id: string }[]
   >`select id,closer_id from products where code='RDV'`;
@@ -106,22 +135,22 @@ it('closer registra venda da agenda, mas não escolhe outro closer', async () =>
       await h.post(
         '/api/finance/deals',
         { ...sale(), productId: other!.id, closerId: other!.closer_id },
-        sonia,
+        closer,
       )
     ).status,
   ).toBe(403);
-  expect((await h.post('/api/finance/deals', sale(), sonia)).status).toBe(201);
+  expect((await h.post('/api/finance/deals', sale(), closer)).status).toBe(201);
 });
 
 it('recebimento concorrente com estorno não perde nem duplica parcelas', async () => {
-  const res = await h.post('/api/finance/deals', sale(), ale);
-  const d = (await h.get(`/api/finance/leads/${leadId}`, ale)).body[0];
+  const res = await h.post('/api/finance/deals', sale(), closer);
+  const d = (await h.get(`/api/finance/leads/${leadId}`, closer)).body[0];
   const pending = d.payments.find((p: { paidAt: string | null }) => !p.paidAt);
   const [received, reversed] = await Promise.all([
     h.post(
       `/api/finance/payments/${pending.id}/receive`,
       { version: 1, requestKey: randomUUID() },
-      ale,
+      closer,
     ),
     h.post(`/api/finance/deals/${res.body.id}/reverse`, { version: 1 }, head),
   ]);
@@ -131,22 +160,25 @@ it('recebimento concorrente com estorno não perde nem duplica parcelas', async 
 });
 
 it('cobrança vencida aparece só no escopo e sai após recebimento', async () => {
-  const d = await h.post('/api/finance/deals', sale(), ale);
+  const d = await h.post('/api/finance/deals', sale(), closer);
   await owner`update payments set due_at=now() where deal_id=${d.body.id} and paid_at is null`;
-  const charges = (await h.post('/api/today/search', {}, ale)).body.charges;
+  const charges = (await h.post('/api/today/search', {}, closer)).body.charges;
   expect(charges).toHaveLength(1);
   expect(charges[0].amountCents).toBe(150000);
-  expect((await h.post('/api/today/search', {}, murilo)).body.charges).toHaveLength(0);
+  expect((await h.post('/api/today/search', {}, head)).body.charges).toHaveLength(1);
+  await owner`delete from meetings where lead_id = ${leadId}`;
+  expect((await h.post('/api/today/search', {}, closer)).body.charges).toHaveLength(0);
+  await owner`insert into meetings (lead_id,closer_id,scheduled_at,origin,created_by) select ${leadId},${closerId},now(),'DIRETO',id from "user" where email='ale@npac.com.br'`;
   await h.post(
     `/api/finance/payments/${charges[0].id}/receive`,
     { version: 1, requestKey: randomUUID() },
-    ale,
+    closer,
   );
-  expect((await h.post('/api/today/search', {}, ale)).body.charges).toHaveLength(0);
+  expect((await h.post('/api/today/search', {}, closer)).body.charges).toHaveLength(0);
 });
 
 it('lead com venda ativa exige estorno antes de exclusão', async () => {
-  expect((await h.post('/api/finance/deals', sale(), ale)).status).toBe(201);
+  expect((await h.post('/api/finance/deals', sale(), closer)).status).toBe(201);
   expect((await h.del('/api/leads/' + leadId, { version: 2 }, head)).status).toBe(409);
   expect((await h.get('/api/leads/' + leadId, head)).status).toBe(200);
 });
@@ -155,7 +187,7 @@ it('etapa Venda só entra registrando a venda e só sai pelo estorno', async () 
   const toSale = await h.patch('/api/leads/' + leadId, { version: 1, stageKey: 'VENDA' }, ale);
   expect(toSale.status).toBe(409);
   expect(toSale.body.code).toBe('SALE_REQUIRED');
-  expect((await h.post('/api/finance/deals', sale(), ale)).status).toBe(201);
+  expect((await h.post('/api/finance/deals', sale(), closer)).status).toBe(201);
   const out = await h.patch('/api/leads/' + leadId, { version: 2, stageKey: 'PERDIDO' }, head);
   expect(out.status).toBe(409);
   expect(out.body.code).toBe('ACTIVE_SALE');
@@ -166,20 +198,20 @@ it('etapa Venda só entra registrando a venda e só sai pelo estorno', async () 
 });
 
 it('venda acompanha o lead quando o SDR muda', async () => {
-  expect((await h.post('/api/finance/deals', sale(), ale)).status).toBe(201);
+  expect((await h.post('/api/finance/deals', sale(), closer)).status).toBe(201);
   const [m] = await owner<
     { id: string }[]
   >`select id from "user" where email = 'murilo@npac.com.br'`;
   expect((await h.patch('/api/leads/' + leadId, { version: 2, sdrId: m!.id }, head)).status).toBe(
     200,
   );
-  // O novo SDR enxerga a venda e continua preso à etapa Venda; o antigo perde o lead inteiro.
-  expect((await h.get('/api/finance/leads/' + leadId, murilo)).body).toHaveLength(1);
+  // O novo SDR continua preso à etapa Venda (sem ver valores); o antigo perde o lead inteiro.
+  expect((await h.get('/api/finance/leads/' + leadId, murilo)).status).toBe(403);
   const out = await h.patch('/api/leads/' + leadId, { version: 3, stageKey: 'PERDIDO' }, murilo);
   expect(out.status).toBe(409);
   expect(out.body.code).toBe('ACTIVE_SALE');
-  expect((await h.post('/api/finance/deals', { ...sale(), version: 3 }, murilo)).status).toBe(409);
-  expect((await h.get('/api/finance/leads/' + leadId, ale)).status).toBe(404);
+  expect((await h.post('/api/finance/deals', { ...sale(), version: 3 }, closer)).status).toBe(409);
+  expect((await h.get('/api/leads/' + leadId, ale)).status).toBe(404);
 });
 
 it.each(['CARD', 'PIX', 'BANK_SLIP'] as const)(
@@ -192,8 +224,8 @@ it.each(['CARD', 'PIX', 'BANK_SLIP'] as const)(
       installments:
         method === 'BANK_SLIP' ? [{ amountCents: 250000, dueAt: '2030-01-01T12:00:00-03:00' }] : [],
     };
-    expect((await h.post('/api/finance/deals', input, ale)).status).toBe(201);
-    const d = (await h.get('/api/finance/leads/' + leadId, ale)).body[0];
+    expect((await h.post('/api/finance/deals', input, closer)).status).toBe(201);
+    const d = (await h.get('/api/finance/leads/' + leadId, closer)).body[0];
     expect(d.payments).toHaveLength(1);
     expect(d.payments[0].amountCents).toBe(250000);
     expect(d.payments[0].paidAt === null).toBe(method === 'BANK_SLIP');

@@ -31,6 +31,8 @@ const EVENT_LABEL: Record<string, string> = {
   'lead.updated': 'Dados atualizados',
   'lead.moved': 'Etapa alterada',
   'lead.reassigned': 'Responsável alterado',
+  'lead.called': 'Lead chamado',
+  'lead.contact_rescheduled': 'Contato remarcado',
   'note.created': 'Nota adicionada',
   'note.updated': 'Nota atualizada',
   'task.created': 'Tarefa criada',
@@ -57,7 +59,8 @@ export function LeadDetail({
   activity: LeadActivityDTO;
   catalog: LeadCatalog;
   meetings: MeetingDTO[];
-  deals: DealDTO[];
+  /** `null` para quem não vê vendas e pagamentos (SDR). */
+  deals: DealDTO[] | null;
   products: ProductDTO[];
   me: { id: string; role: Role };
 }) {
@@ -241,7 +244,9 @@ export function LeadDetail({
                     ? 'Realizada'
                     : m.outcome === 'NO_SHOW'
                       ? 'No-show'
-                      : 'Agendada'}
+                      : m.outcome === 'RESCHEDULED'
+                        ? 'Remarcada'
+                        : 'Agendada'}
               </p>
               {!m.canceledAt && (
                 <>
@@ -272,6 +277,18 @@ export function LeadDetail({
                           }
                         >
                           No-show
+                        </button>
+                        <button
+                          className={quietButton}
+                          disabled={busy}
+                          onClick={() =>
+                            void mutate(`/api/meetings/${m.id}/outcome`, 'POST', {
+                              version: m.version,
+                              outcome: 'RESCHEDULED',
+                            })
+                          }
+                        >
+                          Remarcado
                         </button>
                       </>
                     )}
@@ -404,7 +421,7 @@ export function LeadDetail({
           </ol>
         </section>
       </div>
-      <FinancePanel lead={lead} deals={deals} products={products} me={me} />
+      {deals && <FinancePanel lead={lead} deals={deals} products={products} me={me} />}
       {me.role !== 'CLOSER' && (
         <details className="glass-card p-5">
           <summary className="cursor-pointer font-semibold">Editar dados do lead</summary>

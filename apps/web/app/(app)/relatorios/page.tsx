@@ -14,6 +14,12 @@ export default async function ReportsPage() {
     apiGet<ProductDTO[]>('/api/finance/products'),
   ]);
   return (
-    <Reports initial={initial} catalog={catalog} products={products} head={isLeader(me.role)} />
+    <Reports
+      initial={initial}
+      catalog={catalog}
+      products={products}
+      role={me.role}
+      head={isLeader(me.role)}
+    />
   );
 }
