@@ -40,7 +40,8 @@ beforeEach(async () => {
             method: 'PIX',
             requestKey: randomUUID(),
           },
-          cookie,
+          // Venda é registrada pelo closer ou pela liderança, não pelo SDR (04/11).
+          head,
         )
       ).status,
     ).toBe(201);

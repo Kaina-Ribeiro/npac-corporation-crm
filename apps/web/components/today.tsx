@@ -6,7 +6,7 @@ import { money } from '@npac/shared/money';
 import { brasiliaInput, clientApi } from '@/lib/client-api';
 import { button, control, Field, FormError, quietButton } from './crm-ui';
 import { useCrmRefresh } from './shell/live-updates';
-import { QuickAction } from './today-quick-action';
+import { MeetingAction, QuickAction } from './today-quick-action';
 
 const when = (at: string | null) =>
   at
@@ -44,6 +44,7 @@ export function Today({
   catalog,
   head,
   quick = false,
+  charges = true,
 }: {
   initial: TodayDTO;
   name: string;
@@ -51,6 +52,8 @@ export function Today({
   head: boolean;
   /** Ação rápida (Chamado/Remarcado/Próxima ação): quem edita lead, ou seja, não o Closer. */
   quick?: boolean;
+  /** Cobranças: só quem registra recebimento (closer e liderança), não o SDR. */
+  charges?: boolean;
 }) {
   const [data, setData] = useState(initial);
   const receiptKeys = useRef(new Map<string, string>());
@@ -183,99 +186,79 @@ export function Today({
         </Section>
         <Section title="Reuniões de hoje" count={data.meetings.length}>
           {data.meetings.map((m) => (
-            <article key={m.id} className="border-b border-line py-3">
-              <Link href={`/leads/${m.leadId}`} className="text-sm font-semibold">
-                {m.name}
-              </Link>
-              <p className="my-2 text-xs text-ink2">
-                {when(m.scheduledAt)} ·{' '}
-                {m.outcome === 'DONE'
-                  ? 'Realizada'
-                  : m.outcome === 'NO_SHOW'
-                    ? 'No-show'
-                    : m.outcome === 'RESCHEDULED'
-                      ? 'Remarcada'
-                      : 'Agendada'}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <Link href={`/leads/${m.leadId}`} className={quietButton}>
-                  Ficha / reagendar
+            <article
+              key={m.id}
+              className="flex flex-wrap items-center justify-between gap-3 border-b border-line py-3"
+            >
+              <div className="min-w-0">
+                <Link href={`/leads/${m.leadId}`} className="text-sm font-semibold">
+                  {m.name}
                 </Link>
-                {!m.outcome && new Date(m.scheduledAt).getTime() <= Date.now() && (
-                  <>
-                    <button
-                      className={quietButton}
-                      disabled={busy}
-                      onClick={() =>
-                        void action(`/api/meetings/${m.id}/outcome`, 'POST', {
-                          version: m.version,
-                          outcome: 'DONE',
-                        })
-                      }
-                    >
-                      Realizada
-                    </button>
-                    <button
-                      className={quietButton}
-                      disabled={busy}
-                      onClick={() =>
-                        void action(`/api/meetings/${m.id}/outcome`, 'POST', {
-                          version: m.version,
-                          outcome: 'NO_SHOW',
-                        })
-                      }
-                    >
-                      No-show
-                    </button>
-                    <button
-                      className={quietButton}
-                      disabled={busy}
-                      onClick={() =>
-                        void action(`/api/meetings/${m.id}/outcome`, 'POST', {
-                          version: m.version,
-                          outcome: 'RESCHEDULED',
-                        })
-                      }
-                    >
-                      Remarcado
-                    </button>
-                  </>
-                )}
+                <p className="text-xs text-ink2">
+                  {when(m.scheduledAt)} ·{' '}
+                  {m.outcome === 'DONE'
+                    ? 'Realizada'
+                    : m.outcome === 'NO_SHOW'
+                      ? 'No-show'
+                      : m.outcome === 'RESCHEDULED'
+                        ? 'Remarcada'
+                        : 'Agendada'}
+                </p>
               </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Link
+                  href={`/leads/${m.leadId}`}
+                  className={`${quietButton} min-h-11 content-center`}
+                >
+                  Abrir ficha
+                </Link>
+              </div>
+              {/* Com resultado a reunião está encerrada; correção só pela liderança, na ficha. */}
+              {!m.outcome && (
+                <MeetingAction
+                  version={m.version}
+                  started={new Date(m.scheduledAt).getTime() <= Date.now()}
+                  busy={busy}
+                  outcome={(body) => action(`/api/meetings/${m.id}/outcome`, 'POST', body)}
+                  reschedule={(body) => action(`/api/meetings/${m.id}`, 'PATCH', body)}
+                />
+              )}
             </article>
           ))}
         </Section>
-        <Section title="Cobranças até hoje" count={data.charges.length}>
-          {data.charges.map((p) => (
-            <div
-              key={p.id}
-              className="flex flex-wrap items-center justify-between gap-3 border-b border-line py-3"
-            >
-              <div>
-                <Link href={`/leads/${p.leadId}`} className="text-sm font-semibold">
-                  {p.name}
-                </Link>
-                <p className="text-sm text-gold-deep">
-                  {money(p.amountCents)} · {when(p.dueAt)}
-                </p>
-              </div>
-              <button
-                className={quietButton}
-                disabled={busy}
-                onClick={() => {
-                  if (!receiptKeys.current.has(p.id))
-                    receiptKeys.current.set(p.id, crypto.randomUUID());
-                  void action(`/api/finance/payments/${p.id}/receive`, 'POST', {
-                    version: p.version,
-                    requestKey: receiptKeys.current.get(p.id),
-                  });
-                }}
+        {charges && (
+          <Section title="Cobranças até hoje" count={data.charges.length}>
+            {data.charges.map((p) => (
+              <div
+                key={p.id}
+                className="flex flex-wrap items-center justify-between gap-3 border-b border-line py-3"
               >
-                Registrar recebimento
-              </button>
-            </div>
-          ))}
-        </Section>
+                <div>
+                  <Link href={`/leads/${p.leadId}`} className="text-sm font-semibold">
+                    {p.name}
+                  </Link>
+                  <p className="text-sm text-gold-deep">
+                    {money(p.amountCents)} · {when(p.dueAt)}
+                  </p>
+                </div>
+                <button
+                  className={quietButton}
+                  disabled={busy}
+                  onClick={() => {
+                    if (!receiptKeys.current.has(p.id))
+                      receiptKeys.current.set(p.id, crypto.randomUUID());
+                    void action(`/api/finance/payments/${p.id}/receive`, 'POST', {
+                      version: p.version,
+                      requestKey: receiptKeys.current.get(p.id),
+                    });
+                  }}
+                >
+                  Registrar recebimento
+                </button>
+              </div>
+            ))}
+          </Section>
+        )}
         <Section title="Tarefas" count={data.tasks.length}>
           <form
             className="flex flex-col gap-3 border-b border-line pb-4"

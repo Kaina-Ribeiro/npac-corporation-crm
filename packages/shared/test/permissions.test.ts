@@ -8,7 +8,6 @@ const SDR_ALLOWED = [
   'meeting:schedule',
   'meeting:reschedule',
   'meeting:outcome',
-  'sale:register',
   'note:write',
   'task:write',
   'report:view',

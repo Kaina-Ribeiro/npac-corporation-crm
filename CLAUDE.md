@@ -65,7 +65,8 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   Invisível e inexistente → **404**, nunca 403. `canProspect`/`canClose` são dados; nada depende de nomes.
 - **SDR não recebe R$ de venda** (pedido do cliente, 04/11/2026): `/reports/search`, `/reports/summary`
   e `/team` cortam no servidor (`dropSales`); o Dashboard do SDR mostra comparecimento. Closer igual a
-  antes; liderança vê venda + comparecimento, com filtro por SDR.
+  antes; liderança vê venda + comparecimento, com filtro por SDR. Vendas e pagamentos (ficha,
+  cobranças do Hoje, `sale:register`) são do closer e da liderança; o SDR só marca o resultado da reunião.
 - Login por **usuário** (`/sign-in/username`, `[a-z0-9_.]{3,30}`, minúsculo); login por e-mail e
   `/is-username-available` desligados. Senha mínima 3 (provisório, decisão de 29/10/2026: no dev
   todas são `123`; as regras voltam no fim).

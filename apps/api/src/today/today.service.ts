@@ -10,7 +10,7 @@ import {
   withUser,
   type Db,
 } from '@npac/db';
-import { spDayRange, type AuthUser, isLeader } from '@npac/shared';
+import { can, spDayRange, type AuthUser, isLeader } from '@npac/shared';
 import {
   and,
   asc,
@@ -119,30 +119,33 @@ export class TodayService {
           ),
         },
       });
-      const charges = await tx
-        .select({
-          id: payments.id,
-          dealId: deals.id,
-          leadId: leads.id,
-          name: leads.name,
-          amountCents: payments.amountCents,
-          dueAt: payments.dueAt,
-          version: payments.version,
-        })
-        .from(payments)
-        .innerJoin(deals, eq(deals.id, payments.dealId))
-        .innerJoin(leads, eq(leads.id, deals.leadId))
-        .where(
-          and(
-            isNull(payments.paidAt),
-            isNull(deals.reversedAt),
-            lt(payments.dueAt, end),
-            filters.sdrId ? eq(deals.sdrId, filters.sdrId) : undefined,
-            filters.closerId ? eq(deals.closerId, filters.closerId) : undefined,
-          ),
-        )
-        .orderBy(asc(payments.dueAt), asc(payments.id))
-        .limit(100);
+      // Cobranças são de quem registra recebimento; o SDR não recebe (pedido do cliente, 04/11).
+      const charges = !can(u, 'sale:register')
+        ? []
+        : await tx
+            .select({
+              id: payments.id,
+              dealId: deals.id,
+              leadId: leads.id,
+              name: leads.name,
+              amountCents: payments.amountCents,
+              dueAt: payments.dueAt,
+              version: payments.version,
+            })
+            .from(payments)
+            .innerJoin(deals, eq(deals.id, payments.dealId))
+            .innerJoin(leads, eq(leads.id, deals.leadId))
+            .where(
+              and(
+                isNull(payments.paidAt),
+                isNull(deals.reversedAt),
+                lt(payments.dueAt, end),
+                filters.sdrId ? eq(deals.sdrId, filters.sdrId) : undefined,
+                filters.closerId ? eq(deals.closerId, filters.closerId) : undefined,
+              ),
+            )
+            .orderBy(asc(payments.dueAt), asc(payments.id))
+            .limit(100);
       return { overdue, contacts, meetings: calls, tasks, charges };
     });
   }

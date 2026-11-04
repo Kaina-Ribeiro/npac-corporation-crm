@@ -59,7 +59,8 @@ export function LeadDetail({
   activity: LeadActivityDTO;
   catalog: LeadCatalog;
   meetings: MeetingDTO[];
-  deals: DealDTO[];
+  /** `null` para quem não vê vendas e pagamentos (SDR). */
+  deals: DealDTO[] | null;
   products: ProductDTO[];
   me: { id: string; role: Role };
 }) {
@@ -420,7 +421,7 @@ export function LeadDetail({
           </ol>
         </section>
       </div>
-      <FinancePanel lead={lead} deals={deals} products={products} me={me} />
+      {deals && <FinancePanel lead={lead} deals={deals} products={products} me={me} />}
       {me.role !== 'CLOSER' && (
         <details className="glass-card p-5">
           <summary className="cursor-pointer font-semibold">Editar dados do lead</summary>
