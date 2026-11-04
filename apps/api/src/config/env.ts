@@ -27,7 +27,9 @@ const envSchema = z
           .filter(Boolean),
       )
       .pipe(z.array(z.url())),
-    NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+    /** Diretório da mídia do Acompanhamento (fora do banco). Obrigatório em produção (Task 11). */
+  MEDIA_DIR: z.string().min(1).optional(),
+  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   })
   .refine((e) => !e.MENTORADO_ENCRYPTION_KEY.equals(e.FIELD_ENCRYPTION_KEY), {
     message: 'MENTORADO_ENCRYPTION_KEY precisa ser distinta de FIELD_ENCRYPTION_KEY',

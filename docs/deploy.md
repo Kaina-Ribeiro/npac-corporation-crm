@@ -59,14 +59,25 @@ Atualizações: `git pull && docker compose ... build && docker compose ... up -
 
 ## 5. Backups
 
-- `backup` grava `pg_dump -Fc` diário em `BACKUP_DIR` e mantém `BACKUP_KEEP_DAYS` dias.
+- `backup` grava diariamente em `BACKUP_DIR`, cifrados com [age](https://age-encryption.org)
+  para a chave pública `BACKUP_AGE_RECIPIENT`: o dump (`npac-<data>.dump.enc`, `pg_dump -Fc`) e o
+  tar da mídia do Acompanhamento (`npac-<data>.media.tar.enc`, de `MEDIA_DIR`). Mantém
+  `BACKUP_KEEP_DAYS` dias. Nada fica em claro no disco.
+- **Chave privada fora da VM** (cofre do dono). Sem ela o backup não restaura; perdida, os
+  backups se perdem. Gere uma vez com `age-keygen -o npac-backup.key`, guarde o arquivo no cofre
+  e ponha só a linha `public key: age1…` em `BACKUP_AGE_RECIPIENT`.
+- Conferir que não há texto em claro: `sh infra/backup/verify-backup.sh <arquivo>` (falha se o
+  arquivo não for age ou se tiver os marcadores do teste). No dev, `sh infra/backup/test-backup.sh`
+  cria um banco `npac_test_backup` com marcadores sintéticos, faz o backup, verifica e restaura.
 - Cópia externa: sincronize `BACKUP_DIR` para um bucket OCI Object Storage com
   retenção/versionamento (`rclone sync` em cron do host ou política de replicação).
-- **Teste de restauração** (semanal e antes de migrações):
-  `docker compose -f docker-compose.prod.yml --env-file .env.prod exec backup /scripts/restore-check.sh`
-  — restaura num banco temporário, confere contagens e apaga.
-- Os telefones nos dumps estão cifrados: o backup só é útil junto com
-  `FIELD_ENCRYPTION_KEY`/`BLIND_INDEX_KEY` guardadas no cofre (separadas do bucket).
+- **Teste de restauração** (semanal e antes de migrações), com a chave privada montada só
+  durante o teste:
+  `docker compose -f docker-compose.prod.yml --env-file .env.prod run --rm -v /caminho/npac-backup.key:/keys/id:ro -e BACKUP_AGE_IDENTITY=/keys/id backup /scripts/restore-check.sh`
+  — decifra, restaura num banco temporário, confere contagens e apaga.
+- Os telefones e os textos sensíveis do Acompanhamento estão cifrados também dentro do dump:
+  o backup só é útil junto com `FIELD_ENCRYPTION_KEY`/`BLIND_INDEX_KEY`/`MENTORADO_ENCRYPTION_KEY`
+  guardadas no cofre (separadas do bucket).
 
 ## 6. Checklist de go-live
 

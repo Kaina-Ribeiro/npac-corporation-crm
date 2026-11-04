@@ -43,6 +43,13 @@ describe('loadEnv', () => {
       loadEnv({ ...validEnv, MENTORADO_ENCRYPTION_KEY: Buffer.alloc(16).toString('base64') }),
     ).toThrow(/32 bytes/);
   });
+  it('MEDIA_DIR é opcional e, quando vem, não pode ser vazio', () => {
+    expect(loadEnv(validEnv).MEDIA_DIR).toBeUndefined();
+    expect(loadEnv({ ...validEnv, MEDIA_DIR: '/srv/npac/media' }).MEDIA_DIR).toBe(
+      '/srv/npac/media',
+    );
+    expect(() => loadEnv({ ...validEnv, MEDIA_DIR: '' })).toThrow();
+  });
   it('MENTORADO_ENCRYPTION_KEY precisa ser distinta de FIELD_ENCRYPTION_KEY', () =>
     expect(() => loadEnv({ ...validEnv, MENTORADO_ENCRYPTION_KEY: key })).toThrow(/distinta/));
 });

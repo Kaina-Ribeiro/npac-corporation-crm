@@ -44,7 +44,12 @@ services:
     image: ${REGISTRY:-npac}/api:${TAG:-latest}
     build: { context: ., target: api }
     restart: unless-stopped
-    environment: *app-env
+    environment:
+      <<: *app-env
+      MEDIA_DIR: /media
+    volumes:
+      # Mídia do Acompanhamento (fotos, vídeos, PDFs): fora do banco, no volume do host (D16).
+      - ${MEDIA_DIR:-./media}:/media
     depends_on:
       migrate: { condition: service_completed_successfully }
 
@@ -80,7 +85,8 @@ services:
     depends_on:
       migrate: { condition: service_completed_successfully }
 
-  # Backup diário (pg_dump custom) com retenção local; envio externo em BACKUP_REMOTE.
+  # Backup diário cifrado (age, chave pública na VM e privada fora): dump do banco e tar da
+  # mídia do Acompanhamento, com retenção local; envio externo em BACKUP_REMOTE.
   backup:
     image: postgres:16-alpine
     restart: unless-stopped
@@ -90,11 +96,14 @@ services:
       PGPASSWORD: ${OWNER_DB_PASSWORD:?}
       PGDATABASE: npac
       BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+      BACKUP_AGE_RECIPIENT: ${BACKUP_AGE_RECIPIENT:?}
     volumes:
       - ./infra/backup:/scripts:ro
       - ${BACKUP_DIR:-./backups}:/backups
+      - ${MEDIA_DIR:-./media}:/media:ro
     entrypoint: ['/bin/sh', '-c']
-    command: ['while true; do /scripts/backup.sh; sleep 86400; done']
+    command:
+      ['apk add --no-cache age >/dev/null && while true; do /scripts/backup.sh; sleep 86400; done']
     depends_on: { postgres: { condition: service_healthy } }
 
 volumes:
