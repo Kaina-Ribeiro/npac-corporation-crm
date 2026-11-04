@@ -22,7 +22,8 @@ export function Sidebar({
         <span className="mark h-8 w-8 rounded-[9px] text-[17px]">N</span>
         <b className="text-[15px] font-semibold">NPAC Corporation</b>
       </div>
-      <SearchButton className="flex h-[34px] items-center gap-2.5 rounded-lg border border-line px-2.5 text-sm font-medium text-ink2 transition-colors hover:bg-black/5 hover:text-ink [&_svg]:h-4 [&_svg]:w-4" />
+      {/* Mesmo preenchimento dos campos (.field): claro sobre o vidro, não um contorno cinza. */}
+      <SearchButton className="flex h-[34px] items-center gap-2.5 rounded-lg bg-white/60 px-2.5 text-sm font-medium text-ink2 shadow-[inset_0_0_0_0.5px_rgba(60,60,67,0.2),inset_0_1px_2px_rgba(0,0,0,0.05)] transition-colors hover:bg-white/85 hover:text-ink dark:bg-white/[0.06] dark:shadow-[inset_0_0_0_0.5px_rgba(235,235,245,0.14)] dark:hover:bg-white/10 [&_svg]:h-4 [&_svg]:w-4" />
       <nav aria-label="Navegação lateral" className="flex flex-col gap-px">
         <InboxLink />
         {(head ? [...SIDEBAR_ITEMS, ADMIN_ITEM] : SIDEBAR_ITEMS).map((item) => (
