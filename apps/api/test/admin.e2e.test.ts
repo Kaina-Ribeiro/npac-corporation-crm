@@ -1,5 +1,5 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { api, closeTestApp, createTestApp, owner, resetAuthState } from './helpers.js';
 
 let app: NestFastifyApplication;
@@ -302,5 +302,117 @@ describe('auditoria e LGPD', () => {
     const list = await h.get('/api/admin/lgpd', head);
     expect(list.body.find((r: { id: string }) => r.id === del.body.id).status).toBe('DONE');
     expect((await h.get('/api/admin/lgpd', ale)).status).toBe(403);
+  });
+});
+
+describe('colunas do pipeline (pedido do cliente de 04/11)', () => {
+  const SEED = [
+    'SONDAGEM',
+    'AGENDADO_DIRETO',
+    'EM_FOLLOW',
+    'AGENDADO_FOLLOW',
+    'AGENDOU_PAGAMENTO',
+    'NO_SHOW',
+    'VENDA',
+    'PERDIDO',
+  ];
+  afterEach(async () => {
+    await owner`truncate lead_timeline, notifications, leads cascade`;
+    await owner`delete from pipeline_stages where not system`;
+    for (const [i, key] of SEED.entries())
+      await owner`update pipeline_stages set position = ${i + 1} where key = ${key}`;
+  });
+  const catalog = async () =>
+    (await h.get('/api/leads/catalog', head)).body.stages as {
+      id: string;
+      key: string;
+      label: string;
+      system: boolean;
+    }[];
+
+  it('liderança cria coluna no fim, renomeia e usa para lead', async () => {
+    const res = await h.post('/api/admin/stages', { label: 'Reativação' }, head);
+    expect(res.status).toBe(201);
+    expect(res.body.key).toMatch(/^C_[0-9A-F]{8}$/);
+    const stages = await catalog();
+    expect(stages.at(-1)).toMatchObject({ key: res.body.key, label: 'Reativação', system: false });
+    expect(stages[0]!.system).toBe(true);
+    expect(
+      (await h.patch(`/api/admin/stages/${res.body.id}`, { label: 'Reativar' }, head)).status,
+    ).toBe(200);
+    const lead = await h.post(
+      '/api/leads',
+      {
+        name: 'Lead coluna nova',
+        instagram: '@coluna.nova',
+        incomeBand: 'R5_8K',
+        tier: 'P1',
+        stageKey: res.body.key,
+      },
+      ale,
+    );
+    expect(lead.status).toBe(201);
+    const [row] = await owner<{ key: string }[]>`
+      select s.key from leads l join pipeline_stages s on s.id = l.stage_id where l.id = ${lead.body.id}`;
+    expect(row!.key).toBe(res.body.key);
+  });
+
+  it('reordena com a lista completa; incompleta é recusada', async () => {
+    const stages = await catalog();
+    const ids = stages.map((s) => s.id);
+    const reversed = [...ids].reverse();
+    expect((await h.post('/api/admin/stages/order', { ids: reversed }, head)).status).toBe(200);
+    expect((await catalog()).map((s) => s.id)).toEqual(reversed);
+    const partial = await h.post('/api/admin/stages/order', { ids: ids.slice(1) }, head);
+    expect(partial.status).toBe(400);
+    expect(partial.body.message).toBe('Ordem incompleta');
+  });
+
+  it('exclusão: recusa coluna com lead e de sistema; vazia sai e não recebe mais leads', async () => {
+    const col = (await h.post('/api/admin/stages', { label: 'Temporária' }, head)).body;
+    const lead = await h.post(
+      '/api/leads',
+      {
+        name: 'Na temporária',
+        instagram: '@temp.col',
+        incomeBand: 'R5_8K',
+        tier: 'P1',
+        stageKey: col.key,
+      },
+      ale,
+    );
+    const busy = await h.del(`/api/admin/stages/${col.id}`, {}, head);
+    expect(busy.status).toBe(409);
+    expect(busy.body.message).toBe('Mova os leads desta coluna antes de excluir');
+    const sondagem = (await catalog()).find((s) => s.key === 'SONDAGEM')!;
+    const system = await h.del(`/api/admin/stages/${sondagem.id}`, {}, head);
+    expect(system.status).toBe(409);
+    expect(system.body.message).toBe('Esta coluna é usada pelo sistema e não pode ser excluída');
+    // Lead apagado não prende a coluna: vai para a primeira etapa.
+    await owner`update leads set deleted_at = now() where id = ${lead.body.id}`;
+    expect((await h.del(`/api/admin/stages/${col.id}`, {}, head)).status).toBe(204);
+    const [moved] = await owner<{ key: string }[]>`
+      select s.key from leads l join pipeline_stages s on s.id = l.stage_id where l.id = ${lead.body.id}`;
+    expect(moved!.key).toBe('SONDAGEM');
+    const late = await h.post(
+      '/api/leads',
+      {
+        name: 'Atrasado',
+        instagram: '@late.col',
+        incomeBand: 'R5_8K',
+        tier: 'P1',
+        stageKey: col.key,
+      },
+      ale,
+    );
+    expect(late.status).toBe(400);
+    expect(late.body.message).toBe('Etapa inexistente');
+  });
+
+  it('SDR não mexe nas colunas', async () => {
+    const id = (await catalog())[0]!.id;
+    expect((await h.post('/api/admin/stages', { label: 'X' }, ale)).status).toBe(403);
+    expect((await h.post('/api/admin/stages/order', { ids: [id] }, ale)).status).toBe(403);
+    expect((await h.del(`/api/admin/stages/${id}`, {}, ale)).status).toBe(403);
   });
 });

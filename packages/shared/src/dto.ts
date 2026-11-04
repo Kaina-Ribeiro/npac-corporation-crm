@@ -21,7 +21,8 @@ export type LeadDTO = {
 export type Page<T> = { items: T[]; total: number; page: number; pageSize: number };
 
 export type LeadCatalog = {
-  stages: { id: string; key: StageKey; label: string; position: number }[];
+  /** `system`: coluna com regra de negócio (renomeia e reordena, não exclui). */
+  stages: { id: string; key: StageKey; label: string; position: number; system: boolean }[];
   team: {
     id: string;
     name: string;
