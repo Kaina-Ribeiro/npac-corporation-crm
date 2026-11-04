@@ -13,7 +13,9 @@ indicar. Mantenha denso; ao mudar arquitetura, regra ou comando, atualize aqui.
 - Sem subagentes sem pedido. Plano novo grande: apresentar antes de implementar.
 - Régua: CRMs robustos (Linear, Attio).
 - Bug: teste que falha (RED) → correção → teste focado → suíte ao fechar.
-- Nunca imprima `.env`, senhas, chaves ou dados reais em ferramentas/logs/mensagens.
+- Segredos (senhas, chaves, `.env`): pode gerar e definir pelas ferramentas (Cubeship, shell) quando o
+  pedido envolver infra; não os repita em mensagens sem necessidade. Dados reais de clientes nunca
+  em ferramentas, logs ou mensagens.
 
 ## Mapa
 
