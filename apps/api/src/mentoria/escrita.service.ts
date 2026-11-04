@@ -181,6 +181,26 @@ export class EscritaService {
             set: { antes, depois, updatedBy: u.id, updatedAt: new Date() },
           });
       }
+      for (const [cid, c] of Object.entries(input.conquistas ?? {})) {
+        const d = c.data === undefined ? undefined : parseData(c.data ?? '');
+        const [ok] = await tx
+          .update(mentoriaConquistas)
+          .set({
+            ...(d && { dataTexto: d.texto || null, data: d.data }),
+            ...(c.descricao !== undefined && {
+              descricao: this.crypto.cifrarOpcional(
+                c.descricao || null,
+                aad('mentoria_conquistas', 'descricao', cid),
+              ),
+            }),
+            updatedBy: u.id,
+            updatedAt: new Date(),
+          })
+          .where(and(eq(mentoriaConquistas.id, cid), eq(mentoriaConquistas.fichaId, id)))
+          .returning({ id: mentoriaConquistas.id });
+        // Conquista de outra ficha (ou apagada): 404, e nada da edição fica gravado.
+        if (!ok) throw new NotFoundException();
+      }
       return row!;
     }).catch((e) => erroDoBanco(e, NOME_FICHA));
   }
@@ -235,10 +255,19 @@ export class EscritaService {
       pick(input.tempoMentoria, dec('tempo_mentoria_texto', f.tempoMentoriaTexto)),
       caixas,
       novasCaixas,
-      conquistas.map((c) => [
-        c.dataTexto,
-        this.crypto.decifrarOpcional(c.descricao, aad('mentoria_conquistas', 'descricao', c.id)),
-      ]),
+      conquistas.map((c) => {
+        const nova = input.conquistas?.[c.id];
+        return [
+          pick(nova?.data, c.dataTexto),
+          pick(
+            nova?.descricao,
+            this.crypto.decifrarOpcional(
+              c.descricao,
+              aad('mentoria_conquistas', 'descricao', c.id),
+            ),
+          ),
+        ];
+      }),
     ]);
     if (total > LIMITE_REGISTRO_BYTES)
       throw new BadRequestException('Registro acima do limite de 256 KB');

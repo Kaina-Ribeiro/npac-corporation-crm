@@ -2,7 +2,13 @@
 import { useState } from 'react';
 import { baixarBackup } from '@/lib/acompanhamento-download';
 import { FormError, quietButton } from '@/components/crm-ui';
-import { ImportarGaveta, NOME_MODULO, type ModuloImport } from './importar-gaveta';
+import {
+  DO_MODULO,
+  EM_MODULO,
+  ImportarGaveta,
+  NOME_MODULO,
+  type ModuloImport,
+} from './importar-gaveta';
 
 const ENTRADA: Record<ModuloImport, string> = {
   dashboard: 'Colar planilha · importar .json',
@@ -40,7 +46,7 @@ export function BackupView({ extra }: { extra?: React.ReactNode }) {
                   <button
                     type="button"
                     className={`${quietButton} min-h-10 active:scale-[.98]`}
-                    aria-label={`Importar no ${NOME_MODULO[m]}`}
+                    aria-label={`Importar ${EM_MODULO[m]}`}
                     onClick={() => setGaveta(m)}
                   >
                     Importar
@@ -48,7 +54,7 @@ export function BackupView({ extra }: { extra?: React.ReactNode }) {
                   <button
                     type="button"
                     className={`${quietButton} min-h-10 active:scale-[.98]`}
-                    aria-label={`Exportar .json do ${NOME_MODULO[m]}`}
+                    aria-label={`Exportar .json ${DO_MODULO[m]}`}
                     onClick={() => {
                       setErro('');
                       void baixarBackup(m).catch((e: Error) => setErro(e.message));

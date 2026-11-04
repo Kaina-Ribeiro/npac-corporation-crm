@@ -25,3 +25,16 @@ export const secaoDoCampo = (c: FichaCampoChave): 'PILAR' | 'EVOLUCAO' =>
 
 /** Limite do PDF: 256 KB por registro, somando os textos do registro e dos filhos. */
 export const LIMITE_REGISTRO_BYTES = 256 * 1024;
+
+/** Rótulos dos pilares e da evolução, como na ficha. */
+export const FICHA_CAMPO_ROTULO: Record<FichaCampoChave, string> = {
+  FE: 'Fé',
+  SAUDE: 'Saúde',
+  DINHEIRO: 'Dinheiro',
+  RELACIONAMENTOS: 'Relacionamentos',
+  RESERVA_FINANCEIRA: 'Reserva financeira',
+  EVOLUCAO_RENDA: 'Evolução de renda',
+  EVOLUCAO_SAUDE: 'Evolução na saúde',
+  INVESTIMENTOS_MENTORIA: 'Investimentos feitos na mentoria',
+  AREA_ATUACAO: 'Área de atuação',
+};

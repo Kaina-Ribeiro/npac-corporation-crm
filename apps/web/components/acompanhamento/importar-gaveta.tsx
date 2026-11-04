@@ -11,6 +11,17 @@ import { clientApi } from '@/lib/client-api';
 import { button, control, FormError, quietButton } from '@/components/crm-ui';
 
 export type ModuloImport = 'dashboard' | 'linha-do-tempo' | 'rdv';
+/** "Importar no Dashboard", "Importar na Linha do tempo"… */
+export const EM_MODULO: Record<ModuloImport, string> = {
+  dashboard: 'no Dashboard',
+  'linha-do-tempo': 'na Linha do tempo',
+  rdv: 'na Linha do tempo RDV',
+};
+export const DO_MODULO: Record<ModuloImport, string> = {
+  dashboard: 'do Dashboard',
+  'linha-do-tempo': 'da Linha do tempo',
+  rdv: 'da Linha do tempo RDV',
+};
 export const NOME_MODULO: Record<ModuloImport, string> = {
   dashboard: 'Dashboard',
   'linha-do-tempo': 'Linha do tempo',
@@ -46,7 +57,7 @@ export function ImportarGaveta({
 }) {
   const router = useRouter();
   const ref = useRef<HTMLDialogElement>(null);
-  const titulo = `Importar no ${NOME_MODULO[modulo]}`;
+  const titulo = `Importar ${EM_MODULO[modulo]}`;
   const tituloId = useId();
   const [modo, setModo] = useState<'planilha' | 'json'>(
     modulo === 'dashboard' ? (modoInicial ?? 'planilha') : 'json',

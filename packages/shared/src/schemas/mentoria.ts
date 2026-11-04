@@ -70,12 +70,28 @@ export const atualizarFichaSchema = z
     notasMomentoAtual: texto().nullable().optional(),
     tempoMentoria: texto(2000).nullable().optional(),
     campos: z.partialRecord(z.enum(FICHA_CAMPO_CHAVES), campoFicha).optional(),
+    /** Conquistas desta ficha (data e descrição), com a version da ficha (D5). */
+    conquistas: z
+      .record(
+        z.uuid(),
+        z
+          .object({
+            data: texto(40).nullable().optional(),
+            descricao: texto().nullable().optional(),
+          })
+          .strict(),
+      )
+      .optional(),
   })
   .strict()
   .refine(cabeNoRegistro, MSG_LIMITE);
+
+export const criarFichaSchema = z.object({ nome, dataInicio: texto(40) }).strict();
+export const versionSchema = z.object({ version }).strict();
 
 export const excluirRegistroSchema = z.object({ version }).strict();
 
 export type CriarMentorado = z.output<typeof criarMentoradoSchema>;
 export type AtualizarMentorado = z.output<typeof atualizarMentoradoSchema>;
 export type AtualizarFicha = z.output<typeof atualizarFichaSchema>;
+export type CriarFicha = z.output<typeof criarFichaSchema>;

@@ -23,3 +23,46 @@ export type ResumoDashboard = PaginaMentorados & {
   contagemPorMentoria: { nome: string; n: number }[];
   nomesPorStatus: Record<MentoradoStatus, { id: string; nome: string }[]>;
 };
+
+export type MidiaDTO = {
+  id: string;
+  donoTipo: string;
+  donoId: string;
+  tipo: 'FOTO' | 'VIDEO' | 'PDF' | 'LINK_VIDEO';
+  urlVideo: string | null;
+  mime: string | null;
+  tamanhoBytes: number | null;
+};
+
+/** Linha da lista de fichas (Módulo 2). */
+export type FichaItem = {
+  id: string;
+  nome: string;
+  dataInicioTexto: string | null;
+  tempoMentoria: string | null;
+  conquistas: number;
+};
+export type PaginaFichas = { itens: FichaItem[]; cursor: string | null; total?: number };
+
+export type CampoFicha = {
+  chave: string;
+  rotulo: string;
+  antes: string | null;
+  depois: string | null;
+};
+
+/** Ficha aberta: textos decifrados, 4 pilares e 5 evoluções sempre nas linhas fixas. */
+export type FichaDetalhe = {
+  id: string;
+  nome: string;
+  dataInicioTexto: string | null;
+  notasMomentoInicial: string | null;
+  notasMomentoAtual: string | null;
+  tempoMentoria: string | null;
+  version: number;
+  pessoaRef: string | null;
+  pilares: CampoFicha[];
+  evolucao: CampoFicha[];
+  conquistas: { id: string; data: string | null; descricao: string | null }[];
+  midias: MidiaDTO[];
+};

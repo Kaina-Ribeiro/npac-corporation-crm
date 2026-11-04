@@ -5,6 +5,7 @@ import { DB } from '../common/db/db.module.js';
 import { ENV, type Env } from '../config/env.js';
 import { EscritaService } from './escrita.service.js';
 import { FichasController } from './fichas.controller.js';
+import { FichasService } from './fichas.service.js';
 import { ImportController } from './import.controller.js';
 import { ImportService } from './import.service.js';
 import { MEDIA_STORE, VolumeMediaStore, type MediaStore } from './media-store.js';
@@ -29,6 +30,7 @@ import { PessoasController, RegistrosController } from './registros.controller.j
   providers: [
     MentoriaService,
     EscritaService,
+    FichasService,
     ImportService,
     MentoriaGuard,
     {
