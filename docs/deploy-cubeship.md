@@ -94,14 +94,14 @@ Mesmo projeto `npac`, ambiente `itodev` (criado em 04/11/2026). É o **test stag
 | Recurso     | Valor                                                                 |
 | ----------- | --------------------------------------------------------------------- |
 | Datastore   | `npac-itodev-db` (Postgres 16, host `cubeship-db-npac-itodev-db`), separado da prod: as roles `npac_owner`/`npac_app` valem para o servidor inteiro, então dividir o Postgres daria à test as credenciais de prod |
-| Apps        | `api` e `web` (sem `retention`: o worker LGPD não entra no teste), fonte Dockerfile, **ref `release/v0.1`** → cada push na release faz deploy sozinho |
+| Apps        | `api` e `web` (sem `retention`: o worker LGPD não entra no teste), fonte Dockerfile, **ref = a `release/vX.Y` aberta** (hoje `release/v0.2`) → cada push na release faz deploy sozinho |
 | `web`       | build arg `API_INTERNAL_URL=http://cubeship-npac-itodev-api:4000`; domínio `crm-itodev.5-189-167-204.sslip.io` |
 | Variáveis   | do ambiente: `NODE_ENV`, `TRUST_PROXY`, `LOG_LEVEL`, `WEB_ORIGIN=https://crm-itodev.…`; do `api`: as mesmas cinco da seção 2, com valores próprios (nunca os de prod) |
 | Seed        | `SEED_INITIAL_PASSWORD=… node node_modules/@npac/db/dist/seed-cli.js` no shell do `api`: diretor (Diretoria), ana/ronaldo (Head), ale/murilo/igor (SDR), sonia (Closer) — todos os cargos para teste |
 
 Fluxo: PR na `release/vX.Y` → rc → ITODEV (automático) → testar com cada cargo → PR da
-release em `main` → tag final → prod (automático no push em `main`). Quando a próxima
-`release/vX.Y` abrir, troque a ref dos apps de ITODEV (`update_app`/painel).
+release em `main` → tag final → prod (automático no push em `main`). Linha entregue não aceita
+mais rc: ao cortar a próxima `release/vX.Y`, troque a ref dos apps de ITODEV (`update_app`/painel).
 
 Bootstrap das roles: igual à seção 1 (app temporário `db-bootstrap` com `OWNER_PW`/`APP_PW`,
 datastore anexado, deploy, depois desanexar e apagar).
