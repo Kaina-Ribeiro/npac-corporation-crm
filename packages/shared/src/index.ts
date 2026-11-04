@@ -10,3 +10,4 @@ export * from './schemas/lead-update.js';
 export * from './schemas/account.js';
 export * from './mentoria/normalizar.js';
 export * from './mentoria/datas.js';
+export * from './mentoria/enums.js';

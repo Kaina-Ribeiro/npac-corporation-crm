@@ -5,8 +5,6 @@ import { sql } from 'drizzle-orm';
 import { check, date, integer, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { user } from './auth.js';
 
-export const MENTORADO_STATUS = ['ENGAJADO', 'EM_ATENCAO', 'EM_RISCO'] as const;
-
 export const mentoriaMentorados = pgTable(
   'mentoria_mentorados',
   {

@@ -52,6 +52,8 @@ export async function closeTestApp(app: NestFastifyApplication): Promise<void> {
 /** Zera o estado de auth entre testes: sessões, rate limit, auditoria, MFA e flags. */
 export async function resetAuthState(): Promise<void> {
   await owner`truncate session, rate_limit, audit_log, two_factor, verification`;
+  // Módulo Acompanhamento: base à parte, zerada a cada teste.
+  await owner`truncate mentoria_mentorados cascade`;
   await owner`update "user" set active = true, must_change_password = true, two_factor_enabled = false`;
 }
 

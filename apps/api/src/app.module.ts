@@ -14,6 +14,7 @@ import { EventsModule } from './events/events.module.js';
 import { FinanceModule } from './finance/finance.module.js';
 import { CollabModule } from './collab/collab.module.js';
 import { AdminModule } from './admin/admin.module.js';
+import { MentoriaModule } from './mentoria/mentoria.module.js';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { AdminModule } from './admin/admin.module.js';
     FinanceModule,
     CollabModule,
     AdminModule,
+    MentoriaModule,
   ],
   controllers: [HealthController, MeController],
 })
