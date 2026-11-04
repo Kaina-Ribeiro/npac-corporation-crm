@@ -1,5 +1,6 @@
 'use client';
 import { isLeader } from '@npac/shared/enums';
+import { REMINDER_MINUTES } from '@npac/shared/reminders';
 import { HandoffActions } from './handoff-actions';
 import type {
   DealDTO,
@@ -12,6 +13,7 @@ import type {
 } from '@npac/shared';
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
+import { useReminderClock } from '@/lib/alerts';
 import { brasiliaInput, clientApi } from '@/lib/client-api';
 import { button, control, Field, FormError, quietButton, StageOptions } from './crm-ui';
 import { LeadForm } from './lead-form';
@@ -41,10 +43,42 @@ const EVENT_LABEL: Record<string, string> = {
   'meeting.rescheduled': 'Reunião remarcada',
   'meeting.canceled': 'Reunião cancelada',
   'meeting.outcome': 'Resultado da reunião registrado',
+  'meeting.confirmed': 'Confirmação enviada ao lead',
   'sale.registered': 'Venda registrada',
   'sale.reversed': 'Venda estornada',
   'payment.received': 'Pagamento recebido',
 };
+
+/**
+ * Liderança vê, por reunião, as etapas de confirmação já vencidas: feitas ou não
+ * (NPAC-26: sem alerta extra, só o registro).
+ */
+function ConfirmationSteps({ meeting: m }: { meeting: MeetingDTO }) {
+  const now = useReminderClock([{ scheduledAt: m.scheduledAt }]);
+  const at = new Date(m.scheduledAt).getTime();
+  const steps =
+    now === null
+      ? []
+      : (['H1', 'M15'] as const).filter((s) => now >= at - REMINDER_MINUTES[s] * 60_000);
+  if (!steps.length) return null;
+  return (
+    <p className="flex flex-wrap gap-1.5 text-xs" aria-label="Confirmações ao lead">
+      {steps.map((s) => {
+        const ok = m.confirmations.includes(s);
+        return (
+          <span
+            key={s}
+            className={`rounded-full px-2 py-0.5 font-medium ${
+              ok ? 'bg-black/5 text-ink2 dark:bg-white/10' : 'bg-danger/10 text-danger'
+            }`}
+          >
+            {s === 'H1' ? '1 h' : '15 min'}: {ok ? 'confirmada' : 'não confirmada'}
+          </span>
+        );
+      })}
+    </p>
+  );
+}
 
 export function LeadDetail({
   lead,
@@ -248,6 +282,7 @@ export function LeadDetail({
                         ? 'Remarcada'
                         : 'Agendada'}
               </p>
+              {isLeader(me.role) && !m.canceledAt && <ConfirmationSteps meeting={m} />}
               {!m.canceledAt && (
                 <>
                   <div className="flex flex-wrap gap-2">

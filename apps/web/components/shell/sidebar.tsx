@@ -1,6 +1,6 @@
 import { ADMIN_ITEM, SIDEBAR_ITEMS } from './nav-items';
 import { CountBadge, NavLink } from './nav-link';
-import { InboxLink } from '../inbox';
+import { ChatBadge, InboxLink } from '../inbox';
 import { Suspense } from 'react';
 import { SearchButton } from './command-palette';
 import { SavedViewsNav } from './saved-views-nav';
@@ -43,6 +43,7 @@ export function Sidebar({
           >
             {item.icon}
             <span className="side-label">{item.label}</span>
+            {item.href === '/chat' && <ChatBadge />}
             {item.href === ADMIN_ITEM.href && adminBadge > 0 && (
               <CountBadge n={adminBadge} label={`${adminBadge} pedidos de acesso`} />
             )}

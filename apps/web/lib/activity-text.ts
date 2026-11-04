@@ -16,6 +16,7 @@ const VERB: Record<string, string> = {
   'meeting.rescheduled': 'remarcou a reunião de',
   'meeting.canceled': 'cancelou a reunião de',
   'meeting.outcome': 'registrou o resultado da reunião de',
+  'meeting.confirmed': 'mandou a confirmação da reunião de',
   'sale.registered': 'registrou a venda de',
   'sale.reversed': 'estornou a venda de',
   'payment.received': 'recebeu um pagamento de',

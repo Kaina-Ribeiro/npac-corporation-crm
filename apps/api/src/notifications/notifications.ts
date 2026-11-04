@@ -36,7 +36,22 @@ export class NotificationsService {
         where m.closer_id = ${u.id} and m.canceled_at is null and m.outcome is null
           and m.scheduled_at >= now() - interval '15 minutes' and m.scheduled_at < now() + interval '2 hours'
         order by m.scheduled_at limit 5`);
+      // Lembretes de confirmação: reuniões das próximas 2 h em que a pessoa é dona do lead.
+      const reminders = await tx.execute<Record<string, unknown> & { confirmed: string[] }>(sql`
+        select m.id, m.scheduled_at as at, m.lead_id as "leadId", l.name as "leadName",
+          coalesce((select array_agg(c.step order by c.step) from meeting_confirmations c
+            where c.meeting_id = m.id and c.scheduled_at = m.scheduled_at), '{}') as confirmed
+        from meetings m join leads l on l.id = m.lead_id and l.deleted_at is null
+        where l.sdr_id = ${u.id} and m.canceled_at is null and m.outcome is null
+          and m.scheduled_at > now() and m.scheduled_at < now() + interval '2 hours'
+        order by m.scheduled_at limit 20`);
+      const [chat] = await tx.execute<{ n: number }>(sql`
+        select count(*)::int as n from chat_messages m
+        where m.author_id <> ${u.id} and m.id > coalesce((select r.last_read_id from chat_reads r
+          where r.channel_id = m.channel_id and r.user_id = ${u.id}), 0)`);
       return {
+        chatUnread: chat!.n,
+        reminders: reminders.map((r) => ({ ...r, at: iso(r.at) })),
         unread: counts!.unread,
         overdue: counts!.overdue,
         items: items.map((i) => ({ ...i, at: iso(i.at) })),

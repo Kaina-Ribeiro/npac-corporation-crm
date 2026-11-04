@@ -50,6 +50,15 @@ export class MeetingsController {
       cancel: true,
     });
   }
+  @Post(':id/confirm')
+  @HttpCode(200)
+  confirm(@CurrentUser() u: SessionUser, @Param('id') id: string, @Body() body: unknown) {
+    return this.meetings.confirm(
+      u,
+      entityId(id),
+      validate(z.object({ step: z.enum(['H1', 'M15']) }).strict(), body).step,
+    );
+  }
   @Post(':id/outcome')
   @HttpCode(200)
   @Can('meeting:outcome')

@@ -9,6 +9,8 @@ export function SignOutButton({ className }: { className?: string }) {
         'h-9 rounded-full px-3.5 text-sm font-semibold text-ink2 transition-colors hover:bg-black/5 hover:text-ink'
       }
       onClick={async () => {
+        // Sair tira os avisos deste aparelho (outra pessoa pode usar o mesmo navegador).
+        await import('@/lib/push').then((m) => m.disablePush()).catch(() => {});
         await fetch('/api/auth/sign-out', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },

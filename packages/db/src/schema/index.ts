@@ -9,3 +9,4 @@ export * from './finance.js';
 export * from './collab.js';
 export * from './lgpd.js';
 export * from './access-requests.js';
+export * from './reminders.js';

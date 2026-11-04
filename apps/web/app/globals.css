@@ -846,9 +846,9 @@ html[data-dash-dragging] * {
   font-size: 9.5px;
   line-height: 15px;
   box-shadow: 0 0 0 1.5px var(--bg);
-  animation: badge-pop 220ms var(--ease-out);
+  animation: rail-badge-in 220ms var(--ease-out);
 }
-@keyframes badge-pop {
+@keyframes rail-badge-in {
   from {
     transform: scale(0.4);
     opacity: 0;
@@ -891,4 +891,14 @@ html[data-dash-dragging] * {
 }
 .dark .scroll-thin {
   scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+/* Lembrete de reunião que acabou de entrar na etapa (NPAC-26). */
+.reminder-pop {
+  animation: dash-pop 0.45s var(--ease-spring) both;
+}
+
+/* Selo que aparece ou muda de número (chat, avisos). */
+.badge-pop {
+  animation: dash-pop 0.35s var(--ease-spring) both;
 }
