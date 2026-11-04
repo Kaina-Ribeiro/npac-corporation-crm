@@ -9,3 +9,4 @@ export * from './planilha.js';
 export * from './diagnostico.js';
 export * from './eventos-colados.js';
 export * from './dto.js';
+export * from './field-queue.js';

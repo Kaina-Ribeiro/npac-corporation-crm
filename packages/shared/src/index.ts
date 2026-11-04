@@ -20,3 +20,4 @@ export * from './mentoria/diagnostico.js';
 export * from './mentoria/eventos-colados.js';
 export * from './mentoria/json-backup.js';
 export * from './mentoria/dto.js';
+export * from './mentoria/field-queue.js';

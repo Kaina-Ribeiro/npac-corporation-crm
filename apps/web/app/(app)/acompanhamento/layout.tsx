@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { AbasModulo } from '@/components/acompanhamento/abas-modulo';
+import { IndicadorSalvo } from '@/components/acompanhamento/indicador-salvo';
 import { getSession } from '@/lib/session';
 import { notFound, redirect } from 'next/navigation';
 import { precisaMfa } from '@/lib/acompanhamento';
@@ -14,9 +15,12 @@ export default async function AcompanhamentoLayout({ children }: { children: Rea
   return (
     <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-5">
       <header className="flex flex-col gap-3">
-        <p className="text-xs font-semibold tracking-[0.08em] text-ink3 uppercase">
-          Acompanhamento de mentorados
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs font-semibold tracking-[0.08em] text-ink3 uppercase">
+            Acompanhamento de mentorados
+          </p>
+          {!precisaMfa(me) && <IndicadorSalvo />}
+        </div>
         <AbasModulo />
       </header>
       {precisaMfa(me) ? (
