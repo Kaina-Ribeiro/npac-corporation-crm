@@ -80,6 +80,19 @@ export type NotificationsDTO = {
   }[];
   /** Reuniões da pessoa como closer nas próximas 2 horas. */
   soon: { id: string; at: string; leadId: string; leadName: string }[];
+  /** Mensagens não lidas do chat (soma dos canais da pessoa). */
+  chatUnread: number;
+  /**
+   * Reuniões das próximas 2 h em que a pessoa é dona do lead. A etapa vigente (1 h, 15 min,
+   * 1 min) é calculada no navegador, pelo relógio, como os atrasados do Hoje.
+   */
+  reminders: {
+    id: string;
+    at: string;
+    leadId: string;
+    leadName: string;
+    confirmed: import('./reminders.js').ReminderStepConfirm[];
+  }[];
 };
 
 /** Filtro salvo da lista de leads (só critérios). */
