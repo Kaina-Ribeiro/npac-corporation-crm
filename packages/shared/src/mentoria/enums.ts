@@ -7,3 +7,21 @@ export const MENTORADO_STATUS_LABEL: Record<MentoradoStatus, string> = {
   EM_ATENCAO: 'Em atenção',
   EM_RISCO: 'Em risco',
 };
+
+/** Os 4 pilares (antes e hoje), na ordem do PDF. */
+export const PILAR_CHAVES = ['FE', 'SAUDE', 'DINHEIRO', 'RELACIONAMENTOS'] as const;
+/** Os 5 itens de evolução (antes → depois), na ordem do PDF. */
+export const EVOLUCAO_CHAVES = [
+  'RESERVA_FINANCEIRA',
+  'EVOLUCAO_RENDA',
+  'EVOLUCAO_SAUDE',
+  'INVESTIMENTOS_MENTORIA',
+  'AREA_ATUACAO',
+] as const;
+export const FICHA_CAMPO_CHAVES = [...PILAR_CHAVES, ...EVOLUCAO_CHAVES] as const;
+export type FichaCampoChave = (typeof FICHA_CAMPO_CHAVES)[number];
+export const secaoDoCampo = (c: FichaCampoChave): 'PILAR' | 'EVOLUCAO' =>
+  (PILAR_CHAVES as readonly string[]).includes(c) ? 'PILAR' : 'EVOLUCAO';
+
+/** Limite do PDF: 256 KB por registro, somando os textos do registro e dos filhos. */
+export const LIMITE_REGISTRO_BYTES = 256 * 1024;

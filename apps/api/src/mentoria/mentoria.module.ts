@@ -1,15 +1,19 @@
 import { Module } from '@nestjs/common';
 import { ENV, type Env } from '../config/env.js';
+import { EscritaService } from './escrita.service.js';
+import { FichasController } from './fichas.controller.js';
 import { MentoradosController } from './mentorados.controller.js';
 import { MentoriaCrypto } from './mentoria-crypto.js';
 import { MentoriaGuard } from './mentoria.guard.js';
 import { MentoriaService } from './mentoria.service.js';
+import { RegistrosController } from './registros.controller.js';
 
 /** Acompanhamento de mentorados: base à parte do comercial, só Diretoria e Acompanhamento. */
 @Module({
-  controllers: [MentoradosController],
+  controllers: [MentoradosController, FichasController, RegistrosController],
   providers: [
     MentoriaService,
+    EscritaService,
     MentoriaGuard,
     {
       provide: MentoriaCrypto,
