@@ -48,11 +48,23 @@ export function Inbox({ initial }: { initial: NotificationsDTO }) {
             · mudanças feitas por outras pessoas nos seus leads
           </p>
         </div>
-        {data.unread > 0 && (
-          <button className={quietButton} disabled={busy} onClick={() => void read()}>
-            Marcar tudo como lido
-          </button>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/conta/avisos"
+            className={`${quietButton} inline-flex min-h-11 items-center gap-2 transition-colors hover:bg-black/5 md:min-h-9 dark:hover:bg-white/10`}
+          >
+            Avisos neste aparelho
+          </Link>
+          {data.unread > 0 && (
+            <button
+              className={`${quietButton} min-h-11 md:min-h-9`}
+              disabled={busy}
+              onClick={() => void read()}
+            >
+              Marcar tudo como lido
+            </button>
+          )}
+        </div>
       </header>
 
       {now && (

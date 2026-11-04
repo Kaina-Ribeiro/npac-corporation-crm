@@ -41,10 +41,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <Link href="/conta/mfa" className="underline-offset-2 hover:text-ink hover:underline">
           Autenticador
         </Link>
-        ·
-        <Link href="/conta/avisos" className="underline-offset-2 hover:text-ink hover:underline">
-          Avisos
-        </Link>
       </small>
     </span>
   );

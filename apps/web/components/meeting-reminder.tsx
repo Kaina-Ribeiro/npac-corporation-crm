@@ -56,7 +56,7 @@ export function ReminderNotice({
         aria-hidden="true"
         className={`size-2 flex-none rounded-full ${urgent ? 'animate-pulse bg-danger' : 'bg-[var(--viz-1)]'}`}
       />
-      <span className="min-w-0 flex-1">
+      <span className="min-w-[min(100%,15rem)] flex-1">
         {urgent ? (
           <>
             Reunião com <b className="font-semibold">{leadName}</b> começa em 1 min
@@ -74,7 +74,7 @@ export function ReminderNotice({
           type="button"
           disabled={busy}
           onClick={() => void confirm()}
-          className="min-h-11 rounded-full bg-ink px-4 text-sm font-semibold text-[var(--bg)] transition-[transform,opacity] hover:opacity-90 active:scale-[.97] disabled:opacity-50 md:min-h-9"
+          className="min-h-11 w-full rounded-full bg-ink px-4 sm:w-auto text-sm font-semibold text-[var(--bg)] transition-[transform,opacity] hover:opacity-90 active:scale-[.97] disabled:opacity-50 md:min-h-9"
         >
           Confirmação enviada
         </button>
