@@ -7,7 +7,15 @@ import { button, control, FormError, quietButton, StageOptions } from './crm-ui'
 import { LeadFilters, readFilters } from './lead-filters';
 import { useCrmRefresh } from './shell/live-updates';
 
-export function Pipeline({ initial, catalog }: { initial: PipelineDTO; catalog: LeadCatalog }) {
+export function Pipeline({
+  initial,
+  catalog,
+  canCreate,
+}: {
+  initial: PipelineDTO;
+  catalog: LeadCatalog;
+  canCreate: boolean;
+}) {
   const [columns, setColumns] = useState(initial);
   const [active, setActive] = useState<StageKey>('SONDAGEM');
   const [visible, setVisible] = useState(catalog.stages.map((s) => s.key));
@@ -82,7 +90,17 @@ export function Pipeline({ initial, catalog }: { initial: PipelineDTO; catalog: 
   }
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-[34px] font-bold tracking-tight">Pipeline</h1>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <h1 className="text-[34px] font-bold tracking-tight">Pipeline</h1>
+        {canCreate && (
+          <Link
+            href="/leads/new"
+            className="rounded-xl bg-ink px-4 py-2 text-sm font-semibold text-[var(--bg)] transition-transform active:scale-[.97]"
+          >
+            Novo lead
+          </Link>
+        )}
+      </div>
       <form id="pipeline-search" onSubmit={submit} className="flex gap-2">
         <input
           name="q"

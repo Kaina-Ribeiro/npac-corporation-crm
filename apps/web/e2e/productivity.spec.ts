@@ -155,3 +155,22 @@ test('login sugere o último usuário ao clicar no campo, sem usar localStorage'
   await page.getByLabel('Usuário', { exact: true }).click();
   await expect(page.getByRole('option')).toHaveCount(0);
 });
+
+test('pipeline tem botão Novo lead que abre o formulário', async ({ page }) => {
+  await login(page, 'ale@npac.com.br');
+  await page.goto('/pipeline');
+  await page
+    .getByRole('link', { name: 'Novo lead', exact: true })
+    .filter({ visible: true })
+    .click();
+  await page.waitForURL(/\/leads\/new$/);
+});
+
+test('closer não vê Novo lead no pipeline', async ({ page }) => {
+  await login(page, 'sonia@npac.com.br');
+  await page.goto('/pipeline');
+  await expect(page.getByRole('heading', { name: 'Pipeline' }).first()).toBeVisible();
+  await expect(
+    page.getByRole('link', { name: 'Novo lead', exact: true }).filter({ visible: true }),
+  ).toHaveCount(0);
+});
