@@ -71,8 +71,9 @@ Chaves novas (nunca as de dev) e guardadas no cofre: sem `FIELD_ENCRYPTION_KEY` 
 ## 3. Apps
 
 1. Repositório público: fonte "Dockerfile from Git", repo
-   `https://github.com/Kaina-Ribeiro/npac-corporation-crm`, ref `main`, Dockerfile
-   conforme a tabela.
+   `https://github.com/Kaina-Ribeiro/npac-corporation-crm`, Dockerfile conforme a tabela.
+   A `ref` é sempre uma **tag**, nunca branch: quem a troca é o `deploy` do `release.yml`
+   (seção 4).
 2. Deploy na ordem `api` → `retention` → `web`; domínio só no `web` (porta 3000).
    Sem domínio próprio: `crm.<ip-com-hífens>.sslip.io` (o TLS sai no primeiro acesso).
 3. Seed inicial (uma vez, pelo shell do app `api`):
@@ -89,19 +90,30 @@ troca no próximo login, derruba as sessões e grava `cli.user.reset_password` n
 ## 4. Ambiente de testes ITODEV
 
 Mesmo projeto `npac`, ambiente `itodev` (criado em 04/11/2026). É o **test stage** do
-`RELEASING.md`: recebe cada rc da release aberta; prod (`production`) só recebe a tag final.
+`RELEASING.md`: recebe cada rc da release aberta.
 
 | Recurso     | Valor                                                                 |
 | ----------- | --------------------------------------------------------------------- |
 | Datastore   | `npac-itodev-db` (Postgres 16, host `cubeship-db-npac-itodev-db`), separado da prod: as roles `npac_owner`/`npac_app` valem para o servidor inteiro, então dividir o Postgres daria à test as credenciais de prod |
-| Apps        | `api` e `web` (sem `retention`: o worker LGPD não entra no teste), fonte Dockerfile, **ref = a `release/vX.Y` aberta** (hoje `release/v0.2`) → cada push na release faz deploy sozinho |
+| Apps        | `api` e `web` (sem `retention`: o worker LGPD não entra no teste), fonte Dockerfile, **ref = a última rc** (ex.: `v0.2.2-rc`), trocada pelo job `deploy-test` a cada rc nova |
 | `web`       | build arg `API_INTERNAL_URL=http://cubeship-npac-itodev-api:4000`; domínio `crm-itodev.5-189-167-204.sslip.io` |
 | Variáveis   | do ambiente: `NODE_ENV`, `TRUST_PROXY`, `LOG_LEVEL`, `WEB_ORIGIN=https://crm-itodev.…`; do `api`: as mesmas cinco da seção 2, com valores próprios (nunca os de prod) |
 | Seed        | `SEED_INITIAL_PASSWORD=… node node_modules/@npac/db/dist/seed-cli.js` no shell do `api`: diretor (Diretoria), ana/ronaldo (Head), ale/murilo/igor (SDR), sonia (Closer) — todos os cargos para teste |
 
-Fluxo: PR na `release/vX.Y` → rc → ITODEV (automático) → testar com cada cargo → PR da
-release em `main` → tag final → prod (automático no push em `main`). Linha entregue não aceita
-mais rc: ao cortar a próxima `release/vX.Y`, troque a ref dos apps de ITODEV (`update_app`/painel).
+Fluxo: PR na `release/vX.Y` → rc `vX.Y.Z-rc` → ITODEV com essa tag (automático) → testar com
+cada cargo → Actions → Release → Run workflow **da `release/vX.Y`** → `deploy`, stage `prod`
+(tag vazia = última rc) → PR da release em `main` → tag final `vX.Y.Z` (mesmo código, sem novo
+deploy; o `final` recusa se a prod não roda a última rc) → a automação apaga a `release/vX.Y`.
+Rollback: o mesmo `deploy` com a tag anterior.
+
+Configuração no GitHub (Settings → Secrets and variables → Actions):
+
+| Nome               | Tipo     | Valor                                                    |
+| ------------------ | -------- | -------------------------------------------------------- |
+| `CUBESHIP_URL`     | variável | `https://5-189-167-204.sslip.io/api`                     |
+| `DEPLOY_TEST_APPS` | variável | `npac/itodev/api npac/itodev/web`                        |
+| `DEPLOY_PROD_APPS` | variável | `npac/production/api npac/production/retention npac/production/web` |
+| `CUBESHIP_TOKEN`   | secret   | chave de API do Cubeship que gerencia esses apps         |
 
 Bootstrap das roles: igual à seção 1 (app temporário `db-bootstrap` com `OWNER_PW`/`APP_PW`,
 datastore anexado, deploy, depois desanexar e apagar).
