@@ -31,13 +31,15 @@ export type ReportDTO = {
   byProduct: ReportRow[];
   bySdr: ReportRow[];
   byCloser: ReportRow[];
-  /** Um ponto por dia do período (Brasília), dias vazios zerados. */
+  /** Um ponto por dia do período (Brasília), dias vazios zerados. R$ de venda não vem para SDR. */
   daily: {
     date: string;
     leads: number;
     meetings: number;
-    soldCents: number;
-    receivedCents: number;
+    soldCents?: number;
+    receivedCents?: number;
+    /** Valor a receber por reunião realizada (P0 R$ 9, P1 R$ 7, P2 R$ 5). */
+    meetingValueCents: number;
   }[];
   /** Vendido por dia no período anterior equivalente, alinhado dia a dia com `daily`. */
   previousDaily: { date: string; soldCents: number }[];
@@ -49,7 +51,8 @@ export type ReportRow = {
   id: string;
   name: string;
   sales: number;
-  soldCents: number;
+  /** Ausente para SDR. */
+  soldCents?: number;
   leads?: number;
   meetings?: number;
   done?: number;

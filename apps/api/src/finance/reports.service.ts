@@ -1,6 +1,7 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { withUser, type Db } from '@npac/db';
 import { spDayRange, type AuthUser } from '@npac/shared';
+import { MEETING_VALUE_CENTS } from '@npac/shared/money';
 import { sql, type SQL } from 'drizzle-orm';
 import { AuditService } from '../audit/audit.service.js';
 import { FieldCrypto } from '../common/crypto/field-crypto.js';
@@ -84,6 +85,20 @@ function numeric(row: Record<string, unknown>) {
     }),
   );
 }
+/** Valor da reunião realizada pelo perfil atual do lead (`l` = alias do lead). */
+const meetingValue = sql`case l.tier when 'P0' then ${MEETING_VALUE_CENTS.P0}::int when 'P1' then ${MEETING_VALUE_CENTS.P1}::int else ${MEETING_VALUE_CENTS.P2}::int end`;
+
+/** Campos de venda que o SDR não recebe (pedido do cliente, 04/11/2026): o corte é no servidor. */
+const SALE_FIELDS = new Set([
+  'soldCents',
+  'receivedCents',
+  'outstandingCents',
+  'conversionBps',
+  'ticketCents',
+]);
+const dropSales = <T extends Record<string, unknown>>(o: T) =>
+  Object.fromEntries(Object.entries(o).filter(([k]) => !SALE_FIELDS.has(k))) as T;
+
 export function csvCell(value: unknown) {
   let s = String(value ?? '');
   if (/^[\s]*[=+\-@]|^[\t\r\n]/.test(s)) s = "'" + s;
@@ -132,6 +147,8 @@ export class ReportsService {
    (select count(*) from calls where true and origin='FOLLOW' and created_at>=${start.toISOString()} and created_at<${end.toISOString()} and canceled_at is null) as "follow",
    (select count(*) from calls where true and outcome='DONE' and outcome_at>=${start.toISOString()} and outcome_at<${end.toISOString()} and canceled_at is null) as "done",
    (select count(*) from calls where true and outcome='NO_SHOW' and outcome_at>=${start.toISOString()} and outcome_at<${end.toISOString()} and canceled_at is null) as "noShow",
+   (select count(*) from calls where true and outcome='RESCHEDULED' and outcome_at>=${start.toISOString()} and outcome_at<${end.toISOString()}) as "rescheduled",
+   (select coalesce(sum(${meetingValue}),0) from calls m join scope l on l.id=m.lead_id where m.outcome='DONE' and m.outcome_at>=${start.toISOString()} and m.outcome_at<${end.toISOString()}) as "meetingValueCents",
    (select count(*) from sales) as "sales",(select coalesce(sum(total_cents),0) from sales) as "soldCents",
    (select coalesce(sum(p.amount_cents),0) from payments p join deals d on d.id=p.deal_id where d.lead_id in(select id from scope) and d.reversed_at is null and (${q.sdrId ?? null}::text is null or d.sdr_id=${q.sdrId ?? null}) and (${q.closerId ?? null}::text is null or d.closer_id=${q.closerId ?? null}) and (${q.productId ?? null}::uuid is null or d.product_id=${q.productId ?? null}::uuid) and p.paid_at>=${start.toISOString()} and p.paid_at<${end.toISOString()}) as "receivedCents",
    (select coalesce(sum(p.amount_cents),0) from payments p join sales d on d.id=p.deal_id where p.paid_at is null) as "outstandingCents"`);
@@ -172,7 +189,8 @@ export class ReportsService {
             (select count(*) from scope where (created_at at time zone 'America/Sao_Paulo')::date = x.day and created_at>=${start.toISOString()} and created_at<${end.toISOString()}) as leads,
             (select count(*) from calls where (created_at at time zone 'America/Sao_Paulo')::date = x.day and created_at>=${start.toISOString()} and created_at<${end.toISOString()}) as meetings,
             (select coalesce(sum(total_cents),0) from sales where (closed_at at time zone 'America/Sao_Paulo')::date = x.day) as "soldCents",
-            (select coalesce(sum(amount_cents),0) from paid where (paid_at at time zone 'America/Sao_Paulo')::date = x.day) as "receivedCents"
+            (select coalesce(sum(amount_cents),0) from paid where (paid_at at time zone 'America/Sao_Paulo')::date = x.day) as "receivedCents",
+            (select coalesce(sum(${meetingValue}),0) from calls m join scope l on l.id=m.lead_id where m.outcome='DONE' and (m.outcome_at at time zone 'America/Sao_Paulo')::date = x.day and m.outcome_at>=${start.toISOString()} and m.outcome_at<${end.toISOString()}) as "meetingValueCents"
           from days x order by x.day`,
         );
         // Vendido por dia no período anterior equivalente (mesmo escopo e filtros).
@@ -212,7 +230,16 @@ export class ReportsService {
         entityType: 'report',
         data: { ids: result.leads.map((r) => r.id) },
       });
-    return result;
+    if (u.role !== 'SDR') return result;
+    return {
+      ...result,
+      metrics: dropSales(result.metrics),
+      byProduct: [],
+      previousDaily: [],
+      daily: result.daily.map(dropSales),
+      bySdr: result.bySdr.map(dropSales),
+      byCloser: result.byCloser.map(dropSales),
+    };
   }
   async csv(u: AuthUser, q: ReportQuery) {
     const { start, end } = window(q);
@@ -262,6 +289,10 @@ export class ReportsService {
       action: 'report.export.summary',
       entityType: 'report',
     });
+    if (u.role === 'SDR')
+      return {
+        text: `NPAC Corporation\nLeads: ${m.leads}\nReuniões: ${m.meetings}\nReuniões realizadas: ${m.done}\nNo-show / Remarcados: ${Number(m.noShow) + Number(m.rescheduled)}\nValor a receber por reunião realizada: ${money(m.meetingValueCents)}`,
+      };
     return {
       text: `NPAC Corporation\nLeads: ${m.leads}\nReuniões: ${m.meetings}\nVendas: ${m.sales}\nVendido: ${money(m.soldCents)}\nRecebido: ${money(m.receivedCents)}\nA receber das vendas do período: ${money(m.outstandingCents)}`,
     };

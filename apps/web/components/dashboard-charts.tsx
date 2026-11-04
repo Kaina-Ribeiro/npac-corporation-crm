@@ -110,7 +110,7 @@ export function RevenueHero({
     X1 = 560;
   let sold = 0,
     prevSum = 0;
-  const cur = daily.map((d) => (sold += d.soldCents));
+  const cur = daily.map((d) => (sold += d.soldCents ?? 0));
   const prev = previous.map((d) => (prevSum += d.soldCents));
   const max = niceMax(Math.max(sold, prevSum, 1));
   const last = daily.length - 1;
@@ -296,7 +296,7 @@ export function RevenueHero({
                 {money(prev[hover]!)}
               </p>
             )}
-            <p className="text-white/70">Vendas do dia: {money(daily[hover]!.soldCents)}</p>
+            <p className="text-white/70">Vendas do dia: {money(daily[hover]!.soldCents ?? 0)}</p>
           </div>
         )}
       </div>

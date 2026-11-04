@@ -59,7 +59,7 @@ function Ring({ bps }: { bps: number }) {
 
 /** Mesa dos closers: conversão das reuniões realizadas e números de cada closer. */
 export function CloserDesk({ rows }: { rows: ReportRow[] }) {
-  const sorted = [...rows].sort((a, b) => b.soldCents - a.soldCents);
+  const sorted = [...rows].sort((a, b) => (b.soldCents ?? 0) - (a.soldCents ?? 0));
   return (
     <ChartCard title="Mesa dos closers" subtitle="Conversão das reuniões realizadas">
       {sorted.length ? (
@@ -79,7 +79,7 @@ export function CloserDesk({ rows }: { rows: ReportRow[] }) {
                       ['No-show', String(c.noShow ?? 0)],
                       ['Vendas', String(c.sales)],
                       // Sem centavos quando redondo: cabe na coluna sem cortar o valor.
-                      ['Faturado', money(c.soldCents).replace(/,00$/, '')],
+                      ['Faturado', money(c.soldCents ?? 0).replace(/,00$/, '')],
                     ] as const
                   ).map(([label, value]) => (
                     <div key={label} className="flex min-w-0 flex-col">

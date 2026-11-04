@@ -282,7 +282,7 @@ export function Reports({
                 />
               </p>
               <p className="text-xs text-ink2">{foot}</p>
-              <Sparkline values={data.daily.map((d) => d[key])} color={color} />
+              <Sparkline values={data.daily.map((d) => d[key] ?? 0)} color={color} />
             </article>
           ),
         })),
@@ -360,7 +360,7 @@ export function Reports({
             <ChartCard title="Produtos" subtitle="Vendido por produto">
               <RankBars
                 rows={data.byProduct}
-                value={(r) => r.soldCents}
+                value={(r) => r.soldCents ?? 0}
                 format={money}
                 color={chartColors.money}
                 detail={(r) => `${r.sales}×`}
