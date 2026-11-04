@@ -151,7 +151,8 @@ export function Inbox({ initial }: { initial: NotificationsDTO }) {
   useCrmRefresh(load);
   const clock = useReminderClock(data.reminders.map((r) => ({ scheduledAt: r.at })));
   const reminders = data.reminders.flatMap((r) => {
-    const step = pendingReminder({ scheduledAt: r.at, confirmed: r.confirmed }, clock);
+    const step =
+      clock === null ? null : pendingReminder({ scheduledAt: r.at, confirmed: r.confirmed }, clock);
     return step ? [{ ...r, step }] : [];
   });
   async function read(ids?: string[]) {

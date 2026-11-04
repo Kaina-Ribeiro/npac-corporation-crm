@@ -99,7 +99,7 @@ export function MeetingReminder({
   onConfirmed?: () => void | Promise<void>;
 }) {
   const now = useReminderClock([{ scheduledAt }]);
-  const step = pendingReminder({ scheduledAt, confirmed }, now);
+  const step = now === null ? null : pendingReminder({ scheduledAt, confirmed }, now);
   if (!step) return null;
   return (
     <ReminderNotice

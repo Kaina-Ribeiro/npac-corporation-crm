@@ -13,6 +13,7 @@ import type {
 } from '@npac/shared';
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
+import { useReminderClock } from '@/lib/alerts';
 import { brasiliaInput, clientApi } from '@/lib/client-api';
 import { button, control, Field, FormError, quietButton, StageOptions } from './crm-ui';
 import { LeadForm } from './lead-form';
@@ -53,10 +54,12 @@ const EVENT_LABEL: Record<string, string> = {
  * (NPAC-26: sem alerta extra, só o registro).
  */
 function ConfirmationSteps({ meeting: m }: { meeting: MeetingDTO }) {
+  const now = useReminderClock([{ scheduledAt: m.scheduledAt }]);
   const at = new Date(m.scheduledAt).getTime();
-  const steps = (['H1', 'M15'] as const).filter(
-    (s) => Date.now() >= at - REMINDER_MINUTES[s] * 60_000,
-  );
+  const steps =
+    now === null
+      ? []
+      : (['H1', 'M15'] as const).filter((s) => now >= at - REMINDER_MINUTES[s] * 60_000);
   if (!steps.length) return null;
   return (
     <p className="flex flex-wrap gap-1.5 text-xs" aria-label="Confirmações ao lead">

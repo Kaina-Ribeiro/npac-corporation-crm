@@ -1,7 +1,7 @@
 'use client';
 import type { NotificationsDTO } from '@npac/shared';
 import { nextReminderChange, pendingReminder, type ReminderStep } from '@npac/shared/reminders';
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { clientApi } from './client-api';
 
 /**
@@ -17,8 +17,15 @@ function emit() {
   for (const l of listeners) l();
 }
 
+let again = false;
+
 export function refreshAlerts(): Promise<void> {
-  inflight ??= clientApi<NotificationsDTO>('/api/notifications')
+  // Pedido durante uma busca em andamento: busca de novo ao terminar (a resposta pode ser velha).
+  if (inflight) {
+    again = true;
+    return inflight;
+  }
+  inflight = clientApi<NotificationsDTO>('/api/notifications')
     .then((r) => {
       data = r;
       emit();
@@ -26,6 +33,10 @@ export function refreshAlerts(): Promise<void> {
     .catch(() => {})
     .finally(() => {
       inflight = null;
+      if (again) {
+        again = false;
+        void refreshAlerts();
+      }
     });
   return inflight;
 }
@@ -54,11 +65,19 @@ type Timed = { scheduledAt: string };
  * Relógio do navegador para as etapas dos lembretes: re-renderiza só quando alguma etapa muda
  * (1 h, 15 min, 1 min, início), com um único timer — sem chamar a API.
  */
-export function useReminderClock(items: readonly Timed[]): number {
-  const [now, setNow] = useState(() => Date.now());
+export function useReminderClock(items: readonly Timed[]): number | null {
+  // Nulo até montar: servidor e navegador renderizam o mesmo HTML (sem etapa) na hidratação.
+  const [now, setNow] = useState<number | null>(null);
   const key = items.map((i) => i.scheduledAt).join(',');
+  const seen = useRef(key);
   useEffect(() => {
     const current = Date.now();
+    // Lista nova (ex.: dados chegaram depois de o relógio andar): recalcula o "agora" já.
+    if (now === null || seen.current !== key) {
+      seen.current = key;
+      const t = setTimeout(() => setNow(Date.now()), 0);
+      return () => clearTimeout(t);
+    }
     const next = Math.min(
       ...key
         .split(',')
@@ -84,7 +103,8 @@ export function usePendingReminders(): {
   const list = alerts?.reminders ?? [];
   const now = useReminderClock(list.map((r) => ({ scheduledAt: r.at })));
   return list.flatMap((r) => {
-    const step = pendingReminder({ scheduledAt: r.at, confirmed: r.confirmed }, now);
+    const step =
+      now === null ? null : pendingReminder({ scheduledAt: r.at, confirmed: r.confirmed }, now);
     return step ? [{ id: r.id, leadId: r.leadId, leadName: r.leadName, at: r.at, step }] : [];
   });
 }
