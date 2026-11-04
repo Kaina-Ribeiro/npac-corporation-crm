@@ -217,7 +217,7 @@ export function Today({
               {!m.outcome && (
                 <MeetingAction
                   version={m.version}
-                  started={new Date(m.scheduledAt).getTime() <= Date.now()}
+                  scheduledAt={m.scheduledAt}
                   busy={busy}
                   outcome={(body) => action(`/api/meetings/${m.id}/outcome`, 'POST', body)}
                   reschedule={(body) => action(`/api/meetings/${m.id}`, 'PATCH', body)}
