@@ -66,4 +66,18 @@ describe('cargo Acompanhamento', () => {
     const res = await h.patch(`/api/admin/users/${ids.ale}`, { active: false }, head);
     expect(res.status).toBe(403);
   });
+
+  it('/api/me devolve modules.mentoria só para Diretoria e Acompanhamento', async () => {
+    await owner`update "user" set role = 'DIRETOR' where email = 'ana@npac.com.br'`;
+    for (const [email, esperado] of [
+      ['ana@npac.com.br', true],
+      ['carla@npac.com.br', true],
+      ['ronaldo@npac.com.br', false],
+      ['ale@npac.com.br', false],
+      ['sonia@npac.com.br', false],
+    ] as const) {
+      const s = await h.signIn(email);
+      expect((await h.get('/api/me', s)).body.modules, email).toEqual({ mentoria: esperado });
+    }
+  });
 });

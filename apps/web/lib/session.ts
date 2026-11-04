@@ -11,6 +11,7 @@ export type Me = {
   canClose: boolean;
   twoFactorEnabled: boolean;
   mustChangePassword: boolean;
+  modules: { mentoria: boolean };
 };
 
 /** Usuário da sessão (via /api/me) ou null se não houver sessão válida. */

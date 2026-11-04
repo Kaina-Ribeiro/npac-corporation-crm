@@ -1,7 +1,8 @@
 import { Suspense } from 'react';
 import { isLeader } from '@npac/shared/enums';
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
+import { notFound, redirect } from 'next/navigation';
 import { CommandPalette } from '@/components/shell/command-palette';
 import { LiveUpdates } from '@/components/shell/live-updates';
 import { NavProgress } from '@/components/shell/nav-progress';
@@ -18,6 +19,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!me) redirect('/login');
   const pending = pendingStep(me);
   if (pending) redirect(pending);
+  // Equipe de acompanhamento: mesmo menu de todos (D23), mas as telas comerciais dão 404.
+  if (me.role === 'ACOMPANHAMENTO') {
+    const path = (await headers()).get('x-pathname') ?? '';
+    if (!/^\/(acompanhamento|mais)(\/|$)/.test(path)) notFound();
+  }
   const requests = await pendingAccessRequests(me.role);
 
   const avatar = (
@@ -50,9 +56,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <NavProgress />
       </Suspense>
       <LiveUpdates />
-      <CommandPalette head={isLeader(me.role)} />
+      <CommandPalette head={isLeader(me.role)} mentoria={me.modules.mentoria} />
       <Sidebar
         head={isLeader(me.role)}
+        mentoria={me.modules.mentoria}
         adminBadge={requests}
         footer={
           <div className="flex flex-col gap-2">

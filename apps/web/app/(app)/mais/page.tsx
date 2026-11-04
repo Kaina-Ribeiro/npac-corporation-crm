@@ -2,7 +2,7 @@ import { isLeader } from '@npac/shared/enums';
 import { pendingAccessRequests } from '@/lib/access-requests';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { ADMIN_ITEM, MORE_ITEMS } from '@/components/shell/nav-items';
+import { ACOMPANHAMENTO_ITEM, ADMIN_ITEM, MORE_ITEMS } from '@/components/shell/nav-items';
 import { InboxCard } from '@/components/inbox';
 import { SearchButton } from '@/components/shell/command-palette';
 import { SignOutButton } from '@/components/shell/sign-out-button';
@@ -18,13 +18,18 @@ const HINT: Record<string, string> = {
   '/equipe': 'Pessoas e números',
   '/playbook': 'Scripts de objeção',
   '/admin': 'Usuários, catálogo e LGPD',
+  '/acompanhamento/dashboard': 'Mentorados e backup',
 };
 
 /** No celular: perfil, demais seções (mesma ordem do desktop), aparência e sair. */
 export default async function MorePage() {
   const me = await getSession();
   if (!me) redirect('/login');
-  const items = [...MORE_ITEMS, ...(isLeader(me.role) ? [ADMIN_ITEM] : [])];
+  const items = [
+    ...MORE_ITEMS,
+    ...(me.modules.mentoria ? [ACOMPANHAMENTO_ITEM] : []),
+    ...(isLeader(me.role) ? [ADMIN_ITEM] : []),
+  ];
   const requests = await pendingAccessRequests(me.role);
   const flags = [me.canProspect && 'Prospecta', me.canClose && 'Fecha'].filter(Boolean);
   return (

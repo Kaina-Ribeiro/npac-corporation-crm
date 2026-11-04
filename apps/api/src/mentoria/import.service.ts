@@ -131,7 +131,11 @@ export class ImportService {
         entram: c.novos.length,
         jaExistem: c.jaExistem.length,
         repetidos: c.repetidos.length,
-        pendentes: plano.tipo === 'planilha' ? plano.pendentes : [],
+        // Só as linhas que entram pedem escolha: as já existentes são ignoradas de qualquer jeito.
+        pendentes:
+          plano.tipo === 'planilha'
+            ? plano.pendentes.filter((p) => c.novos.some((i) => plano.linhas[i]!.linha === p.linha))
+            : [],
         invalidas: plano.tipo === 'planilha' ? plano.invalidas : [],
         midiasNaoRecuperadas: midiasNaoRecuperadas(plano),
       };
@@ -260,17 +264,15 @@ export class ImportService {
         m.tipo === 'LINK_VIDEO' && m.urlVideo && linkPermitido(m.urlVideo) && ids.has(m.donoId),
     );
     if (links.length)
-      await tx
-        .insert(mentoriaMidia)
-        .values(
-          links.map((m) => ({
-            donoTipo: m.donoTipo,
-            donoId: ids.get(m.donoId)!,
-            tipo: 'LINK_VIDEO',
-            urlVideo: m.urlVideo!,
-            criadoPor: u.id,
-          })),
-        );
+      await tx.insert(mentoriaMidia).values(
+        links.map((m) => ({
+          donoTipo: m.donoTipo,
+          donoId: ids.get(m.donoId)!,
+          tipo: 'LINK_VIDEO',
+          urlVideo: m.urlVideo!,
+          criadoPor: u.id,
+        })),
+      );
   }
 
   private async gravarFicha(tx: Tx, u: AuthUser, r: RegistroFicha, novoId: (id: string) => string) {

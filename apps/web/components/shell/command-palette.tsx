@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { Fragment, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { clientApi } from '@/lib/client-api';
-import { ADMIN_ITEM, SIDEBAR_ITEMS } from './nav-items';
+import { navItems } from './nav-items';
 import { useSavedViews } from './saved-views-nav';
 
 type Item = {
@@ -63,7 +63,7 @@ const typing = (t: EventTarget | null) =>
  * Ctrl/⌘+K (ou "/"): busca leads do escopo e leva a qualquer tela ou ação, só com teclado.
  * A busca vai por POST, como a lista de leads, para o termo não ficar em URL ou histórico.
  */
-export function CommandPalette({ head }: { head: boolean }) {
+export function CommandPalette({ head, mentoria = false }: { head: boolean; mentoria?: boolean }) {
   const router = useRouter();
   const { resolvedTheme, setTheme } = useTheme();
   const [open, setOpen] = useState(false);
@@ -134,7 +134,7 @@ export function CommandPalette({ head }: { head: boolean }) {
   };
   const commands: Item[] = [
     { id: 'new', label: 'Novo lead', group: 'Ações', icon: ICON.plus, run: go('/leads/new') },
-    ...(head ? [...SIDEBAR_ITEMS, ADMIN_ITEM] : SIDEBAR_ITEMS).map((n) => ({
+    ...navItems({ head, mentoria }).map((n) => ({
       id: n.href,
       label: n.label,
       group: 'Ir para',

@@ -1,4 +1,4 @@
-import { ADMIN_ITEM, SIDEBAR_ITEMS } from './nav-items';
+import { ADMIN_ITEM, navItems } from './nav-items';
 import { CountBadge, NavLink } from './nav-link';
 import { InboxLink } from '../inbox';
 import { Suspense } from 'react';
@@ -8,10 +8,13 @@ import { SavedViewsNav } from './saved-views-nav';
 /** Desktop: navegação + bloco da pessoa logada no rodapé, sempre visível (a sidebar é fixa). */
 export function Sidebar({
   head = false,
+  mentoria = false,
   adminBadge = 0,
   footer,
 }: {
   head?: boolean;
+  /** Mostra a entrada do Acompanhamento (Diretoria e equipe de acompanhamento). */
+  mentoria?: boolean;
   /** Pedidos de acesso esperando a liderança. */
   adminBadge?: number;
   footer?: React.ReactNode;
@@ -26,7 +29,7 @@ export function Sidebar({
       <SearchButton className="flex h-[34px] items-center gap-2.5 rounded-lg bg-white/60 px-2.5 text-sm font-medium text-ink2 shadow-[inset_0_0_0_0.5px_rgba(60,60,67,0.2),inset_0_1px_2px_rgba(0,0,0,0.05)] transition-colors hover:bg-white/85 hover:text-ink dark:bg-white/[0.06] dark:shadow-[inset_0_0_0_0.5px_rgba(235,235,245,0.14)] dark:hover:bg-white/10 [&_svg]:h-4 [&_svg]:w-4" />
       <nav aria-label="Navegação lateral" className="flex flex-col gap-px">
         <InboxLink />
-        {(head ? [...SIDEBAR_ITEMS, ADMIN_ITEM] : SIDEBAR_ITEMS).map((item) => (
+        {navItems({ head, mentoria }).map((item) => (
           <NavLink
             key={item.href}
             item={item}

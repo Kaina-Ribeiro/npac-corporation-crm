@@ -44,6 +44,9 @@ const ICONS = {
       <path d="M9 12l2 2 4-4" />
     </>,
   ),
+  acompanhamento: svg(
+    <path d="M12 21s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.6-7 10-7 10z" />,
+  ),
   mais: svg(
     <>
       <circle cx="5" cy="12" r="1.6" />
@@ -72,6 +75,23 @@ export const ADMIN_ITEM: NavItem = {
   ready: true,
   icon: ICONS.admin,
 };
+
+/** Módulo de mentorados: só para quem tem `modules.mentoria` (Diretoria e Acompanhamento). */
+export const ACOMPANHAMENTO_ITEM: NavItem = {
+  href: '/acompanhamento/dashboard',
+  label: 'Acompanhamento',
+  ready: true,
+  icon: ICONS.acompanhamento,
+};
+
+/** Itens da sidebar e do Ctrl+K para a pessoa: o mesmo menu para todos os cargos (D23). */
+export function navItems(opts: { head: boolean; mentoria: boolean }): NavItem[] {
+  return [
+    ...SIDEBAR_ITEMS,
+    ...(opts.mentoria ? [ACOMPANHAMENTO_ITEM] : []),
+    ...(opts.head ? [ADMIN_ITEM] : []),
+  ];
+}
 
 /** Mobile: os quatro primeiros da sidebar, na mesma ordem, + Mais (Dashboard sempre primeiro). */
 export const BOTTOM_ITEMS: NavItem[] = [
