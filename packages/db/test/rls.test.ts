@@ -161,6 +161,26 @@ describe('row-level security', () => {
     await cancelMeeting(meetingA);
     expect(await rows(sonia)).toHaveLength(0);
   });
+  it('venda e parcelas seguem o SDR atual do lead, não o da época', async () => {
+    const [product] = await owner<
+      { id: string }[]
+    >`insert into products (code, name, closer_id, price_cents) values ('MOVE','Produto movido',${sonia.id},250000) returning id`;
+    const [sale] = await owner<
+      { id: string }[]
+    >`insert into deals (lead_id, product_id, product_name, catalog_price_cents, closer_id, sdr_id, total_cents, method, created_by, request_key)
+      values (${A},${product!.id},'Produto movido',250000,${sonia.id},${ale.id},250000,'PIX',${ale.id},'00000000-0000-4000-8000-000000000003') returning id`;
+    await owner`insert into payments (deal_id, amount_cents, due_at) values (${sale!.id},250000,now())`;
+    await owner`update leads set sdr_id = ${murilo.id} where id = ${A}`;
+    const rows = (u: Fixture, table: 'deals' | 'payments') =>
+      app.begin(async (s) => {
+        await s`select set_config('app.user_id', ${u.id}, true)`;
+        return s`select id from ${s(table)}`;
+      });
+    expect(await rows(murilo, 'deals')).toHaveLength(1);
+    expect(await rows(murilo, 'payments')).toHaveLength(1);
+    expect(await rows(ale, 'deals')).toHaveLength(0);
+    expect(await rows(ale, 'payments')).toHaveLength(0);
+  });
   it('comando de cancelamento não funciona sem usuário nem para SDR alheio', async () => {
     const [anonymous] = await app<
       { changed: boolean }[]

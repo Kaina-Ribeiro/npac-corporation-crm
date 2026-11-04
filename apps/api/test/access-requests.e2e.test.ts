@@ -48,6 +48,13 @@ describe('pedido de acesso', () => {
     expect(await owner`select id from access_requests`).toHaveLength(0);
   });
 
+  it('e-mail já cadastrado responde igual e não grava, para não travar na aprovação', async () => {
+    const res = await h.post(REQUEST, { ...nova, email: 'ale@npac.com.br' });
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ ok: true });
+    expect(await owner`select id from access_requests`).toHaveLength(0);
+  });
+
   it('pedido repetido mantém o primeiro', async () => {
     expect((await h.post(REQUEST, nova)).status).toBe(200);
     expect((await h.post(REQUEST, { ...nova, name: 'Outra Pessoa' })).status).toBe(200);

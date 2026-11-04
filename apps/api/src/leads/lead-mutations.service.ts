@@ -15,6 +15,13 @@ import { recordActivity } from './activity.js';
 import { LeadsRepository } from './leads.repository.js';
 import type { RequestMeta } from './leads.service.js';
 
+/** Venda só entra pelo registro da venda (POST /finance/deals), nunca por cadastro ou PATCH. */
+export const saleRequired = () =>
+  new ConflictException({
+    code: 'SALE_REQUIRED',
+    message: 'Para mover para Venda, registre a venda na ficha do lead.',
+  });
+
 /** Bloqueio de linha + versão: uma edição antiga não sobrescreve a versão atual. */
 export async function lockLead(tx: Tx, id: string, version?: number) {
   const [row] = await tx.select().from(leads).where(eq(leads.id, id)).for('update');
@@ -105,11 +112,7 @@ export class LeadMutationsService {
    * as parcelas) e só sai pelo estorno. Mover à mão deixaria funil e financeiro divergentes.
    */
   private async guardSaleStage(tx: Tx, id: string, target: string) {
-    if (target === 'VENDA')
-      throw new ConflictException({
-        code: 'SALE_REQUIRED',
-        message: 'Para mover para Venda, registre a venda na ficha do lead.',
-      });
+    if (target === 'VENDA') throw saleRequired();
     const [active] = await tx
       .select({ id: deals.id })
       .from(deals)

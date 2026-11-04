@@ -65,6 +65,10 @@ export class MeetingsService {
       if (old.canceledAt) throw new ConflictException('Reunião cancelada');
       if (input.outcome && old.scheduledAt.getTime() > Date.now())
         throw new BadRequestException('A reunião ainda não aconteceu');
+      // Com resultado, a reunião está encerrada: não remarca, não troca closer nem cancela.
+      // Só a liderança corrige um resultado registrado errado.
+      if (old.outcome && !(input.outcome && isLeader(u.role)))
+        throw new ConflictException('A reunião já tem resultado');
       if (input.closerId) {
         if (!isLeader(u.role)) throw new ForbiddenException();
         const [closer] = await tx

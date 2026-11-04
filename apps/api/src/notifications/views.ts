@@ -35,7 +35,11 @@ const viewInput = z
         sort: z.enum(['createdAt', 'name', 'nextContactAt', 'meetingAt']).optional(),
         direction: z.enum(['asc', 'desc']).optional(),
       })
-      .strict(),
+      .strict()
+      .refine(
+        (f) => f.period !== 'RANGE' || (f.from && f.to && f.from <= f.to),
+        'Intervalo inválido',
+      ),
   })
   .strict();
 

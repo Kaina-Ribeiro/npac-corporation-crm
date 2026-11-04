@@ -34,7 +34,7 @@ test('HEAD convida usuário, vê auditoria e registra pedido LGPD', async ({ pag
   await page.getByLabel('Nome', { exact: true }).fill('Pessoa Convidada');
   await page.getByLabel('E-mail', { exact: true }).fill('convidada@npac.test');
   await page.getByLabel('Usuário', { exact: true }).fill('convidada');
-  await page.getByLabel('Prospecta').check();
+  await page.getByLabel('Prospecta', { exact: true }).check();
   await page.getByRole('button', { name: 'Convidar', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Senha temporária' })).toBeVisible();
   await expect(
@@ -46,6 +46,14 @@ test('HEAD convida usuário, vê auditoria e registra pedido LGPD', async ({ pag
   await expect(page.getByText('Ale agora é Closer')).toBeVisible();
   await page.getByLabel('Cargo de Ale').selectOption('SDR');
   await expect(page.getByText('Ale agora é SDR')).toBeVisible();
+  // Função é dado à parte do cargo: a flag liga e desliga na própria linha.
+  await expect(page.getByLabel('Ale fecha')).not.toBeChecked();
+  await page.getByLabel('Ale fecha').check();
+  await expect(page.getByText('Ale agora fecha')).toBeVisible();
+  await expect(page.getByLabel('Ale fecha')).toBeChecked();
+  await page.getByLabel('Ale fecha').uncheck();
+  await expect(page.getByText('Ale não fecha mais')).toBeVisible();
+  await expect(page.getByLabel('Ale fecha')).not.toBeChecked();
   await expect(
     page
       .getByRole('listitem')

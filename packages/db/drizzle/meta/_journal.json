@@ -169,6 +169,13 @@
       "when": 1793297908199,
       "tag": "0023_access_requests",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1793723492493,
+      "tag": "0024_deals_follow_lead",
+      "breakpoints": true
     }
   ]
 }

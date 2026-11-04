@@ -45,8 +45,8 @@ export class HandoffService {
         select l.name, l.tier, l.income_band, l.summary, s.name as sdr, m.scheduled_at, c.name as closer
         from leads l join "user" s on s.id = l.sdr_id
         left join lateral (select scheduled_at, closer_id from meetings
-          where lead_id = l.id and canceled_at is null and outcome is null and scheduled_at > now()
-          order by scheduled_at limit 1) m on true
+          where lead_id = l.id and canceled_at is null and outcome is null
+          order by (scheduled_at > now()) desc, abs(extract(epoch from scheduled_at - now())) limit 1) m on true
         left join "user" c on c.id = m.closer_id
         where l.id = ${leadId} and l.deleted_at is null`);
       return rows[0];

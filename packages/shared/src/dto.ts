@@ -37,6 +37,7 @@ export type LeadActivityDTO = {
     title: string;
     dueAt: string | null;
     completedAt: string | null;
+    assigneeId: string;
     version: number;
   }[];
   timeline: { id: string; kind: string; actorId: string; fields: string[]; at: string }[];

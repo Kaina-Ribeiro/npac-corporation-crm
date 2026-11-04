@@ -266,6 +266,44 @@ export function Admin({
                   )}
                   {u.id !== meId && (diretor || !isLeader(u.role)) && (
                     <div className="flex flex-wrap items-center gap-2">
+                      {/* Função é dado, não cargo: quem prospecta aparece como SDR dos leads, quem fecha como closer. */}
+                      {(
+                        [
+                          ['canProspect', 'prospecta', 'Prospecta'],
+                          ['canClose', 'fecha', 'Fecha'],
+                        ] as const
+                      ).map(([flag, verb, label]) => (
+                        <label key={flag} className="flex items-center gap-1 text-xs font-semibold">
+                          <input
+                            type="checkbox"
+                            aria-label={`${u.name} ${verb}`}
+                            checked={u[flag]}
+                            onChange={(e) => {
+                              const on = e.target.checked;
+                              // Otimista: a caixa responde na hora e volta se a API recusar.
+                              const show = (v: boolean) =>
+                                setData((d) => ({
+                                  ...d,
+                                  users: d.users.map((x) =>
+                                    x.id === u.id ? { ...x, [flag]: v } : x,
+                                  ),
+                                }));
+                              show(on);
+                              void run(
+                                () =>
+                                  clientApi(`/api/admin/users/${u.id}`, 'PATCH', {
+                                    [flag]: on,
+                                  }).catch((err: unknown) => {
+                                    show(!on);
+                                    throw err;
+                                  }),
+                                `${u.name} ${on ? 'agora' : 'não'} ${verb}${on ? '' : ' mais'}`,
+                              );
+                            }}
+                          />
+                          {label}
+                        </label>
+                      ))}
                       <select
                         aria-label={`Cargo de ${u.name}`}
                         value={u.role}
