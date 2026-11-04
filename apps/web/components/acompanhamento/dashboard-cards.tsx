@@ -47,7 +47,7 @@ export function DashboardCards({
   onFiltro: (s: MentoradoStatus | null) => void;
 }) {
   return (
-    <div className="grid gap-3 md:grid-cols-3">
+    <div className="grid gap-3 lg:grid-cols-3">
       {CARDS.map((c) => {
         const n = contagem[c.status] ?? 0;
         const sel = filtro === c.status;
@@ -95,13 +95,13 @@ export function DashboardCards({
               <p className="text-[13px] text-ink3">Ninguém neste status.</p>
             ) : (
               <ul
-                className="flex max-h-28 flex-wrap gap-1.5 overflow-y-auto"
+                className="flex max-h-28 flex-wrap gap-1.5 overflow-x-hidden overflow-y-auto"
                 aria-label={`Nomes: ${c.label}`}
               >
                 {(nomes[c.status] ?? []).map((m) => (
                   <li
                     key={m.id}
-                    className="inline-flex h-7 items-center gap-1.5 rounded-full border border-line bg-white/60 pr-2.5 pl-1 text-[12.5px] font-medium dark:bg-white/[0.06]"
+                    className="inline-flex h-7 max-w-full items-center gap-1.5 truncate rounded-full border border-line bg-white/60 pr-2.5 pl-1 text-[12.5px] font-medium whitespace-nowrap dark:bg-white/[0.06]"
                   >
                     <span
                       aria-hidden="true"

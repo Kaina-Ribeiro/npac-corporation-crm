@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { AbasModulo } from '@/components/acompanhamento/abas-modulo';
+import { AbasMobile } from '@/components/acompanhamento/abas-mobile';
 import { IndicadorSalvo } from '@/components/acompanhamento/indicador-salvo';
 import { getSession } from '@/lib/session';
 import { notFound, redirect } from 'next/navigation';
@@ -42,6 +43,7 @@ export default async function AcompanhamentoLayout({ children }: { children: Rea
       ) : (
         children
       )}
+      <AbasMobile />
     </div>
   );
 }

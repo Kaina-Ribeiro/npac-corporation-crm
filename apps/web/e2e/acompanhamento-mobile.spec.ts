@@ -1,0 +1,104 @@
+import { expect, test, type Page } from '@playwright/test';
+import { closeTestConnections, ownerSql } from '@npac/db/testing';
+import { E2E_DB, E2E_PASSWORD } from './env.js';
+
+const owner = ownerSql(E2E_DB);
+const FICHA = '88888888-8888-4888-8888-888888888888';
+
+test.beforeEach(async () => {
+  await owner`truncate rate_limit`;
+  await owner`truncate mentoria_mentorados, mentoria_fichas, mentoria_rdv_pessoas, mentoria_midia cascade`;
+  await owner`update "user" set two_factor_enabled = false`;
+  await owner`insert into mentoria_fichas (id, nome, nome_norm) values (${FICHA}, 'Mentorado Fictício 80', 'mentorado ficticio 80')`;
+});
+test.afterAll(async () => {
+  await owner`truncate mentoria_mentorados, mentoria_fichas, mentoria_rdv_pessoas, mentoria_midia cascade`;
+  await owner`update "user" set two_factor_enabled = false`;
+  await closeTestConnections();
+});
+
+async function abrir(page: Page, rota: string, largura = 390) {
+  await page.setViewportSize({ width: largura, height: 844 });
+  // Login sem código: o MFA só liga depois (como nos demais testes).
+  await owner`update "user" set two_factor_enabled = false where email = 'carla@npac.com.br'`;
+  await page.goto('/login');
+  await page.getByLabel('Usuário', { exact: true }).fill('carla');
+  await page.getByLabel('Senha').fill(E2E_PASSWORD);
+  await page.getByRole('button', { name: 'Login', exact: true }).click();
+  await page.waitForURL(/\/dashboard/);
+  await owner`update "user" set two_factor_enabled = true where email = 'carla@npac.com.br'`;
+  await page.goto(rota);
+}
+const abas = (page: Page) => page.getByRole('navigation', { name: 'Abas do acompanhamento' });
+const semOverflow = async (page: Page) =>
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    ),
+  ).toBeLessThanOrEqual(0);
+
+test('abas Dashboard · Linha · + · RDV · Backup aparecem e navegam', async ({ page }) => {
+  await abrir(page, '/acompanhamento/dashboard');
+  await expect(abas(page)).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Navegação inferior' })).toBeHidden();
+  await expect(abas(page).getByRole('link')).toHaveText(['Dashboard', 'Linha', 'RDV', 'Backup']);
+  await abas(page).getByRole('link', { name: 'Linha' }).click();
+  await page.waitForURL(/\/acompanhamento\/linha-do-tempo$/);
+  await abas(page).getByRole('link', { name: 'Backup' }).click();
+  await page.waitForURL(/\/acompanhamento\/backup$/);
+  await expect(abas(page).getByRole('link', { name: 'Backup' })).toHaveAttribute(
+    'aria-current',
+    'page',
+  );
+});
+
+test('"+" abre o cadastro conforme a aba', async ({ page }) => {
+  await abrir(page, '/acompanhamento/dashboard');
+  await abas(page).getByRole('button', { name: 'Colar planilha' }).click();
+  await expect(page.getByRole('dialog', { name: 'Importar no Dashboard' })).toBeVisible();
+  await page.getByRole('dialog').getByRole('button', { name: 'Fechar' }).click();
+  await abas(page).getByRole('link', { name: 'Linha' }).click();
+  await page.waitForURL(/\/acompanhamento\/linha-do-tempo$/);
+  await abas(page).getByRole('button', { name: 'Nova ficha' }).click();
+  await expect(page.getByRole('dialog', { name: 'Nova ficha' })).toBeVisible();
+});
+
+test('"+" dentro da ficha abre Nova ficha; a ficha volta para a lista sem perder a edição salva', async ({
+  page,
+}) => {
+  await abrir(page, `/acompanhamento/linha-do-tempo/${FICHA}`);
+  const fe = page.getByRole('textbox', { name: 'Fé antes' });
+  await fe.fill('Edição fictícia salva');
+  await fe.blur();
+  await expect(page.getByRole('status').filter({ hasText: 'Tudo salvo' })).toBeVisible();
+  await page.getByRole('link', { name: 'Linha do tempo', exact: true }).click();
+  await page.waitForURL(/\/acompanhamento\/linha-do-tempo$/);
+  await page.getByRole('link', { name: /Mentorado Fictício 80/ }).click();
+  await expect(page.getByRole('textbox', { name: 'Fé antes' })).toHaveValue(
+    'Edição fictícia salva',
+  );
+  await abas(page).getByRole('button', { name: 'Nova ficha' }).click();
+  await expect(page.getByRole('dialog', { name: 'Nova ficha' })).toBeVisible();
+});
+
+test('390 px e 375 px: sem overflow horizontal nas abas, na ficha e na gaveta', async ({
+  page,
+}) => {
+  for (const largura of [390, 375]) {
+    await abrir(page, '/acompanhamento/dashboard', largura);
+    await semOverflow(page);
+    await abas(page).getByRole('button', { name: 'Colar planilha' }).click();
+    await semOverflow(page);
+    await page.getByRole('dialog').getByRole('button', { name: 'Fechar' }).click();
+    await page.goto(`/acompanhamento/linha-do-tempo/${FICHA}`);
+    await expect(page.getByRole('textbox', { name: 'Nome da ficha' })).toBeVisible();
+    await semOverflow(page);
+    await page.context().clearCookies();
+  }
+});
+
+test('desktop: sem abas no rodapé; abas do módulo no topo', async ({ page }) => {
+  await abrir(page, '/acompanhamento/dashboard', 1280);
+  await expect(abas(page)).toBeHidden();
+  await expect(page.getByRole('navigation', { name: 'Módulos do acompanhamento' })).toBeVisible();
+});

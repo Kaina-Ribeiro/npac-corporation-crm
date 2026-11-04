@@ -1,11 +1,12 @@
 'use client';
 import type { FichaItem, PaginaFichas } from '@npac/shared/mentoria';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useId, useRef, useState } from 'react';
 import { baixarBackup } from '@/lib/acompanhamento-download';
 import { clientApi } from '@/lib/client-api';
 import { button, control, FormError, quietButton } from '@/components/crm-ui';
+import { EVENTO_MAIS } from './abas-mobile';
 import { ImportarGaveta } from './importar-gaveta';
 
 const BUSCA = '/api/mentoria/fichas/search';
@@ -28,6 +29,19 @@ export function FichasLista({ inicial }: { inicial: PaginaFichas }) {
   const [nova, setNova] = useState(false);
   const [importar, setImportar] = useState(false);
   const primeira = useRef(true);
+  const params = useSearchParams();
+  const router = useRouter();
+
+  // "+" do rodapé no celular: Nova ficha (também quando vem da ficha, com ?nova=1).
+  useEffect(() => {
+    const abrir = () => setNova(true);
+    window.addEventListener(EVENTO_MAIS, abrir);
+    if (params.get('nova') === '1') {
+      setNova(true);
+      router.replace('/acompanhamento/linha-do-tempo');
+    }
+    return () => window.removeEventListener(EVENTO_MAIS, abrir);
+  }, [params, router]);
 
   const buscar = (termo: string, depois?: string) =>
     clientApi<PaginaFichas>(BUSCA, 'POST', {

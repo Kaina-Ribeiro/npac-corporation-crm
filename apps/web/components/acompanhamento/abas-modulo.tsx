@@ -13,7 +13,10 @@ export const ABAS = [
 export function AbasModulo() {
   const path = usePathname();
   return (
-    <nav aria-label="Módulos do acompanhamento" className="-mx-1 overflow-x-auto px-1">
+    <nav
+      aria-label="Módulos do acompanhamento"
+      className="-mx-1 hidden overflow-x-auto px-1 [scrollbar-width:none] md:block"
+    >
       <ul className="flex w-max gap-1 rounded-2xl bg-black/[0.04] p-1 dark:bg-white/[0.06]">
         {ABAS.map((a) => {
           const on = path === a.href || path.startsWith(`${a.href}/`);

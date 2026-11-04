@@ -11,6 +11,7 @@ import { baixarBackup } from '@/lib/acompanhamento-download';
 import { useFieldSaver } from '@/lib/acompanhamento-saver';
 import { clientApi } from '@/lib/client-api';
 import { FormError, quietButton } from '@/components/crm-ui';
+import { EVENTO_MAIS } from './abas-mobile';
 import { DashboardCards } from './dashboard-cards';
 import { ImportarGaveta } from './importar-gaveta';
 import { MentoradoLinha } from './mentorado-linha';
@@ -55,6 +56,13 @@ export function DashboardView({ inicial }: { inicial: ResumoDashboard }) {
   const [gaveta, setGaveta] = useState<'planilha' | 'json' | null>(null);
   const [remover, setRemover] = useState<MentoradoItem | null>(null);
   const primeira = useRef(true);
+
+  // "+" do rodapé no celular: Colar planilha.
+  useEffect(() => {
+    const abrir = () => setGaveta('planilha');
+    window.addEventListener(EVENTO_MAIS, abrir);
+    return () => window.removeEventListener(EVENTO_MAIS, abrir);
+  }, []);
 
   useEffect(() => {
     for (const m of itens) saver.registrar(`mentorado:${m.id}`, m.version);

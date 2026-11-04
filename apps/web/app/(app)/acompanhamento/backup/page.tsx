@@ -1,5 +1,6 @@
 import {
   BackupPainel,
+  Pendencias,
   type Limites,
   type Medidor,
 } from '@/components/acompanhamento/backup-painel';
@@ -9,6 +10,7 @@ import { apiGet } from '@/lib/api';
 
 export const metadata = { title: 'Importação e backup' };
 
+/** Importação e backup: entrada/saída por módulo, pendências do PDF, medidor e limites. */
 export default async function BackupPage() {
   const me = await sessaoDoModulo();
   if (!me) return null;
@@ -16,5 +18,10 @@ export default async function BackupPage() {
     apiGet<Medidor>('/api/mentoria/backup/medidor'),
     apiGet<Limites>('/api/mentoria/backup/limites'),
   ]);
-  return <BackupView extra={<BackupPainel medidor={medidor} limites={limites} />} />;
+  return (
+    <BackupView
+      extra={<BackupPainel medidor={medidor} limites={limites} />}
+      abaixo={<Pendencias />}
+    />
+  );
 }
