@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import { useAlerts, usePendingReminders } from '@/lib/alerts';
+import { CountBadge } from './shell/nav-link';
 
 export const bell = (
   <svg
@@ -38,15 +39,8 @@ export function useChatUnread() {
 export function ChatBadge() {
   const n = useChatUnread();
   if (!n) return null;
-  return (
-    <span
-      key={n}
-      aria-label={`${n} ${n === 1 ? 'não lida' : 'não lidas'} no chat`}
-      className="badge-pop ml-auto min-w-5 rounded-full bg-danger px-1.5 text-center text-[11px] leading-5 font-semibold text-white tabular-nums"
-    >
-      {n > 99 ? '99+' : n}
-    </span>
-  );
+  // CountBadge: mesmo selo dos itens de navegação (funciona também com a sidebar recolhida).
+  return <CountBadge key={n} n={n} label={`${n} ${n === 1 ? 'não lida' : 'não lidas'} no chat`} />;
 }
 
 /**
