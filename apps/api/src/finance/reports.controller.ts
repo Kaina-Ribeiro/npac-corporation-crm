@@ -1,6 +1,6 @@
 import { Body, Controller, Get, HttpCode, Post, Res } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
-import { LEAD_SOURCES, STAGE_KEYS, TIERS } from '@npac/shared';
+import { LEAD_SOURCES, stageKeySchema, TIERS } from '@npac/shared';
 import { z } from 'zod';
 import { Can } from '../auth/can.decorator.js';
 import { CurrentUser, type SessionUser } from '../auth/current-user.decorator.js';
@@ -16,7 +16,7 @@ const query = z
     closerId: z.string().optional(),
     source: z.enum(LEAD_SOURCES).optional(),
     tier: z.enum(TIERS).optional(),
-    stage: z.enum(STAGE_KEYS).optional(),
+    stage: stageKeySchema.optional(),
     productId: z.uuid().optional(),
     page: z.coerce.number().int().min(1).max(1000000).default(1),
     pageSize: z.coerce.number().int().min(1).max(100).default(20),

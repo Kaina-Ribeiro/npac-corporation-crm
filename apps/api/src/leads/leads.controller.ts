@@ -17,7 +17,7 @@ import {
   leadCreateSchema,
   leadUpdateSchema,
   LEAD_SOURCES,
-  STAGE_KEYS,
+  stageKeySchema,
   TIERS,
   type LeadDTO,
   type Page,
@@ -34,7 +34,7 @@ const MAX_PAGE_SIZE = 100;
 
 const listQuerySchema = z.object({
   search: z.string().max(200).optional(),
-  stage: z.enum(STAGE_KEYS).optional(),
+  stage: stageKeySchema.optional(),
   tier: z.enum(TIERS).optional(),
   sdrId: z.string().optional(),
   closerId: z.string().optional(),

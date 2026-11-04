@@ -1,6 +1,9 @@
 import { z } from 'zod';
-import { INCOME_BANDS, LEAD_SOURCES, STAGE_KEYS, TIERS } from '../enums.js';
+import { INCOME_BANDS, LEAD_SOURCES, STAGE_KEY_PATTERN, TIERS } from '../enums.js';
 import { normalizeInstagram, normalizePhoneBR } from '../normalize.js';
+
+/** Etapa por chave; a existência é conferida no banco ("Etapa inexistente"). */
+export const stageKeySchema = z.string().regex(STAGE_KEY_PATTERN);
 
 const blankToUndefined = (v: unknown) => (typeof v === 'string' && v.trim() === '' ? undefined : v);
 
@@ -30,7 +33,7 @@ export const leadCreateSchema = z
     tier: z.enum(TIERS),
     sdrId: z.string().optional(),
     closerId: z.string().optional(),
-    stageKey: z.enum(STAGE_KEYS).default('SONDAGEM'),
+    stageKey: stageKeySchema.default('SONDAGEM'),
     nextContactAt: z.iso
       .datetime({ offset: true })
       .transform((s) => new Date(s))
