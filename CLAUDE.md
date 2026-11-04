@@ -75,6 +75,9 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   recusar apaga; expira em 7 dias; 3/hora por IP; resposta igual exista ou não o usuário (hash
   sempre, para o tempo não revelar). "Esqueci minha senha" manda pedir redefinição à liderança;
   Diretoria trancada: `reset-password-cli.js <usuário> [--mfa]` no shell da api (`db/src/reset-password.ts`).
+- **Limite de tentativas de login DESLIGADO** (temporário, 04/11/2026: travava os acessos):
+  `customRules[SIGN_IN] = false` em `api/auth/auth.ts`; antes era 5/min por IP. O pedido de
+  acesso (3/h) e o TOTP (3/10 s, padrão do plugin) continuam limitados. Religar depois.
 - MFA (TOTP) **opcional** (28/10/2026): cada um liga/desliga em `/conta/mfa`; quem ligou confirma o
   login, código enviado sozinho aos 6 dígitos (`lib/otp-input.ts`). Primeiro acesso só obriga trocar a senha.
 - Cookies em vez de localStorage: último usuário `npac_last_user` (`Path=/login`); ordem dos cards

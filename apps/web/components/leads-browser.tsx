@@ -239,7 +239,7 @@ export function LeadsBrowser({
     void search(String(f.get('q') ?? '').trim(), 1, selected);
   }
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-4">
+    <div className="mx-auto flex max-w-[1920px] flex-col gap-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="mt-1.5 text-[34px] leading-tight font-bold tracking-[-0.04em]">Leads</h1>

@@ -31,12 +31,25 @@ export function LoginForm({ lastUser }: { lastUser?: string }) {
   const [step, setStep] = useState<'password' | 'totp'>('password');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // Trava síncrona: o estado só muda no próximo render, então um duplo clique passaria.
+  const sending = useRef(false);
+  const start = () => {
+    if (sending.current) return false;
+    sending.current = true;
+    setBusy(true);
+    setError(null);
+    return true;
+  };
+  const fail = (message: string) => {
+    sending.current = false;
+    setBusy(false);
+    setError(message);
+  };
 
   async function onPassword(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
-    setBusy(true);
-    setError(null);
+    if (!start()) return;
     const username = String(form.get('username') ?? '')
       .trim()
       .toLowerCase();
@@ -44,27 +57,26 @@ export function LoginForm({ lastUser }: { lastUser?: string }) {
       username,
       password: String(form.get('password') ?? ''),
     });
-    setBusy(false);
     // Nunca diz se o usuário existe: qualquer falha vira a mesma mensagem.
     if (err || !data)
-      return setError(
-        err?.status === 429 ? 'Muitas tentativas. Aguarde um minuto.' : GENERIC_ERROR,
-      );
+      return fail(err?.status === 429 ? 'Muitas tentativas. Aguarde um minuto.' : GENERIC_ERROR);
     rememberUser(username);
-    if ('twoFactorRedirect' in data && data.twoFactorRedirect) return setStep('totp');
+    if ('twoFactorRedirect' in data && data.twoFactorRedirect) {
+      sending.current = false;
+      setBusy(false);
+      return setStep('totp');
+    }
+    // Segue "Entrando…" até a navegação trocar a tela: nada de liberar o botão antes.
     router.replace('/dashboard');
     router.refresh();
   }
 
   async function onTotp(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (busy) return; // envio automático + clique não mandam o código duas vezes
     const code = String(new FormData(e.currentTarget).get('code') ?? '').replace(/\D/g, '');
-    setBusy(true);
-    setError(null);
+    if (!start()) return; // envio automático + clique não mandam o código duas vezes
     const { error: err } = await authClient.twoFactor.verifyTotp({ code });
-    setBusy(false);
-    if (err) return setError('Código inválido. Tente de novo.');
+    if (err) return fail('Código inválido. Tente de novo.');
     router.replace('/dashboard');
     router.refresh();
   }
@@ -112,9 +124,9 @@ export function LoginForm({ lastUser }: { lastUser?: string }) {
             {error}
           </p>
         )}
-        <button className="btn-dark" type="submit" disabled={busy}>
+        <SubmitButton busy={busy} pending="Verificando…">
           Verificar e entrar
-        </button>
+        </SubmitButton>
         <Note>Sem acesso ao app? Peça para a liderança redefinir o seu segundo fator.</Note>
       </form>
     );
@@ -228,9 +240,9 @@ export function LoginForm({ lastUser }: { lastUser?: string }) {
           </p>
         )}
       </div>
-      <button className="btn-dark" type="submit" disabled={busy}>
+      <SubmitButton busy={busy} pending="Entrando…">
         Login
-      </button>
+      </SubmitButton>
       <Note>
         Cada acesso é registrado. Quem ativou o autenticador confirma a entrada com o código do app.
       </Note>
@@ -244,6 +256,34 @@ export function LoginForm({ lastUser }: { lastUser?: string }) {
         </Link>
       </p>
     </form>
+  );
+}
+
+/** Botão de envio com estado de espera: desabilitado, spinner e texto de progresso. */
+function SubmitButton({
+  busy,
+  pending,
+  children,
+}: {
+  busy: boolean;
+  pending: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      className="btn-dark inline-flex items-center justify-center gap-2.5"
+      type="submit"
+      disabled={busy}
+      aria-busy={busy}
+    >
+      {busy && (
+        <span
+          aria-hidden="true"
+          className="size-4 animate-spin rounded-full border-2 border-white/30 border-t-white"
+        />
+      )}
+      {busy ? pending : children}
+    </button>
   );
 }
 

@@ -140,7 +140,7 @@ export function Today({
       </div>
     ));
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-5">
+    <div className="mx-auto flex max-w-[1920px] flex-col gap-5">
       <div>
         <h1 className="text-[34px] font-bold tracking-tight">Hoje</h1>
         <p className="text-sm text-ink2">
@@ -179,7 +179,7 @@ export function Today({
         </form>
       )}
       <FormError message={error} />
-      <div className="grid items-start gap-5 lg:grid-cols-2">
+      <div className="grid items-start gap-5 lg:grid-cols-2 3xl:grid-cols-3">
         <Section title="Atrasados" count={data.overdue.length}>
           {contacts(data.overdue)}
         </Section>

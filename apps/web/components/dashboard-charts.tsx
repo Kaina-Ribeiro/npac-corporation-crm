@@ -1,7 +1,7 @@
 'use client';
 import type { ReportDTO, ReportRow } from '@npac/shared';
 import { money } from '@npac/shared/money';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { CountUp } from './count-up';
 
 type Day = ReportDTO['daily'][number];
@@ -111,12 +111,24 @@ export function RevenueHero({
   foot?: ReactNode;
 }) {
   const [hover, setHover] = useState<number | null>(null);
-  const W = 600,
-    H = 200,
+  // Em telas largas o viewBox alarga junto (altura fixa): sem isso o gráfico e os textos crescem
+  // na proporção da largura e o card fica enorme no ultrawide.
+  const box = useRef<HTMLDivElement>(null);
+  const [W, setW] = useState(600);
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const fit = () => setW(Math.max(600, Math.round(el.clientWidth / 1.6)));
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const H = 200,
     T = 18,
     B = 26,
     X0 = 6,
-    X1 = 560;
+    X1 = W - 40;
   let sold = 0,
     prevSum = 0;
   const cur = daily.map((d) => (sold += value(d)));
@@ -183,7 +195,7 @@ export function RevenueHero({
           </>
         )}
       </p>
-      <div className="relative mt-3">
+      <div ref={box} className="relative mt-3">
         <svg
           viewBox={`0 0 ${W} ${H}`}
           className="h-auto w-full touch-none"

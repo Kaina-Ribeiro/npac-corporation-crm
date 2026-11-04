@@ -137,7 +137,10 @@ export function createAuth(db: Db, env: Env, audit: AuditService) {
       enabled: true,
       storage: 'database',
       customRules: {
-        [SIGN_IN]: { window: 60, max: 5 },
+        // TEMPORÁRIO (04/11/2026, pedido do Gabriel): sem limite de tentativas no login porque
+        // estava travando os acessos. Voltar para { window: 60, max: 5 } quando revisarmos.
+        // `false` desliga só esta rota; o pedido de acesso abaixo continua limitado.
+        [SIGN_IN]: false,
         [REQUEST_ACCESS_PATH]: { window: 3600, max: 3 },
       },
     },

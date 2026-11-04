@@ -175,7 +175,12 @@ export function Pipeline({
             </button>
           ))}
       </nav>
-      <div data-own-motion className="flex items-start gap-4 overflow-x-auto pb-4">
+      {/* Grade que quebra linha em vez de rolar para o lado: mais colunas quanto mais larga a tela
+          (≈4 em 1440, 6 em 1920, 8 em 2560). No celular, uma etapa por vez pelas abas acima. */}
+      <div
+        data-own-motion
+        className="grid items-start gap-4 pb-4 md:grid-cols-[repeat(auto-fill,minmax(260px,1fr))]"
+      >
         {columns
           .filter((c) => !hidden.includes(c.stage.key))
           .map((c, col) => (
@@ -184,7 +189,7 @@ export function Pipeline({
               aria-label={c.stage.label}
               // Entrada em cascata (globals.css `.reveal`): coluna por coluna, depois os cards.
               style={{ '--delay': `${200 + col * 90}ms` } as CSSProperties}
-              className={`reveal glass-card w-full shrink-0 flex-col gap-3 p-3 md:w-[280px] ${active === c.stage.key ? 'flex' : 'hidden md:flex'}`}
+              className={`reveal glass-card scroll-thin min-w-0 flex-col gap-3 p-3 md:max-h-[min(70vh,720px)] md:overflow-y-auto ${active === c.stage.key ? 'flex' : 'hidden md:flex'}`}
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => {
                 e.preventDefault();

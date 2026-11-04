@@ -118,7 +118,7 @@ export function Inbox({ initial }: { initial: NotificationsDTO }) {
   }
   const now = data.soon.length > 0 || data.overdue > 0;
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-5">
+    <div className="mx-auto flex max-w-4xl flex-col gap-5">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="mt-1.5 text-[34px] leading-tight font-bold tracking-[-0.04em]">Avisos</h1>

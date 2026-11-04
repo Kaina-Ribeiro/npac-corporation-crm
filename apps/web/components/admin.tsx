@@ -139,7 +139,7 @@ export function Admin({
   const sdrs = data.users.filter((u) => u.active && u.canProspect);
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-5">
+    <div className="mx-auto flex max-w-7xl flex-col gap-5">
       <h1 className="mt-1.5 text-[34px] leading-tight font-bold tracking-[-0.04em]">Admin</h1>
       <AccessRequests
         requests={data.requests}
