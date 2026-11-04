@@ -94,7 +94,7 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   (exclusão só pelas funções, que enfileiram a mídia). Filhos usam a `version` do pai (D5).
 - **Siglas das mentorias** (Gabriel, 04/11/2026): RDV = Rico de Verdade · IDR = Introdução da
   Riqueza · PME = Plano Mensal de Enriquecimento · 2M = Marco e Mudança · 6M = sem definição ainda.
-  Nas telas vale o texto literal do PDF.
+  Nas telas vale o texto literal do PDF, exceto IDR: "Introdução da Riqueza" (o PDF diz "à"; corrigido).
 - Cookies em vez de localStorage: último usuário `npac_last_user` (`Path=/login`); ordem dos cards
   `npac_dash_<hash do id>` (`Path=/dashboard`, só IDs, o servidor já renderiza na ordem).
 
