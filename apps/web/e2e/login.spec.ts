@@ -128,8 +128,11 @@ test('senha errada mostra erro genérico', async ({ page }) => {
 test('"Esqueci minha senha" orienta a pedir redefinição à liderança', async ({ page }) => {
   await page.goto('/login');
   const forgot = page.getByRole('button', { name: 'Esqueci minha senha' });
+  await expect(page.getByRole('heading', { name: 'Bem-vindo de volta' })).toBeVisible();
   await forgot.click();
   await expect(forgot).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.getByRole('heading', { name: 'Esqueci minha senha' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Bem-vindo de volta' })).toHaveCount(0);
   await expect(
     page.getByRole('status').filter({ hasText: 'Peça para a liderança redefinir a sua senha' }),
   ).toBeVisible();
