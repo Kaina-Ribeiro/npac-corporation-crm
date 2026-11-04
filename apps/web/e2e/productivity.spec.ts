@@ -281,6 +281,41 @@ test('hoje: ação rápida da reunião marca realizada e remarca', async ({ page
   await page.screenshot({ path: 'test-results/hoje-reuniao-acao.png', fullPage: true });
 });
 
+test('hoje: reunião futura mostra Realizada/No-show bloqueados e libera no horário', async ({
+  page,
+}) => {
+  const now = Date.now();
+  const end = new Date(
+    `${new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(now)}T23:59:00-03:00`,
+  ).getTime();
+  test.skip(now + 5 * 60_000 > end, 'perto da meia-noite de Brasília');
+  await page.clock.install({ time: now });
+  await login(page, 'ale@npac.com.br');
+  const res = await page.request.post('/api/leads', {
+    data: { name: 'Reunião Logo', instagram: `@logo.${now}`, incomeBand: 'R5_8K', tier: 'P0' },
+  });
+  const { id } = (await res.json()) as { id: string };
+  await owner`insert into meetings (lead_id, closer_id, scheduled_at, origin, created_by)
+    select ${id}, c.id, ${new Date(now + 90_000)}, 'DIRETO', s.id
+    from "user" c, "user" s
+    where c.email = 'sonia@npac.com.br' and s.email = 'ale@npac.com.br'`;
+  await page.goto('/hoje');
+  const row = page
+    .locator('section', { has: page.getByRole('heading', { name: /^Reuniões de hoje/ }) })
+    .locator('article', { hasText: 'Reunião Logo' });
+  await row.getByRole('button', { name: 'Ação rápida' }).click();
+  const done = row.getByRole('button', { name: 'Realizada', exact: true });
+  const noShow = row.getByRole('button', { name: 'No-show', exact: true });
+  await expect(done).toBeDisabled();
+  await expect(noShow).toBeDisabled();
+  await expect(row.getByText(/liberam às \d{2}:\d{2}/)).toBeVisible();
+  await page.screenshot({ path: 'test-results/hoje-reuniao-futura.png', fullPage: true });
+  // Relógio do navegador passa do horário com a tela aberta: os botões liberam sozinhos.
+  await page.clock.fastForward('03:00');
+  await expect(done).toBeEnabled();
+  await expect(noShow).toBeEnabled();
+});
+
 test('hoje: contato que vence com a página aberta vai para atrasados pelo navegador', async ({
   page,
 }) => {
@@ -301,8 +336,15 @@ test('hoje: contato que vence com a página aberta vai para atrasados pelo naveg
     page.locator('section', { has: page.getByRole('heading', { name: title }) });
   await expect(section(/^Contatos de hoje/).getByText('Vence já')).toBeVisible();
   // O relógio do servidor é o real (vence só daqui a ~90 s): se o lead mudar de lista agora,
-  // foi o navegador. O SSE da criação pode recarregar uma vez; isso não muda a lista.
+  // foi o navegador. Um recarregamento pelo SSE (ready/invalidate) depois do avanço do relógio
+  // passa pela mesma regra e não devolve o lead a "Contatos de hoje".
   await page.clock.fastForward('03:00');
+  await expect(section(/^Atrasados/).getByText('Vence já')).toBeVisible();
+  await expect(section(/^Contatos de hoje/).getByText('Vence já')).toHaveCount(0);
+  // Recarrega como o SSE faria: o servidor (relógio real) ainda chama de "hoje", o navegador não.
+  const reloaded = page.waitForResponse((r) => r.url().endsWith('/api/today/search'));
+  await page.evaluate(() => window.dispatchEvent(new Event('crm:invalidate')));
+  await reloaded;
   await expect(section(/^Atrasados/).getByText('Vence já')).toBeVisible();
   await expect(section(/^Contatos de hoje/).getByText('Vence já')).toHaveCount(0);
 });
