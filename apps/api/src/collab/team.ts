@@ -13,7 +13,8 @@ export type TeamStats = {
   meetings: number;
   done: number;
   sales: number;
-  soldCents: number;
+  /** Ausente para SDR. */
+  soldCents?: number;
 };
 
 /** Cards da equipe: HEAD vê os números de todos; os demais, só os próprios. */
@@ -65,7 +66,8 @@ export class TeamService {
         meetings: n(s?.meetings) + n(c?.meetings),
         done: n(s?.done) + n(c?.done),
         sales: n(sales.get(id)?.sales),
-        soldCents: n(sales.get(id)?.cents),
+        // SDR não vê faturamento (pedido do cliente, 04/11/2026): o corte é no servidor.
+        ...(u.role === 'SDR' ? {} : { soldCents: n(sales.get(id)?.cents) }),
       };
     };
     return {

@@ -212,6 +212,15 @@ describe('equipe', () => {
     expect(stats(ids.ale!)).toMatchObject({ sales: 3, soldCents: 700_00 });
     expect(stats(ids.sonia!)).toMatchObject({ sales: 1, soldCents: 100_00 });
     expect(stats(ids.murilo!)).toMatchObject({ sales: 1, soldCents: 200_00 });
+    // Pedido do cliente (04/11): SDR não vê faturamento, nem o próprio, na Equipe.
+    const mine = await h.get('/api/team', ale);
+    const own = mine.body.members.find((m: { id: string }) => m.id === ids.ale).stats;
+    expect(own).not.toHaveProperty('soldCents');
+    const closer = await h.get('/api/team', sonia);
+    // Closer continua vendo o próprio faturamento (o valor segue a RLS dele).
+    expect(
+      closer.body.members.find((m: { id: string }) => m.id === ids.sonia).stats,
+    ).toHaveProperty('soldCents');
   });
 });
 
