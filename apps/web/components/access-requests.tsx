@@ -78,7 +78,7 @@ function Row({
       </span>
       <select
         aria-label={`Cargo de ${r.name}`}
-        className={`${control} w-auto`}
+        className={`${control} sm:!w-44`}
         value={role}
         onChange={(e) => setRole(e.target.value as Role)}
       >

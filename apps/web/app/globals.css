@@ -461,6 +461,12 @@ body {
     --span: 3;
   }
 }
+/* Ultrawide (4xl): os seis indicadores cabem numa linha só. */
+@media (width >= 150rem) {
+  .dash-item[data-size='kpi'] {
+    --span: 2;
+  }
+}
 /* No toque, segurar o card levanta: sem seleção de texto nem menu do sistema. */
 @media (hover: none) {
   .dash-item {

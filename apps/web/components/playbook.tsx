@@ -66,7 +66,7 @@ export function Playbook({ initial, head }: { initial: Script[]; head: boolean }
   }
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-5">
+    <div className="flex w-full flex-col gap-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <h1 className="mt-1.5 text-[34px] leading-tight font-bold tracking-[-0.04em]">Playbook</h1>
         {head && (
@@ -77,7 +77,7 @@ export function Playbook({ initial, head }: { initial: Script[]; head: boolean }
       </div>
       <input
         type="search"
-        className={control}
+        className={`${control} max-w-xl`}
         placeholder="Buscar objeção ou palavra"
         aria-label="Buscar no playbook"
         value={query}
@@ -87,7 +87,7 @@ export function Playbook({ initial, head }: { initial: Script[]; head: boolean }
       {editing && (
         <form
           onSubmit={save}
-          className="glass-card flex flex-col gap-3 p-5"
+          className="glass-card flex w-full max-w-3xl flex-col gap-3 p-5"
           aria-label="Editar script"
         >
           <Field label="Tema">
@@ -127,39 +127,42 @@ export function Playbook({ initial, head }: { initial: Script[]; head: boolean }
         </form>
       )}
       {topics.length === 0 && <p className="text-sm text-ink2">Nada encontrado.</p>}
-      {topics.map(({ topic, items }) => (
-        <section key={topic} className="flex flex-col gap-3">
-          <h2 className="text-lg font-bold tracking-[-0.03em]">{topic}</h2>
-          {items.map((s) => (
-            <article key={s.id} className="glass-card flex flex-col gap-2 p-5">
-              <h3 className="font-semibold">“{s.title}”</h3>
-              <p className="text-[15px] whitespace-pre-wrap text-ink2">{s.body}</p>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  className={quietButton}
-                  onClick={async () => {
-                    await navigator.clipboard.writeText(s.body).catch(() => {});
-                    setCopied(s.id);
-                  }}
-                >
-                  {copied === s.id ? 'Copiado' : 'Copiar'}
-                </button>
-                {head && (
-                  <>
-                    <button type="button" className={quietButton} onClick={() => setEditing(s)}>
-                      Editar
-                    </button>
-                    <button type="button" className={quietButton} onClick={() => void remove(s)}>
-                      Excluir
-                    </button>
-                  </>
-                )}
-              </div>
-            </article>
-          ))}
-        </section>
-      ))}
+      {/* Um tema por coluna nas telas largas: a leitura de cada resposta fica estreita. */}
+      <div className="grid items-start gap-x-5 gap-y-6 lg:grid-cols-2 3xl:grid-cols-3 4xl:grid-cols-4">
+        {topics.map(({ topic, items }) => (
+          <section key={topic} className="flex min-w-0 flex-col gap-3">
+            <h2 className="text-lg font-bold tracking-[-0.03em]">{topic}</h2>
+            {items.map((s) => (
+              <article key={s.id} className="glass-card flex flex-col gap-2 p-5">
+                <h3 className="font-semibold">“{s.title}”</h3>
+                <p className="text-[15px] whitespace-pre-wrap text-ink2">{s.body}</p>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className={quietButton}
+                    onClick={async () => {
+                      await navigator.clipboard.writeText(s.body).catch(() => {});
+                      setCopied(s.id);
+                    }}
+                  >
+                    {copied === s.id ? 'Copiado' : 'Copiar'}
+                  </button>
+                  {head && (
+                    <>
+                      <button type="button" className={quietButton} onClick={() => setEditing(s)}>
+                        Editar
+                      </button>
+                      <button type="button" className={quietButton} onClick={() => void remove(s)}>
+                        Excluir
+                      </button>
+                    </>
+                  )}
+                </div>
+              </article>
+            ))}
+          </section>
+        ))}
+      </div>
     </div>
   );
 }

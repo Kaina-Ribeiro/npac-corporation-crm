@@ -118,7 +118,7 @@ export function Inbox({ initial }: { initial: NotificationsDTO }) {
   }
   const now = data.soon.length > 0 || data.overdue > 0;
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-5">
+    <div className="flex w-full flex-col gap-5">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="mt-1.5 text-[34px] leading-tight font-bold tracking-[-0.04em]">Avisos</h1>
@@ -135,8 +135,13 @@ export function Inbox({ initial }: { initial: NotificationsDTO }) {
       </header>
 
       {now && (
-        <section className="glass-card flex flex-col gap-1 p-2" aria-label="Agora">
-          <h2 className="px-3 pt-2 pb-1 text-xs font-semibold text-ink2 uppercase">Agora</h2>
+        <section
+          className="glass-card grid gap-1 p-2 xl:grid-cols-2 4xl:grid-cols-3"
+          aria-label="Agora"
+        >
+          <h2 className="px-3 pt-2 pb-1 text-xs font-semibold text-ink2 uppercase xl:col-span-full">
+            Agora
+          </h2>
           {data.soon.map((m) => (
             <Link
               key={m.id}
@@ -170,7 +175,7 @@ export function Inbox({ initial }: { initial: NotificationsDTO }) {
 
       <section className="glass-card p-2" aria-label="Avisos recebidos">
         {data.items.length ? (
-          <ul className="flex flex-col">
+          <ul className="grid gap-x-2 xl:grid-cols-2 4xl:grid-cols-3">
             {data.items.map((i) => (
               <li key={i.id}>
                 <Link

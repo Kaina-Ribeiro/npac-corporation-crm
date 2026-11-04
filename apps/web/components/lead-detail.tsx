@@ -148,7 +148,7 @@ export function LeadDetail({
           Próximo contato: {lead.nextContactAt ? date(lead.nextContactAt) : 'sem data'}
         </span>
       </div>
-      <div className="grid items-start gap-5 lg:grid-cols-2">
+      <div className="grid items-start gap-5 lg:grid-cols-2 3xl:grid-cols-3 4xl:grid-cols-4">
         <section className="glass-card flex flex-col gap-4 p-5">
           <h2 className="text-lg font-bold">Notas</h2>
           {activity.notes.length === 0 && <p className="text-sm text-ink2">Nenhuma nota ainda.</p>}

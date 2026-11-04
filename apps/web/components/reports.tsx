@@ -435,7 +435,7 @@ export function Reports({
         ['A receber das vendas do período', money(m.outstandingCents ?? 0)],
       ];
   const page = (
-    <div className="mx-auto flex max-w-[1920px] flex-col gap-5">
+    <div className="flex w-full flex-col gap-5">
       {dashboard ? (
         <header className="reveal flex flex-wrap items-end justify-between gap-4">
           <div className="min-w-0">
@@ -502,7 +502,7 @@ export function Reports({
       )}
       {!dashboard && (
         <form className="glass-card p-4" onSubmit={submit}>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 3xl:grid-cols-5">
             <Field label="Período do relatório">
               <select name="period" className={control} defaultValue="MONTH">
                 <option value="MONTH">Mês até hoje</option>
@@ -594,7 +594,7 @@ export function Reports({
         />
       ) : (
         <>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 3xl:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 4xl:grid-cols-6">
             {cards.map(([label, value], i) => (
               <article key={label} className="glass-card p-5">
                 <p className="text-sm text-ink2">{label}</p>
@@ -626,7 +626,7 @@ export function Reports({
               </span>
             )}
           </section>
-          <div className="grid items-start gap-5">
+          <div className="grid items-start gap-5 2xl:grid-cols-2">
             <Breakdown title="Por SDR" rows={data.bySdr} />
             <Breakdown title="Por closer" rows={data.byCloser} />
             <Breakdown title="Por produto" rows={data.byProduct} />
