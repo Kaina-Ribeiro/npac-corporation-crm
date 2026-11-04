@@ -241,7 +241,9 @@ export function LeadDetail({
                     ? 'Realizada'
                     : m.outcome === 'NO_SHOW'
                       ? 'No-show'
-                      : 'Agendada'}
+                      : m.outcome === 'RESCHEDULED'
+                        ? 'Remarcada'
+                        : 'Agendada'}
               </p>
               {!m.canceledAt && (
                 <>
@@ -272,6 +274,18 @@ export function LeadDetail({
                           }
                         >
                           No-show
+                        </button>
+                        <button
+                          className={quietButton}
+                          disabled={busy}
+                          onClick={() =>
+                            void mutate(`/api/meetings/${m.id}/outcome`, 'POST', {
+                              version: m.version,
+                              outcome: 'RESCHEDULED',
+                            })
+                          }
+                        >
+                          Remarcado
                         </button>
                       </>
                     )}

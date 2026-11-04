@@ -37,7 +37,7 @@ export type StageKey = (typeof STAGE_KEYS)[number];
 export const MEETING_ORIGINS = ['DIRETO', 'FOLLOW'] as const;
 export type MeetingOrigin = (typeof MEETING_ORIGINS)[number];
 
-export const MEETING_OUTCOMES = ['DONE', 'NO_SHOW'] as const;
+export const MEETING_OUTCOMES = ['DONE', 'NO_SHOW', 'RESCHEDULED'] as const;
 export type MeetingOutcome = (typeof MEETING_OUTCOMES)[number];
 
 export const LEGAL_BASES = ['LEGITIMATE_INTEREST', 'CONSENT', 'CONTRACT'] as const;

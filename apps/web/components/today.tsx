@@ -160,7 +160,9 @@ export function Today({
                   ? 'Realizada'
                   : m.outcome === 'NO_SHOW'
                     ? 'No-show'
-                    : 'Agendada'}
+                    : m.outcome === 'RESCHEDULED'
+                      ? 'Remarcada'
+                      : 'Agendada'}
               </p>
               <div className="flex flex-wrap gap-2">
                 <Link href={`/leads/${m.leadId}`} className={quietButton}>
@@ -191,6 +193,18 @@ export function Today({
                       }
                     >
                       No-show
+                    </button>
+                    <button
+                      className={quietButton}
+                      disabled={busy}
+                      onClick={() =>
+                        void action(`/api/meetings/${m.id}/outcome`, 'POST', {
+                          version: m.version,
+                          outcome: 'RESCHEDULED',
+                        })
+                      }
+                    >
+                      Remarcado
                     </button>
                   </>
                 )}
