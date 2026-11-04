@@ -239,7 +239,7 @@ export function LeadsBrowser({
     void search(String(f.get('q') ?? '').trim(), 1, selected);
   }
   return (
-    <div className="mx-auto flex max-w-[1920px] flex-col gap-4">
+    <div className="flex w-full flex-col gap-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="mt-1.5 text-[34px] leading-tight font-bold tracking-[-0.04em]">Leads</h1>
@@ -523,7 +523,7 @@ export function LeadsBrowser({
       {selected.length > 0 && (
         <section
           aria-label="Ações em massa"
-          className="glass fixed right-3.5 bottom-[calc(max(16px,env(safe-area-inset-bottom))+80px)] left-3.5 z-30 mx-auto flex max-w-3xl flex-wrap items-center gap-2 rounded-2xl p-2.5 shadow-[0_14px_34px_-14px_rgba(0,0,0,.35)] md:bottom-6 md:left-[268px]"
+          className="glass fixed right-3.5 bottom-[calc(max(16px,env(safe-area-inset-bottom))+80px)] left-3.5 z-30 mx-auto flex max-w-3xl flex-wrap items-center gap-2 rounded-2xl p-2.5 shadow-[0_14px_34px_-14px_rgba(0,0,0,.35)] md:bottom-6 md:left-[calc(var(--side-w)+32px)] md:transition-[left] md:duration-[var(--side-t)] md:ease-[var(--side-ease)]"
         >
           <b className="px-2 text-sm">
             {selected.length} {selected.length === 1 ? 'selecionado' : 'selecionados'}

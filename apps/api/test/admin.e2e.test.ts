@@ -21,7 +21,7 @@ afterAll(async () => {
 });
 beforeEach(async () => {
   await resetAuthState();
-  await owner`truncate lgpd_requests, chat_reads, chat_messages, chat_members, payments, deals, lead_notes, lead_tasks, notifications, lead_timeline, meetings, leads`;
+  await owner`truncate lgpd_requests, chat_reads, chat_messages, chat_members, payments, deals, lead_notes, lead_tasks, notifications, lead_timeline, meeting_reminders_sent, meeting_confirmations, meetings, leads`;
   await owner`update "user" set active = true`;
   await owner`update "user" set role = 'HEAD' where email = 'ana@npac.com.br'`;
   const users = await owner<{ id: string; email: string }[]>`select id, email from "user"`;

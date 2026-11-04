@@ -70,7 +70,8 @@ function Row({
   const [role, setRole] = useState<Role>('SDR');
   return (
     <li className="flex flex-wrap items-center gap-3 py-3">
-      <span className="min-w-0 flex-1">
+      {/* Base de 14rem: em telas estreitas os controles descem antes de cortar o nome. */}
+      <span className="min-w-0 flex-[1_1_14rem]">
         <b className="block truncate font-semibold">{r.name}</b>
         <small className="block truncate text-sm text-ink2">
           {r.username} · {r.email} · {ago(r.createdAt)}
@@ -78,7 +79,7 @@ function Row({
       </span>
       <select
         aria-label={`Cargo de ${r.name}`}
-        className={`${control} w-auto`}
+        className={`${control} sm:!w-44`}
         value={role}
         onChange={(e) => setRole(e.target.value as Role)}
       >

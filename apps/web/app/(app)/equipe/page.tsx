@@ -23,13 +23,13 @@ type Member = {
 export default async function EquipePage() {
   const { members } = await apiGet<{ members: Member[] }>('/api/team');
   return (
-    <div className="mx-auto flex max-w-[1920px] flex-col gap-5">
+    <div className="flex w-full flex-col gap-5">
       <div>
         <h1 className="mt-1.5 text-[34px] leading-tight font-bold tracking-[-0.04em]">Equipe</h1>
         <p className="text-sm text-ink2">Números do mês corrente (horário de Brasília).</p>
       </div>
       <ul
-        className="reveal-grid grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 4xl:grid-cols-5"
+        className="reveal-grid grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 4xl:grid-cols-6"
         style={{ '--d': '140ms' } as CSSProperties}
       >
         {members.map((m) => (
