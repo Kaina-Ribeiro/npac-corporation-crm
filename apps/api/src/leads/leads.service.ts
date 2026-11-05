@@ -9,6 +9,7 @@ import {
 import { leadContactTaken, pipelineStages, user, withUser, type Db } from '@npac/db';
 import {
   spDayRange,
+  TIER_BY_INCOME_BAND,
   normalizeInstagram,
   normalizePhoneBR,
   type AuthUser,
@@ -141,7 +142,8 @@ export class LeadsService {
         incomeBand: input.incomeBand,
         source: input.source,
         sourceOther: input.source === 'OUTRO' ? (input.sourceOther ?? null) : null,
-        tier: input.tier,
+        // O gatilho do banco garante o mesmo perfil; aqui só preenche a coluna obrigatória.
+        tier: TIER_BY_INCOME_BAND[input.incomeBand],
         stageId,
         sdrId,
         closerId: input.closerId ?? null,

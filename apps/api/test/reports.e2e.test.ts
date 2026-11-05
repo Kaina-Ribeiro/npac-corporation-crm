@@ -24,7 +24,7 @@ beforeEach(async () => {
   ] as const) {
     const lead = await h.post(
       '/api/leads',
-      { name, instagram: insta, incomeBand: 'R5_8K', source: 'BIO', tier: 'P1' },
+      { name, instagram: insta, incomeBand: 'R8_15K', source: 'BIO' },
       cookie,
     );
     expect(
@@ -112,9 +112,9 @@ it('leads excluídos não entram em métricas, linhas nem CSV do HEAD', async ()
     {
       name: 'Lead excluído',
       instagram: '@rel.gone',
-      incomeBand: 'R5_8K',
+      // 15–50 mil = P0: o excluído não pode somar em p0.
+      incomeBand: 'R15_50K',
       source: 'BIO',
-      tier: 'P0',
     },
     ale,
   );
@@ -204,20 +204,20 @@ describe('comparecimento (pedido do cliente de 04/11)', () => {
     aleId = by('ale@npac.com.br');
     muriloId = by('murilo@npac.com.br');
     closerId = by('sonia@npac.com.br');
-    for (const [key, tier, outcome] of [
-      ['p0done', 'P0', 'DONE'],
-      ['p1done', 'P1', 'DONE'],
-      ['p2noshow', 'P2', 'NO_SHOW'],
-      ['p0resched', 'P0', 'RESCHEDULED'],
+    // Perfil pela faixa: 15–50 mil = P0, 8–15 mil = P1, 5–8 mil = P2.
+    for (const [key, incomeBand, outcome] of [
+      ['p0done', 'R15_50K', 'DONE'],
+      ['p1done', 'R8_15K', 'DONE'],
+      ['p2noshow', 'R5_8K', 'NO_SHOW'],
+      ['p0resched', 'R15_50K', 'RESCHEDULED'],
     ] as const) {
       const lead = await h.post(
         '/api/leads',
         {
           name: `Comp ${key}`,
           instagram: `@comp.${key}`,
-          incomeBand: 'R5_8K',
+          incomeBand,
           source: 'BIO',
-          tier,
         },
         ale,
       );
@@ -249,8 +249,8 @@ describe('comparecimento (pedido do cliente de 04/11)', () => {
     expect((await today(ale)).body.metrics.meetingValueCents).toBe(900);
   });
 
-  it('perfil mudado depois vale o atual', async () => {
-    await owner`update leads set tier='P2' where id=${ids.p0done!}`;
+  it('perfil mudado depois (pela faixa) vale o atual', async () => {
+    await owner`update leads set income_band='R5_8K' where id=${ids.p0done!}`;
     expect((await today(ale)).body.metrics.meetingValueCents).toBe(1200);
   });
 

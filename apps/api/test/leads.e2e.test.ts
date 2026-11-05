@@ -17,7 +17,6 @@ const lead = (over: Record<string, unknown> = {}) => ({
   instagram: `@maria.${++seq}`,
   incomeBand: 'R8_15K',
   source: 'BIO',
-  tier: 'P1',
   ...over,
 });
 
@@ -169,6 +168,23 @@ describe('leads', () => {
     const timeline = await owner<{ fields: string[] }[]>`
       select fields from lead_timeline where lead_id = ${outro} and kind = 'lead.updated'`;
     expect(timeline.map((t) => t.fields)).toEqual([['source']]);
+  });
+
+  it('perfil vem da faixa de renda e não é trocado à mão (Igor, 05/11/2026)', async () => {
+    const id = await create(lead({ incomeBand: 'R5_8K' }), ale);
+    expect((await h.get(`/api/leads/${id}`, ale)).body.tier).toBe('P2');
+    // Perfil enviado no cadastro é ignorado: vale a faixa.
+    const p0 = await create(lead({ incomeBand: 'R8_15K', tier: 'P0' }), ale);
+    expect((await h.get(`/api/leads/${p0}`, ale)).body.tier).toBe('P1');
+    // Trocar o perfil à mão é recusado.
+    expect((await h.patch(`/api/leads/${id}`, { version: 1, tier: 'P0' }, ale)).status).toBe(400);
+    // Trocar a faixa troca o perfil, e a timeline registra os dois campos.
+    const res = await h.patch(`/api/leads/${id}`, { version: 1, incomeBand: 'R50K_PLUS' }, ale);
+    expect(res.status).toBe(200);
+    expect((await h.get(`/api/leads/${id}`, ale)).body.tier).toBe('P0');
+    const timeline = await owner<{ fields: string[] }[]>`
+      select fields from lead_timeline where lead_id = ${id} and kind = 'lead.updated'`;
+    expect(timeline.map((t) => t.fields)).toEqual([['incomeBand', 'tier']]);
   });
 
   it('edição usa versão otimista e nunca altera um lead invisível', async () => {
@@ -388,8 +404,8 @@ describe('exportar leads (período, filtro ou total)', () => {
   });
 
   it('total traz todos os leads visíveis com contato decifrado e auditoria', async () => {
-    await create(lead({ name: 'Exporta Ale', phone: '11987654321', tier: 'P0' }), ale);
-    await create(lead({ name: '=1+1', tier: 'P2' }), murilo);
+    await create(lead({ name: 'Exporta Ale', phone: '11987654321', incomeBand: 'R15_50K' }), ale);
+    await create(lead({ name: '=1+1', incomeBand: 'R5_8K' }), murilo);
     const res = await csv({}, ronaldo);
     expect(res.status).toBe(200);
     expect(res.headers['content-type']).toContain('text/csv');
@@ -404,8 +420,8 @@ describe('exportar leads (período, filtro ou total)', () => {
   });
 
   it('com filtro respeita os filtros da lista', async () => {
-    await create(lead({ name: 'Só P0', tier: 'P0' }), ale);
-    await create(lead({ name: 'Um P2', tier: 'P2' }), ale);
+    await create(lead({ name: 'Só P0', incomeBand: 'R50K_PLUS' }), ale);
+    await create(lead({ name: 'Um P2', incomeBand: 'R5_8K' }), ale);
     // A tela manda a ordenação junto com os filtros.
     const res = await csv({ tier: 'P0', sort: 'name', direction: 'asc' }, ronaldo);
     expect(res.status).toBe(200);

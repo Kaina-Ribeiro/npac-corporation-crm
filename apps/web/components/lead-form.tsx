@@ -11,8 +11,9 @@ import {
   LEAD_SOURCE_LABELS,
   LEAD_SOURCE_OPTIONS,
   SOURCE_OTHER_MAX,
-  TIERS,
+  TIER_BY_INCOME_BAND,
   isLeader,
+  type IncomeBand,
   isLegacyLeadSource,
 } from '@npac/shared/enums';
 import { useRouter } from 'next/navigation';
@@ -36,6 +37,9 @@ export function LeadForm({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [source, setSource] = useState<string>(lead?.source ?? '');
+  // O perfil vem da faixa de renda (a API e o banco aplicam a mesma regra); aqui só é mostrado.
+  const [band, setBand] = useState<IncomeBand | ''>(lead?.incomeBand ?? '');
+  const tier = band ? TIER_BY_INCOME_BAND[band] : null;
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setBusy(true);
@@ -91,6 +95,7 @@ export function LeadForm({
             onClick={() => {
               setLead(latestLead);
               setSource(latestLead.source);
+              setBand(latestLead.incomeBand);
               setError('');
             }}
           >
@@ -131,7 +136,8 @@ export function LeadForm({
           <select
             className={control}
             name="incomeBand"
-            defaultValue={lead?.incomeBand ?? ''}
+            value={band}
+            onChange={(e) => setBand(e.target.value as IncomeBand)}
             required
           >
             <option value="" disabled>
@@ -145,11 +151,20 @@ export function LeadForm({
           </select>
         </Field>
         <Field label="Perfil">
-          <select className={control} name="tier" defaultValue={lead?.tier ?? 'P1'}>
-            {TIERS.map((t) => (
-              <option key={t}>{t}</option>
-            ))}
-          </select>
+          {/* Sem campo de envio: o perfil segue a faixa (5–8 mil P2, 8–15 mil P1, 15 mil+ P0). */}
+          <output
+            aria-live="polite"
+            className={`${control} flex items-center gap-2 bg-transparent text-ink2`}
+          >
+            {tier ? (
+              <>
+                <span className={`tier tier-${tier}`}>{tier}</span>
+                <span className="text-[13px]">pela faixa de renda</span>
+              </>
+            ) : (
+              <span>Escolha a faixa de renda</span>
+            )}
+          </output>
         </Field>
         <Field label="Origem">
           <select

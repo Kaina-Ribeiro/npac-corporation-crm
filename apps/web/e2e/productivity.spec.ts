@@ -69,7 +69,7 @@ test('avisos: SDR vê o lead que o Head passou para ele e marca como lido', asyn
   await expect(page.getByRole('link', { name: 'Avisos', exact: true })).toBeVisible();
 });
 
-test('lista: edita perfil direto na célula e move vários leads de uma vez', async ({ page }) => {
+test('lista: perfil só pela faixa e move vários leads de uma vez', async ({ page }) => {
   await login(page, 'ale@npac.com.br');
   const ids: string[] = [];
   for (const n of [1, 2]) {
@@ -79,7 +79,6 @@ test('lista: edita perfil direto na célula e move vários leads de uma vez', as
         instagram: `@massa.${n}.e2e`,
         incomeBand: 'R5_8K',
         source: 'BIO',
-        tier: 'P2',
       },
     });
     expect(r.status()).toBe(201);
@@ -87,11 +86,10 @@ test('lista: edita perfil direto na célula e move vários leads de uma vez', as
   }
   await page.goto('/leads');
 
-  // Edição na própria linha, sem abrir a ficha.
-  await page.getByLabel('Perfil de Massa 1').filter({ visible: true }).selectOption('P0');
-  await expect(page.getByRole('status').filter({ hasText: 'Salvo' })).toBeVisible();
+  // Perfil vem da faixa (5–8 mil = P2): a célula só mostra, sem troca à mão.
+  await expect(page.getByLabel('Perfil de Massa 1')).toHaveCount(0);
   const [m1] = await owner<{ tier: string }[]>`select tier from leads where id = ${ids[0]!}`;
-  expect(m1!.tier).toBe('P0');
+  expect(m1!.tier).toBe('P2');
 
   // Seleção múltipla + barra de ações.
   await page.getByLabel('Selecionar Massa 1').filter({ visible: true }).check();
@@ -103,8 +101,9 @@ test('lista: edita perfil direto na célula e move vários leads de uma vez', as
   const rows = await owner<{ key: string }[]>`
     select s.key from leads l join pipeline_stages s on s.id = l.stage_id where l.id in ${owner(ids)}`;
   expect(rows.map((r) => r.key)).toEqual(['EM_FOLLOW', 'EM_FOLLOW']);
-  // SDR não vê troca de responsável na barra (só Head).
+  // SDR não vê troca de responsável na barra (só Head); perfil não se troca em massa.
   await expect(bar.getByLabel('Trocar SDR')).toHaveCount(0);
+  await expect(bar.getByLabel('Mudar perfil')).toHaveCount(0);
 });
 
 test('filtro salvo aparece na sidebar e reabre a lista já filtrada', async ({ page }) => {
