@@ -69,7 +69,7 @@ export default async function MorePage() {
           <Link
             key={item.href}
             href={item.href}
-            className="glass-card flex min-h-28 flex-col justify-between gap-3 p-4 transition-transform active:scale-[.98]"
+            className="glass-card flex min-h-28 flex-col justify-between gap-3 p-4 active:scale-[.98]"
           >
             <span className="flex items-start justify-between gap-2">
               <span className="inline-flex size-10 items-center justify-center rounded-xl bg-black/5 text-ink dark:bg-white/10 [&_svg]:size-5">

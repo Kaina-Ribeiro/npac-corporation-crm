@@ -47,7 +47,7 @@ export function PipelineColumnsEditor({
       form.reset();
     });
   }
-  const icon = `${quietButton} min-h-11 min-w-11 transition-[transform,background-color] hover:bg-black/5 active:scale-[.95] dark:hover:bg-white/10`;
+  const icon = `${quietButton} min-h-11 min-w-11 hover:bg-black/5 dark:hover:bg-white/10`;
   return (
     <section aria-label="Editar colunas" className="glass-card flex flex-col gap-3 p-4">
       <h2 className="text-base font-bold">Editar colunas</h2>

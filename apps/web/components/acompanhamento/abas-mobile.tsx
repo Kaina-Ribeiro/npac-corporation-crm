@@ -96,7 +96,7 @@ export function AbasMobile() {
         type="button"
         onClick={mais}
         aria-label={rotuloMais}
-        className="mx-auto flex size-14 items-center justify-center self-center rounded-full bg-ink text-[var(--bg)] shadow-[0_8px_20px_-8px_rgba(0,0,0,.5)] transition-transform active:scale-90"
+        className="mx-auto flex size-14 items-center justify-center self-center rounded-full bg-ink text-[var(--bg)] shadow-[0_8px_20px_-8px_rgba(0,0,0,.5)] active:scale-90"
       >
         {svg('M12 5v14M5 12h14')}
       </button>

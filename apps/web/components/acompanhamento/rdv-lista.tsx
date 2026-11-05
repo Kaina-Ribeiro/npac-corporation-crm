@@ -83,23 +83,15 @@ export function RdvLista({ inicial }: { inicial: PaginaRdv }) {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            className={`${button} active:scale-[.98]`}
-            onClick={() => setNovo(true)}
-          >
+          <button type="button" className={`${button}`} onClick={() => setNovo(true)}>
             Novo mentorado
           </button>
-          <button
-            type="button"
-            className={`${quietButton} active:scale-[.98]`}
-            onClick={() => setImportar(true)}
-          >
+          <button type="button" className={`${quietButton}`} onClick={() => setImportar(true)}>
             Importar .json
           </button>
           <button
             type="button"
-            className={`${quietButton} active:scale-[.98]`}
+            className={`${quietButton}`}
             onClick={() => void baixarBackup('rdv').catch((e: Error) => setErro(e.message))}
           >
             Exportar .json

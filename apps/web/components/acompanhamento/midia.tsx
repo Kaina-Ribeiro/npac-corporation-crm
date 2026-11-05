@@ -74,7 +74,7 @@ export function MidiaCartao({
         onClick={onRemover}
         aria-label={`Remover ${rotulo}`}
         title="Remove na hora, sem confirmar"
-        className="absolute top-2 right-2 inline-flex size-8 items-center justify-center rounded-full bg-black/55 text-white shadow transition-transform hover:bg-black/70 active:scale-90"
+        className="absolute top-2 right-2 inline-flex size-8 items-center justify-center rounded-full bg-black/55 text-white shadow hover:bg-black/70 active:scale-90"
       >
         <svg
           viewBox="0 0 24 24"
@@ -110,7 +110,7 @@ export function EnviarArquivo({
     <div className="flex flex-col gap-1">
       <label
         htmlFor={id}
-        className={`flex ${altura} cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-line px-3 text-center text-sm font-semibold text-ink2 transition-colors hover:bg-black/[0.03] active:scale-[.99] dark:hover:bg-white/[0.04]`}
+        className={`flex ${altura} cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-line px-3 text-center text-sm font-semibold text-ink2 transition-[color,background-color,border-color,scale] hover:bg-black/[0.03] active:scale-[.99] dark:hover:bg-white/[0.04]`}
       >
         <svg
           viewBox="0 0 24 24"

@@ -54,7 +54,7 @@ export function BackupView({
                   <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
-                      className={`${quietButton} min-h-10 active:scale-[.98]`}
+                      className={`${quietButton} min-h-10`}
                       aria-label={`Importar ${EM_MODULO[m]}`}
                       onClick={() => setGaveta(m)}
                     >
@@ -62,7 +62,7 @@ export function BackupView({
                     </button>
                     <button
                       type="button"
-                      className={`${quietButton} min-h-10 active:scale-[.98]`}
+                      className={`${quietButton} min-h-10`}
                       aria-label={`Exportar .json ${DO_MODULO[m]}`}
                       onClick={() => {
                         setErro('');

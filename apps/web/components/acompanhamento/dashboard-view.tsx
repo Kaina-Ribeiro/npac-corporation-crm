@@ -171,21 +171,21 @@ export function DashboardView({ inicial }: { inicial: ResumoDashboard }) {
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
-            className={`${quietButton} inline-flex items-center gap-2 active:scale-[.98]`}
+            className={`${quietButton} inline-flex items-center gap-2`}
             onClick={() => setGaveta('planilha')}
           >
             {icone('M5 4h14v16H5zM9 4V2h6v2M9 10h6M9 14h6')}Colar planilha
           </button>
           <button
             type="button"
-            className={`${quietButton} inline-flex items-center gap-2 active:scale-[.98]`}
+            className={`${quietButton} inline-flex items-center gap-2`}
             onClick={() => setGaveta('json')}
           >
             {icone('M12 3v12M7 10l5 5 5-5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2')}Importar .json
           </button>
           <button
             type="button"
-            className={`${quietButton} inline-flex items-center gap-2 active:scale-[.98]`}
+            className={`${quietButton} inline-flex items-center gap-2`}
             onClick={() => void baixarBackup('dashboard').catch((e: Error) => setErro(e.message))}
           >
             {icone('M12 15V3M7 8l5-5 5 5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2')}Exportar .json
@@ -225,7 +225,7 @@ export function DashboardView({ inicial }: { inicial: ResumoDashboard }) {
               type="button"
               aria-pressed={on}
               onClick={() => setF((x) => ({ ...x, tipoMentoria: on ? null : t.nome }))}
-              className={`inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[13px] transition-colors active:scale-[.98] ${
+              className={`inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[13px] active:scale-[.98] ${
                 on
                   ? 'border-line bg-[var(--on)] font-semibold text-ink shadow-sm'
                   : 'border-dashed border-line text-ink2 hover:text-ink'
@@ -305,7 +305,7 @@ export function DashboardView({ inicial }: { inicial: ResumoDashboard }) {
           <div className="border-t border-line p-3">
             <button
               type="button"
-              className={`${quietButton} active:scale-[.98]`}
+              className={`${quietButton}`}
               disabled={carregando}
               onClick={() => void carregarMais()}
             >

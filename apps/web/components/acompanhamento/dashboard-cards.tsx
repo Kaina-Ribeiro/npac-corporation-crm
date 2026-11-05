@@ -63,7 +63,7 @@ export function DashboardCards({
               id={titulo}
               aria-pressed={sel}
               onClick={() => onFiltro(sel ? null : c.status)}
-              className="flex flex-col items-start gap-1 rounded-xl text-left transition-transform active:scale-[.99]"
+              className="flex flex-col items-start gap-1 rounded-xl text-left active:scale-[.99]"
             >
               <span className="flex items-center gap-2 text-sm font-semibold text-ink2">
                 <span
