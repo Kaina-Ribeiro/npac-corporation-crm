@@ -42,10 +42,23 @@ Feita quando: `pnpm --filter @npac/db test`, `pnpm --filter @npac/api test`, `pn
 
 | # | Tarefa | Status |
 |---|---|---|
-| 2.1 | Componente único de campos por etapa (reunião+closer · pagamento+produto+valor · remarcar · motivo+texto do Outro · próximo contato). | ⏳ |
-| 2.2 | Cadastro (`lead-form.tsx`) e ficha (`lead-detail.tsx`, "Mover para") usando o componente. | ⏳ |
-| 2.3 | Janelinha no Pipeline (arrastar e seletor) e na célula da lista; cancelar devolve à etapa antiga. | ⏳ |
-| 2.4 | Ação em massa: sem Agendados e Agendou Pagamento; Sem Perfil pede motivo para todos. | ⏳ |
-| 2.5 | Playwright (cadastro em Agendado Direto cria reunião; Sem Perfil + Outro exige texto; janelinha do pipeline) + prints 375/768/1024/1440; `/leads` < 150 KB gzip. | ⏳ |
+| 2.1 | Componente único de campos por etapa (reunião+closer · pagamento+produto+valor · remarcar · motivo+texto do Outro · próximo contato). | ✅ |
+| 2.2 | Cadastro (`lead-form.tsx`) e ficha (`lead-detail.tsx`, "Mover para") usando o componente. | ✅ |
+| 2.3 | Janelinha no Pipeline (arrastar e seletor) e na célula da lista; cancelar devolve à etapa antiga. | ✅ |
+| 2.4 | Ação em massa: sem Agendados e Agendou Pagamento; Sem Perfil pede motivo para todos. | ✅ |
+| 2.5 | Playwright (cadastro em Agendado Direto cria reunião; Sem Perfil + Outro exige texto; janelinha do pipeline) + prints 375/768/1024/1440; `/leads` < 150 KB gzip. | ✅ |
 
 Feita quando: `pnpm --filter @npac/web e2e` passa e os prints mostram os campos certos por etapa.
+
+**Fase 2 concluída** (05/11/2026): `pnpm --filter @npac/web e2e` 141 passaram, 4 pulados (MFA
+desligado); JS de `/leads` 149,4 KB gzip; `pnpm lint && pnpm typecheck` ok. Prints
+`apps/web/test-results/etapa-{cadastro,ficha,janelinha}-{375,768,1024,1440}.png` e `etapa-massa-1440.png`.
+
+- Componente `components/stage-fields.tsx` + leitura `lib/stage-fields.ts` (`readStageFields`); o que
+  cada etapa pede em `lib/stage-kind.ts` (leve, a lista só importa este). Janelinha
+  `components/stage-move-dialog.tsx`: na lista baixa sob demanda (`import()`), fora da primeira carga.
+- Na edição de um lead que já está na etapa, os dados não são obrigatórios (3A); a reunião não aparece
+  (fica na seção Reuniões). Closer não agenda: Agendado sem reunião marcada mostra o aviso e não salva.
+- A ficha mostra o motivo (Sem Perfil) e o produto/valor combinados; "Registrar venda" abre com eles.
+  Histórico da ficha cita os campos alterados ("Etapa alterada · motivo do Sem Perfil").
+- Todos (inclusive SDR) recebem a lista de produtos na ficha e no cadastro (a rota já era aberta).
