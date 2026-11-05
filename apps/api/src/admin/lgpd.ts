@@ -126,12 +126,14 @@ export class LgpdService {
         instagram: string | null;
         income_band: string;
         source: string;
+        source_other: string | null;
         tier: string;
         summary: string | null;
         legal_basis: string;
         created_at: Date;
         anonymized_at: Date | null;
-      }>(sql`select id, name, phone_enc, instagram, income_band, source, tier, summary, legal_basis,
+      }>(sql`select id, name, phone_enc, instagram, income_band, source, source_other, tier, summary,
+        legal_basis,
         created_at, anonymized_at from leads where id = ${r.leadId}`);
       if (!lead) throw new NotFoundException();
       return {
@@ -144,6 +146,7 @@ export class LgpdService {
           instagram: lead.instagram,
           incomeBand: lead.income_band,
           source: lead.source,
+          sourceOther: lead.source_other,
           tier: lead.tier,
           summary: lead.summary,
           legalBasis: lead.legal_basis,

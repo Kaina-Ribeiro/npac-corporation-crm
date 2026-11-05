@@ -107,7 +107,13 @@ describe('usuários', () => {
   it('passa os leads de quem saiu para outro SDR, com registro na timeline', async () => {
     const lead = await h.post(
       '/api/leads',
-      { name: 'Lead da Ale', instagram: '@lead.da.ale', incomeBand: 'R5_8K', tier: 'P1' },
+      {
+        name: 'Lead da Ale',
+        instagram: '@lead.da.ale',
+        incomeBand: 'R5_8K',
+        source: 'BIO',
+        tier: 'P1',
+      },
       ale,
     );
     expect(lead.status).toBe(201);
@@ -205,6 +211,7 @@ describe('Diretoria', () => {
         name: 'Lead da diretoria',
         instagram: '@diretoria.e2e',
         incomeBand: 'R5_8K',
+        source: 'BIO',
         tier: 'P1',
         sdrId: ids.ale,
       },
@@ -268,7 +275,13 @@ describe('auditoria e LGPD', () => {
   it('acesso exporta dados do titular; eliminação anonimiza ao concluir', async () => {
     const lead = await h.post(
       '/api/leads',
-      { name: 'Titular Teste', phone: '11955554444', incomeBand: 'R5_8K', tier: 'P2' },
+      {
+        name: 'Titular Teste',
+        phone: '11955554444',
+        incomeBand: 'R5_8K',
+        source: 'BIO',
+        tier: 'P2',
+      },
       ale,
     );
     const access = await h.post(
@@ -346,6 +359,7 @@ describe('colunas do pipeline (pedido do cliente de 04/11)', () => {
         name: 'Lead coluna nova',
         instagram: '@coluna.nova',
         incomeBand: 'R5_8K',
+        source: 'BIO',
         tier: 'P1',
         stageKey: res.body.key,
       },
@@ -376,6 +390,7 @@ describe('colunas do pipeline (pedido do cliente de 04/11)', () => {
         name: 'Na temporária',
         instagram: '@temp.col',
         incomeBand: 'R5_8K',
+        source: 'BIO',
         tier: 'P1',
         stageKey: col.key,
       },
@@ -400,6 +415,7 @@ describe('colunas do pipeline (pedido do cliente de 04/11)', () => {
         name: 'Atrasado',
         instagram: '@late.col',
         incomeBand: 'R5_8K',
+        source: 'BIO',
         tier: 'P1',
         stageKey: col.key,
       },
@@ -417,6 +433,7 @@ describe('colunas do pipeline (pedido do cliente de 04/11)', () => {
         name: 'Vendeu na coluna',
         instagram: '@venda.col',
         incomeBand: 'R5_8K',
+        source: 'BIO',
         tier: 'P1',
         stageKey: col.key,
       },

@@ -1,15 +1,27 @@
 import { describe, expect, it } from 'vitest';
 import { leadCreateSchema } from '../src/schemas/lead.js';
 
-const base = { name: 'Maria', instagram: '@maria', incomeBand: 'R8_15K', tier: 'P1' };
+const base = {
+  name: 'Maria',
+  instagram: '@maria',
+  incomeBand: 'R8_15K',
+  source: 'BIO',
+  tier: 'P1',
+};
 
 describe('leadCreateSchema', () => {
   it('aceita lead válido e normaliza', () =>
     expect(leadCreateSchema.parse(base).instagram).toBe('maria'));
-  it('aplica defaults', () => {
-    const r = leadCreateSchema.parse(base);
-    expect(r.source).toBe('INSTAGRAM');
-    expect(r.stageKey).toBe('SONDAGEM');
+  it('aplica defaults', () => expect(leadCreateSchema.parse(base).stageKey).toBe('SONDAGEM'));
+  it('origem: obrigatória, só a lista nova e "Outro" com texto', () => {
+    expect(leadCreateSchema.safeParse({ ...base, source: undefined }).success).toBe(false);
+    expect(leadCreateSchema.safeParse({ ...base, source: 'INSTAGRAM' }).success).toBe(false);
+    expect(leadCreateSchema.safeParse({ ...base, source: 'OUTRO', sourceOther: ' ' }).success).toBe(
+      false,
+    );
+    expect(
+      leadCreateSchema.parse({ ...base, source: 'OUTRO', sourceOther: ' Feira ' }).sourceOther,
+    ).toBe('Feira');
   });
   it('exige faixa de renda', () =>
     expect(leadCreateSchema.safeParse({ ...base, incomeBand: undefined }).success).toBe(false));

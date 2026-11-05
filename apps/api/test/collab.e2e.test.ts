@@ -31,6 +31,7 @@ beforeEach(async () => {
       phone: '11987654321',
       instagram: '@collab.lead',
       incomeBand: 'R8_15K',
+      source: 'BIO',
       tier: 'P1',
       summary: 'Quer mentoria',
     },
@@ -185,12 +186,24 @@ describe('equipe', () => {
   it('vendas de quem prospecta e também fecha somam, sem contar duas vezes a mesma', async () => {
     const other = await h.post(
       '/api/leads',
-      { name: 'Lead do Murilo', instagram: '@collab.murilo', incomeBand: 'R5_8K', tier: 'P1' },
+      {
+        name: 'Lead do Murilo',
+        instagram: '@collab.murilo',
+        incomeBand: 'R5_8K',
+        source: 'BIO',
+        tier: 'P1',
+      },
       murilo,
     );
     const third = await h.post(
       '/api/leads',
-      { name: 'Lead só do Ale', instagram: '@collab.ale2', incomeBand: 'R5_8K', tier: 'P1' },
+      {
+        name: 'Lead só do Ale',
+        instagram: '@collab.ale2',
+        incomeBand: 'R5_8K',
+        source: 'BIO',
+        tier: 'P1',
+      },
       ale,
     );
     const [p] = await owner<{ id: string }[]>`select id from products where code = 'NACAO_PROMO'`;

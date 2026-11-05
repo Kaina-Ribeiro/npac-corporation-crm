@@ -28,6 +28,7 @@ beforeEach(async () => {
       name: 'Lead avisado',
       instagram: '@lead.avisado',
       incomeBand: 'R5_8K',
+      source: 'BIO',
       tier: 'P1',
       sdrId: ids.ale,
     },

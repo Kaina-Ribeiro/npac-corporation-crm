@@ -1,5 +1,10 @@
 import type { LeadCatalog } from '@npac/shared';
-import { LEAD_SOURCES, TIERS } from '@npac/shared/enums';
+import {
+  LEAD_SOURCE_LABELS,
+  LEAD_SOURCE_OPTIONS,
+  LEGACY_LEAD_SOURCES,
+  TIERS,
+} from '@npac/shared/enums';
 import { control, Field, quietButton } from './crm-ui';
 
 /** Campos associados a um form POST em memória; nenhum filtro pessoal vai para a URL. */
@@ -38,8 +43,10 @@ export function LeadFilters({
         <Field label="Origem do lead">
           <select name="source" form={form} defaultValue={values.source ?? ''} className={control}>
             <option value="">Todas</option>
-            {LEAD_SOURCES.map((s) => (
-              <option key={s}>{s}</option>
+            {[...LEAD_SOURCE_OPTIONS, ...LEGACY_LEAD_SOURCES].map((s) => (
+              <option key={s} value={s}>
+                {LEAD_SOURCE_LABELS[s]}
+              </option>
             ))}
           </select>
         </Field>

@@ -6,7 +6,15 @@ import {
   type LeadDTO,
   type Role,
 } from '@npac/shared';
-import { INCOME_BAND_LABELS, LEAD_SOURCES, TIERS, isLeader } from '@npac/shared/enums';
+import {
+  INCOME_BAND_LABELS,
+  LEAD_SOURCE_LABELS,
+  LEAD_SOURCE_OPTIONS,
+  SOURCE_OTHER_MAX,
+  TIERS,
+  isLeader,
+  isLegacyLeadSource,
+} from '@npac/shared/enums';
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import { brasiliaInput, clientApi } from '@/lib/client-api';
@@ -27,6 +35,7 @@ export function LeadForm({
   const [lead, setLead] = useState(latestLead);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [source, setSource] = useState<string>(lead?.source ?? '');
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setBusy(true);
@@ -48,6 +57,7 @@ export function LeadForm({
       raw.version = lead.version;
       if (!raw.phone) raw.phone = null;
       if (!raw.instagram) raw.instagram = null;
+      if (raw.source !== 'OUTRO') raw.sourceOther = null;
     }
     const parsed = (lead ? leadUpdateSchema : leadCreateSchema).safeParse(raw);
     if (!parsed.success) {
@@ -80,6 +90,7 @@ export function LeadForm({
             className="mt-2 font-semibold underline"
             onClick={() => {
               setLead(latestLead);
+              setSource(latestLead.source);
               setError('');
             }}
           >
@@ -141,12 +152,42 @@ export function LeadForm({
           </select>
         </Field>
         <Field label="Origem">
-          <select className={control} name="source" defaultValue={lead?.source ?? 'INSTAGRAM'}>
-            {LEAD_SOURCES.map((s) => (
-              <option key={s}>{s}</option>
+          <select
+            className={control}
+            name="source"
+            value={source}
+            onChange={(e) => setSource(e.target.value)}
+            required
+          >
+            <option value="" disabled>
+              Escolha a origem
+            </option>
+            {LEAD_SOURCE_OPTIONS.map((s) => (
+              <option key={s} value={s}>
+                {LEAD_SOURCE_LABELS[s]}
+              </option>
             ))}
+            {/* Origem antiga só aparece no lead que já está nela. */}
+            {lead && isLegacyLeadSource(lead.source) && (
+              <option value={lead.source}>{LEAD_SOURCE_LABELS[lead.source]}</option>
+            )}
           </select>
         </Field>
+        {source === 'OUTRO' && (
+          <Field label="Qual origem?">
+            <input
+              className={control}
+              name="sourceOther"
+              defaultValue={lead?.sourceOther ?? ''}
+              maxLength={SOURCE_OTHER_MAX}
+              placeholder="Escreva a origem"
+              autoComplete="off"
+              autoFocus={lead?.source !== 'OUTRO'}
+              // Lead antigo em "Outro" ficou sem texto: não trava a edição dos outros campos.
+              required={!(lead?.source === 'OUTRO' && !lead.sourceOther)}
+            />
+          </Field>
+        )}
         <Field label="Etapa">
           <select className={control} name="stageKey" defaultValue={lead?.stageKey ?? 'SONDAGEM'}>
             <StageOptions stages={catalog.stages} current={lead?.stageKey ?? 'SONDAGEM'} />
