@@ -43,10 +43,10 @@ describe('seed', () => {
     expect(p!.n).toBeGreaterThanOrEqual(6);
     expect(p!.topics).toBeGreaterThanOrEqual(4);
   });
-  it('é idempotente: 7 usuários e 8 etapas', async () => {
+  it('é idempotente: 8 usuários e 8 etapas', async () => {
     const [u] = await owner<{ n: number }[]>`select count(*)::int as n from "user"`;
     const [s] = await owner<{ n: number }[]>`select count(*)::int as n from pipeline_stages`;
-    expect(u?.n).toBe(7);
+    expect(u?.n).toBe(8);
     expect(s?.n).toBe(8);
   });
 
@@ -95,7 +95,7 @@ describe('seed', () => {
       select count(a.id)::int as n, min(a.password) as pw, bool_and(u.must_change_password) as must
       from "user" u left join account a on a.user_id = u.id and a.provider_id = 'credential'
       group by u.id`;
-    expect(rows).toHaveLength(7);
+    expect(rows).toHaveLength(8);
     for (const r of rows) {
       expect(r.n).toBe(1);
       expect(r.pw).toBe('hashed:senha-inicial-123');

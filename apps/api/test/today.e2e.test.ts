@@ -172,7 +172,10 @@ describe('ação rápida no Hoje', () => {
   });
 
   it('próxima ação vira tarefa e tira o lead da lista de contatos', async () => {
-    const at = new Date(Date.now() + 3600_000).toISOString();
+    // Ainda hoje em Brasília: depois das 23h, "daqui a 1 hora" já cairia amanhã e sairia do Hoje.
+    const now = Date.now();
+    const fim = spDayRange(new Date(now)).end.getTime();
+    const at = new Date(now + Math.min(3600_000, (fim - now) / 2)).toISOString();
     const res = await quick(a, {
       version: await version(a),
       action: 'NEXT_ACTION',

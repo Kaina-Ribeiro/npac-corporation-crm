@@ -7,6 +7,7 @@ const validEnv = {
   BETTER_AUTH_SECRET: 'segredo-de-teste-com-mais-de-32-caracteres',
   FIELD_ENCRYPTION_KEY: key,
   BLIND_INDEX_KEY: Buffer.alloc(32, 9).toString('base64'),
+  MENTORADO_ENCRYPTION_KEY: Buffer.alloc(32, 11).toString('base64'),
   API_PORT: '4000',
   WEB_ORIGIN: 'http://localhost:3000',
 };
@@ -33,4 +34,28 @@ describe('loadEnv', () => {
     ).toEqual(['https://a.trycloudflare.com', 'http://x:1']);
     expect(() => loadEnv({ ...validEnv, EXTRA_TRUSTED_ORIGINS: 'nao-e-url' })).toThrow();
   });
+  it('env recusa MENTORADO_ENCRYPTION_KEY ausente ou com tamanho errado', () => {
+    expect(loadEnv(validEnv).MENTORADO_ENCRYPTION_KEY).toHaveLength(32);
+    expect(() => loadEnv({ ...validEnv, MENTORADO_ENCRYPTION_KEY: undefined })).toThrow(
+      /MENTORADO_ENCRYPTION_KEY/,
+    );
+    expect(() =>
+      loadEnv({ ...validEnv, MENTORADO_ENCRYPTION_KEY: Buffer.alloc(16).toString('base64') }),
+    ).toThrow(/32 bytes/);
+  });
+  it('MEDIA_DIR é opcional e, quando vem, não pode ser vazio', () => {
+    expect(loadEnv(validEnv).MEDIA_DIR).toBeUndefined();
+    expect(loadEnv({ ...validEnv, MEDIA_DIR: '/srv/npac/media' }).MEDIA_DIR).toBe(
+      '/srv/npac/media',
+    );
+    expect(() => loadEnv({ ...validEnv, MEDIA_DIR: '' })).toThrow();
+  });
+  it('boot em produção sem MEDIA_DIR falha com mensagem clara', () => {
+    expect(() => loadEnv({ ...validEnv, NODE_ENV: 'production' })).toThrow(/MEDIA_DIR/);
+    expect(loadEnv({ ...validEnv, NODE_ENV: 'production', MEDIA_DIR: '/media' }).MEDIA_DIR).toBe(
+      '/media',
+    );
+  });
+  it('MENTORADO_ENCRYPTION_KEY precisa ser distinta de FIELD_ENCRYPTION_KEY', () =>
+    expect(() => loadEnv({ ...validEnv, MENTORADO_ENCRYPTION_KEY: key })).toThrow(/distinta/));
 });

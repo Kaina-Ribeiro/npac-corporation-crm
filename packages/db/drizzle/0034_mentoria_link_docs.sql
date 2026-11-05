@@ -1,0 +1,4 @@
+ALTER TABLE "mentoria_midia" DROP CONSTRAINT "mentoria_midia_url";--> statement-breakpoint
+ALTER TABLE "mentoria_rdv_pessoas" DROP CONSTRAINT "mentoria_rdv_pessoas_pasta";--> statement-breakpoint
+ALTER TABLE "mentoria_midia" ADD CONSTRAINT "mentoria_midia_url" CHECK ("mentoria_midia"."url_video" ~ '^https://((www|m)\.)?(youtube\.com|youtu\.be|vimeo\.com|player\.vimeo\.com|drive\.google\.com|docs\.google\.com)(/|$)');--> statement-breakpoint
+ALTER TABLE "mentoria_rdv_pessoas" ADD CONSTRAINT "mentoria_rdv_pessoas_pasta" CHECK ("mentoria_rdv_pessoas"."pasta_url" ~ '^https://((www|m)\.)?(youtube\.com|youtu\.be|vimeo\.com|player\.vimeo\.com|drive\.google\.com|docs\.google\.com)(/|$)');

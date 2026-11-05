@@ -85,6 +85,9 @@ Chaves novas (nunca as de dev) e guardadas no cofre: sem `FIELD_ENCRYPTION_KEY` 
 3. Seed inicial (uma vez, pelo shell do app `api`):
    `SEED_INITIAL_PASSWORD=... node node_modules/@npac/db/dist/seed-cli.js`
 4. Confira `https://<domínio>/api/health` e o login.
+5. **Mídia do Acompanhamento (a definir):** o app `api` precisa de um volume persistente
+   montado em `MEDIA_DIR` (fotos, vídeos e PDFs dos mentorados, até 20 MB cada). Sem volume, a
+   API não sobe em produção. O volume não foi definido nem testado no Cubeship ainda (D28).
 
 ### Senha esquecida sem ninguém da Diretoria para redefinir
 

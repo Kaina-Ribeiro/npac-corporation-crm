@@ -1,6 +1,6 @@
 import { isIP } from 'node:net';
 import { Inject, Injectable } from '@nestjs/common';
-import { auditLog, type Db } from '@npac/db';
+import { auditLog, type Db, type Tx } from '@npac/db';
 import { DB } from '../common/db/db.module.js';
 
 export interface AuditEvent {
@@ -18,8 +18,9 @@ export interface AuditEvent {
 export class AuditService {
   constructor(@Inject(DB) private readonly db: Db) {}
 
-  async record(e: AuditEvent): Promise<void> {
-    await this.db.insert(auditLog).values({
+  /** Com `tx`, grava na mesma transação da mudança (falhou uma, reverte as duas). */
+  async record(e: AuditEvent, tx?: Tx): Promise<void> {
+    await (tx ?? this.db).insert(auditLog).values({
       actorId: e.actorId,
       action: e.action,
       entityType: e.entityType,

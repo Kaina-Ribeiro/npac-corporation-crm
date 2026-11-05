@@ -204,6 +204,48 @@
       "when": 1793819672572,
       "tag": "0028_push_reminders",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1793819673572,
+      "tag": "0029_acompanhamento_papel",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1793819674572,
+      "tag": "0030_mentoria_base",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1793819675572,
+      "tag": "0031_mentoria_modelo",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1793819676572,
+      "tag": "0032_mentoria_funcoes",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1793819677572,
+      "tag": "0033_mentoria_lgpd",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1793819678572,
+      "tag": "0034_mentoria_link_docs",
+      "breakpoints": true
     }
   ]
 }

@@ -1,8 +1,12 @@
+'use client';
+import { usePathname } from 'next/navigation';
 import { InboxDot } from '../inbox';
 import { BOTTOM_ITEMS } from './nav-items';
 import { NavLink } from './nav-link';
 
 export function BottomNav() {
+  // No Acompanhamento, o rodapé é o das abas do módulo (abas-mobile).
+  if (usePathname().startsWith('/acompanhamento')) return null;
   return (
     <nav
       aria-label="Navegação inferior"

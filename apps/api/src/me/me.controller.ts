@@ -15,6 +15,8 @@ export class MeController {
       canClose: u.canClose,
       twoFactorEnabled: u.twoFactorEnabled,
       mustChangePassword: u.mustChangePassword,
+      // Módulos além do comercial: o web mostra a entrada só para quem tem acesso.
+      modules: { mentoria: u.role === 'DIRETOR' || u.role === 'ACOMPANHAMENTO' },
     };
   }
 }

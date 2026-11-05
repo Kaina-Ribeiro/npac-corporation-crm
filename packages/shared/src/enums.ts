@@ -1,5 +1,8 @@
-/** Hierarquia: Diretoria > Head > SDR / Closer. */
-export const ROLES = ['DIRETOR', 'HEAD', 'SDR', 'CLOSER'] as const;
+/**
+ * Hierarquia comercial: Diretoria > Head > SDR / Closer. ACOMPANHAMENTO é a equipe de mentoria:
+ * só vê o módulo Acompanhamento e não faz parte da hierarquia comercial.
+ */
+export const ROLES = ['DIRETOR', 'HEAD', 'SDR', 'CLOSER', 'ACOMPANHAMENTO'] as const;
 export type Role = (typeof ROLES)[number];
 
 /** Liderança: vê toda a equipe e administra. Só a Diretoria dá ou tira cargo de liderança. */
