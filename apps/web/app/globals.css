@@ -40,6 +40,10 @@
   --gold-deep: #a87818;
   --gold-ring: rgba(194, 146, 46, 0.75);
   --danger: #d7264a;
+  /* Verde de "deu certo" (ponto Engajado do Dashboard = emerald-500) e o dourado da linha da
+     ficha: `--gold-deep` no claro (o `--gold` some sobre o vidro claro). */
+  --ok: oklch(69.6% 0.17 162.48);
+  --linha-ouro: var(--gold-deep);
   --on: rgba(255, 255, 255, 0.8);
   /* Gráficos: ordem fixa (dinheiro, volume, terceira série), validada para daltonismo. */
   --viz-1: #a87818;
@@ -79,6 +83,8 @@
   --glhi: inset 0 1px 0 rgba(255, 255, 255, 0.1), inset 0 0 0 0.5px rgba(255, 255, 255, 0.08);
   --gld: 0 14px 34px -14px rgba(0, 0, 0, 0.6);
   --on: rgba(255, 255, 255, 0.12);
+  --ok: oklch(69.6% 0.17 162.48);
+  --linha-ouro: var(--gold);
   --viz-1: #b5862e;
   --viz-2: #3f8cf2;
   --viz-3: #db5f8c;
@@ -429,6 +435,35 @@ body {
   .tier-P2 {
     box-shadow: inset 0 0 0 1px #d1d1d6;
     color: var(--ink2);
+  }
+  /* Venda a registrar (NPAC-39): lead em Venda sem venda ativa. Dourado = dinheiro pendente. */
+  .sale-pending {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 22px;
+    padding: 0 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    vertical-align: middle;
+    flex: none;
+    color: #7a560f;
+    background: color-mix(in srgb, var(--gold) 26%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold-deep) 38%, transparent);
+  }
+  .sale-pending::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  .dark .sale-pending {
+    color: var(--gold);
+    background: color-mix(in srgb, var(--gold) 14%, transparent);
   }
   /* Cargo: a cor diz quem lidera e o que faz. Liderança em dourado (Diretoria cheio, Head
      suave); time com as cores dos gráficos: SDR azul (prospecta), Closer rosa (fecha). */
@@ -1137,6 +1172,192 @@ html[data-dash-dragging] * {
     border: 1px solid #ddd;
     break-inside: avoid;
   }
+  /* Linha do tempo impressa direto (NPAC-36): vazio e placeholder não vão ao papel; fio e nós
+     saem em cor; campo sem fundo nem anel. */
+  .campo-vazio {
+    display: none !important;
+  }
+  .campo-quieto::placeholder {
+    color: transparent;
+  }
+  .campo-quieto {
+    background: none !important;
+    box-shadow: none !important;
+  }
+  .linha-rail,
+  .linha-no {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}
+
+/* Ficha da Linha do tempo em linha vertical (NPAC-36): um fio de 2 px à esquerda liga as seções,
+   do dourado (Momento inicial) ao verde (Depois da mentoria). Cada seção desenha o trecho do seu
+   nó até o próximo; o degradê continua de trecho em trecho. */
+.linha-rail {
+  --rail: 20px;
+  --no: 20px;
+  --linha-gap: 2rem;
+  /* Centro do título (h2 de 28 px de altura de linha): onde fica o nó. */
+  --no-y: 14px;
+  --linha-meio-a: color-mix(in oklab, var(--linha-ouro) 65%, var(--ok));
+  --linha-meio-b: color-mix(in oklab, var(--linha-ouro) 30%, var(--ok));
+  --pad-rail: calc(var(--rail) + 12px);
+  gap: var(--linha-gap);
+  padding-left: var(--pad-rail);
+}
+@media (min-width: 768px) {
+  .linha-rail {
+    --rail: 28px;
+    --no: 24px;
+    --linha-gap: 2.5rem;
+    --pad-rail: calc(var(--rail) + 16px);
+  }
+}
+.linha-ponto {
+  position: relative;
+  --de: var(--linha-ouro);
+  --ate: var(--linha-meio-a);
+}
+.linha-ponto[data-tom='meio'] {
+  --de: var(--linha-meio-a);
+  --ate: var(--linha-meio-b);
+}
+.linha-ponto[data-tom='meio']:has(+ .linha-ponto[data-tom='fim']) {
+  --de: var(--linha-meio-b);
+  --ate: var(--ok);
+}
+.linha-ponto[data-tom='fim'] {
+  --de: var(--ok);
+  --ate: var(--ok);
+}
+.linha-ponto:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: calc(-1 * (var(--pad-rail)) + var(--rail) / 2 - 1px);
+  top: var(--no-y);
+  bottom: calc(-1 * (var(--linha-gap) + var(--no-y)));
+  width: 2px;
+  border-radius: 1px;
+  background: linear-gradient(to bottom, var(--de), var(--ate));
+}
+.linha-no {
+  position: absolute;
+  top: calc(var(--no-y) - var(--no) / 2);
+  left: calc(-1 * (var(--pad-rail)) + (var(--rail) - var(--no)) / 2);
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--no);
+  height: var(--no);
+  border-radius: 999px;
+  border: 2px solid var(--de);
+  background: var(--bg);
+  color: var(--ink2);
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  transition:
+    box-shadow var(--dur) var(--ease-out),
+    scale var(--dur) var(--ease-out);
+}
+.linha-ponto[data-tom='inicio'] .linha-no {
+  border-color: var(--linha-ouro);
+  background: color-mix(in oklab, var(--linha-ouro) 14%, var(--bg));
+  color: var(--linha-ouro);
+}
+.linha-ponto[data-tom='meio'] .linha-no {
+  border-color: color-mix(in oklab, var(--ink3) 55%, transparent);
+}
+.linha-ponto[data-tom='fim'] .linha-no {
+  border-color: var(--ok);
+  background: color-mix(in oklab, var(--ok) 14%, var(--bg));
+  color: color-mix(in oklab, var(--ok) 70%, var(--ink));
+}
+.linha-ponto[data-tom='fim']:last-child .linha-no {
+  background: var(--ok);
+  color: white;
+}
+/* A seção em edição acende o próprio nó. */
+.linha-ponto:focus-within > .linha-no {
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--de) 22%, transparent);
+  scale: 1.08;
+}
+@media (prefers-reduced-motion: reduce) {
+  .linha-no {
+    transition: none;
+  }
+  .linha-ponto:focus-within > .linha-no {
+    scale: 1;
+  }
+}
+
+/* Campo discreto da ficha (NPAC-36): em repouso é texto (sem borda nem fundo); vazio mostra só o
+   placeholder em 1 linha. Hover (só mouse) dá um fundo leve; foco = fundo e anel do `.field`.
+   A altura acompanha o texto (`field-sizing`); sem suporte, 3 linhas e alça de redimensionar. */
+@layer components {
+  .campo-quieto {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    border: 0;
+    border-radius: 10px;
+    padding: 6px 10px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--ink);
+    background: transparent;
+    box-shadow:
+      inset 0 0 0 1px transparent,
+      0 0 0 4px transparent;
+    resize: none;
+    transition:
+      background-color var(--dur) var(--ease-out),
+      box-shadow var(--dur) var(--ease-out);
+  }
+  textarea.campo-quieto {
+    field-sizing: content;
+    min-height: calc(1.5em + 12px);
+  }
+  .campo-quieto::placeholder {
+    color: var(--ink3);
+    opacity: 1;
+    font-weight: 400;
+  }
+  @media (hover: hover) {
+    .campo-quieto:hover {
+      background: rgba(0, 0, 0, 0.035);
+    }
+    .dark .campo-quieto:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+  }
+  .campo-quieto:focus,
+  .campo-quieto:focus-visible {
+    outline: none;
+    background: rgba(255, 255, 255, 0.85);
+    box-shadow:
+      inset 0 0 0 1px var(--gold-ring),
+      0 0 0 4px rgba(194, 146, 46, 0.18);
+  }
+  .dark .campo-quieto:focus,
+  .dark .campo-quieto:focus-visible {
+    background: rgba(255, 255, 255, 0.1);
+  }
+  .campo-quieto[aria-invalid='true'] {
+    box-shadow:
+      inset 0 0 0 1px rgba(225, 29, 72, 0.5),
+      0 0 0 4px transparent;
+  }
+  @supports not (field-sizing: content) {
+    textarea.campo-quieto {
+      min-height: calc(4.5em + 12px);
+      resize: vertical;
+    }
+  }
 }
 
 /* Lembrete de reunião que acabou de entrar na etapa (NPAC-26). */
@@ -1147,4 +1368,124 @@ html[data-dash-dragging] * {
 /* Selo que aparece ou muda de número (chat, avisos). */
 .badge-pop {
   animation: dash-pop 0.35s var(--ease-spring) both;
+}
+
+/* Dropdown com o visual do CRM (NPAC-39): select nativo personalizável (`appearance:
+   base-select`, Chrome/Edge 135+). Só CSS, nenhum JS: teclado, leitor de tela e formulário
+   continuam os do select nativo. Navegador sem suporte (Safari, iPhone) mantém o seletor do
+   sistema. Vale para todos os <select> do app, nos dois temas (os tokens mudam com `.dark`). */
+@supports (appearance: base-select) {
+  @layer base {
+    select,
+    ::picker(select) {
+      appearance: base-select;
+    }
+    select {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: inherit;
+      font: inherit;
+      cursor: pointer;
+    }
+    select:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+    /* Seta própria: chevron fino na cor secundária, vira para cima com a lista aberta. */
+    select::picker-icon {
+      content: '';
+      width: 14px;
+      height: 14px;
+      margin-inline-start: auto;
+      flex: none;
+      background: var(--ink2);
+      mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+        center / contain no-repeat;
+      transition: rotate var(--dur) var(--ease-out);
+    }
+    select:open::picker-icon {
+      rotate: 180deg;
+    }
+    /* A lista: vidro opaco do tema, cantos de 14 px como o `.field`, sombra do cartão. */
+    ::picker(select) {
+      border: 0;
+      border-radius: 14px;
+      padding: 6px;
+      margin-block: 6px;
+      min-inline-size: anchor-size(self-inline);
+      max-block-size: min(22rem, 60dvh);
+      overflow-y: auto;
+      color: var(--ink);
+      background: color-mix(in srgb, var(--gl-solid) 94%, transparent);
+      backdrop-filter: var(--blur);
+      box-shadow:
+        var(--glhi),
+        0 0 0 0.5px var(--line),
+        0 22px 48px -16px rgba(0, 0, 0, 0.32);
+      scrollbar-width: thin;
+      opacity: 0;
+      translate: 0 -4px;
+      transition:
+        opacity var(--dur-fast) var(--ease-out),
+        translate var(--dur-fast) var(--ease-out),
+        overlay var(--dur-fast) allow-discrete,
+        display var(--dur-fast) allow-discrete;
+    }
+    select:open::picker(select) {
+      opacity: 1;
+      translate: 0 0;
+    }
+    @starting-style {
+      select:open::picker(select) {
+        opacity: 0;
+        translate: 0 -4px;
+      }
+    }
+    select option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-block-size: 40px;
+      padding: 8px 12px;
+      border-radius: 9px;
+      font-size: 15px;
+      line-height: 1.3;
+      cursor: pointer;
+    }
+    select option:not(:disabled):hover,
+    select option:focus-visible {
+      outline: none;
+      background: color-mix(in srgb, var(--ink) 7%, transparent);
+    }
+    select option:checked {
+      font-weight: 600;
+      background: color-mix(in srgb, var(--gold) 16%, transparent);
+    }
+    /* Check dourado à direita da opção marcada. */
+    select option::checkmark {
+      order: 1;
+      margin-inline-start: auto;
+      color: var(--gold-deep);
+      font-weight: 700;
+    }
+    .dark select option::checkmark {
+      color: var(--gold);
+    }
+    select option:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    /* Selects pequenos (cards do Pipeline, filtros em text-xs): lista mais compacta. */
+    select:where(.text-xs) option {
+      min-block-size: 34px;
+      font-size: 13px;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      ::picker(select),
+      select::picker-icon {
+        transition: none;
+      }
+    }
+  }
 }

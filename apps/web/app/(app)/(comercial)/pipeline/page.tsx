@@ -17,6 +17,7 @@ export default async function PipelinePage() {
       catalog={catalog}
       canCreate={!!me && (isLeader(me.role) || me.canProspect)}
       canEditColumns={!!me && isLeader(me.role)}
+      role={me?.role ?? 'SDR'}
     />
   );
 }

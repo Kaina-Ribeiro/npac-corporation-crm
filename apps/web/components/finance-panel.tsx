@@ -3,7 +3,7 @@ import { isLeader } from '@npac/shared/enums';
 import type { DealDTO, LeadDTO, ProductDTO, Role } from '@npac/shared';
 import { money } from '@npac/shared/money';
 import { useRouter } from 'next/navigation';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { clientApi } from '@/lib/client-api';
 import { button, FormError, quietButton } from './crm-ui';
 import { SaleFlow } from './sale-flow';
@@ -23,6 +23,16 @@ export function FinancePanel({
     [busy, setBusy] = useState(false),
     [error, setError] = useState('');
   const keys = useRef(new Map<string, string>());
+  // "Registrar venda" do selo "Venda a registrar" (ficha e Pipeline) chega com #vendas.
+  useEffect(() => {
+    if (!lead.saleToRegister) return;
+    const fromHash = () => {
+      if (window.location.hash === '#vendas') setOpen(true);
+    };
+    fromHash();
+    window.addEventListener('hashchange', fromHash);
+    return () => window.removeEventListener('hashchange', fromHash);
+  }, [lead.saleToRegister]);
   async function act(path: string, body: object) {
     setBusy(true);
     setError('');
@@ -36,8 +46,14 @@ export function FinancePanel({
     }
   }
   return (
-    <section className="glass-card flex flex-col gap-4 p-5">
+    <section id="vendas" className="glass-card flex scroll-mt-24 flex-col gap-4 p-5">
       <h2 className="text-lg font-bold">Vendas e pagamentos</h2>
+      {lead.saleToRegister && (
+        <p className="text-sm text-ink2">
+          <span className="sale-pending mr-2">Venda a registrar</span>
+          Cadastrado como Venda Fechada. Registre a venda para ela contar nos relatórios.
+        </p>
+      )}
       <FormError message={error} />
       {deals.map((d) => (
         <article key={d.id} className="flex flex-col gap-3 border-b border-line pb-4">

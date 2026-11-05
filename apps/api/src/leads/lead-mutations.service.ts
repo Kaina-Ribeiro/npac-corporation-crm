@@ -6,14 +6,42 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { deals, leadContactTaken, leads, leadTasks, withUser, type Db, type Tx } from '@npac/db';
-import { isLeader, isLegacyLeadSource, type AuthUser, type LeadUpdateInput } from '@npac/shared';
+import {
+  deals,
+  leadContactTaken,
+  leads,
+  leadTasks,
+  pipelineStages,
+  withUser,
+  type Db,
+  type Tx,
+} from '@npac/db';
+import {
+  TIER_BY_INCOME_BAND,
+  isLeader,
+  isLegacyLeadSource,
+  type AuthUser,
+  type LeadUpdateInput,
+} from '@npac/shared';
 import { and, eq, isNull, sql } from 'drizzle-orm';
 import { DB } from '../common/db/db.module.js';
 import { FieldCrypto } from '../common/crypto/field-crypto.js';
+import { scheduleMeeting } from '../meetings/meetings.service.js';
+import { ReminderScheduler } from '../push/reminders.js';
 import { recordActivity } from './activity.js';
 import { LeadsRepository } from './leads.repository.js';
 import type { RequestMeta } from './leads.service.js';
+import {
+  resolveStageFields,
+  STAGE_DATA_FIELDS,
+  timelineField,
+  type StageState,
+} from './stage-fields.js';
+
+/** Campos da timeline que acompanham a troca de etapa: com eles a mudança ainda é "moveu". */
+const MOVE_FIELDS = new Set(['stageKey', 'nextContactAt', 'payment', 'lostReason']);
+const sameValue = (a: unknown, b: unknown) =>
+  a instanceof Date && b instanceof Date ? a.getTime() === b.getTime() : a === b;
 
 /** Ação rápida do Hoje (pedido do cliente, 04/11/2026). */
 export type QuickAction = {
@@ -48,19 +76,46 @@ export class LeadMutationsService {
     @Inject(DB) private readonly db: Db,
     private readonly crypto: FieldCrypto,
     private readonly repo: LeadsRepository,
+    private readonly reminders: ReminderScheduler,
   ) {}
 
   async update(u: AuthUser, id: string, input: LeadUpdateInput, meta: RequestMeta) {
-    // Na timeline o texto de "Outro" conta como a própria origem (a lista de campos é fechada).
+    const keys = Object.keys(input).filter((k) => k !== 'version');
+    // Na timeline o texto de "Outro" conta como a própria origem (a lista de campos é fechada);
+    // pagamento e motivo entram pelo nome do grupo; a reunião tem o próprio registro.
     const fields = [
       ...new Set(
-        Object.keys(input)
-          .filter((k) => k !== 'version')
-          .map((k) => (k === 'sourceOther' ? 'source' : k)),
+        keys
+          .filter((k) => k !== 'meeting')
+          .map((k) => (k === 'sourceOther' ? 'source' : timelineField(k))),
       ),
     ];
-    return withUser(this.db, u.id, async (tx) => {
+    const result = await withUser(this.db, u.id, async (tx) => {
       const old = await lockLead(tx, id, input.version);
+      const [current] = await tx
+        .select({ key: pipelineStages.key })
+        .from(pipelineStages)
+        .where(eq(pipelineStages.id, old.stageId));
+      let target = current!.key;
+      let stageId = old.stageId;
+      if (input.stageKey) {
+        const found = await this.repo.stageId(tx, input.stageKey);
+        if (!found) throw new BadRequestException('Etapa inexistente');
+        stageId = found;
+        target = input.stageKey;
+      }
+      const stageChanged = stageId !== old.stageId;
+      // Closer move a etapa e, junto com a troca, grava os dados dela (pagamento, motivo, data).
+      // Reunião nova ele não agenda (RLS e permissão `meeting:schedule`).
+      if (
+        u.role === 'CLOSER' &&
+        keys.some(
+          (k) =>
+            k !== 'stageKey' &&
+            !(stageChanged && (STAGE_DATA_FIELDS as readonly string[]).includes(k)),
+        )
+      )
+        throw new ForbiddenException();
       const source = input.source ?? old.source;
       if (input.source && input.source !== old.source && isLegacyLeadSource(input.source))
         throw new BadRequestException('Esta origem não é mais usada. Escolha uma da lista.');
@@ -73,8 +128,6 @@ export class LeadMutationsService {
       // Leads antigos em "Outro" ficaram sem texto; só exige ao escolher "Outro" agora.
       if (source === 'OUTRO' && old.source !== 'OUTRO' && !sourceOther)
         throw new BadRequestException('Escreva qual é a origem');
-      if (u.role === 'CLOSER' && fields.some((f) => f !== 'stageKey'))
-        throw new ForbiddenException();
       if (!isLeader(u.role) && fields.some((f) => f === 'sdrId' || f === 'closerId'))
         throw new ForbiddenException();
       if (input.sdrId && !(await this.repo.activeUserFlags(tx, input.sdrId))?.canProspect)
@@ -100,22 +153,25 @@ export class LeadMutationsService {
         version: old.version + 1,
         updatedAt: new Date(),
       };
-      for (const key of [
-        'name',
-        'incomeBand',
-        'source',
-        'tier',
-        'sdrId',
-        'closerId',
-        'nextContactAt',
-        'summary',
-      ] as const) {
+      for (const key of ['name', 'incomeBand', 'source', 'sdrId', 'closerId', 'summary'] as const) {
         if (input[key] !== undefined) Object.assign(patch, { [key]: input[key] });
       }
       if (input.stageKey) {
-        patch.stageId = await this.repo.stageId(tx, input.stageKey);
-        if (!patch.stageId) throw new BadRequestException('Etapa inexistente');
-        if (patch.stageId !== old.stageId) await this.guardSaleStage(tx, id, input.stageKey);
+        patch.stageId = stageId;
+        if (stageChanged) await this.guardSaleStage(tx, id, input.stageKey);
+      }
+      // Dados da etapa (NPAC-38): exigidos só na troca; fora da etapa são apagados.
+      const stage = await resolveStageFields(tx, {
+        leadId: id,
+        target,
+        changed: stageChanged,
+        input,
+        old: old as StageState,
+      });
+      for (const [key, value] of Object.entries(stage.values) as [keyof StageState, unknown][]) {
+        if (sameValue(value, old[key])) continue;
+        Object.assign(patch, { [key]: value });
+        if (!fields.includes(timelineField(key))) fields.push(timelineField(key));
       }
       if (input.phone !== undefined) {
         patch.phoneBidx = phoneBidx;
@@ -123,16 +179,26 @@ export class LeadMutationsService {
       }
       if (input.instagram !== undefined) patch.instagram = instagram;
       if (sourceOther !== old.sourceOther) patch.sourceOther = sourceOther ?? null;
+      // O perfil acompanha a faixa (gatilho no banco); a timeline registra quando ele muda.
+      if (input.incomeBand && TIER_BY_INCOME_BAND[input.incomeBand] !== old.tier) {
+        patch.tier = TIER_BY_INCOME_BAND[input.incomeBand];
+        fields.push('tier');
+      }
       await tx.update(leads).set(patch).where(eq(leads.id, id));
       const kind =
         fields.includes('sdrId') || fields.includes('closerId')
           ? 'lead.reassigned'
-          : fields.length === 1 && fields[0] === 'stageKey'
+          : fields.includes('stageKey') && fields.every((f) => MOVE_FIELDS.has(f))
             ? 'lead.moved'
             : 'lead.updated';
       await recordActivity(tx, u, id, kind, fields, undefined, meta);
-      return { id, version: old.version + 1 };
+      // Mesma transação: se a reunião falhar, a etapa não muda.
+      if (stage.meeting) await scheduleMeeting(tx, u, { leadId: id, ...stage.meeting });
+      return { id, version: old.version + 1, scheduled: Boolean(stage.meeting) };
     });
+    // Depois do commit, como no POST /meetings.
+    if (result.scheduled) void this.reminders.rearm();
+    return { id: result.id, version: result.version };
   }
 
   /**

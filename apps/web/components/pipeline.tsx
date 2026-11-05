@@ -1,11 +1,22 @@
 'use client';
-import type { LeadCatalog, Page, LeadDTO, PipelineDTO, PipelineLead, StageKey } from '@npac/shared';
+import type {
+  LeadCatalog,
+  Page,
+  LeadDTO,
+  PipelineDTO,
+  PipelineLead,
+  Role,
+  StageKey,
+} from '@npac/shared';
+import { can } from '@npac/shared/permissions';
 import Link from 'next/link';
 import { useState, type CSSProperties, type FormEvent } from 'react';
 import { clientApi } from '@/lib/client-api';
+import { stageNeedsFields, type StageFieldsBody } from '@/lib/stage-fields';
 import { button, control, FormError, quietButton, StageOptions } from './crm-ui';
 import { LeadFilters, readFilters } from './lead-filters';
 import { PipelineColumnsEditor } from './pipeline-columns-editor';
+import { StageMoveDialog } from './stage-move-dialog';
 import { useCrmRefresh } from './shell/live-updates';
 
 export function Pipeline({
@@ -13,14 +24,17 @@ export function Pipeline({
   catalog,
   canCreate,
   canEditColumns = false,
+  role,
 }: {
   initial: PipelineDTO;
   catalog: LeadCatalog;
   canCreate: boolean;
+  role: Role;
   /** Liderança cria, renomeia, reordena e exclui colunas (pedido de 04/11/2026). */
   canEditColumns?: boolean;
 }) {
   const [columns, setColumns] = useState(initial);
+  const canRegister = can({ role }, 'sale:register');
   const [active, setActive] = useState<StageKey>('SONDAGEM');
   // Etapas vivas (o editor de colunas muda a lista) e as ocultas pela pessoa: coluna nova aparece.
   const [stages, setStages] = useState(catalog.stages);
@@ -30,6 +44,8 @@ export function Pipeline({
   useCrmRefresh(() => load());
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  // Mudança que pede dados da etapa (NPAC-38): a janelinha pergunta antes de salvar.
+  const [pending, setPending] = useState<{ lead: PipelineLead; target: string } | null>(null);
   async function load(selected = filters) {
     const fresh = await clientApi<PipelineDTO>('/api/leads/pipeline/search', 'POST', selected);
     setColumns(fresh);
@@ -39,19 +55,27 @@ export function Pipeline({
   }
   async function move(lead: PipelineLead, target: string) {
     if (busy || lead.stageKey === target) return;
-    setBusy(true);
     setError('');
+    if (stageNeedsFields(target)) {
+      setPending({ lead, target });
+      return;
+    }
+    setBusy(true);
     try {
-      await clientApi(`/api/leads/${lead.id}`, 'PATCH', {
-        version: lead.version,
-        stageKey: target,
-      });
-      await load();
+      await save(lead, target);
     } catch (e) {
       setError((e as Error).message);
     } finally {
       setBusy(false);
     }
+  }
+  async function save(lead: PipelineLead, target: string, fields: StageFieldsBody = {}) {
+    await clientApi(`/api/leads/${lead.id}`, 'PATCH', {
+      version: lead.version,
+      stageKey: target,
+      ...fields,
+    });
+    await load();
   }
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -161,6 +185,19 @@ export function Pipeline({
         </div>
       </details>
       <FormError message={error} />
+      {pending && (
+        <StageMoveDialog
+          key={`${pending.lead?.id ?? 'massa'}-${pending.target}`}
+          title={`Mover ${pending.lead.name} para ${stages.find((s) => s.key === pending.target)?.label ?? 'a etapa'}`}
+          stage={pending.target}
+          lead={pending.lead}
+          team={catalog.team}
+          role={role}
+          onSubmit={(fields) => save(pending.lead, pending.target, fields)}
+          // Cancelar não muda nada: o card continua na etapa antiga.
+          onClose={() => setPending(null)}
+        />
+      )}
       <nav aria-label="Etapas do Pipeline" className="flex gap-2 overflow-x-auto pb-2 md:hidden">
         {columns
           .filter((c) => !hidden.includes(c.stage.key))
@@ -218,6 +255,19 @@ export function Pipeline({
                     </Link>
                     <span className={`tier tier-${l.tier}`}>{l.tier}</span>
                   </div>
+                  {l.saleToRegister && (
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <span className="sale-pending">Venda a registrar</span>
+                      {canRegister && (
+                        <Link
+                          className="text-xs font-semibold text-gold-deep underline-offset-2 hover:underline"
+                          href={`/leads/${l.id}#vendas`}
+                        >
+                          Registrar venda
+                        </Link>
+                      )}
+                    </div>
+                  )}
                   <p className="my-2 text-xs text-ink2">
                     {l.nextContactAt
                       ? new Date(l.nextContactAt).toLocaleDateString('pt-BR', {

@@ -184,3 +184,76 @@ test('importar .json mostra prévia e exige confirmação', async ({ page }) => 
     3,
   );
 });
+
+test('ficha em linha: 5 seções na ordem, início dourado e fim verde', async ({ page }) => {
+  await entrar(page, `/acompanhamento/linha-do-tempo/${FICHA}`);
+  const painel = page.getByRole('tabpanel', { name: 'Linha do tempo' });
+  await expect(painel.locator('section[data-tom]')).toHaveCount(5);
+  await expect(painel.locator('section[data-tom] h2')).toHaveText([
+    'Momento inicial',
+    'Os 4 pilares',
+    'Evolução',
+    'Depois da mentoria',
+    'Galeria de conquistas',
+  ]);
+  await expect(painel.locator('section[data-tom]').first()).toHaveAttribute('data-tom', 'inicio');
+  await expect(painel.locator('section[data-tom]').nth(3)).toHaveAttribute('data-tom', 'fim');
+  await expect(painel.locator('.linha-rail')).toHaveCount(1);
+});
+
+test('campo vazio é discreto: placeholder e 1 linha', async ({ page }) => {
+  await entrar(page, `/acompanhamento/linha-do-tempo/${FICHA}`);
+  const fe = page.getByLabel('Fé antes', { exact: true });
+  await expect(fe).toHaveAttribute('placeholder', 'Adicionar antes');
+  await expect(page.getByLabel('Fé hoje', { exact: true })).toHaveAttribute(
+    'placeholder',
+    'Adicionar hoje',
+  );
+  await expect(page.getByLabel('Notas do momento atual', { exact: true })).toHaveAttribute(
+    'placeholder',
+    'Adicionar notas do momento atual',
+  );
+  expect((await fe.boundingBox())!.height).toBeLessThanOrEqual(44);
+});
+
+test('texto longo faz o campo crescer sem rolagem interna', async ({ page }) => {
+  await entrar(page, `/acompanhamento/linha-do-tempo/${FICHA}`);
+  const notas = page.getByLabel('Notas do momento inicial', { exact: true });
+  const vazio = (await notas.boundingBox())!.height;
+  await notas.fill(Array.from({ length: 30 }, (_, i) => `Linha ${i + 1}`).join('\n'));
+  expect((await notas.boundingBox())!.height).toBeGreaterThan(vazio * 4);
+  expect(await notas.evaluate((el) => el.scrollHeight - el.clientHeight)).toBeLessThanOrEqual(2);
+});
+
+test('Tab segue a ordem das seções e o foco tem anel', async ({ page }) => {
+  await entrar(page, `/acompanhamento/linha-do-tempo/${FICHA}`);
+  const painel = page.getByRole('tabpanel', { name: 'Linha do tempo' });
+  const evolucao = await painel
+    .getByRole('region', { name: 'Evolução', exact: true })
+    .getByRole('textbox')
+    .evaluateAll((els) => els.map((el) => el.getAttribute('aria-label')));
+  expect(evolucao.length).toBeGreaterThan(0);
+  await page.getByLabel('Notas do momento inicial', { exact: true }).focus();
+  const ordem: string[] = [];
+  for (let i = 0; i < 20 && ordem.at(-1) !== 'Fé antes'; i++) {
+    await page.keyboard.press('Tab');
+    ordem.push(await page.evaluate(() => document.activeElement?.getAttribute('aria-label') ?? ''));
+  }
+  expect(ordem.at(-1)).toBe('Fé antes');
+  for (const n of ordem) expect(evolucao).not.toContain(n);
+  const fe = page.getByLabel('Fé antes', { exact: true });
+  await expect(fe).toBeFocused();
+  await expect
+    .poll(() => fe.evaluate((el) => getComputedStyle(el).boxShadow))
+    .toContain('rgba(194, 146, 46, 0.75)');
+});
+
+test('375 px: pilares e evolução sem rolagem horizontal', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await entrar(page, `/acompanhamento/linha-do-tempo/${FICHA}`);
+  await page.getByLabel('Fé antes', { exact: true }).fill('Texto fictício bem comprido '.repeat(8));
+  await page
+    .getByLabel('Evolução de renda depois', { exact: true })
+    .fill('Valor fictício bem comprido '.repeat(6));
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
+});

@@ -6,9 +6,18 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { leadContactTaken, pipelineStages, user, withUser, type Db } from '@npac/db';
+import {
+  deals,
+  leadContactTaken,
+  pipelineStages,
+  user,
+  withUser,
+  type Db,
+  type Tx,
+} from '@npac/db';
 import {
   spDayRange,
+  TIER_BY_INCOME_BAND,
   normalizeInstagram,
   normalizePhoneBR,
   type AuthUser,
@@ -16,14 +25,18 @@ import {
   type LeadDTO,
   type Page,
   isLeader,
+  can,
 } from '@npac/shared';
 import { asc, eq, sql } from 'drizzle-orm';
 import { AuditService } from '../audit/audit.service.js';
 import { toCsv } from '../common/csv.js';
 import { FieldCrypto } from '../common/crypto/field-crypto.js';
 import { DB } from '../common/db/db.module.js';
+import { insertSale, requestHash } from '../finance/finance.service.js';
+import { scheduleMeeting } from '../meetings/meetings.service.js';
+import { ReminderScheduler } from '../push/reminders.js';
 import { recordActivity } from './activity.js';
-import { saleRequired } from './lead-mutations.service.js';
+import { EMPTY_STAGE_STATE, resolveStageFields } from './stage-fields.js';
 import {
   LeadsRepository,
   type LeadFilters,
@@ -50,6 +63,10 @@ export interface LeadExportQuery extends Omit<LeadFilters, 'search'> {
   createdTo?: string;
 }
 
+/** Dia de Brasília (AAAA-MM-DD). */
+const spDay = (d: Date) =>
+  new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(d);
+
 const brDate = (d: Date) =>
   new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo' }).format(d);
 
@@ -60,6 +77,7 @@ export class LeadsService {
     private readonly repo: LeadsRepository,
     private readonly crypto: FieldCrypto,
     private readonly audit: AuditService,
+    private readonly reminders: ReminderScheduler,
   ) {}
 
   async catalog(u: AuthUser) {
@@ -89,14 +107,17 @@ export class LeadsService {
             stage,
             total: data.total,
             page: 1,
-            items: data.items.map(({ id, name, tier, stageKey, version, nextContactAt }) => ({
-              id,
-              name,
-              tier,
-              stageKey,
-              version,
-              nextContactAt,
-            })),
+            items: data.items.map(
+              ({ id, name, tier, stageKey, version, nextContactAt, saleToRegister }) => ({
+                id,
+                name,
+                tier,
+                stageKey,
+                version,
+                nextContactAt,
+                saleToRegister,
+              }),
+            ),
           };
         }),
     );
@@ -105,11 +126,26 @@ export class LeadsService {
   async create(u: AuthUser, input: LeadCreateInput, meta: RequestMeta): Promise<{ id: string }> {
     if (!isLeader(u.role) && !u.canProspect)
       throw new ForbiddenException('Seu usuário não prospecta. Peça à liderança.');
-    if (input.stageKey === 'VENDA') throw saleRequired();
+    const sold = this.checkSoldLead(u, input);
     const sdrId = this.resolveSdr(u, input.sdrId);
     const bidx = input.phone ? this.crypto.blindIndex(input.phone) : null;
+    const hash = input.sale ? requestHash(input) : '';
 
     const id = await withUser(this.db, u.id, async (tx) => {
+      // Venda no cadastro: repetir o mesmo pedido devolve o mesmo lead (requestKey + hash).
+      if (input.sale) {
+        const key = input.sale.requestKey;
+        await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`sale:${key}`},0))`);
+        const [retry] = await tx
+          .select({ leadId: deals.leadId, requestHash: deals.requestHash })
+          .from(deals)
+          .where(eq(deals.requestKey, key));
+        if (retry) {
+          if (retry.requestHash !== hash)
+            throw new ConflictException('Chave já usada em outra requisição');
+          return { id: retry.leadId, scheduled: false };
+        }
+      }
       // Serializa por contato entre todos os SDRs. A ordem evita deadlocks quando
       // telefone e Instagram coincidem em requisições diferentes.
       const contacts = [bidx && `phone:${bidx}`, input.instagram && `instagram:${input.instagram}`]
@@ -133,6 +169,13 @@ export class LeadsService {
       }
       const stageId = await this.repo.stageId(tx, input.stageKey);
       if (!stageId) throw new BadRequestException('Etapa inexistente');
+      // Dados que a etapa pede (NPAC-38): reunião, pagamento combinado ou motivo.
+      const stage = await resolveStageFields(tx, {
+        target: input.stageKey,
+        changed: true,
+        input,
+        old: EMPTY_STAGE_STATE,
+      });
       const created = await this.repo.insert(tx, {
         name: input.name,
         phoneEnc: input.phone ? this.crypto.encrypt(input.phone) : null,
@@ -141,19 +184,26 @@ export class LeadsService {
         incomeBand: input.incomeBand,
         source: input.source,
         sourceOther: input.source === 'OUTRO' ? (input.sourceOther ?? null) : null,
-        tier: input.tier,
+        // O gatilho do banco garante o mesmo perfil; aqui só preenche a coluna obrigatória.
+        tier: TIER_BY_INCOME_BAND[input.incomeBand],
         stageId,
         sdrId,
-        closerId: input.closerId ?? null,
-        nextContactAt: input.nextContactAt ?? null,
+        // Venda Fechada: o closer da reunião passa a ser o do lead.
+        closerId: input.closerId ?? sold?.closerId ?? null,
+        ...stage.values,
         summary: input.summary ?? null,
         createdBy: u.id,
       });
       await recordActivity(tx, u, created, 'lead.created', [], undefined, meta);
-      return created;
+      // Mesma transação: se a reunião falhar, o lead não fica criado.
+      if (stage.meeting) await scheduleMeeting(tx, u, { leadId: created, ...stage.meeting });
+      if (sold) await this.registerSold(tx, u, { id: created, sdrId, stageId }, sold, input, hash);
+      return { id: created, scheduled: Boolean(stage.meeting || sold) };
     });
 
-    return { id };
+    // Depois do commit, como no POST /meetings.
+    if (id.scheduled) void this.reminders.rearm();
+    return { id: id.id };
   }
 
   async list(u: AuthUser, q: LeadListQuery, meta: RequestMeta): Promise<Page<LeadDTO>> {
@@ -225,6 +275,68 @@ export class LeadsService {
     return this.toDTO(row);
   }
 
+  /**
+   * Venda Fechada no cadastro (NPAC-39): a reunião é obrigatória e já aconteceu; a venda, só para
+   * quem registra venda, e só nesta etapa. Devolve a reunião, ou nada fora da Venda.
+   */
+  private checkSoldLead(u: AuthUser, input: LeadCreateInput) {
+    if (input.sale && !can(u, 'sale:register'))
+      throw new ForbiddenException('Só o closer e a liderança registram a venda.');
+    if (input.stageKey !== 'VENDA') {
+      if (input.sale) throw new BadRequestException('A venda só vai junto da etapa Venda');
+      return undefined;
+    }
+    if (!input.meeting)
+      throw new ConflictException({
+        code: 'MEETING_REQUIRED',
+        message: 'Para cadastrar em Venda Fechada, informe a data, a hora e o closer da reunião.',
+      });
+    if (input.meeting.scheduledAt.getTime() > Date.now())
+      throw new BadRequestException('A reunião ainda não aconteceu');
+    return input.meeting;
+  }
+
+  /**
+   * Reunião realizada (o SDR recebe por ela no dia da reunião) e, se veio, a venda com o dia
+   * informado. Sem a venda, o lead fica "a registrar" e o closer da reunião é avisado.
+   */
+  private async registerSold(
+    tx: Tx,
+    u: AuthUser,
+    lead: { id: string; sdrId: string; stageId: string },
+    meeting: { scheduledAt: Date; closerId: string },
+    input: LeadCreateInput,
+    hash: string,
+  ) {
+    const m = await scheduleMeeting(tx, u, {
+      leadId: lead.id,
+      closerId: meeting.closerId,
+      scheduledAt: meeting.scheduledAt,
+      origin: 'DIRETO',
+      outcome: 'DONE',
+      outcomeAt: meeting.scheduledAt,
+    });
+    await recordActivity(tx, u, lead.id, 'meeting.outcome', ['outcome'], m.id);
+    if (!input.sale) {
+      await recordActivity(tx, u, lead.id, 'sale.pending', [], m.id);
+      return;
+    }
+    const { closedOn, ...sale } = input.sale;
+    const today = spDay(new Date());
+    if (closedOn > today) throw new BadRequestException('A data da venda não pode ser futura');
+    // Hoje: o instante do registro. Antes: meio-dia de Brasília do dia informado.
+    const closedAt = closedOn === today ? new Date() : new Date(`${closedOn}T12:00:00-03:00`);
+    const d = await insertSale(
+      tx,
+      u,
+      lead,
+      { ...sale, closerId: meeting.closerId },
+      hash,
+      closedAt,
+    );
+    await recordActivity(tx, u, lead.id, 'sale.registered', [], d.id);
+  }
+
   private resolveSdr(u: AuthUser, requested: string | undefined): string {
     if (isLeader(u.role)) {
       if (!requested) throw new BadRequestException('Escolha o SDR responsável');
@@ -263,6 +375,11 @@ export class LeadsService {
       closer: r.closerId && r.closerName ? { id: r.closerId, name: r.closerName } : null,
       nextContactAt: r.nextContactAt?.toISOString() ?? null,
       summary: r.summary,
+      paymentProductId: r.paymentProductId,
+      paymentAmountCents: r.paymentAmountCents,
+      lostReason: r.lostReason,
+      lostReasonOther: r.lostReasonOther,
+      saleToRegister: r.saleToRegister,
       version: r.version,
       createdAt: r.createdAt.toISOString(),
     };

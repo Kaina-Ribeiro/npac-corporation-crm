@@ -1,9 +1,11 @@
 'use client';
 import {
+  can,
   leadCreateSchema,
   leadUpdateSchema,
   type LeadCatalog,
   type LeadDTO,
+  type ProductDTO,
   type Role,
 } from '@npac/shared';
 import {
@@ -11,23 +13,34 @@ import {
   LEAD_SOURCE_LABELS,
   LEAD_SOURCE_OPTIONS,
   SOURCE_OTHER_MAX,
-  TIERS,
+  TIER_BY_INCOME_BAND,
   isLeader,
+  type IncomeBand,
   isLegacyLeadSource,
 } from '@npac/shared/enums';
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
-import { brasiliaInput, clientApi } from '@/lib/client-api';
+import { clientApi } from '@/lib/client-api';
+import { readSoldFields } from '@/lib/sold-fields';
+import { readStageFields } from '@/lib/stage-fields';
 import { button, control, Field, FormError, StageOptions } from './crm-ui';
+import { SoldFields } from './sold-fields';
+import { StageFields, type OpenMeeting } from './stage-fields';
 
 export function LeadForm({
   catalog,
   me,
   lead: latestLead,
+  products,
+  openMeeting,
 }: {
   catalog: LeadCatalog;
   me: { id: string; role: Role };
   lead?: LeadDTO;
+  /** Produtos ativos, para o Agendou Pagamento. */
+  products: ProductDTO[];
+  /** Reunião futura aberta do lead: mudar para Agendado não pede outra. */
+  openMeeting?: OpenMeeting | null;
 }) {
   const router = useRouter();
   // O rascunho pertence à versão exibida ao abrir o formulário. SSE não pode
@@ -36,15 +49,37 @@ export function LeadForm({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [source, setSource] = useState<string>(lead?.source ?? '');
+  // O perfil vem da faixa de renda (a API e o banco aplicam a mesma regra); aqui só é mostrado.
+  const [band, setBand] = useState<IncomeBand | ''>(lead?.incomeBand ?? '');
+  const tier = band ? TIER_BY_INCOME_BAND[band] : null;
+  // A etapa escolhida troca os campos (NPAC-38); na edição, só a troca pede os dados da etapa.
+  const [stage, setStage] = useState<string>(lead?.stageKey ?? 'SONDAGEM');
+  const changed = !lead || stage !== lead.stageKey;
+  // Venda Fechada só no cadastro (NPAC-39): reunião realizada + venda opcional.
+  const sold = !lead && stage === 'VENDA';
+  // Mesma chave nas novas tentativas: a API devolve o mesmo lead se a primeira já gravou.
+  const [saleKey] = useState(() => crypto.randomUUID());
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setBusy(true);
     setError('');
-    const f = Object.fromEntries(new FormData(e.currentTarget));
+    const form = new FormData(e.currentTarget);
+    let stageBody;
+    try {
+      stageBody = sold
+        ? readSoldFields(form, saleKey)
+        : readStageFields(stage, form, { changed, withMeeting: !openMeeting });
+    } catch (err) {
+      setError((err as Error).message);
+      setBusy(false);
+      return;
+    }
     const raw: Record<string, unknown> = {
-      ...f,
-      nextContactAt: brasiliaInput(String(f.nextContactAt ?? '')),
+      ...Object.fromEntries([...form].filter(([k]) => !k.startsWith('sf_'))),
+      ...stageBody,
     };
+    // Cadastro sem data: o campo some do corpo. Na edição, vazio apaga (`null`).
+    if (!lead && raw.nextContactAt === null) delete raw.nextContactAt;
     if (!isLeader(me.role)) {
       delete raw.sdrId;
       delete raw.closerId;
@@ -52,7 +87,6 @@ export function LeadForm({
       if (lead) raw.closerId = null;
       else delete raw.closerId;
     }
-    if (lead && !raw.nextContactAt) raw.nextContactAt = null;
     if (lead) {
       raw.version = lead.version;
       if (!raw.phone) raw.phone = null;
@@ -91,6 +125,8 @@ export function LeadForm({
             onClick={() => {
               setLead(latestLead);
               setSource(latestLead.source);
+              setBand(latestLead.incomeBand);
+              setStage(latestLead.stageKey);
               setError('');
             }}
           >
@@ -131,7 +167,8 @@ export function LeadForm({
           <select
             className={control}
             name="incomeBand"
-            defaultValue={lead?.incomeBand ?? ''}
+            value={band}
+            onChange={(e) => setBand(e.target.value as IncomeBand)}
             required
           >
             <option value="" disabled>
@@ -145,11 +182,20 @@ export function LeadForm({
           </select>
         </Field>
         <Field label="Perfil">
-          <select className={control} name="tier" defaultValue={lead?.tier ?? 'P1'}>
-            {TIERS.map((t) => (
-              <option key={t}>{t}</option>
-            ))}
-          </select>
+          {/* Sem campo de envio: o perfil segue a faixa (5–8 mil P2, 8–15 mil P1, 15 mil+ P0). */}
+          <output
+            aria-live="polite"
+            className={`${control} flex items-center gap-2 bg-transparent text-ink2`}
+          >
+            {tier ? (
+              <>
+                <span className={`tier tier-${tier}`}>{tier}</span>
+                <span className="text-[13px]">pela faixa de renda</span>
+              </>
+            ) : (
+              <span>Escolha a faixa de renda</span>
+            )}
+          </output>
         </Field>
         <Field label="Origem">
           <select
@@ -189,25 +235,37 @@ export function LeadForm({
           </Field>
         )}
         <Field label="Etapa">
-          <select className={control} name="stageKey" defaultValue={lead?.stageKey ?? 'SONDAGEM'}>
-            <StageOptions stages={catalog.stages} current={lead?.stageKey ?? 'SONDAGEM'} />
+          <select
+            className={control}
+            name="stageKey"
+            value={stage}
+            onChange={(e) => setStage(e.target.value)}
+          >
+            <StageOptions
+              stages={catalog.stages}
+              current={lead?.stageKey ?? 'SONDAGEM'}
+              allowSale={!lead}
+            />
           </select>
         </Field>
-        <Field label="Próximo contato (Brasília)">
-          <input
-            className={control}
-            name="nextContactAt"
-            type="datetime-local"
-            defaultValue={
-              lead?.nextContactAt
-                ? new Date(lead.nextContactAt)
-                    .toLocaleString('sv-SE', { timeZone: 'America/Sao_Paulo' })
-                    .replace(' ', 'T')
-                    .slice(0, 16)
-                : ''
-            }
+        {sold ? (
+          <SoldFields
+            team={catalog.team}
+            products={products}
+            canRegister={can(me, 'sale:register')}
           />
-        </Field>
+        ) : (
+          <StageFields
+            key={stage}
+            stage={stage}
+            changed={changed}
+            openMeeting={openMeeting}
+            team={catalog.team}
+            products={products}
+            role={me.role}
+            lead={lead}
+          />
+        )}
         {isLeader(me.role) && (
           <>
             <Field label="SDR responsável">
@@ -227,18 +285,21 @@ export function LeadForm({
                   ))}
               </select>
             </Field>
-            <Field label="Closer sugerido">
-              <select className={control} name="closerId" defaultValue={lead?.closer?.id ?? ''}>
-                <option value="">Sem sugestão</option>
-                {catalog.team
-                  .filter((u) => u.canClose)
-                  .map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.name}
-                    </option>
-                  ))}
-              </select>
-            </Field>
+            {/* Na Venda Fechada o closer do lead é o da reunião. */}
+            {!sold && (
+              <Field label="Closer sugerido">
+                <select className={control} name="closerId" defaultValue={lead?.closer?.id ?? ''}>
+                  <option value="">Sem sugestão</option>
+                  {catalog.team
+                    .filter((u) => u.canClose)
+                    .map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.name}
+                      </option>
+                    ))}
+                </select>
+              </Field>
+            )}
           </>
         )}
       </div>

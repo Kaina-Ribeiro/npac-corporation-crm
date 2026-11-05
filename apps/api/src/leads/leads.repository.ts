@@ -4,6 +4,7 @@ import {
   spDayRange,
   type IncomeBand,
   type LeadSource,
+  type LostReason,
   type StageKey,
   type Tier,
 } from '@npac/shared';
@@ -40,6 +41,11 @@ export interface LeadRow {
   closerName: string | null;
   nextContactAt: Date | null;
   summary: string | null;
+  paymentProductId: string | null;
+  paymentAmountCents: number | null;
+  lostReason: LostReason | null;
+  lostReasonOther: string | null;
+  saleToRegister: boolean;
   version: number;
   createdAt: Date;
 }
@@ -170,6 +176,12 @@ export class LeadsRepository {
         closerName: closer.name,
         nextContactAt: leads.nextContactAt,
         summary: leads.summary,
+        paymentProductId: leads.paymentProductId,
+        paymentAmountCents: leads.paymentAmountCents,
+        lostReason: leads.lostReason,
+        lostReasonOther: leads.lostReasonOther,
+        // Venda a registrar (NPAC-39): em Venda sem venda ativa; função do banco (0038).
+        saleToRegister: sql<boolean>`lead_sale_pending(${leads.id})`,
         version: leads.version,
         createdAt: leads.createdAt,
       })

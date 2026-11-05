@@ -6,7 +6,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { meetingConfirmations, meetings, user, withUser, type Db } from '@npac/db';
+import { meetingConfirmations, meetings, user, withUser, type Db, type Tx } from '@npac/db';
 import { isLeader, type AuthUser, type MeetingOrigin, type MeetingOutcome } from '@npac/shared';
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import { DB } from '../common/db/db.module.js';
@@ -15,7 +15,15 @@ import { lockLead } from '../leads/lead-mutations.service.js';
 import { ReminderScheduler } from '../push/reminders.js';
 import { cancelMeeting } from './cancel.js';
 
-type Schedule = { leadId: string; closerId: string; scheduledAt: Date; origin: MeetingOrigin };
+type Schedule = {
+  leadId: string;
+  closerId: string;
+  scheduledAt: Date;
+  origin: MeetingOrigin;
+  /** Venda Fechada no cadastro (NPAC-39): a reunião já entra realizada. */
+  outcome?: 'DONE';
+  outcomeAt?: Date;
+};
 type MeetingChange = {
   version: number;
   scheduledAt?: Date;
@@ -23,6 +31,25 @@ type MeetingChange = {
   outcome?: MeetingOutcome;
   cancel?: true;
 };
+
+/**
+ * Agenda numa transação que já travou o lead: closer ativo que fecha vendas, timeline
+ * `meeting.scheduled`. Quem chama rearma os lembretes depois do commit (`reminders.rearm()`).
+ * Usada pelo POST /meetings e pelos Agendados do cadastro/troca de etapa (NPAC-38).
+ */
+export async function scheduleMeeting(tx: Tx, u: AuthUser, input: Schedule) {
+  const [closer] = await tx
+    .select({ id: user.id })
+    .from(user)
+    .where(and(eq(user.id, input.closerId), eq(user.active, true), eq(user.canClose, true)));
+  if (!closer) throw new BadRequestException('Closer inválido');
+  const [created] = await tx
+    .insert(meetings)
+    .values({ ...input, createdBy: u.id })
+    .returning();
+  await recordActivity(tx, u, input.leadId, 'meeting.scheduled', [], created!.id);
+  return { id: created!.id, version: created!.version };
+}
 
 @Injectable()
 export class MeetingsService {
@@ -100,17 +127,7 @@ export class MeetingsService {
   async create(u: AuthUser, input: Schedule) {
     const result = await withUser(this.db, u.id, async (tx) => {
       await lockLead(tx, input.leadId);
-      const [closer] = await tx
-        .select({ id: user.id })
-        .from(user)
-        .where(and(eq(user.id, input.closerId), eq(user.active, true), eq(user.canClose, true)));
-      if (!closer) throw new BadRequestException('Closer inválido');
-      const [created] = await tx
-        .insert(meetings)
-        .values({ ...input, createdBy: u.id })
-        .returning();
-      await recordActivity(tx, u, input.leadId, 'meeting.scheduled', [], created!.id);
-      return { id: created!.id, version: created!.version };
+      return scheduleMeeting(tx, u, input);
     });
     void this.reminders.rearm();
     return result;
