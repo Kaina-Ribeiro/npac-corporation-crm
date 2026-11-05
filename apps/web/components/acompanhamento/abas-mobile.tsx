@@ -45,8 +45,11 @@ const ABAS = [
 export function AbasMobile() {
   const path = usePathname();
   const router = useRouter();
-  const aba =
-    ABAS.find((a) => path === a.href || path.startsWith(`${a.href}/`))?.label ?? 'Dashboard';
+  // Fora do módulo (o "Mais", que o cargo Acompanhamento abre pelo avatar) nenhuma aba fica marcada.
+  const fora = !path.startsWith('/acompanhamento');
+  const aba = fora
+    ? null
+    : (ABAS.find((a) => path === a.href || path.startsWith(`${a.href}/`))?.label ?? 'Dashboard');
   const rotuloMais =
     aba === 'Linha'
       ? 'Nova ficha'
@@ -58,6 +61,7 @@ export function AbasMobile() {
 
   function mais() {
     if (aba === 'Backup') return void baixarBackup('dashboard').catch(() => {});
+    if (fora) return router.push('/acompanhamento/dashboard?colar=1');
     // Dentro da ficha, a lista é que tem o cadastro: volta para ela já com o cadastro aberto.
     if (aba === 'Linha' && path !== '/acompanhamento/linha-do-tempo')
       return router.push('/acompanhamento/linha-do-tempo?nova=1');
