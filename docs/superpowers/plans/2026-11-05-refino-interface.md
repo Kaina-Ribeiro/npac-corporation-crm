@@ -22,7 +22,7 @@ consumido por sidebar e Ctrl+K. O Dashboard troca só a apresentação; ações,
 | 1 | 1.2 Variantes de botão | ✅ |
 | 1 | 1.3 Conflitos de escala, verificação visual e PR | ✅ (PR #40 mergeado) |
 | 2 | 2.1 Dados da navegação e Ctrl+K | ✅ |
-| 2 | 2.2 Sidebar com grupos e sub-itens | ⏳ |
+| 2 | 2.2 Sidebar com grupos e sub-itens | ✅ |
 | 2 | 2.3 Tirar as abas do topo e o sobretítulo; verificação e PR | ⏳ |
 | 3 | 3.1 Faixa de status | ⏳ |
 | 3 | 3.2 Cabeçalho, ação principal e estado vazio; verificação e PR | ⏳ |

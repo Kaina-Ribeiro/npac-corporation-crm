@@ -81,3 +81,84 @@ test('telas largas: o conteúdo ocupa a largura útil, sem rolagem horizontal', 
     expect(m.fill, path).toBeGreaterThan(0.98);
   }
 });
+
+const lateral = (page: Page) => page.getByRole('navigation', { name: 'Navegação lateral' });
+const MODULOS = [
+  ['Dashboard', /\/acompanhamento\/dashboard$/],
+  ['Linha do tempo', /\/acompanhamento\/linha-do-tempo$/],
+  ['Linha do tempo RDV', /\/acompanhamento\/rdv$/],
+  ['Importação e backup', /\/acompanhamento\/backup$/],
+] as const;
+
+test('Carla navega pelos 4 itens da sidebar', async ({ page }) => {
+  await login(page, 'carla@npac.com.br');
+  await page.waitForURL(/\/acompanhamento\/dashboard/);
+  await expect(lateral(page).getByRole('heading', { name: 'Acompanhamento' })).toBeVisible();
+  await expect(lateral(page).getByRole('heading', { name: 'Dados' })).toBeVisible();
+  for (const [nome, url] of [...MODULOS].reverse()) {
+    const link = lateral(page).getByRole('link', { name: nome, exact: true });
+    await link.click();
+    await page.waitForURL(url);
+    await expect(link).toHaveAttribute('aria-current', 'page');
+  }
+});
+
+test('Diretoria: grupo abre dentro do módulo e fecha fora', async ({ page }) => {
+  await login(page, 'diretor@npac.com.br');
+  await page.goto('/leads');
+  const rdv = lateral(page).locator('a', { hasText: 'Linha do tempo RDV' });
+  await expect(rdv).toBeHidden();
+  await expect(page.locator('.side-sub')).toHaveAttribute('inert', '');
+  // Fechado não recebe foco por Tab: do Acompanhamento, o Tab pula para o próximo item.
+  await lateral(page).getByRole('link', { name: 'Acompanhamento', exact: true }).focus();
+  await page.keyboard.press('Tab');
+  await expect(rdv).not.toBeFocused();
+
+  await lateral(page).getByRole('link', { name: 'Acompanhamento', exact: true }).click();
+  await page.waitForURL(/\/acompanhamento\/dashboard/);
+  await expect(rdv).toBeVisible();
+  await expect(page.locator('.side-sub')).not.toHaveAttribute('inert');
+  await rdv.click();
+  await page.waitForURL(/\/acompanhamento\/rdv$/);
+  await expect(rdv).toHaveAttribute('aria-current', 'page');
+  await expect(lateral(page).getByRole('heading', { name: 'Dados' })).toBeVisible();
+
+  // Volta ao comercial pelo menu: o grupo fecha.
+  await lateral(page).getByRole('link', { name: 'Leads', exact: true }).click();
+  await page.waitForURL(/\/leads/);
+  await expect(rdv).toBeHidden();
+});
+
+test('tablet 768: sub-itens não estouram a sidebar', async ({ page }) => {
+  await page.setViewportSize({ width: 768, height: 1024 });
+  await login(page, 'diretor@npac.com.br');
+  await lateral(page).getByRole('link', { name: 'Acompanhamento', exact: true }).click();
+  await page.waitForURL(/\/acompanhamento\/dashboard/);
+  const rdv = lateral(page).locator('a', { hasText: 'Linha do tempo RDV' });
+  await expect(rdv).toBeVisible();
+  const m = await page.locator('.side-nav').evaluate((el) => ({
+    scroll: el.scrollWidth,
+    client: el.clientWidth,
+  }));
+  expect(m.scroll).toBeLessThanOrEqual(m.client);
+  // O rótulo inteiro cabe (sem reticências escondidas pelo overflow).
+  const label = await rdv.locator('.side-label').evaluate((el) => el.scrollWidth <= el.clientWidth);
+  expect(label).toBe(true);
+});
+
+test('trilho recolhido: Carla vê os 4 ícones com tooltip', async ({ page }) => {
+  await login(page, 'carla@npac.com.br');
+  await page.waitForURL(/\/acompanhamento\/dashboard/);
+  await page.getByRole('button', { name: 'Recolher barra lateral' }).click();
+  await expect.poll(() => sideWidth(page)).toBe(56);
+  for (const [nome] of MODULOS)
+    await expect(lateral(page).getByRole('link', { name: nome, exact: true })).toBeVisible();
+  await lateral(page).getByRole('link', { name: 'Linha do tempo RDV', exact: true }).hover();
+  await expect(page.locator('.side-tip')).toHaveText('Linha do tempo RDV');
+  // Os títulos de grupo continuam no DOM, mas somem no trilho.
+  for (const titulo of ['Acompanhamento', 'Dados']) {
+    const h = lateral(page).getByRole('heading', { name: titulo, includeHidden: true });
+    await expect(h).toHaveCount(1);
+    await expect(h).toBeHidden();
+  }
+});

@@ -890,6 +890,65 @@ html[data-dash-dragging] * {
     opacity 110ms ease,
     visibility 0s linear var(--side-t);
 }
+/* Sub-itens de um item da sidebar (módulo do Acompanhamento para a Diretoria): abrem só dentro
+   do módulo, com altura animada (grid 0fr → 1fr). Fechado = `inert` (fora do Tab) e transparente.
+   O padding/margin negativo do miolo deixa o anel de foco dos filhos fora do recorte. */
+.side-sub {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    grid-template-rows var(--dur-slow) var(--ease-out),
+    opacity var(--dur-slow) var(--ease-out),
+    visibility 0s linear var(--dur-slow);
+}
+.side-sub[data-open] {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  visibility: visible;
+  transition:
+    grid-template-rows var(--dur-slow) var(--ease-out),
+    opacity var(--dur-slow) var(--ease-out),
+    visibility 0s;
+}
+/* Recuo de 12 px à esquerda; 4 px livres em volta para o anel de foco não ser cortado. */
+.side-sub > div {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-height: 0;
+  margin: -4px 0 -4px 8px;
+  padding: 4px;
+  overflow: hidden;
+}
+/* No trilho só o ícone do pai fica: os filhos somem sem ocupar altura. */
+[data-side='collapsed'] .side-sub {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    grid-template-rows var(--side-t) var(--side-ease),
+    opacity 110ms ease,
+    visibility 0s linear var(--side-t);
+}
+/* Pai aberto na sidebar expandida: o destaque fica no filho ativo; o pai só ganha peso. No
+   trilho (filhos ocultos), o pai mantém o fundo de item ativo. */
+.shell:not([data-side='collapsed']) .side-parent[data-open]:not(:hover) {
+  background: transparent;
+  box-shadow: none;
+}
+.side-parent[data-open] {
+  font-weight: 600;
+}
+.side-chevron {
+  transition:
+    rotate var(--dur-slow) var(--ease-out),
+    opacity 180ms ease 80ms;
+}
+.side-parent[data-open] .side-chevron {
+  rotate: 90deg;
+}
 .side-head,
 .side-foot,
 .side-who {
