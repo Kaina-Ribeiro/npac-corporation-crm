@@ -169,6 +169,13 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
 
 - Migration nova: `pnpm --filter @npac/db generate` (ou SQL manual) → `00NN_nome.sql` + snapshot +
   `_journal.json`. **Nunca reescreva migration aplicada**; crie sucessora.
+- Journal: `idx` sequencial e `when` maior que o da última entrada. O migrator só aplica `when` acima
+  do último aplicado: migration de branch antiga com `when` menor é **pulada em produção sem erro**.
+  Ao trazer migrations do main, renumere as suas para depois e refaça `when`, snapshots e `prevId`
+  (teste "idx e `when` crescem juntos" em `db/test/migrations.test.ts`).
+- Drizzle: em select de uma tabela só, `${tabela.id}` sai sem o nome da tabela. Em subconsulta
+  correlacionada escreva o nome inteiro (`where c.ficha_id = mentoria_fichas.id`), senão compara a
+  coluna com ela mesma.
 - RLS, grants, triggers e SECURITY DEFINER são SQL manual: revise além do schema. `npac_app` sem
   UPDATE numa tabela não pode `SELECT … FOR UPDATE` nela.
 - Valor novo de enum não vale na mesma transação da migration (compare como texto).
