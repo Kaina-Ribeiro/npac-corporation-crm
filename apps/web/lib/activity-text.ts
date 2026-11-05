@@ -18,6 +18,7 @@ const VERB: Record<string, string> = {
   'meeting.outcome': 'registrou o resultado da reunião de',
   'meeting.confirmed': 'mandou a confirmação da reunião de',
   'sale.registered': 'registrou a venda de',
+  'sale.pending': 'pediu o registro da venda de',
   'sale.reversed': 'estornou a venda de',
   'payment.received': 'recebeu um pagamento de',
 };

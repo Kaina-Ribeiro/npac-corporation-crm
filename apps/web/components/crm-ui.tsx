@@ -34,12 +34,15 @@ export { button, dangerButton, ghostButton, quietButton } from '@/lib/button';
 export function StageOptions({
   stages,
   current,
+  allowSale = false,
 }: {
   stages: { key: StageKey; label: string }[];
   current: StageKey;
+  /** Cadastro (NPAC-39): Venda Fechada entra com a reunião e, se quiser, a venda. */
+  allowSale?: boolean;
 }) {
   return stages.map((s) => {
-    const locked = s.key === 'VENDA' && current !== 'VENDA';
+    const locked = s.key === 'VENDA' && current !== 'VENDA' && !allowSale;
     return (
       <option key={s.key} value={s.key} disabled={locked}>
         {locked ? `${s.label} (registre na ficha)` : s.label}

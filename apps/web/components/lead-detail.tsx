@@ -54,6 +54,7 @@ const EVENT_LABEL: Record<string, string> = {
   'meeting.outcome': 'Resultado da reunião registrado',
   'meeting.confirmed': 'Confirmação enviada ao lead',
   'sale.registered': 'Venda registrada',
+  'sale.pending': 'Venda a registrar (aviso ao closer)',
   'sale.reversed': 'Venda estornada',
   'payment.received': 'Pagamento recebido',
 };
@@ -184,6 +185,19 @@ export function LeadDetail({
           <p className="mt-1 text-sm text-ink2">
             {stage} · {lead.tier} · SDR {lead.sdr.name}
           </p>
+          {lead.saleToRegister && (
+            // Cadastrado como Venda Fechada sem a venda (NPAC-39): closer e liderança registram.
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <span className="sale-pending">Venda a registrar</span>
+              {deals ? (
+                <a className={button} href="#vendas">
+                  Registrar venda
+                </a>
+              ) : (
+                <span className="text-xs text-ink2">O closer da reunião registra a venda.</span>
+              )}
+            </div>
+          )}
         </div>
         <div className="flex flex-wrap gap-2">
           <HandoffActions leadId={lead.id} />

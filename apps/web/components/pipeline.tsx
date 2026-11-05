@@ -8,6 +8,7 @@ import type {
   Role,
   StageKey,
 } from '@npac/shared';
+import { can } from '@npac/shared/permissions';
 import Link from 'next/link';
 import { useState, type CSSProperties, type FormEvent } from 'react';
 import { clientApi } from '@/lib/client-api';
@@ -33,6 +34,7 @@ export function Pipeline({
   canEditColumns?: boolean;
 }) {
   const [columns, setColumns] = useState(initial);
+  const canRegister = can({ role }, 'sale:register');
   const [active, setActive] = useState<StageKey>('SONDAGEM');
   // Etapas vivas (o editor de colunas muda a lista) e as ocultas pela pessoa: coluna nova aparece.
   const [stages, setStages] = useState(catalog.stages);
@@ -253,6 +255,19 @@ export function Pipeline({
                     </Link>
                     <span className={`tier tier-${l.tier}`}>{l.tier}</span>
                   </div>
+                  {l.saleToRegister && (
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <span className="sale-pending">Venda a registrar</span>
+                      {canRegister && (
+                        <Link
+                          className="text-xs font-semibold text-gold-deep underline-offset-2 hover:underline"
+                          href={`/leads/${l.id}#vendas`}
+                        >
+                          Registrar venda
+                        </Link>
+                      )}
+                    </div>
+                  )}
                   <p className="my-2 text-xs text-ink2">
                     {l.nextContactAt
                       ? new Date(l.nextContactAt).toLocaleDateString('pt-BR', {
