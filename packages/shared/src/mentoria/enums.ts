@@ -46,3 +46,21 @@ export const PENDENCIAS_PDF = [
   'Verificar o botão Exportar (.json) na página publicada: a plataforma avisou que downloads diretos podem não funcionar para quem acessa pelo link',
   'Confirmar se "Gegê e Hellen" e "João Carlos (Gegê) e Hellen" são o mesmo casal (hoje há duas fichas no RDV)',
 ] as const;
+
+/** Os 4 quadros rápidos do RDV ("Evoluções dentro da mentoria"), na ordem da ferramenta antiga. */
+export const QUADRO_CHAVES = [
+  'EVENTOS_PRESENCIAIS',
+  'INVESTIMENTO_ATIVOS',
+  'IMOVEL_LEILAO',
+  'MERCADO_IMOBILIARIO',
+] as const;
+export type QuadroChave = (typeof QUADRO_CHAVES)[number];
+export const QUADRO_ROTULO: Record<QuadroChave, string> = {
+  EVENTOS_PRESENCIAIS: 'Eventos presenciais que já participou',
+  INVESTIMENTO_ATIVOS: 'Investimento em ativos',
+  IMOVEL_LEILAO: 'Imóvel de leilão',
+  MERCADO_IMOBILIARIO: 'Mercado imobiliário',
+};
+
+/** Data de evento: sempre `DD/MM/AAAA` válida (regra 4); mês sozinho não serve. */
+export const DATA_COMPLETA = /^\d{1,2}\/\d{1,2}\/\d{4}$/;

@@ -51,3 +51,14 @@ export function validarRegistro<T extends z.ZodType>(schema: T, input: unknown):
     throw new BadRequestException(MSG_LIMITE_REGISTRO);
   return validate(schema, input);
 }
+
+/**
+ * Como `validarRegistro`, mas a regra própria do módulo (refine com mensagem: link fora da
+ * lista, data fora do formato) responde com a mensagem em português para a tela mostrar.
+ */
+export function validarComAviso<T extends z.ZodType>(schema: T, input: unknown): z.output<T> {
+  const r = schema.safeParse(input);
+  const aviso = r.success ? undefined : r.error.issues.find((i) => i.code === 'custom');
+  if (aviso) throw new BadRequestException(aviso.message);
+  return validate(schema, input);
+}

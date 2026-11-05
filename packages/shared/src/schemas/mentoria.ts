@@ -1,5 +1,13 @@
 import { z } from 'zod';
-import { FICHA_CAMPO_CHAVES, LIMITE_REGISTRO_BYTES, MENTORADO_STATUS } from '../mentoria/enums.js';
+import {
+  DATA_COMPLETA,
+  FICHA_CAMPO_CHAVES,
+  LIMITE_REGISTRO_BYTES,
+  MENTORADO_STATUS,
+  QUADRO_CHAVES,
+} from '../mentoria/enums.js';
+import { parseData } from '../mentoria/datas.js';
+import { linkPermitido } from '../mentoria/links.js';
 
 /**
  * Regra principal do PDF: texto colado é gravado como veio, só sem espaços nas bordas. Nada de
@@ -91,7 +99,96 @@ export const versionSchema = z.object({ version }).strict();
 
 export const excluirRegistroSchema = z.object({ version }).strict();
 
+/** RDV (Módulo 3): nome é o único campo editável direto; pasta e diagnóstico só por "Colar". */
+export const criarRdvSchema = z.object({ nome }).strict();
+/** Data de evento: `DD/MM/AAAA` real (regra 4). */
+const dataEvento = z
+  .string()
+  .trim()
+  .refine((s) => DATA_COMPLETA.test(s) && !!parseData(s).data, 'Use a data no formato DD/MM/AAAA');
+/** Data de item de quadro: opcional, `MM/AAAA` ou `DD/MM/AAAA` (D34). */
+const dataQuadro = z
+  .string()
+  .trim()
+  .refine((s) => !s || !!parseData(s).data, 'Use MM/AAAA ou DD/MM/AAAA');
+
+export const atualizarRdvSchema = z
+  .object({
+    version,
+    nome: nome.optional(),
+    /** Eventos desta pessoa (data e descrição), com a version da pessoa (D5). */
+    eventos: z
+      .record(
+        z.uuid(),
+        z
+          .object({ data: dataEvento.optional(), descricao: texto().nullable().optional() })
+          .strict(),
+      )
+      .optional(),
+    /** Itens de quadro: só a descrição muda; a data é de fonte (D34). */
+    quadros: z
+      .record(z.uuid(), z.object({ descricao: texto().nullable().optional() }).strict())
+      .optional(),
+  })
+  .strict()
+  .refine(cabeNoRegistro, MSG_LIMITE);
+export const novoEventoSchema = z
+  .object({ version, data: dataEvento, descricao: texto() })
+  .strict()
+  .refine(cabeNoRegistro, MSG_LIMITE);
+export const previaEventosSchema = z
+  .object({ texto: z.string().max(LIMITE_REGISTRO_BYTES) })
+  .strict();
+/** Gravação da colagem: só Evento e Quadro (Eventos presenciais); dúvida não é gravada. */
+export const colarEventosSchema = z
+  .object({
+    version,
+    linhas: z
+      .array(
+        z
+          .object({
+            tipo: z.enum(['EVENTO', 'QUADRO']),
+            data: z.string().trim().max(40),
+            descricao: texto(),
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(500),
+  })
+  .strict()
+  .refine(cabeNoRegistro, MSG_LIMITE);
+export const novoQuadroSchema = z
+  .object({
+    version,
+    quadro: z.enum(QUADRO_CHAVES),
+    data: dataQuadro.optional(),
+    descricao: texto(),
+  })
+  .strict()
+  .refine(cabeNoRegistro, MSG_LIMITE);
+export const previaDiagnosticoSchema = z
+  .object({ texto: z.string().max(LIMITE_REGISTRO_BYTES) })
+  .strict();
+export const colarDiagnosticoSchema = z
+  .object({ version, texto: z.string().max(LIMITE_REGISTRO_BYTES) })
+  .strict();
+export const colarLinkSchema = z
+  .object({
+    version,
+    url: z
+      .string()
+      .trim()
+      .max(2000)
+      .refine(linkPermitido, 'Link não aceito: use um link do Google Drive, YouTube ou Vimeo'),
+  })
+  .strict();
+
 export type CriarMentorado = z.output<typeof criarMentoradoSchema>;
 export type AtualizarMentorado = z.output<typeof atualizarMentoradoSchema>;
 export type AtualizarFicha = z.output<typeof atualizarFichaSchema>;
 export type CriarFicha = z.output<typeof criarFichaSchema>;
+export type CriarRdv = z.output<typeof criarRdvSchema>;
+export type AtualizarRdv = z.output<typeof atualizarRdvSchema>;
+export type ColarEventos = z.output<typeof colarEventosSchema>;
+export type NovoQuadro = z.output<typeof novoQuadroSchema>;

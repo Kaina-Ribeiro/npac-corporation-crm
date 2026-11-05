@@ -17,6 +17,8 @@ import { MentoriaGuard } from './mentoria.guard.js';
 import { MentoriaService } from './mentoria.service.js';
 import { MidiaController } from './midia.controller.js';
 import { PessoasController, RegistrosController } from './registros.controller.js';
+import { RdvController } from './rdv.controller.js';
+import { RdvService } from './rdv.service.js';
 
 /** Acompanhamento de mentorados: base à parte do comercial, só Diretoria e Acompanhamento. */
 @Module({
@@ -28,8 +30,10 @@ import { PessoasController, RegistrosController } from './registros.controller.j
     ImportController,
     MidiaController,
     BackupController,
+    RdvController,
   ],
   providers: [
+    RdvService,
     MentoriaService,
     EscritaService,
     FichasService,

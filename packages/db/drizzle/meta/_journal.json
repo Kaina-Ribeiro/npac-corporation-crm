@@ -232,6 +232,13 @@
       "when": 1793814522883,
       "tag": "0032_mentoria_lgpd",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1793838219723,
+      "tag": "0033_mentoria_link_docs",
+      "breakpoints": true
     }
   ]
 }

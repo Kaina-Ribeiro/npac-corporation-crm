@@ -66,3 +66,32 @@ export type FichaDetalhe = {
   conquistas: { id: string; data: string | null; descricao: string | null }[];
   midias: MidiaDTO[];
 };
+
+/** Linha da lista do RDV (Módulo 3). */
+export type RdvItem = { id: string; nome: string; eventos: number };
+export type PaginaRdv = { itens: RdvItem[]; cursor: string | null; total?: number };
+
+/** Campo do diagnóstico colado (só leitura na tela). */
+export type DiagnosticoCampo = { chave: string; rotulo: string; valor: string | null };
+
+/** Prévia de "Colar dados do diagnóstico": nada é gravado (D30). */
+export type DiagnosticoPrevia = {
+  campos: { chave: string; rotulo: string; atual: string | null; novo: string }[];
+  faltam: string[];
+  desconhecidos: number;
+};
+
+/** Pessoa do RDV aberta: cabeçalho, diagnóstico, pasta e mídias (foto de perfil). */
+export type RdvDetalhe = {
+  id: string;
+  nome: string;
+  version: number;
+  pessoaRef: string | null;
+  pastaUrl: string | null;
+  diagnostico: DiagnosticoCampo[];
+  /** Em ordem cronológica (data, id), calculada na leitura (regra 4). */
+  eventos: { id: string; data: string; descricao: string | null }[];
+  /** Itens dos 4 quadros, em ordem (data, id); sem data no fim (D34). */
+  quadros: { id: string; quadro: string; data: string | null; descricao: string | null }[];
+  midias: MidiaDTO[];
+};
