@@ -193,7 +193,7 @@ export function FichaView({ inicial, extra }: { inicial: FichaDetalhe; extra?: R
         <div className="min-w-0 flex-1">
           <input
             aria-label="Nome da ficha"
-            className="w-full rounded-lg border border-transparent bg-transparent px-1 text-2xl font-bold tracking-[-0.03em] outline-none hover:border-line focus:border-ink/30"
+            className="w-full rounded-lg border border-transparent bg-transparent px-1 text-2xl font-bold tracking-[-0.03em] hover:border-line focus:border-ink/30"
             {...nome}
           />
           <p className="mt-1 flex flex-wrap gap-x-2 px-1 text-sm text-ink2">

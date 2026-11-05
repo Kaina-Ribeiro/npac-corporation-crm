@@ -49,6 +49,12 @@
     radial-gradient(80% 38% at 100% 0%, rgba(226, 187, 102, 0.38), transparent 70%),
     radial-gradient(70% 40% at 0% 100%, rgba(110, 145, 255, 0.22), transparent 70%),
     radial-gradient(50% 30% at 25% 48%, rgba(255, 140, 165, 0.1), transparent 70%);
+  /* Movimento (NPAC-31): entrar no pressionado, hover, foco/seleção, soltar com mola. As curvas
+     `--ease-out` e `--ease-spring` ficam mais abaixo, junto de quem as criou. */
+  --dur-press: 80ms;
+  --dur-fast: 140ms;
+  --dur: 200ms;
+  --dur-slow: 320ms;
 }
 
 .dark {
@@ -113,9 +119,37 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-:focus-visible {
-  outline: 2px solid #c2922e;
-  outline-offset: 2px;
+/* Base de interação (NPAC-31): todo controle anima cor, fundo, sombra, escala e foco, sem
+   editar componente por componente. Fica em `@layer base` para que quem tem `transition` próprio
+   (componentes, utilitários, sidebar) e o anel do `.field` continuem valendo. O anel de foco
+   cresce em vez de piscar: em repouso é transparente e colado; no foco fica dourado a 2 px. */
+@layer base {
+  button,
+  a,
+  [role='button'],
+  summary,
+  input,
+  select,
+  textarea {
+    transition-property:
+      color, background-color, border-color, box-shadow, opacity, scale, translate, outline-color,
+      outline-offset;
+    transition-duration: var(--dur-fast);
+    transition-timing-function: var(--ease-out);
+    outline: 2px solid transparent;
+    outline-offset: 0;
+  }
+  :focus-visible {
+    outline: 2px solid #c2922e;
+    outline-offset: 2px;
+    transition-duration: var(--dur);
+  }
+  /* Alto contraste do Windows pinta contorno transparente: em repouso, nenhum contorno. */
+  @media (forced-colors: active) {
+    :is(button, a, [role='button'], summary, input, select, textarea):not(:focus-visible) {
+      outline-style: none;
+    }
+  }
 }
 
 @layer components {

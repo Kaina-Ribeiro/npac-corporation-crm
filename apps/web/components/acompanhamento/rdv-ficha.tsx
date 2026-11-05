@@ -142,7 +142,7 @@ export function RdvFicha({ inicial }: { inicial: RdvDetalhe }) {
           <textarea
             aria-label="Nome do mentorado"
             rows={1}
-            className="w-full resize-none rounded-lg border border-transparent bg-transparent px-1 text-xl leading-tight font-bold tracking-[-0.03em] outline-none [field-sizing:content] hover:border-line focus:border-ink/30 md:text-2xl print:hidden"
+            className="w-full resize-none rounded-lg border border-transparent bg-transparent px-1 text-xl leading-tight font-bold tracking-[-0.03em] [field-sizing:content] hover:border-line focus:border-ink/30 md:text-2xl print:hidden"
             value={nome}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {

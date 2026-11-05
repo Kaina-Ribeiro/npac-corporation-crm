@@ -15,7 +15,7 @@ export type Evento = RdvDetalhe['eventos'][number];
 
 /** Célula de edição direta (como no protótipo): sem borda até passar o mouse ou focar. */
 const celula =
-  'rounded-lg border border-transparent bg-transparent px-2 py-1 text-ink outline-none transition-colors hover:border-line focus:border-ink/30 focus:bg-[var(--on)]';
+  'rounded-lg border border-transparent bg-transparent px-2 py-1 text-ink transition-colors hover:border-line focus:border-ink/30 focus:bg-[var(--on)]';
 
 /** Ordem da linha do tempo (regra 4): data, depois id; calculada, nunca reordenada à mão. */
 export const ordenarEventos = (l: Evento[]) =>
