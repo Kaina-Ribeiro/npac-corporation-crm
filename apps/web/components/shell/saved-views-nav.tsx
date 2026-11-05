@@ -6,9 +6,11 @@ import { useEffect, useState } from 'react';
 import { clientApi } from '@/lib/client-api';
 
 /** Lista os filtros salvos na sidebar (como as "views" do Linear); recarrega ao salvar/apagar. */
-export function useSavedViews() {
+export function useSavedViews(enabled = true) {
   const [views, setViews] = useState<SavedViewDTO[]>([]);
   useEffect(() => {
+    // Filtros salvos são de leads: o cargo Acompanhamento não os tem (a API responde 404).
+    if (!enabled) return;
     const load = () =>
       void clientApi<SavedViewDTO[]>('/api/views')
         .then(setViews)
@@ -16,7 +18,7 @@ export function useSavedViews() {
     load();
     window.addEventListener('crm:views', load);
     return () => window.removeEventListener('crm:views', load);
-  }, []);
+  }, [enabled]);
   return views;
 }
 

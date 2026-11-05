@@ -92,8 +92,16 @@ export const ACOMPANHAMENTO_ITEM: NavItem = {
   icon: ICONS.acompanhamento,
 };
 
-/** Itens da sidebar e do Ctrl+K para a pessoa: o mesmo menu para todos os cargos (D23). */
-export function navItems(opts: { head: boolean; mentoria: boolean }): NavItem[] {
+/**
+ * Itens da sidebar e do Ctrl+K para a pessoa. Quem não usa o comercial (cargo Acompanhamento)
+ * vê só o módulo (Gabriel, 05/11/2026; substitui o "mesmo menu para todos" da D23).
+ */
+export function navItems(opts: {
+  head: boolean;
+  mentoria: boolean;
+  commercial?: boolean;
+}): NavItem[] {
+  if (opts.commercial === false) return opts.mentoria ? [ACOMPANHAMENTO_ITEM] : [];
   return [
     ...SIDEBAR_ITEMS,
     ...(opts.mentoria ? [ACOMPANHAMENTO_ITEM] : []),

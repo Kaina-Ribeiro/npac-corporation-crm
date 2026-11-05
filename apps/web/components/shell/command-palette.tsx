@@ -67,7 +67,15 @@ const typing = (t: EventTarget | null) =>
  * Ctrl/⌘+K (ou "/"): busca leads do escopo e leva a qualquer tela ou ação, só com teclado.
  * A busca vai por POST, como a lista de leads, para o termo não ficar em URL ou histórico.
  */
-export function CommandPalette({ head, mentoria = false }: { head: boolean; mentoria?: boolean }) {
+export function CommandPalette({
+  head,
+  mentoria = false,
+  commercial = true,
+}: {
+  head: boolean;
+  mentoria?: boolean;
+  commercial?: boolean;
+}) {
   const router = useRouter();
   const { resolvedTheme, setTheme } = useTheme();
   const [open, setOpen] = useState(false);
@@ -105,7 +113,8 @@ export function CommandPalette({ head, mentoria = false }: { head: boolean; ment
     input.current?.focus();
   }, [open]);
 
-  const needStages = open && !Object.keys(stages).length;
+  // Sem comercial (Acompanhamento): o Ctrl+K só navega; leads e etapas não existem para o cargo.
+  const needStages = open && commercial && !Object.keys(stages).length;
   useEffect(() => {
     if (!needStages) return;
     void clientApi<LeadCatalog>('/api/leads/catalog')
@@ -115,7 +124,7 @@ export function CommandPalette({ head, mentoria = false }: { head: boolean; ment
 
   useEffect(() => {
     const term = query.trim();
-    if (term.length < 2) {
+    if (!commercial || term.length < 2) {
       setLeads([]);
       return;
     }
@@ -129,16 +138,16 @@ export function CommandPalette({ head, mentoria = false }: { head: boolean; ment
       stale = true;
       clearTimeout(t);
     };
-  }, [query]);
+  }, [query, commercial]);
 
-  const views = useSavedViews();
+  const views = useSavedViews(commercial);
   const go = (href: string) => () => {
     setOpen(false);
     router.push(href);
   };
   const commands: Item[] = [
     { id: 'new', label: 'Novo lead', group: 'Ações', icon: ICON.plus, run: go('/leads/new') },
-    ...navItems({ head, mentoria }).map((n) => ({
+    ...navItems({ head, mentoria, commercial }).map((n) => ({
       id: n.href,
       label: n.label,
       group: 'Ir para',
