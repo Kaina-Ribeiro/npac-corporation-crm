@@ -84,7 +84,7 @@ test('lembretes: 1 h com confirmação, 15 min, 1 min só aviso, remarcar recome
   await login(page, 'ale@npac.com.br');
   const name = `Lembrete ${start}`;
   const res = await page.request.post('/api/leads', {
-    data: { name, instagram: `@lembrete.${start}`, incomeBand: 'R5_8K', tier: 'P1' },
+    data: { name, instagram: `@lembrete.${start}`, incomeBand: 'R5_8K', source: 'BIO', tier: 'P1' },
   });
   const { id: leadId } = (await res.json()) as { id: string };
   const at = start + 61 * MIN;

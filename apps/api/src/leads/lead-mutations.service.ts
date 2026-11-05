@@ -7,7 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { deals, leadContactTaken, leads, leadTasks, withUser, type Db, type Tx } from '@npac/db';
-import { isLeader, type AuthUser, type LeadUpdateInput } from '@npac/shared';
+import { isLeader, isLegacyLeadSource, type AuthUser, type LeadUpdateInput } from '@npac/shared';
 import { and, eq, isNull, sql } from 'drizzle-orm';
 import { DB } from '../common/db/db.module.js';
 import { FieldCrypto } from '../common/crypto/field-crypto.js';
@@ -51,9 +51,28 @@ export class LeadMutationsService {
   ) {}
 
   async update(u: AuthUser, id: string, input: LeadUpdateInput, meta: RequestMeta) {
-    const fields = Object.keys(input).filter((k) => k !== 'version');
+    // Na timeline o texto de "Outro" conta como a própria origem (a lista de campos é fechada).
+    const fields = [
+      ...new Set(
+        Object.keys(input)
+          .filter((k) => k !== 'version')
+          .map((k) => (k === 'sourceOther' ? 'source' : k)),
+      ),
+    ];
     return withUser(this.db, u.id, async (tx) => {
       const old = await lockLead(tx, id, input.version);
+      const source = input.source ?? old.source;
+      if (input.source && input.source !== old.source && isLegacyLeadSource(input.source))
+        throw new BadRequestException('Esta origem não é mais usada. Escolha uma da lista.');
+      const sourceOther =
+        source !== 'OUTRO'
+          ? null
+          : input.sourceOther !== undefined
+            ? input.sourceOther
+            : old.sourceOther;
+      // Leads antigos em "Outro" ficaram sem texto; só exige ao escolher "Outro" agora.
+      if (source === 'OUTRO' && old.source !== 'OUTRO' && !sourceOther)
+        throw new BadRequestException('Escreva qual é a origem');
       if (u.role === 'CLOSER' && fields.some((f) => f !== 'stageKey'))
         throw new ForbiddenException();
       if (!isLeader(u.role) && fields.some((f) => f === 'sdrId' || f === 'closerId'))
@@ -103,6 +122,7 @@ export class LeadMutationsService {
         patch.phoneEnc = input.phone ? this.crypto.encrypt(input.phone) : null;
       }
       if (input.instagram !== undefined) patch.instagram = instagram;
+      if (sourceOther !== old.sourceOther) patch.sourceOther = sourceOther ?? null;
       await tx.update(leads).set(patch).where(eq(leads.id, id));
       const kind =
         fields.includes('sdrId') || fields.includes('closerId')

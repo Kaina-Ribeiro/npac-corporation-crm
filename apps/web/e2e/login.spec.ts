@@ -31,6 +31,8 @@ test('SDR cadastra lead, escreve nota e conclui tarefa na ficha', async ({ page 
   await page.getByLabel('Nome', { exact: true }).fill('Lead e2e CRM');
   await page.getByLabel('WhatsApp', { exact: true }).fill('11966665555');
   await page.getByLabel('Faixa de renda', { exact: true }).selectOption('R5_8K');
+  await page.getByLabel('Origem', { exact: true }).selectOption({ label: 'Outro' });
+  await page.getByLabel('Qual origem?', { exact: true }).fill('Feira do bairro');
   await page.getByRole('button', { name: 'Cadastrar lead' }).click();
   await expect(page.getByRole('heading', { name: 'Lead e2e CRM', exact: true })).toBeVisible();
   await page.getByLabel('Nova nota', { exact: true }).fill('Retornar após a reunião');
@@ -65,7 +67,13 @@ test('closer registra venda parcial e recebe; SDR não vê vendas e vê o relat�
   await login(page, 'ale@npac.com.br');
   await page.waitForURL(/\/dashboard/);
   const response = await page.request.post('/api/leads', {
-    data: { name: 'Lead venda e2e', instagram: '@sale.e2e', incomeBand: 'R5_8K', tier: 'P1' },
+    data: {
+      name: 'Lead venda e2e',
+      instagram: '@sale.e2e',
+      incomeBand: 'R5_8K',
+      source: 'BIO',
+      tier: 'P1',
+    },
   });
   const { id } = (await response.json()) as { id: string };
   // Pedido do cliente (04/11): vendas e pagamentos são do closer; o SDR só marca a reunião.
@@ -295,6 +303,7 @@ test('HEAD estorna pela ficha preservando recebimento', async ({ page }) => {
       name: 'Venda para estorno',
       instagram: '@sale.reverse.e2e',
       incomeBand: 'R5_8K',
+      source: 'BIO',
       tier: 'P1',
       sdrId: sdr!.id,
     },
@@ -415,7 +424,13 @@ test('duas sessões recebem notas em tempo real e revogam acesso sem recarregar'
     await login(ale, 'ale@npac.com.br');
     await ale.waitForURL(/\/dashboard/);
     const response = await a.request.post('/api/leads', {
-      data: { name: 'Lead tempo real', instagram: '@lead.live', incomeBand: 'R5_8K', tier: 'P1' },
+      data: {
+        name: 'Lead tempo real',
+        instagram: '@lead.live',
+        incomeBand: 'R5_8K',
+        source: 'BIO',
+        tier: 'P1',
+      },
     });
     expect(response.status()).toBe(201);
     const { id } = (await response.json()) as { id: string };
@@ -468,6 +483,7 @@ test('rascunho não usa versão nova recebida por SSE para sobrescrever outra ed
       name: 'Lead versão',
       instagram: '@lead.version.draft',
       incomeBand: 'R5_8K',
+      source: 'BIO',
       tier: 'P1',
     },
   });

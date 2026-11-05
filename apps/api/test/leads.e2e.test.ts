@@ -16,6 +16,7 @@ const lead = (over: Record<string, unknown> = {}) => ({
   name: 'Maria Silva',
   instagram: `@maria.${++seq}`,
   incomeBand: 'R8_15K',
+  source: 'BIO',
   tier: 'P1',
   ...over,
 });
@@ -59,15 +60,15 @@ describe('leads', () => {
   });
   it('filtros por origem/data e ordenação são aplicados no servidor', async () => {
     await create(
-      lead({ name: 'Zélia', source: 'WHATSAPP', nextContactAt: '2030-01-01T23:30:00-03:00' }),
+      lead({ name: 'Zélia', source: 'TIKTOK', nextContactAt: '2030-01-01T23:30:00-03:00' }),
       ale,
     );
-    await create(lead({ name: 'Alice', source: 'INSTAGRAM' }), ale);
+    await create(lead({ name: 'Alice', source: 'SALA_SECRETA' }), ale);
     const sorted = await h.post('/api/leads/search', { sort: 'name', direction: 'asc' }, ale);
     expect(sorted.body.items.map((l: { name: string }) => l.name)).toEqual(['Alice', 'Zélia']);
     const range = await h.post(
       '/api/leads/search',
-      { source: 'WHATSAPP', period: 'RANGE', from: '2030-01-01', to: '2030-01-01' },
+      { source: 'TIKTOK', period: 'RANGE', from: '2030-01-01', to: '2030-01-01' },
       ale,
     );
     expect(range.body.items.map((l: { name: string }) => l.name)).toEqual(['Zélia']);
@@ -132,6 +133,44 @@ describe('leads', () => {
     expect(JSON.stringify(activity.body.timeline)).not.toContain('Retornar');
     expect((await h.get(`/api/leads/${id}/activity`, murilo)).status).toBe(404);
   });
+  it('origem: lista nova no cadastro, "Outro" com texto e antigas só nos leads existentes', async () => {
+    expect((await h.post('/api/leads', lead({ source: undefined }), ale)).status).toBe(400);
+    expect((await h.post('/api/leads', lead({ source: 'INSTAGRAM' }), ale)).status).toBe(400);
+    expect((await h.post('/api/leads', lead({ source: 'OUTRO' }), ale)).status).toBe(400);
+    expect(
+      (await h.post('/api/leads', lead({ source: 'OUTRO', sourceOther: 'x'.repeat(81) }), ale))
+        .status,
+    ).toBe(400);
+    const outro = await create(lead({ source: 'OUTRO', sourceOther: ' Feira do bairro ' }), ale);
+    expect((await h.get(`/api/leads/${outro}`, ale)).body).toMatchObject({
+      source: 'OUTRO',
+      sourceOther: 'Feira do bairro',
+    });
+    // Texto mandado com outra origem é descartado.
+    const bio = await create(lead({ source: 'BIO', sourceOther: 'ignorado' }), ale);
+    expect((await h.get(`/api/leads/${bio}`, ale)).body.sourceOther).toBeNull();
+    // Sair de "Outro" apaga o texto; voltar exige texto novo.
+    expect(
+      (await h.patch(`/api/leads/${outro}`, { version: 1, source: 'PDF_10' }, ale)).status,
+    ).toBe(200);
+    expect((await h.get(`/api/leads/${outro}`, ale)).body.sourceOther).toBeNull();
+    const back = await h.patch(`/api/leads/${outro}`, { version: 2, source: 'OUTRO' }, ale);
+    expect(back.status).toBe(400);
+    expect(back.body.message).toBe('Escreva qual é a origem');
+    // Lead antigo (Instagram) continua editável sem trocar a origem, mas não volta para antiga.
+    await owner`update leads set source = 'INSTAGRAM' where id = ${bio}`;
+    expect(
+      (await h.patch(`/api/leads/${bio}`, { version: 1, source: 'INSTAGRAM', name: 'Maria' }, ale))
+        .status,
+    ).toBe(200);
+    expect(
+      (await h.patch(`/api/leads/${outro}`, { version: 2, source: 'WHATSAPP' }, ale)).status,
+    ).toBe(400);
+    const timeline = await owner<{ fields: string[] }[]>`
+      select fields from lead_timeline where lead_id = ${outro} and kind = 'lead.updated'`;
+    expect(timeline.map((t) => t.fields)).toEqual([['source']]);
+  });
+
   it('edição usa versão otimista e nunca altera um lead invisível', async () => {
     const id = await create(lead(), ale);
     const [a, b] = await Promise.all([

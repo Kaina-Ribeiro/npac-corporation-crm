@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { LEAD_SOURCES } from '../enums.js';
 import { leadCreateSchema } from './lead.js';
 
 const f = leadCreateSchema.shape;
@@ -9,7 +10,9 @@ export const leadUpdateSchema = z
     phone: f.phone.nullable(),
     instagram: f.instagram.nullable(),
     incomeBand: f.incomeBand.optional(),
-    source: f.source.removeDefault().optional(),
+    // Aceita as antigas para o lead que já está nelas; trocar para uma antiga a API recusa.
+    source: z.enum(LEAD_SOURCES).optional(),
+    sourceOther: f.sourceOther.nullable(),
     tier: f.tier.optional(),
     stageKey: f.stageKey.removeDefault().optional(),
     sdrId: f.sdrId,

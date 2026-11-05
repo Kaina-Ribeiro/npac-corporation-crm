@@ -30,7 +30,13 @@ beforeEach(async () => {
   leadId = (
     await h.post(
       '/api/leads',
-      { name: 'Venda teste', instagram: '@venda.teste', incomeBand: 'R5_8K', tier: 'P1' },
+      {
+        name: 'Venda teste',
+        instagram: '@venda.teste',
+        incomeBand: 'R5_8K',
+        source: 'BIO',
+        tier: 'P1',
+      },
       ale,
     )
   ).body.id;
@@ -59,7 +65,13 @@ it('venda parcial é atômica e repetição não duplica', async () => {
   expect(retry.body.id).toBe(res.body.id);
   const other = await h.post(
     '/api/leads',
-    { name: 'Outro comprador', instagram: '@outro.comprador', incomeBand: 'R5_8K', tier: 'P1' },
+    {
+      name: 'Outro comprador',
+      instagram: '@outro.comprador',
+      incomeBand: 'R5_8K',
+      source: 'BIO',
+      tier: 'P1',
+    },
     murilo,
   );
   expect(

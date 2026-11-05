@@ -7,6 +7,7 @@ import type {
   Role,
   TeamActivityDTO,
 } from '@npac/shared';
+import { LEAD_SOURCE_LABELS, LEAD_SOURCE_OPTIONS, LEGACY_LEAD_SOURCES } from '@npac/shared/enums';
 import { money } from '@npac/shared/money';
 import Link from 'next/link';
 import { type CSSProperties, useMemo, useRef, useState, type FormEvent } from 'react';
@@ -581,8 +582,10 @@ export function Reports({
                 <Field label="Origem do relatório">
                   <select name="source" className={control}>
                     <option value="">Todas</option>
-                    {['INSTAGRAM', 'WHATSAPP', 'INDICACAO', 'OUTRO'].map((s) => (
-                      <option key={s}>{s}</option>
+                    {[...LEAD_SOURCE_OPTIONS, ...LEGACY_LEAD_SOURCES].map((s) => (
+                      <option key={s} value={s}>
+                        {LEAD_SOURCE_LABELS[s]}
+                      </option>
                     ))}
                   </select>
                 </Field>
