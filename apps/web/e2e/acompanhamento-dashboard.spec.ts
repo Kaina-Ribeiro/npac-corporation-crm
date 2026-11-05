@@ -197,3 +197,26 @@ test('mobile: nomes do grupo aparecem sem tocar no card', async ({ page }) => {
   );
   expect(overflow).toBeLessThanOrEqual(0);
 });
+
+// NPAC-33: faixa de status compacta, cabeçalho com ação principal e estado vazio.
+test('o card inteiro filtra: clicar no número seleciona com a barra dourada', async ({ page }) => {
+  await abrir(page);
+  const botao = page.getByRole('button', { name: /Em risco/ });
+  await botao.getByText('11', { exact: true }).click(); // o número, não o rótulo
+  await expect(botao).toHaveAttribute('aria-pressed', 'true');
+  await expect(botao).toHaveClass(/card-sel/);
+  await expect.poll(() => nomes(page).then((n) => n.length)).toBe(11);
+  // A barra dourada cresce de cima para baixo.
+  await expect.poll(() => botao.evaluate((el) => getComputedStyle(el, '::after').scale)).toBe('1');
+  await botao.click();
+  await expect(botao).toHaveAttribute('aria-pressed', 'false');
+  await expect(botao).not.toHaveClass(/card-sel/);
+});
+
+test('zero não repete "Ninguém neste status"', async ({ page }) => {
+  await owner`delete from mentoria_mentorados where status = 'EM_ATENCAO'`;
+  await abrir(page);
+  await expect(page.getByRole('button', { name: /Em atenção/ })).toContainText('0');
+  await expect(page.getByText('Ninguém neste status.')).toHaveCount(0);
+  await expect(card(page, 'Em atenção').getByRole('list')).toHaveCount(0);
+});
