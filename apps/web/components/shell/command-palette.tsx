@@ -5,7 +5,7 @@ import { useTheme } from 'next-themes';
 import { Fragment, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { clientApi } from '@/lib/client-api';
 import { SIDEBAR_EVENT } from '@/lib/sidebar';
-import { paletteItems } from './nav-items';
+import type { PaletteItem } from './nav-menu';
 import { useSavedViews } from './saved-views-nav';
 
 type Item = {
@@ -68,12 +68,11 @@ const typing = (t: EventTarget | null) =>
  * A busca vai por POST, como a lista de leads, para o termo não ficar em URL ou histórico.
  */
 export function CommandPalette({
-  head,
-  mentoria = false,
+  nav,
   commercial = true,
 }: {
-  head: boolean;
-  mentoria?: boolean;
+  /** Destinos "Ir para", já filtrados pelo servidor (`paletteItems`): o mapa não vai no JS. */
+  nav: PaletteItem[];
   commercial?: boolean;
 }) {
   const router = useRouter();
@@ -147,7 +146,7 @@ export function CommandPalette({
   };
   const commands: Item[] = [
     { id: 'new', label: 'Novo lead', group: 'Ações', icon: ICON.plus, run: go('/leads/new') },
-    ...paletteItems({ head, mentoria, commercial }).map((n) => ({
+    ...nav.map((n) => ({
       id: n.href,
       label: n.label,
       group: 'Ir para',

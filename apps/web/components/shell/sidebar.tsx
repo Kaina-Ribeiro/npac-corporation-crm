@@ -1,4 +1,5 @@
-import { ADMIN_ITEM, navItems } from './nav-items';
+import { ADMIN_ITEM } from './nav-items';
+import { navItems } from './nav-menu';
 import { CountBadge, NavLink } from './nav-link';
 import { NavGroup, NavSection } from './nav-group';
 import { ChatBadge, InboxLink } from '../inbox';

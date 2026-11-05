@@ -25,11 +25,7 @@ export function FormError({ message }: { message?: string }) {
   ) : null;
 }
 export const control = 'field w-full text-ink dark:!bg-white/10';
-/** Botões: classes em `globals.css` (`.btn-*`), com hover, pressionar e foco animados. */
-export const button = 'btn btn-primary';
-export const quietButton = 'btn btn-secondary';
-export const ghostButton = 'btn btn-ghost';
-export const dangerButton = 'btn btn-danger';
+export { button, dangerButton, ghostButton, quietButton } from '@/lib/button';
 
 /**
  * Opções de "mover para". Venda só entra registrando a venda na ficha (a API recusa o

@@ -16,6 +16,7 @@ import { DashboardCards } from './dashboard-cards';
 import { ImportarGaveta } from './importar-gaveta';
 import { MentoradoLinha } from './mentorado-linha';
 import { RemoverConfirma } from './remover-confirma';
+import { CabecalhoModulo } from './cabecalho-modulo';
 
 const BUSCA = '/api/mentoria/mentorados/search';
 
@@ -160,38 +161,36 @@ export function DashboardView({ inicial }: { inicial: ResumoDashboard }) {
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-[28px] font-bold tracking-[-0.03em]">Dashboard</h1>
-          <p className="mt-1 text-sm text-ink2">
-            Lista geral de todos os mentorados com o status de engajamento de cada um · {totalBase}{' '}
-            cadastrados
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            className={`${quietButton} inline-flex items-center gap-2`}
-            onClick={() => setGaveta('planilha')}
-          >
-            {icone('M5 4h14v16H5zM9 4V2h6v2M9 10h6M9 14h6')}Colar planilha
-          </button>
-          <button
-            type="button"
-            className={`${quietButton} inline-flex items-center gap-2`}
-            onClick={() => setGaveta('json')}
-          >
-            {icone('M12 3v12M7 10l5 5 5-5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2')}Importar .json
-          </button>
-          <button
-            type="button"
-            className={`${quietButton} inline-flex items-center gap-2`}
-            onClick={() => void baixarBackup('dashboard').catch((e: Error) => setErro(e.message))}
-          >
-            {icone('M12 15V3M7 8l5-5 5 5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2')}Exportar .json
-          </button>
-        </div>
-      </div>
+      <CabecalhoModulo
+        titulo="Dashboard"
+        descricao={`Lista geral de todos os mentorados com o status de engajamento de cada um · ${totalBase} cadastrados`}
+        acoes={
+          <>
+            <button
+              type="button"
+              className={`${quietButton} inline-flex items-center gap-2`}
+              onClick={() => setGaveta('planilha')}
+            >
+              {icone('M5 4h14v16H5zM9 4V2h6v2M9 10h6M9 14h6')}Colar planilha
+            </button>
+            <button
+              type="button"
+              className={`${quietButton} inline-flex items-center gap-2`}
+              onClick={() => setGaveta('json')}
+            >
+              {icone('M12 3v12M7 10l5 5 5-5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2')}Importar
+              .json
+            </button>
+            <button
+              type="button"
+              className={`${quietButton} inline-flex items-center gap-2`}
+              onClick={() => void baixarBackup('dashboard').catch((e: Error) => setErro(e.message))}
+            >
+              {icone('M12 15V3M7 8l5-5 5 5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2')}Exportar .json
+            </button>
+          </>
+        }
+      />
 
       <DashboardCards
         contagem={resumo.contagemPorStatus}

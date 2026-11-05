@@ -9,6 +9,7 @@ import {
   NOME_MODULO,
   type ModuloImport,
 } from './importar-gaveta';
+import { CabecalhoModulo } from './cabecalho-modulo';
 
 const ENTRADA: Record<ModuloImport, string> = {
   dashboard: 'Colar planilha · importar .json',
@@ -30,15 +31,10 @@ export function BackupView({
   const [erro, setErro] = useState('');
   return (
     <div className="flex flex-col gap-5">
-      <div>
-        <h1 className="text-[28px] font-bold tracking-[-0.03em]">
-          Importação, exportação e backup
-        </h1>
-        <p className="mt-1 max-w-3xl text-sm text-ink2">
-          Cada módulo tem sua própria entrada e saída de dados. O .json exportado é o backup oficial
-          e restaura a base inteira de um módulo.
-        </p>
-      </div>
+      <CabecalhoModulo
+        titulo="Importação, exportação e backup"
+        descricao="Cada módulo tem sua própria entrada e saída de dados. O .json exportado é o backup oficial e restaura a base inteira de um módulo."
+      />
       <FormError message={erro} />
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
         <div className="flex min-w-0 flex-col gap-4">

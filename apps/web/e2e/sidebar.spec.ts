@@ -108,7 +108,8 @@ test('Diretoria: grupo abre dentro do módulo e fecha fora', async ({ page }) =>
   await page.goto('/leads');
   const rdv = lateral(page).locator('a', { hasText: 'Linha do tempo RDV' });
   await expect(rdv).toBeHidden();
-  await expect(page.locator('.side-sub')).toHaveAttribute('inert', '');
+  const sub = page.locator('.side-sub');
+  await expect.poll(() => sub.evaluate((el) => getComputedStyle(el).visibility)).toBe('hidden');
   // Fechado não recebe foco por Tab: do Acompanhamento, o Tab pula para o próximo item.
   await lateral(page).getByRole('link', { name: 'Acompanhamento', exact: true }).focus();
   await page.keyboard.press('Tab');
@@ -117,7 +118,7 @@ test('Diretoria: grupo abre dentro do módulo e fecha fora', async ({ page }) =>
   await lateral(page).getByRole('link', { name: 'Acompanhamento', exact: true }).click();
   await page.waitForURL(/\/acompanhamento\/dashboard/);
   await expect(rdv).toBeVisible();
-  await expect(page.locator('.side-sub')).not.toHaveAttribute('inert');
+  await expect.poll(() => sub.evaluate((el) => getComputedStyle(el).visibility)).toBe('visible');
   await rdv.click();
   await page.waitForURL(/\/acompanhamento\/rdv$/);
   await expect(rdv).toHaveAttribute('aria-current', 'page');

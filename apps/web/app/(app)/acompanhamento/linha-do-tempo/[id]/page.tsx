@@ -1,5 +1,6 @@
 import type { FichaDetalhe } from '@npac/shared/mentoria';
 import { notFound } from 'next/navigation';
+import { IndicadorSalvo } from '@/components/acompanhamento/indicador-salvo';
 import { FichaView } from '@/components/acompanhamento/ficha-view';
 import { sessaoDoModulo } from '@/lib/acompanhamento';
 import { ApiError, apiGet } from '@/lib/api';
@@ -17,5 +18,13 @@ export default async function FichaPage({ params }: { params: Promise<{ id: stri
       throw e;
     },
   );
-  return <FichaView inicial={ficha} />;
+  return (
+    <>
+      {/* A ficha não tem H1 de módulo: o indicador fica numa linha própria no topo. */}
+      <div className="flex justify-end">
+        <IndicadorSalvo />
+      </div>
+      <FichaView inicial={ficha} />
+    </>
+  );
 }

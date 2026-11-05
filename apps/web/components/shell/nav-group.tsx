@@ -1,24 +1,25 @@
-'use client';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { NavLink } from './nav-link';
 import type { NavItem } from './nav-items';
+
+// Server component de propósito: nada aqui vai para o JS do cliente (/leads tem teto de 150 KB
+// gzip). Quem decide "aberto" é o NavLink do pai (aria-current) + CSS (`.side-sub` em globals.css).
+
+const titulo = 'px-2.5 pb-1 text-[11px] font-semibold tracking-wide text-ink3 uppercase';
 
 /** Título de grupo da sidebar ("Acompanhamento", "Dados"); some com altura animada no trilho. */
 export function NavSection({ title }: { title: string }) {
   return (
     <div className="side-fold">
-      <h2 className="px-2.5 pt-3 pb-1 text-[11px] font-semibold tracking-wide text-ink3 uppercase">
-        {title}
-      </h2>
+      <h2 className={`${titulo} pt-3`}>{title}</h2>
     </div>
   );
 }
 
 /**
  * Item com sub-itens (o módulo do Acompanhamento para a Diretoria). Os filhos abrem só dentro de
- * `item.match`: altura animada por `grid-template-rows` (`.side-sub` em globals.css). Fechado,
- * o bloco fica `inert` e sai do Tab. No trilho, só o ícone do pai aparece.
+ * `item.match`: o pai fica com `aria-current="true"` e o bloco seguinte abre com altura animada
+ * (grid 0fr → 1fr). Fechado, `visibility: hidden` tira os filhos do Tab e do leitor de tela.
+ * No trilho, só o ícone do pai aparece.
  */
 export function NavGroup({
   item,
@@ -29,17 +30,12 @@ export function NavGroup({
   linkClass: string;
   activeClass: string;
 }) {
-  const path = usePathname();
-  const base = item.match ?? item.href;
-  const open = path === base || path.startsWith(`${base}/`);
   return (
     <>
-      <Link
-        href={item.href}
-        prefetch={item.ready}
-        aria-current={open ? 'true' : undefined}
-        data-open={open ? '' : undefined}
-        className={`${linkClass} side-parent ${open ? activeClass : ''}`}
+      <NavLink
+        item={{ ...item, children: undefined }}
+        className={`${linkClass} side-parent`}
+        activeClassName={activeClass}
       >
         {item.icon}
         <span className="side-label">{item.label}</span>
@@ -55,16 +51,14 @@ export function NavGroup({
         >
           <path d="M9 6l6 6-6 6" />
         </svg>
-      </Link>
-      <div className="side-sub" data-open={open ? '' : undefined} inert={!open}>
+      </NavLink>
+      <div className="side-sub">
         <div>
           {item.children?.map((c, i, all) => (
             <div key={c.href} className="contents">
               {/* O pai já dá nome ao primeiro grupo; os seguintes ganham título. */}
-              {i > 0 && c.section !== all[i - 1]!.section && c.section && (
-                <h2 className="side-label px-2.5 pt-2 pb-1 text-[11px] font-semibold tracking-wide text-ink3 uppercase">
-                  {c.section}
-                </h2>
+              {i > 0 && c.section && c.section !== all[i - 1]!.section && (
+                <h2 className={`side-label ${titulo} pt-2`}>{c.section}</h2>
               )}
               <NavLink item={c} className={linkClass} activeClassName={activeClass}>
                 {c.icon}

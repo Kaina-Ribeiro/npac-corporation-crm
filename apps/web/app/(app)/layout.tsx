@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { CommandPalette } from '@/components/shell/command-palette';
+import { paletteItems } from '@/components/shell/nav-menu';
 import { LiveUpdates } from '@/components/shell/live-updates';
 import { TabTitle } from '@/components/inbox';
 import { NavProgress } from '@/components/shell/nav-progress';
@@ -63,8 +64,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <LiveUpdates />
       {commercial && <TabTitle />}
       <CommandPalette
-        head={isLeader(me.role)}
-        mentoria={me.modules.mentoria}
+        nav={paletteItems({ head: isLeader(me.role), mentoria: me.modules.mentoria, commercial })}
         commercial={commercial}
       />
       <Sidebar
