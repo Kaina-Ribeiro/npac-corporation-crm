@@ -6,6 +6,7 @@ import {
   type PaginaMentorados,
   type ResumoDashboard,
 } from '@npac/shared/mentoria';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { baixarBackup } from '@/lib/acompanhamento-download';
 import { useFieldSaver } from '@/lib/acompanhamento-saver';
@@ -57,13 +58,19 @@ export function DashboardView({ inicial }: { inicial: ResumoDashboard }) {
   const [gaveta, setGaveta] = useState<'planilha' | 'json' | null>(null);
   const [remover, setRemover] = useState<MentoradoItem | null>(null);
   const primeira = useRef(true);
+  const params = useSearchParams();
+  const router = useRouter();
 
-  // "+" do rodapé no celular: Colar planilha.
+  // "+" do rodapé no celular: Colar planilha (também quando vem do "Mais", com ?colar=1).
   useEffect(() => {
     const abrir = () => setGaveta('planilha');
     window.addEventListener(EVENTO_MAIS, abrir);
+    if (params.get('colar') === '1') {
+      setGaveta('planilha');
+      router.replace('/acompanhamento/dashboard');
+    }
     return () => window.removeEventListener(EVENTO_MAIS, abrir);
-  }, []);
+  }, [params, router]);
 
   useEffect(() => {
     for (const m of itens) saver.registrar(`mentorado:${m.id}`, m.version);

@@ -203,6 +203,26 @@ test('390 px: sem overflow horizontal em /acompanhamento/backup', async ({ page 
   expect(overflow).toBeLessThanOrEqual(0);
 });
 
+test('390 px: do módulo, o avatar leva à conta e ao Sair (as abas não têm "Mais")', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await login(page, 'carla@npac.com.br');
+  await page.waitForURL(/\/acompanhamento\/dashboard/);
+  await page.getByRole('link', { name: 'Conta e sair' }).click();
+  await page.waitForURL(/\/mais$/);
+  // Fora do módulo nenhuma aba fica marcada; o "+" volta ao Dashboard já no Colar planilha.
+  const abas = page.getByRole('navigation', { name: 'Abas do acompanhamento' });
+  await expect(abas.locator('[aria-current="page"]')).toHaveCount(0);
+  await abas.getByRole('button', { name: 'Colar planilha' }).click();
+  await page.waitForURL(/\/acompanhamento\/dashboard$/);
+  await expect(page.getByRole('dialog', { name: 'Importar no Dashboard' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await page.getByRole('link', { name: 'Conta e sair' }).click();
+  await page.getByRole('main').getByRole('button', { name: 'Sair' }).click();
+  await page.waitForURL(/\/login/);
+});
+
 test('gaveta de importação mostra "X entram · Y já existem" e exige escolha para linha pendente', async ({
   page,
 }) => {
