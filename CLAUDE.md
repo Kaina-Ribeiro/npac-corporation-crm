@@ -143,6 +143,12 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
 - **Etapa VENDA = venda ativa**: entra só por `POST /finance/deals`, sai só pelo estorno. PATCH recusa
   entrar (409 `SALE_REQUIRED`) e sair com venda (409 `ACTIVE_SALE`). Selects usam `<StageOptions>`
   (Venda desabilitada); ação em massa não oferece Venda.
+- **Campos por etapa** (NPAC-38, 05/11/2026, "1A 2A 3A"): Agendados pedem `meeting` (criada na
+  mesma transação, origem pela etapa, `rearm()` depois do commit; reunião futura aberta dispensa),
+  Agendou Pagamento pede data (`next_contact_at`) + produto + valor, Sem Perfil pede `lost_reason`
+  (+ texto se Outro; limpa o próximo contato). 409 `MEETING_/PAYMENT_/REASON_REQUIRED` só quando a
+  etapa muda; leads antigos ficam como estão. Sair da etapa ou registrar venda apaga pagamento e
+  motivo. Closer grava esses campos só junto da troca (gatilho da 0037). Regra em `api/leads/stage-fields.ts`.
 - Resultado de reunião só depois do horário (400 "A reunião ainda não aconteceu"). Resultados:
   `DONE`, `NO_SHOW`, `RESCHEDULED`. Valor por reunião realizada = `MEETING_VALUE_CENTS`
   (P0 900, P1 700, P2 500), pelo perfil **atual** do lead; no-show e remarcada não somam.
