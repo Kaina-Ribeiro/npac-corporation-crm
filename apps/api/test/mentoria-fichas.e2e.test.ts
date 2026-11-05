@@ -28,6 +28,13 @@ const criar = async (nome = 'Mentorado Fictício 10', dataInicio = '01/02/2026')
 };
 
 describe('fichas', () => {
+  it('a lista conta as conquistas de cada ficha', async () => {
+    const f = await criar();
+    await h.post(`${F}/${f.id}/conquistas`, { version: 1 }, carla);
+    const l = await h.post(`${F}/search`, {}, carla);
+    expect(l.body.itens[0].conquistas).toBe(1);
+  });
+
   it('criar ficha manual pede nome e data de início; nome repetido → 409', async () => {
     expect((await h.post(F, { dataInicio: '01/02/2026' }, carla)).status).toBe(400);
     const f = await criar();

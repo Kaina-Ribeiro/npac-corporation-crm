@@ -96,7 +96,7 @@ export class FichasService {
           nome: mentoriaFichas.nome,
           dataInicioTexto: mentoriaFichas.dataInicioTexto,
           tempo: mentoriaFichas.tempoMentoriaTexto,
-          conquistas: sql<number>`(select count(*)::int from mentoria_conquistas c where c.ficha_id = ${mentoriaFichas.id})`,
+          conquistas: sql<number>`(select count(*)::int from mentoria_conquistas c where c.ficha_id = mentoria_fichas.id)`,
         })
         .from(mentoriaFichas)
         .where(where.length ? and(...where) : sql`true`)
