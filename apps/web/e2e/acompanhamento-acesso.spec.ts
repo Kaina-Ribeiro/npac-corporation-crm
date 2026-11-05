@@ -126,9 +126,12 @@ test('gaveta de importação mostra "X entram · Y já existem" e exige escolha 
   const confirmar = gaveta.getByRole('button', { name: 'Confirmar importação' });
   await expect(confirmar).toBeDisabled();
   await gaveta.getByLabel('Tipo de mentoria da linha 3').fill('Mentoria B');
+  // Nome que já existe: a equipe confere antes (12C); no Dashboard a ficha é atualizada.
+  await expect(confirmar).toBeDisabled();
+  await gaveta.getByRole('checkbox', { name: /Conferi/ }).check();
   await expect(confirmar).toBeEnabled();
   await confirmar.click();
-  await expect(gaveta.getByText('2 gravados · 1 ignorados')).toBeVisible();
+  await expect(gaveta.getByText('2 gravados · 0 ignorados · 1 atualizados')).toBeVisible();
   const [n] = await owner<{ n: number }[]>`select count(*)::int as n from mentoria_mentorados`;
   expect(n?.n).toBe(3);
 });

@@ -134,3 +134,83 @@ test('importar .json de backup mostra a mesma prévia', async ({ page }) => {
   await expect(gaveta(page).getByText('2 gravados · 0 ignorados')).toBeVisible();
   expect(await contar()).toBe(2);
 });
+
+test('coincidência no Dashboard: lista o nome, exige conferir; "mesma pessoa" atualiza a ficha (12C)', async ({
+  page,
+}) => {
+  await owner`insert into mentoria_mentorados (nome, nome_norm, status) values ('Mentorado Fictício 30', 'mentorado ficticio 30', 'EM_RISCO')`;
+  await abrir(page);
+  await page.getByRole('button', { name: 'Colar planilha' }).click();
+  await gaveta(page)
+    .getByLabel('Linhas da planilha')
+    .fill(
+      [
+        'MENTORADO ficticio 30\tIndividual\tMentoria A\t\tEngajado',
+        'Mentorado Fictício 31\tIndividual\tMentoria A\t\tEngajado',
+      ].join('\n'),
+    );
+  await gaveta(page).getByRole('button', { name: 'Pré-visualizar' }).click();
+  const lista = gaveta(page).getByRole('region', { name: 'Nomes que já existem' });
+  await expect(lista.getByText('MENTORADO ficticio 30')).toBeVisible();
+  await expect(lista.getByRole('radio', { name: /Mesma pessoa/ })).toBeChecked();
+  const confirmar = gaveta(page).getByRole('button', { name: 'Confirmar importação' });
+  await expect(confirmar).toBeDisabled();
+  await gaveta(page)
+    .getByRole('checkbox', { name: /Conferi/ })
+    .check();
+  await confirmar.click();
+  await expect(gaveta(page).getByText('1 gravados · 0 ignorados · 1 atualizados')).toBeVisible();
+  const [m] = await owner<
+    { status: string }[]
+  >`select status from mentoria_mentorados where nome_norm = 'mentorado ficticio 30'`;
+  expect(m?.status).toBe('ENGAJADO');
+  expect(await contar()).toBe(2);
+});
+
+test('coincidência: "pessoa diferente" pede outro nome e entra como nova', async ({ page }) => {
+  await owner`insert into mentoria_mentorados (nome, nome_norm, status) values ('Mentorado Fictício 32', 'mentorado ficticio 32', 'EM_RISCO')`;
+  await abrir(page);
+  await page.getByRole('button', { name: 'Colar planilha' }).click();
+  await gaveta(page)
+    .getByLabel('Linhas da planilha')
+    .fill('Mentorado Fictício 32\tCasal\tMentoria A\t\tEngajado');
+  await gaveta(page).getByRole('button', { name: 'Pré-visualizar' }).click();
+  const lista = gaveta(page).getByRole('region', { name: 'Nomes que já existem' });
+  await lista.getByRole('radio', { name: /Pessoa diferente/ }).check();
+  await gaveta(page)
+    .getByRole('checkbox', { name: /Conferi/ })
+    .check();
+  const confirmar = gaveta(page).getByRole('button', { name: 'Confirmar importação' });
+  await expect(confirmar).toBeDisabled();
+  await lista
+    .getByRole('textbox', { name: /Nome da nova ficha/ })
+    .fill('Mentorado Fictício 32 Souza');
+  await confirmar.click();
+  await expect(gaveta(page).getByText('1 gravados · 0 ignorados')).toBeVisible();
+  expect(await contar()).toBe(2);
+});
+
+test('Linha do tempo: planilha .csv do formulário mostra prévia e grava (12B)', async ({
+  page,
+}) => {
+  await abrir(page);
+  await page.goto('/acompanhamento/linha-do-tempo');
+  await page.getByRole('button', { name: 'Importar .json' }).click();
+  const g = page.getByRole('dialog', { name: 'Importar na Linha do tempo' });
+  await g.getByRole('button', { name: 'Planilha .csv do formulário' }).click();
+  const csv = join(tmpdir(), `formulario-ficticio-${Date.now()}.csv`);
+  writeFileSync(
+    csv,
+    [
+      'Carimbo,Nome,Fé,Saúde,Dinheiro,Relacionamentos,Notas,Tempo,Evolução',
+      '25/07/2026 10:00:00,Mentorado Fictício 40,Pouca,,,,"Profissão: fictícia",1 ano,Comprometimento: 8',
+    ].join('\n'),
+  );
+  await g.getByLabel('Arquivo .csv').setInputFiles(csv);
+  await g.getByRole('button', { name: 'Pré-visualizar' }).click();
+  await expect(g.getByText('1 entram · 0 já existem')).toBeVisible();
+  await g.getByRole('button', { name: 'Confirmar importação' }).click();
+  await expect(g.getByText('1 gravados · 0 ignorados')).toBeVisible();
+  const [f] = await owner<{ nome: string }[]>`select nome from mentoria_fichas`;
+  expect(f?.nome).toBe('Mentorado Fictício 40');
+});

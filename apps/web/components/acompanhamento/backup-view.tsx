@@ -12,7 +12,7 @@ import {
 
 const ENTRADA: Record<ModuloImport, string> = {
   dashboard: 'Colar planilha · importar .json',
-  'linha-do-tempo': 'Importar .json · cadastro manual',
+  'linha-do-tempo': 'Importar .json · planilha .csv do formulário · cadastro manual',
   rdv: 'Novo mentorado · colar diagnóstico · colar vários eventos · importar .json',
 };
 
