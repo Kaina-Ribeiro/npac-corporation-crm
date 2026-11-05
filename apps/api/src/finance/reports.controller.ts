@@ -42,6 +42,19 @@ export class ReportsController {
   ) {
     return this.reports.summary(u, validate(query, b));
   }
+  /** Relatório do período (números, sem contato): mesma permissão do resumo copiado. */
+  @Post('export')
+  @HttpCode(200)
+  @Can('export:whatsapp')
+  async exportReport(
+    @CurrentUser() u: SessionUser,
+    @Body() b: unknown,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ) {
+    const body = await this.reports.exportReport(u, validate(query, b));
+    csvHeaders(reply, 'npac-relatorio-periodo.csv');
+    return body;
+  }
   @Post('csv')
   @HttpCode(200)
   @Can('export:csv')
