@@ -77,6 +77,8 @@ test('linha sem status tem select obrigatório e "Confirmar" fica desabilitado; 
 });
 
 test('Exportar .json baixa arquivo com nome só de módulo e data', async ({ page }) => {
+  // Com a base vazia o Dashboard só mostra o convite (sem Exportar).
+  await owner`insert into mentoria_mentorados (nome, nome_norm, status) values ('Mentorado Fictício 08', 'mentorado ficticio 08', 'ENGAJADO')`;
   await abrir(page);
   const download = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Exportar .json' }).click();

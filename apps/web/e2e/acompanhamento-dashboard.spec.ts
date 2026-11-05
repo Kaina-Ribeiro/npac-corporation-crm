@@ -220,3 +220,35 @@ test('zero não repete "Ninguém neste status"', async ({ page }) => {
   await expect(page.getByText('Ninguém neste status.')).toHaveCount(0);
   await expect(card(page, 'Em atenção').getByRole('list')).toHaveCount(0);
 });
+
+test('com dados: 3 ações no cabeçalho, Colar planilha é a principal', async ({ page }) => {
+  await abrir(page);
+  await expect(page.getByText(/· 56 cadastrados$/)).toBeVisible();
+  const acao = (nome: string) =>
+    page.getByRole('button', { name: nome, exact: true }).filter({ visible: true });
+  await expect(acao('Colar planilha')).toHaveClass(/btn-primary/);
+  await expect(acao('Importar .json')).toHaveClass(/btn-ghost/);
+  await expect(acao('Exportar .json')).toHaveClass(/btn-ghost/);
+});
+
+test('vazio convida e não duplica ações', async ({ page }) => {
+  await owner`truncate mentoria_mentorados, mentoria_fichas, mentoria_rdv_pessoas, mentoria_midia cascade`;
+  await login(page, 'carla@npac.com.br');
+  await page.goto('/acompanhamento/dashboard');
+  await expect(page.getByText('Comece trazendo seus mentorados')).toBeVisible();
+  await expect(page.getByText('Cole a planilha ou importe um backup .json.')).toBeVisible();
+  const colar = page
+    .getByRole('button', { name: 'Colar planilha', exact: true })
+    .filter({ visible: true });
+  await expect(colar).toHaveCount(1);
+  await expect(colar).toHaveClass(/btn-primary/);
+  await expect(
+    page.getByRole('button', { name: 'Importar .json', exact: true }).filter({ visible: true }),
+  ).toHaveClass(/btn-secondary/);
+  await expect(page.getByRole('button', { name: 'Exportar .json', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /Em risco/ })).toHaveCount(0);
+  await expect(page.getByRole('searchbox', { name: 'Buscar mentorados' })).toHaveCount(0);
+  await expect(page.getByRole('table', { name: 'Mentorados' })).toHaveCount(0);
+  await colar.click();
+  await expect(page.getByRole('dialog', { name: 'Importar no Dashboard' })).toBeVisible();
+});

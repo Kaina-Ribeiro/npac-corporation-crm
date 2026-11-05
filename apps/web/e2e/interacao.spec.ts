@@ -5,11 +5,17 @@ import { E2E_DB, E2E_PASSWORD } from './env.js';
 // Base de interação (NPAC-31): todo controle anima hover, pressionar e foco, só com CSS.
 const owner = ownerSql(E2E_DB);
 
+// Um mentorado na base: vazio, o Dashboard mostra só o convite (sem busca, Exportar nem tabela).
+const limparMentoria = () =>
+  owner`truncate mentoria_mentorados, mentoria_fichas, mentoria_rdv_pessoas, mentoria_midia cascade`;
 test.beforeEach(async () => {
   await owner`truncate rate_limit`;
   await owner`update "user" set two_factor_enabled = false`;
+  await limparMentoria();
+  await owner`insert into mentoria_mentorados (nome, nome_norm, status) values ('Mentorado Interação', 'mentorado interacao', 'ENGAJADO')`;
 });
 test.afterAll(async () => {
+  await limparMentoria();
   await closeTestConnections();
 });
 
@@ -68,21 +74,18 @@ test('campo .field focado não ganha anel duplo', async ({ page }) => {
 });
 
 test('campo editável da tabela mantém o anel dourado no foco', async ({ page }) => {
-  await owner`insert into mentoria_mentorados (nome, nome_norm, status) values ('Mentorado Interação', 'mentorado interacao', 'ENGAJADO')`;
-  try {
-    await abrirDashboard(page);
-    const nome = page.getByLabel('Nome de Mentorado Interação', { exact: true });
-    await nome.focus();
-    await expect.poll(() => estilo(nome, 'outlineColor')).toBe('rgb(194, 146, 46)');
-    expect(await estilo(nome, 'outlineStyle')).toBe('solid');
-  } finally {
-    await owner`truncate mentoria_mentorados, mentoria_fichas, mentoria_rdv_pessoas, mentoria_midia cascade`;
-  }
+  await abrirDashboard(page);
+  const nome = page.getByLabel('Nome de Mentorado Interação', { exact: true });
+  await nome.focus();
+  await expect.poll(() => estilo(nome, 'outlineColor')).toBe('rgb(194, 146, 46)');
+  expect(await estilo(nome, 'outlineStyle')).toBe('solid');
 });
 
-test('secundário muda de fundo no hover', async ({ page }) => {
+test('botão discreto muda de fundo no hover', async ({ page }) => {
   await abrirDashboard(page);
-  const btn = colarPlanilha(page);
+  const btn = page
+    .getByRole('button', { name: 'Importar .json', exact: true })
+    .filter({ visible: true });
   const antes = await estilo(btn, 'backgroundColor');
   await btn.hover();
   await expect.poll(() => estilo(btn, 'backgroundColor')).not.toBe(antes);
@@ -146,13 +149,9 @@ const semAnimacao = (page: Page) =>
 
 test('quem encolhe ao pressionar anima a escala (Acompanhamento)', async ({ page }) => {
   await owner`insert into mentoria_mentorados (nome, nome_norm, status, tipo_mentoria) values ('Mentorado Escala', 'mentorado escala', 'ENGAJADO', 'Mentoria Fictícia A')`;
-  try {
-    await abrirDashboard(page);
-    await expect(page.getByLabel('Nome de Mentorado Escala', { exact: true })).toBeVisible();
-    expect(await semAnimacao(page)).toEqual([]);
-  } finally {
-    await owner`truncate mentoria_mentorados, mentoria_fichas, mentoria_rdv_pessoas, mentoria_midia cascade`;
-  }
+  await abrirDashboard(page);
+  await expect(page.getByLabel('Nome de Mentorado Escala', { exact: true })).toBeVisible();
+  expect(await semAnimacao(page)).toEqual([]);
 });
 
 test('quem encolhe ao pressionar anima a escala (Pipeline e Hoje)', async ({ page }) => {

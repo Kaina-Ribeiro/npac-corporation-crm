@@ -32,7 +32,7 @@ export function DashboardCards({
   onFiltro: (s: MentoradoStatus | null) => void;
 }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-3">
+    <div className="grid gap-3 lg:grid-cols-3">
       {CARDS.map((c) => {
         const n = contagem[c.status] ?? 0;
         const sel = filtro === c.status;
