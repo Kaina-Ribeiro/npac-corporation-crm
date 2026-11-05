@@ -163,3 +163,19 @@ test('trilho recolhido: Carla vê os 4 ícones com tooltip', async ({ page }) =>
     await expect(h).toBeHidden();
   }
 });
+
+test('trilho recolhido: Diretoria dentro do módulo vê só o ícone do Acompanhamento', async ({
+  page,
+}) => {
+  await login(page, 'diretor@npac.com.br');
+  await lateral(page).getByRole('link', { name: 'Acompanhamento', exact: true }).click();
+  await page.waitForURL(/\/acompanhamento\/dashboard/);
+  const rdv = lateral(page).locator('a', { hasText: 'Linha do tempo RDV' });
+  await expect(rdv).toBeVisible();
+  await page.getByRole('button', { name: 'Recolher barra lateral' }).click();
+  await expect.poll(() => sideWidth(page)).toBe(56);
+  await expect(rdv).toBeHidden();
+  await expect(
+    lateral(page).getByRole('link', { name: 'Acompanhamento', exact: true }),
+  ).toBeVisible();
+});

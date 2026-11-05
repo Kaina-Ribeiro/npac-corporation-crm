@@ -923,8 +923,9 @@ html[data-dash-dragging] * {
   padding: 4px;
   overflow: hidden;
 }
-/* No trilho só o ícone do pai fica: os filhos somem sem ocupar altura. */
-[data-side='collapsed'] .side-sub {
+/* No trilho só o ícone do pai fica: os filhos somem sem ocupar altura (mais específico que a
+   regra de aberto acima, que também vale dentro do módulo). */
+.shell[data-side='collapsed'] .side-parent + .side-sub {
   grid-template-rows: 0fr;
   opacity: 0;
   visibility: hidden;
