@@ -231,7 +231,7 @@ export function FichaView({ inicial, extra }: { inicial: FichaDetalhe; extra?: R
             onClick={imprimir}
             className="rounded-xl border border-line px-3 py-2 text-sm font-semibold transition-transform active:scale-[.98]"
           >
-            Imprimir
+            Exportar PDF
           </button>
           {extra}
           <button

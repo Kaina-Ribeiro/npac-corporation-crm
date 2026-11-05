@@ -54,7 +54,7 @@ test('emulateMedia print esconde navegação e botões; imprimir grava mentoria.
   await page.evaluate(() => {
     window.print = () => {};
   });
-  await page.getByRole('button', { name: 'Imprimir' }).click();
+  await page.getByRole('button', { name: 'Exportar PDF' }).click();
   await expect(page.getByRole('tabpanel', { name: 'Lado a lado' })).toBeVisible();
   await expect
     .poll(
@@ -68,7 +68,7 @@ test('emulateMedia print esconde navegação e botões; imprimir grava mentoria.
     .toBe(1);
   await page.emulateMedia({ media: 'print' });
   await expect(page.getByRole('navigation', { name: 'Navegação lateral' })).toBeHidden();
-  await expect(page.getByRole('button', { name: 'Imprimir' })).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Exportar PDF' })).toBeHidden();
   await expect(page.getByRole('tab', { name: 'Lado a lado' })).toBeHidden();
   await expect(page.getByText('Mentorado Fictício 60').first()).toBeVisible();
 });
