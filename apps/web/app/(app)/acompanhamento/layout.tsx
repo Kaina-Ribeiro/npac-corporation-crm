@@ -24,7 +24,7 @@ export default async function AcompanhamentoLayout({ children }: { children: Rea
         <Link
           href="/mais"
           aria-label="Conta e sair"
-          className="inline-flex size-9 items-center justify-center rounded-full bg-[linear-gradient(160deg,#7fe0a6,#1e9e70)] text-[13px] font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,.28),0_6px_16px_-8px_rgba(30,158,112,.6)] transition-transform active:scale-90"
+          className="inline-flex size-9 items-center justify-center rounded-full bg-[linear-gradient(160deg,#7fe0a6,#1e9e70)] text-[13px] font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,.28),0_6px_16px_-8px_rgba(30,158,112,.6)] active:scale-90"
         >
           {me.name.slice(0, 1)}
         </Link>
