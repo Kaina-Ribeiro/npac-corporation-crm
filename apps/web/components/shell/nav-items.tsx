@@ -5,6 +5,10 @@ export type NavItem = {
   icon: React.ReactNode;
   /** Prefixo que deixa o item ativo, quando difere do href (ex.: todas as telas do módulo). */
   match?: string;
+  /** Título de grupo mostrado na sidebar antes do primeiro item da seção. */
+  section?: 'Acompanhamento' | 'Dados';
+  /** Sub-itens (módulo do Acompanhamento para a Diretoria): abrem dentro de `match`. */
+  children?: NavItem[];
 };
 
 const svg = (d: React.ReactNode) => (
@@ -54,6 +58,11 @@ const ICONS = {
   acompanhamento: svg(
     <path d="M12 21s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.6-7 10-7 10z" />,
   ),
+  // Módulos do Acompanhamento: mesmos desenhos das abas do rodapé no celular (abas-mobile).
+  acDashboard: svg(<path d="M3 3h7v9H3zM14 3h7v5h-7zM14 12h7v9h-7zM3 16h7v5H3z" />),
+  acLinha: svg(<path d="M4 6h16M4 12h10M4 18h7M18 14a3 3 0 1 0 0 6 3 3 0 0 0 0-6z" />),
+  acRdv: svg(<path d="M4 19h16M6 15l4-5 3 3 5-7" />),
+  acBackup: svg(<path d="M12 3v12M7 10l5 5 5-5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />),
   mais: svg(
     <>
       <circle cx="5" cy="12" r="1.6" />
@@ -83,6 +92,38 @@ export const ADMIN_ITEM: NavItem = {
   icon: ICONS.admin,
 };
 
+/** Telas do módulo de mentorados, com os mesmos nomes e a mesma ordem das antigas abas do topo. */
+export const ACOMPANHAMENTO_SUBITEMS: NavItem[] = [
+  {
+    href: '/acompanhamento/dashboard',
+    label: 'Dashboard',
+    ready: true,
+    icon: ICONS.acDashboard,
+    section: 'Acompanhamento',
+  },
+  {
+    href: '/acompanhamento/linha-do-tempo',
+    label: 'Linha do tempo',
+    ready: true,
+    icon: ICONS.acLinha,
+    section: 'Acompanhamento',
+  },
+  {
+    href: '/acompanhamento/rdv',
+    label: 'Linha do tempo RDV',
+    ready: true,
+    icon: ICONS.acRdv,
+    section: 'Acompanhamento',
+  },
+  {
+    href: '/acompanhamento/backup',
+    label: 'Importação e backup',
+    ready: true,
+    icon: ICONS.acBackup,
+    section: 'Dados',
+  },
+];
+
 /** Módulo de mentorados: só para quem tem `modules.mentoria` (Diretoria e Acompanhamento). */
 export const ACOMPANHAMENTO_ITEM: NavItem = {
   href: '/acompanhamento/dashboard',
@@ -93,20 +134,44 @@ export const ACOMPANHAMENTO_ITEM: NavItem = {
 };
 
 /**
- * Itens da sidebar e do Ctrl+K para a pessoa. Quem não usa o comercial (cargo Acompanhamento)
- * vê só o módulo (Gabriel, 05/11/2026; substitui o "mesmo menu para todos" da D23).
+ * Itens da sidebar para a pessoa. Quem não usa o comercial (cargo Acompanhamento) vê só as telas
+ * do módulo, soltas (Gabriel, 05/11/2026; substitui o "mesmo menu para todos" da D23). Para a
+ * Diretoria, o item do módulo leva as telas como sub-itens.
  */
 export function navItems(opts: {
   head: boolean;
   mentoria: boolean;
   commercial?: boolean;
 }): NavItem[] {
-  if (opts.commercial === false) return opts.mentoria ? [ACOMPANHAMENTO_ITEM] : [];
+  if (opts.commercial === false) return opts.mentoria ? ACOMPANHAMENTO_SUBITEMS : [];
   return [
     ...SIDEBAR_ITEMS,
-    ...(opts.mentoria ? [ACOMPANHAMENTO_ITEM] : []),
+    ...(opts.mentoria ? [{ ...ACOMPANHAMENTO_ITEM, children: ACOMPANHAMENTO_SUBITEMS }] : []),
     ...(opts.head ? [ADMIN_ITEM] : []),
   ];
+}
+
+/**
+ * Destinos do Ctrl+K: a navegação achatada. As telas do módulo aparecem como
+ * "Acompanhamento · <tela>" (o pai some: abre a mesma tela que o Dashboard do módulo).
+ */
+export function paletteItems(opts: {
+  head: boolean;
+  mentoria: boolean;
+  commercial?: boolean;
+}): { href: string; label: string; icon: React.ReactNode }[] {
+  const modulo = (n: NavItem) => ({
+    href: n.href,
+    label: `${ACOMPANHAMENTO_ITEM.label} · ${n.label}`,
+    icon: n.icon,
+  });
+  return navItems(opts).flatMap((n) =>
+    n.children
+      ? n.children.map(modulo)
+      : n.href.startsWith(ACOMPANHAMENTO_ITEM.match!)
+        ? [modulo(n)]
+        : [{ href: n.href, label: n.label, icon: n.icon }],
+  );
 }
 
 /** Mobile: os quatro primeiros da sidebar, na mesma ordem, + Mais (Dashboard sempre primeiro). */

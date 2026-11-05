@@ -5,7 +5,7 @@ import { useTheme } from 'next-themes';
 import { Fragment, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { clientApi } from '@/lib/client-api';
 import { SIDEBAR_EVENT } from '@/lib/sidebar';
-import { navItems } from './nav-items';
+import { paletteItems } from './nav-items';
 import { useSavedViews } from './saved-views-nav';
 
 type Item = {
@@ -147,7 +147,7 @@ export function CommandPalette({
   };
   const commands: Item[] = [
     { id: 'new', label: 'Novo lead', group: 'Ações', icon: ICON.plus, run: go('/leads/new') },
-    ...navItems({ head, mentoria, commercial }).map((n) => ({
+    ...paletteItems({ head, mentoria, commercial }).map((n) => ({
       id: n.href,
       label: n.label,
       group: 'Ir para',
