@@ -25,9 +25,15 @@ consumido por sidebar e Ctrl+K. O Dashboard troca só a apresentação; ações,
 | 2 | 2.2 Sidebar com grupos e sub-itens | ✅ |
 | 2 | 2.3 Tirar as abas do topo e o sobretítulo; verificação e PR | ✅ (PR #41 mergeado) |
 | 3 | 3.1 Faixa de status | ✅ |
-| 3 | 3.2 Cabeçalho, ação principal e estado vazio; verificação e PR | ✅ (falta o PR, com o "sim") |
+| 3 | 3.2 Cabeçalho, ação principal e estado vazio; verificação e PR | ✅ (PR #43 mergeado) |
 
 Uma sessão nova por fase. Atualize a coluna Status ao fechar cada tarefa (✅).
+
+**Plano concluído (05/11/2026):** as 3 fases estão na `release/v0.7` (PRs #40, #41, #43). Desvios
+da Fase 3, combinados ou vistos nas capturas: descrição do Dashboard mantém o texto do PDF com
+"· N cadastrados"; barra dourada em `::after` (o `::before` do `.glass-card` é o fio de luz) e em
+`--gold-deep` no tema claro (contraste); faixa em 3 colunas só a partir de `lg` (em 768 cortava
+rótulos e nomes). Fica para outro spec: redesenho de Linha do tempo, RDV e Backup.
 
 ## Global Constraints
 
