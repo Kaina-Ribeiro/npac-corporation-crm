@@ -43,19 +43,36 @@ export type FichaLinhaProps = {
   onRemoverConquista: (id: string) => void;
 };
 
-function Secao({
+const estrela = (
+  <svg viewBox="0 0 24 24" className="size-3" fill="currentColor" aria-hidden="true">
+    <path d="M12 3.5l2.6 5.3 5.9.9-4.25 4.1 1 5.8L12 16.9l-5.25 2.7 1-5.8L3.5 9.7l5.9-.9z" />
+  </svg>
+);
+
+/**
+ * Um ponto da linha vertical: nó (número ou ícone) no fio à esquerda, título e subtítulo na
+ * mesma linha. `tom` dá a cor: início dourado, meio neutro, fim verde (fio em degradê no CSS).
+ */
+function NoLinha({
   titulo,
   sub,
+  tom,
+  marca,
   children,
 }: {
   titulo: string;
   sub: string;
+  tom: 'inicio' | 'meio' | 'fim';
+  marca: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
-    <section className="flex flex-col gap-3" aria-label={titulo}>
+    <section className="linha-ponto flex flex-col gap-3" aria-label={titulo} data-tom={tom}>
+      <span className="linha-no" aria-hidden="true">
+        {marca}
+      </span>
       <div className="flex flex-wrap items-baseline gap-x-3">
-        <h2 className="text-lg font-bold tracking-[-0.02em]">{titulo}</h2>
+        <h2 className="text-lg leading-7 font-bold tracking-[-0.02em]">{titulo}</h2>
         <small className="text-xs text-ink3">{sub}</small>
       </div>
       {children}
@@ -85,176 +102,197 @@ export function FichaLinha({
   const fotoDepois = midiaDe('FICHA_DEPOIS', f.id)[0] ?? midiaDe('ficha-depois', f.id)[0];
 
   return (
-    <div role="tabpanel" aria-label="Linha do tempo" className="flex flex-col gap-6">
-      <Secao titulo="Momento inicial" sub={`Como chegou · ${f.dataInicioTexto ?? 'sem data'}`}>
-        <div className="grid gap-4 lg:grid-cols-3">
-          <div className="glass-card flex flex-col gap-3 p-4">
-            <span className="text-xs font-semibold tracking-[0.06em] text-ink3 uppercase">
-              Foto de antes
-            </span>
-            {fotoAntes ? (
-              <MidiaCartao
-                m={fotoAntes}
-                rotulo="foto de antes"
-                onRemover={() => tirar(fotoAntes)}
+    <div role="tabpanel" aria-label="Linha do tempo">
+      <div className="linha-rail flex flex-col">
+        <NoLinha
+          tom="inicio"
+          marca="1"
+          titulo="Momento inicial"
+          sub={`Como chegou · ${f.dataInicioTexto ?? 'sem data'}`}
+        >
+          <div className="grid gap-4 lg:grid-cols-3">
+            <div className="glass-card flex flex-col gap-3 p-4">
+              <span className="text-xs font-semibold tracking-[0.06em] text-ink3 uppercase">
+                Foto de antes
+              </span>
+              {fotoAntes ? (
+                <MidiaCartao
+                  m={fotoAntes}
+                  rotulo="foto de antes"
+                  onRemover={() => tirar(fotoAntes)}
+                />
+              ) : (
+                <EnviarArquivo
+                  rotulo="Enviar foto de antes"
+                  aceita="image/jpeg,image/png,image/webp"
+                  altura="h-44"
+                  onArquivo={(a) => anexar('ficha-antes', f.id, a)}
+                />
+              )}
+              <label className="flex flex-col gap-1.5 text-xs font-semibold text-ink2">
+                Data de início
+                <input
+                  aria-label="Data de início"
+                  placeholder="DD/MM/AAAA"
+                  aria-invalid={dataRuim || undefined}
+                  className={`${caixa} ${dataRuim ? '!shadow-[0_0_0_1px_rgba(225,29,72,.5)]' : ''}`}
+                  {...dataInicio}
+                />
+              </label>
+            </div>
+            <div className="glass-card flex flex-col gap-2 p-4 lg:col-span-2">
+              <span className="text-xs font-semibold tracking-[0.06em] text-ink3 uppercase">
+                Notas livres
+              </span>
+              <textarea
+                aria-label="Notas do momento inicial"
+                className={`${area} min-h-40`}
+                {...notasIni}
               />
-            ) : (
-              <EnviarArquivo
-                rotulo="Enviar foto de antes"
-                aceita="image/jpeg,image/png,image/webp"
-                altura="h-44"
-                onArquivo={(a) => anexar('ficha-antes', f.id, a)}
-              />
-            )}
-            <label className="flex flex-col gap-1.5 text-xs font-semibold text-ink2">
-              Data de início
-              <input
-                aria-label="Data de início"
-                placeholder="DD/MM/AAAA"
-                aria-invalid={dataRuim || undefined}
-                className={`${caixa} ${dataRuim ? '!shadow-[0_0_0_1px_rgba(225,29,72,.5)]' : ''}`}
-                {...dataInicio}
-              />
-            </label>
+              <ComoFica notas={notasIni.value} />
+              <span className="text-xs text-ink3">
+                Profissão, como conheceu a mentoria, o que buscava, disciplina, comunicação, sonhos,
+                se guardava ou investia dinheiro. Cada linha (cada Enter) vira um tópico;
+                &quot;Rótulo: texto&quot; destaca o rótulo. Salva ao sair do campo.
+              </span>
+            </div>
           </div>
-          <div className="glass-card flex flex-col gap-2 p-4 lg:col-span-2">
-            <span className="text-xs font-semibold tracking-[0.06em] text-ink3 uppercase">
-              Notas livres
-            </span>
-            <textarea
-              aria-label="Notas do momento inicial"
-              className={`${area} min-h-40`}
-              {...notasIni}
-            />
-            <ComoFica notas={notasIni.value} />
-            <span className="text-xs text-ink3">
-              Profissão, como conheceu a mentoria, o que buscava, disciplina, comunicação, sonhos,
-              se guardava ou investia dinheiro. Cada linha (cada Enter) vira um tópico;
-              &quot;Rótulo: texto&quot; destaca o rótulo. Salva ao sair do campo.
-            </span>
-          </div>
-        </div>
-      </Secao>
+        </NoLinha>
 
-      <Secao titulo="Os 4 pilares" sub="Fé, saúde, dinheiro e relacionamentos · antes e hoje">
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {f.pilares.map((p) => (
-            <Pilar
-              key={p.chave}
-              p={p}
-              onAntes={evolucaoSalvar(p.chave, 'antes')}
-              onDepois={evolucaoSalvar(p.chave, 'depois')}
-            />
-          ))}
-        </div>
-      </Secao>
-
-      <Secao titulo="Evolução" sub="Antes → depois · valores como vieram da fonte">
-        <div className="glass-card overflow-hidden">
-          <div className="hidden grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_20px_minmax(0,1fr)] gap-3 border-b border-line bg-black/[0.03] px-4 py-2 text-xs text-ink3 md:grid dark:bg-white/[0.03]">
-            <span>Item</span>
-            <span>Antes</span>
-            <span />
-            <span>Depois</span>
-          </div>
-          <ul className="divide-y divide-line">
-            {f.evolucao.map((e) => (
-              <Evolucao
-                key={e.chave}
-                e={e}
-                onAntes={evolucaoSalvar(e.chave, 'antes')}
-                onDepois={evolucaoSalvar(e.chave, 'depois')}
+        <NoLinha
+          tom="meio"
+          marca="2"
+          titulo="Os 4 pilares"
+          sub="Fé, saúde, dinheiro e relacionamentos · antes e hoje"
+        >
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {f.pilares.map((p) => (
+              <Pilar
+                key={p.chave}
+                p={p}
+                onAntes={evolucaoSalvar(p.chave, 'antes')}
+                onDepois={evolucaoSalvar(p.chave, 'depois')}
               />
             ))}
-          </ul>
-        </div>
-      </Secao>
-
-      <Secao titulo="Depois da mentoria" sub="Como está agora">
-        <div className="grid gap-4 lg:grid-cols-3">
-          <div className="glass-card flex flex-col gap-3 p-4">
-            <span className="text-xs font-semibold tracking-[0.06em] text-amber-700 uppercase dark:text-amber-300">
-              Foto de depois
-            </span>
-            {fotoDepois ? (
-              <MidiaCartao
-                m={fotoDepois}
-                rotulo="foto de depois"
-                onRemover={() => tirar(fotoDepois)}
-              />
-            ) : (
-              <EnviarArquivo
-                rotulo="Enviar foto de depois"
-                aceita="image/jpeg,image/png,image/webp"
-                altura="h-44"
-                onArquivo={(a) => anexar('ficha-depois', f.id, a)}
-              />
-            )}
-            <label className="flex flex-col gap-1.5 text-xs font-semibold text-ink2">
-              Tempo de mentoria
-              <input
-                aria-label="Tempo de mentoria"
-                placeholder="ex.: 8 meses"
-                className={caixa}
-                {...tempo}
-              />
-            </label>
           </div>
-          <div className="glass-card flex flex-col gap-2 p-4 lg:col-span-2">
-            <span className="text-xs font-semibold tracking-[0.06em] text-amber-700 uppercase dark:text-amber-300">
-              Notas do momento atual
-            </span>
-            <textarea
-              aria-label="Notas do momento atual"
-              className={`${area} min-h-40`}
-              {...notasAtual}
-            />
-            <ComoFica notas={notasAtual.value} />
-            <span className="text-xs text-ink3">
-              Cada linha vira um tópico. &quot;Rótulo: texto&quot; destaca o rótulo. Salva ao sair
-              do campo.
-            </span>
-          </div>
-        </div>
-      </Secao>
+        </NoLinha>
 
-      <Secao
-        titulo="Galeria de conquistas"
-        sub="Fotos ou vídeos com data e descrição · do mais antigo ao mais recente"
-      >
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {f.conquistas.map((c) => (
-            <Conquista
-              key={c.id}
-              c={c}
-              midias={midias.filter((m) => m.donoId === c.id)}
-              onData={conquistaSalvar(c.id, 'data')}
-              onDescricao={conquistaSalvar(c.id, 'descricao')}
-              onAnexar={(a) => anexar('conquista', c.id, a)}
-              onTirar={tirar}
-              onRemover={() => onRemoverConquista(c.id)}
-            />
-          ))}
-          <button
-            type="button"
-            onClick={() => void novaConquista()}
-            className="flex min-h-40 flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-line px-4 text-center text-sm font-semibold text-ink2 hover:bg-black/[0.03] active:scale-[.99] dark:hover:bg-white/[0.04]"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              className="size-5"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              aria-hidden="true"
+        <NoLinha
+          tom="meio"
+          marca="3"
+          titulo="Evolução"
+          sub="Antes → depois · valores como vieram da fonte"
+        >
+          <div className="glass-card overflow-hidden">
+            <div className="hidden grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_20px_minmax(0,1fr)] gap-3 border-b border-line bg-black/[0.03] px-4 py-2 text-xs text-ink3 md:grid dark:bg-white/[0.03]">
+              <span>Item</span>
+              <span>Antes</span>
+              <span />
+              <span>Depois</span>
+            </div>
+            <ul className="divide-y divide-line">
+              {f.evolucao.map((e) => (
+                <Evolucao
+                  key={e.chave}
+                  e={e}
+                  onAntes={evolucaoSalvar(e.chave, 'antes')}
+                  onDepois={evolucaoSalvar(e.chave, 'depois')}
+                />
+              ))}
+            </ul>
+          </div>
+        </NoLinha>
+
+        <NoLinha tom="fim" marca="4" titulo="Depois da mentoria" sub="Como está agora">
+          <div className="grid gap-4 lg:grid-cols-3">
+            <div className="glass-card flex flex-col gap-3 p-4">
+              <span className="text-xs font-semibold tracking-[0.06em] text-amber-700 uppercase dark:text-amber-300">
+                Foto de depois
+              </span>
+              {fotoDepois ? (
+                <MidiaCartao
+                  m={fotoDepois}
+                  rotulo="foto de depois"
+                  onRemover={() => tirar(fotoDepois)}
+                />
+              ) : (
+                <EnviarArquivo
+                  rotulo="Enviar foto de depois"
+                  aceita="image/jpeg,image/png,image/webp"
+                  altura="h-44"
+                  onArquivo={(a) => anexar('ficha-depois', f.id, a)}
+                />
+              )}
+              <label className="flex flex-col gap-1.5 text-xs font-semibold text-ink2">
+                Tempo de mentoria
+                <input
+                  aria-label="Tempo de mentoria"
+                  placeholder="ex.: 8 meses"
+                  className={caixa}
+                  {...tempo}
+                />
+              </label>
+            </div>
+            <div className="glass-card flex flex-col gap-2 p-4 lg:col-span-2">
+              <span className="text-xs font-semibold tracking-[0.06em] text-amber-700 uppercase dark:text-amber-300">
+                Notas do momento atual
+              </span>
+              <textarea
+                aria-label="Notas do momento atual"
+                className={`${area} min-h-40`}
+                {...notasAtual}
+              />
+              <ComoFica notas={notasAtual.value} />
+              <span className="text-xs text-ink3">
+                Cada linha vira um tópico. &quot;Rótulo: texto&quot; destaca o rótulo. Salva ao sair
+                do campo.
+              </span>
+            </div>
+          </div>
+        </NoLinha>
+
+        <NoLinha
+          tom="fim"
+          marca={estrela}
+          titulo="Galeria de conquistas"
+          sub="Fotos ou vídeos com data e descrição · do mais antigo ao mais recente"
+        >
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {f.conquistas.map((c) => (
+              <Conquista
+                key={c.id}
+                c={c}
+                midias={midias.filter((m) => m.donoId === c.id)}
+                onData={conquistaSalvar(c.id, 'data')}
+                onDescricao={conquistaSalvar(c.id, 'descricao')}
+                onAnexar={(a) => anexar('conquista', c.id, a)}
+                onTirar={tirar}
+                onRemover={() => onRemoverConquista(c.id)}
+              />
+            ))}
+            <button
+              type="button"
+              onClick={() => void novaConquista()}
+              className="flex min-h-40 flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-line px-4 text-center text-sm font-semibold text-ink2 hover:bg-black/[0.03] active:scale-[.99] dark:hover:bg-white/[0.04]"
             >
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-            Adicionar conquista
-            <small className="text-xs font-normal text-ink3">foto ou vídeo, data e descrição</small>
-          </button>
-        </div>
-      </Secao>
+              <svg
+                viewBox="0 0 24 24"
+                className="size-5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                aria-hidden="true"
+              >
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              Adicionar conquista
+              <small className="text-xs font-normal text-ink3">
+                foto ou vídeo, data e descrição
+              </small>
+            </button>
+          </div>
+        </NoLinha>
+      </div>
     </div>
   );
 }

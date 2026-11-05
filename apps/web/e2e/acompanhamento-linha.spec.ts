@@ -184,3 +184,19 @@ test('importar .json mostra prévia e exige confirmação', async ({ page }) => 
     3,
   );
 });
+
+test('ficha em linha: 5 seções na ordem, início dourado e fim verde', async ({ page }) => {
+  await entrar(page, `/acompanhamento/linha-do-tempo/${FICHA}`);
+  const painel = page.getByRole('tabpanel', { name: 'Linha do tempo' });
+  await expect(painel.locator('section[data-tom]')).toHaveCount(5);
+  await expect(painel.locator('section[data-tom] h2')).toHaveText([
+    'Momento inicial',
+    'Os 4 pilares',
+    'Evolução',
+    'Depois da mentoria',
+    'Galeria de conquistas',
+  ]);
+  await expect(painel.locator('section[data-tom]').first()).toHaveAttribute('data-tom', 'inicio');
+  await expect(painel.locator('section[data-tom]').nth(3)).toHaveAttribute('data-tom', 'fim');
+  await expect(painel.locator('.linha-rail')).toHaveCount(1);
+});
