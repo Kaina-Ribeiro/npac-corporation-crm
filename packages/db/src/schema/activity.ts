@@ -72,7 +72,7 @@ export const leadTimeline = pgTable(
     ),
     check(
       'timeline_fields_allowed',
-      sql`${t.fields} <@ ARRAY['name','phone','instagram','incomeBand','source','tier','stageKey','sdrId','closerId','nextContactAt','summary','body','title','dueAt','completedAt','assigneeId','scheduledAt','origin','outcome','canceledAt','step']::text[]`,
+      sql`${t.fields} <@ ARRAY['name','phone','instagram','incomeBand','source','tier','stageKey','sdrId','closerId','nextContactAt','summary','body','title','dueAt','completedAt','assigneeId','scheduledAt','origin','outcome','canceledAt','step','payment','lostReason']::text[]`,
     ),
   ],
 );
