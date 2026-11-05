@@ -1143,6 +1143,23 @@ html[data-dash-dragging] * {
     border: 1px solid #ddd;
     break-inside: avoid;
   }
+  /* Linha do tempo impressa direto (NPAC-36): vazio e placeholder não vão ao papel; fio e nós
+     saem em cor; campo sem fundo nem anel. */
+  .campo-vazio {
+    display: none !important;
+  }
+  .campo-quieto::placeholder {
+    color: transparent;
+  }
+  .campo-quieto {
+    background: none !important;
+    box-shadow: none !important;
+  }
+  .linha-rail,
+  .linha-no {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
 }
 
 /* Ficha da Linha do tempo em linha vertical (NPAC-36): um fio de 2 px à esquerda liga as seções,

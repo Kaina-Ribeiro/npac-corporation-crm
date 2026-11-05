@@ -99,11 +99,14 @@ export function EnviarArquivo({
   rotulo,
   aceita = 'image/jpeg,image/png,image/webp,video/mp4,video/quicktime,application/pdf',
   altura = 'h-32',
+  texto,
   onArquivo,
 }: {
   rotulo: string;
   aceita?: string;
   altura?: string;
+  /** Texto visível no lugar de "<rótulo> (até 20 MB)" (miniaturas); o nome acessível segue o rótulo. */
+  texto?: React.ReactNode;
   onArquivo: (f: File) => Promise<void>;
 }) {
   const id = useId();
@@ -125,7 +128,7 @@ export function EnviarArquivo({
         >
           <path d="M12 5v14M5 12h14" />
         </svg>
-        {ocupado ? 'Enviando…' : `${rotulo} (até 20 MB)`}
+        {ocupado ? 'Enviando…' : (texto ?? `${rotulo} (até 20 MB)`)}
       </label>
       <input
         id={id}

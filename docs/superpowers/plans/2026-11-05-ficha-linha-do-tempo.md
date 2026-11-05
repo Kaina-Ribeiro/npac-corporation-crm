@@ -21,7 +21,7 @@ altura automática só em CSS (`globals.css`), sem JS novo.
 | 1 Separar a visão em `ficha-linha.tsx` (sem mudança visual) | ✅ |
 | 2 Linha vertical e nós | ✅ |
 | 3 Campos discretos e layout das seções | ✅ |
-| 4 Impressão, verificação visual e PR | ⏳ |
+| 4 Impressão, verificação visual e PR | ✅ (falta só o "sim" para push + PR) |
 
 ## Global Constraints
 

@@ -8,6 +8,8 @@ import { Topicos } from './ficha-lado-a-lado';
 const quieto = 'campo-quieto';
 const legenda = 'block px-2.5 text-[11px] font-semibold tracking-[0.06em] text-ink3 uppercase';
 const legendaFim = `${legenda} !text-emerald-700 dark:!text-emerald-300`;
+/** Vazio some da impressão (`.campo-vazio` em `@media print`). */
+const vazio = (...v: string[]) => (v.some((x) => x.trim()) ? '' : 'campo-vazio');
 
 /** Campo que guarda o texto local e salva ao sair, só se mudou (regra 2). */
 export function useCampo(inicial: string | null, salvar: (v: string | null) => void) {
@@ -111,12 +113,23 @@ function Miniatura({
   return foto ? (
     <MidiaCartao m={foto} rotulo={rotulo} altura="h-24" onRemover={() => onTirar(foto)} />
   ) : (
-    <EnviarArquivo
-      rotulo={`Enviar ${rotulo}`}
-      aceita="image/jpeg,image/png,image/webp"
-      altura="h-24"
-      onArquivo={onEnviar}
-    />
+    <div className="no-print">
+      <EnviarArquivo
+        rotulo={`Enviar ${rotulo}`}
+        aceita="image/jpeg,image/png,image/webp"
+        altura="h-24"
+        texto={
+          <>
+            <span className="@sm:hidden">{`Enviar ${rotulo} (até 20 MB)`}</span>
+            <span className="hidden flex-col text-xs leading-4 @sm:flex">
+              Foto
+              <small className="text-[10px] font-normal text-ink3">até 20 MB</small>
+            </span>
+          </>
+        }
+        onArquivo={onEnviar}
+      />
+    </div>
   );
 }
 
@@ -144,22 +157,22 @@ export function FichaLinha({
 
   return (
     <div role="tabpanel" aria-label="Linha do tempo">
-      <div className="linha-rail flex flex-col">
+      <div className="linha-rail @container flex flex-col">
         <NoLinha
           tom="inicio"
           marca="1"
           titulo="Momento inicial"
           sub={`Como chegou · ${f.dataInicioTexto ?? 'sem data'}`}
         >
-          <div className="glass-card flex flex-col gap-4 p-4 sm:flex-row md:p-5">
-            <div className="flex flex-col gap-2 sm:w-24 sm:flex-none">
+          <div className="glass-card flex flex-col gap-4 p-4 @sm:flex-row @2xl:p-5">
+            <div className="flex flex-col gap-2 @sm:w-24 @sm:flex-none">
               <Miniatura
                 foto={fotoAntes}
                 rotulo="foto de antes"
                 onEnviar={(a) => anexar('ficha-antes', f.id, a)}
                 onTirar={tirar}
               />
-              <div className="flex flex-col gap-0.5 sm:-mx-2.5">
+              <div className={`flex flex-col gap-0.5 @sm:-mx-2.5 ${vazio(dataInicio.value)}`}>
                 <span className={legenda} aria-hidden="true">
                   Início
                 </span>
@@ -173,7 +186,7 @@ export function FichaLinha({
                 />
               </div>
             </div>
-            <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+            <div className={`flex min-w-0 flex-1 flex-col gap-1.5 ${vazio(notasIni.value)}`}>
               <span className={legenda} aria-hidden="true">
                 Notas livres
               </span>
@@ -184,7 +197,7 @@ export function FichaLinha({
                 {...notasIni}
               />
               <ComoFica notas={notasIni.value} />
-              <span className="px-2.5 text-xs text-ink3">
+              <span className="no-print px-2.5 text-xs text-ink3">
                 Profissão, como conheceu a mentoria, o que buscava, disciplina, comunicação, sonhos,
                 se guardava ou investia dinheiro. Cada linha (cada Enter) vira um tópico;
                 &quot;Rótulo: texto&quot; destaca o rótulo. Salva ao sair do campo.
@@ -199,7 +212,7 @@ export function FichaLinha({
           titulo="Os 4 pilares"
           sub="Fé, saúde, dinheiro e relacionamentos · antes e hoje"
         >
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid gap-3 @xl:grid-cols-2">
             {f.pilares.map((p) => (
               <Pilar
                 key={p.chave}
@@ -232,15 +245,15 @@ export function FichaLinha({
         </NoLinha>
 
         <NoLinha tom="fim" marca="4" titulo="Depois da mentoria" sub="Como está agora">
-          <div className="glass-card flex flex-col gap-4 p-4 sm:flex-row md:p-5">
-            <div className="flex flex-col gap-2 sm:w-24 sm:flex-none">
+          <div className="glass-card flex flex-col gap-4 p-4 @sm:flex-row @2xl:p-5">
+            <div className="flex flex-col gap-2 @sm:w-24 @sm:flex-none">
               <Miniatura
                 foto={fotoDepois}
                 rotulo="foto de depois"
                 onEnviar={(a) => anexar('ficha-depois', f.id, a)}
                 onTirar={tirar}
               />
-              <div className="flex flex-col gap-0.5 sm:-mx-2.5">
+              <div className={`flex flex-col gap-0.5 @sm:-mx-2.5 ${vazio(tempo.value)}`}>
                 <span className={legendaFim} aria-hidden="true">
                   Tempo
                 </span>
@@ -252,7 +265,7 @@ export function FichaLinha({
                 />
               </div>
             </div>
-            <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+            <div className={`flex min-w-0 flex-1 flex-col gap-1.5 ${vazio(notasAtual.value)}`}>
               <span className={legendaFim} aria-hidden="true">
                 Notas do momento atual
               </span>
@@ -263,7 +276,7 @@ export function FichaLinha({
                 {...notasAtual}
               />
               <ComoFica notas={notasAtual.value} />
-              <span className="px-2.5 text-xs text-ink3">
+              <span className="no-print px-2.5 text-xs text-ink3">
                 Cada linha vira um tópico. &quot;Rótulo: texto&quot; destaca o rótulo. Salva ao sair
                 do campo.
               </span>
@@ -277,7 +290,7 @@ export function FichaLinha({
           titulo="Galeria de conquistas"
           sub="Fotos ou vídeos com data e descrição · do mais antigo ao mais recente"
         >
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 2xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 @2xl:grid-cols-3 @5xl:grid-cols-4">
             {f.conquistas.map((c) => (
               <Conquista
                 key={c.id}
@@ -330,20 +343,23 @@ function Pilar({
   const antes = useCampo(p.antes, onAntes);
   const depois = useCampo(p.depois, onDepois);
   return (
-    <div className="glass-card flex flex-col gap-2 p-4">
+    <div className={`glass-card flex flex-col gap-2 p-4 ${vazio(antes.value, depois.value)}`}>
       <h3 className="px-2.5 text-sm font-bold">{p.rotulo}</h3>
       <div className="grid grid-cols-[3.75rem_minmax(0,1fr)] items-baseline gap-x-1 gap-y-1">
-        <span className="pl-2.5 text-xs font-semibold text-ink3" aria-hidden="true">
+        <span
+          className={`pl-2.5 text-xs font-semibold text-ink3 ${vazio(antes.value)}`}
+          aria-hidden="true"
+        >
           Antes
         </span>
         <textarea
           aria-label={`${p.rotulo} antes`}
           placeholder="Adicionar antes"
-          className={quieto}
+          className={`${quieto} ${vazio(antes.value)}`}
           {...antes}
         />
         <span
-          className="flex items-center gap-1 pl-2.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300"
+          className={`flex items-center gap-1 pl-2.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300 ${vazio(depois.value)}`}
           aria-hidden="true"
         >
           <Seta className="!size-3 !text-current" />
@@ -352,7 +368,7 @@ function Pilar({
         <textarea
           aria-label={`${p.rotulo} hoje`}
           placeholder="Adicionar hoje"
-          className={`${quieto} font-semibold`}
+          className={`${quieto} font-semibold ${vazio(depois.value)}`}
           {...depois}
         />
       </div>
@@ -373,8 +389,10 @@ function Evolucao({
   const antes = useCampo(e.antes, onAntes);
   const depois = useCampo(e.depois, onDepois);
   return (
-    <li className="grid gap-1 px-4 py-2.5 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] md:items-center md:gap-3">
-      <span className="px-2.5 text-sm font-semibold md:px-0">{e.rotulo}</span>
+    <li
+      className={`grid gap-1 px-4 py-2.5 ${vazio(antes.value, depois.value)} @xl:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] @xl:items-center @xl:gap-3`}
+    >
+      <span className="px-2.5 text-sm font-semibold @xl:px-0">{e.rotulo}</span>
       <div className="grid grid-cols-[minmax(0,1fr)_14px_minmax(0,1fr)] items-center gap-1.5">
         <input
           aria-label={`${e.rotulo} antes`}
@@ -426,20 +444,22 @@ function Conquista({
         />
       ))}
       {midias.length === 0 && (
-        <EnviarArquivo rotulo="Enviar foto ou vídeo" altura="h-32" onArquivo={onAnexar} />
+        <div className="no-print">
+          <EnviarArquivo rotulo="Enviar foto ou vídeo" altura="h-32" onArquivo={onAnexar} />
+        </div>
       )}
       <input
         aria-label="Data da conquista"
         placeholder="DD/MM/AAAA"
         inputMode="numeric"
         aria-invalid={ruim || undefined}
-        className={`${quieto} tabular-nums text-xs`}
+        className={`${quieto} text-xs tabular-nums ${vazio(data.value)}`}
         {...data}
       />
       <input
         aria-label="Descrição da conquista"
         placeholder="Adicionar…"
-        className={`${quieto} font-semibold`}
+        className={`${quieto} font-semibold ${vazio(desc.value)}`}
         {...desc}
       />
       <button
@@ -458,7 +478,7 @@ function Conquista({
 function ComoFica({ notas }: { notas: string }) {
   if (!notas.trim()) return null;
   return (
-    <div className="rounded-xl bg-black/[0.03] p-3 dark:bg-white/[0.04]">
+    <div className="no-print rounded-xl bg-black/[0.03] p-3 dark:bg-white/[0.04]">
       <span className="mb-1.5 block text-[11px] font-semibold tracking-[0.06em] text-ink3 uppercase">
         Como fica
       </span>

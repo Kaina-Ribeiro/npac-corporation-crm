@@ -147,7 +147,7 @@ export function FichaView({ inicial, extra }: { inicial: FichaDetalhe; extra?: R
         >
           {iniciais(f.nome)}
         </span>
-        <div className="min-w-0 flex-1">
+        <div className="min-w-[min(100%,14rem)] flex-1">
           <input
             aria-label="Nome da ficha"
             className="w-full rounded-lg border border-transparent bg-transparent px-1 text-2xl font-bold tracking-[-0.03em] hover:border-line focus:border-ink/30"
