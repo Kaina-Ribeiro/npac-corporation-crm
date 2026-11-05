@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { LEAD_SOURCES } from '../enums.js';
-import { leadCreateSchema } from './lead.js';
+import { leadCreateSchema, stageFieldsShape } from './lead.js';
 
 const f = leadCreateSchema.shape;
 export const leadUpdateSchema = z
@@ -19,6 +19,8 @@ export const leadUpdateSchema = z
     closerId: f.closerId.nullable(),
     nextContactAt: f.nextContactAt.nullable(),
     summary: f.summary.nullable(),
+    // Dados da etapa: exigidos só quando `stageKey` muda; ao sair da etapa a API os apaga.
+    ...stageFieldsShape,
   })
   .strict()
   .refine((v) => Object.keys(v).length > 1, 'Informe uma alteração');
