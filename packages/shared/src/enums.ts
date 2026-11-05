@@ -31,6 +31,17 @@ export const INCOME_BAND_LABELS: Record<IncomeBand, string> = {
 };
 
 /**
+ * Perfil que a faixa de renda define (pedido do cliente, 05/11/2026): 5–8 mil = P2, 8–15 mil = P1,
+ * 15 mil para cima = P0. O formulário troca o perfil ao escolher a faixa; dá para ajustar à mão.
+ */
+export const TIER_BY_INCOME_BAND: Record<IncomeBand, Tier> = {
+  R5_8K: 'P2',
+  R8_15K: 'P1',
+  R15_50K: 'P0',
+  R50K_PLUS: 'P0',
+};
+
+/**
  * Origens que o cadastro oferece, na ordem da lista do cliente (05/11/2026). "Outro" pede o texto
  * em `sourceOther`.
  */

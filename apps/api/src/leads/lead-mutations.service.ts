@@ -7,7 +7,13 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { deals, leadContactTaken, leads, leadTasks, withUser, type Db, type Tx } from '@npac/db';
-import { isLeader, isLegacyLeadSource, type AuthUser, type LeadUpdateInput } from '@npac/shared';
+import {
+  TIER_BY_INCOME_BAND,
+  isLeader,
+  isLegacyLeadSource,
+  type AuthUser,
+  type LeadUpdateInput,
+} from '@npac/shared';
 import { and, eq, isNull, sql } from 'drizzle-orm';
 import { DB } from '../common/db/db.module.js';
 import { FieldCrypto } from '../common/crypto/field-crypto.js';
@@ -104,7 +110,6 @@ export class LeadMutationsService {
         'name',
         'incomeBand',
         'source',
-        'tier',
         'sdrId',
         'closerId',
         'nextContactAt',
@@ -123,6 +128,11 @@ export class LeadMutationsService {
       }
       if (input.instagram !== undefined) patch.instagram = instagram;
       if (sourceOther !== old.sourceOther) patch.sourceOther = sourceOther ?? null;
+      // O perfil acompanha a faixa (gatilho no banco); a timeline registra quando ele muda.
+      if (input.incomeBand && TIER_BY_INCOME_BAND[input.incomeBand] !== old.tier) {
+        patch.tier = TIER_BY_INCOME_BAND[input.incomeBand];
+        fields.push('tier');
+      }
       await tx.update(leads).set(patch).where(eq(leads.id, id));
       const kind =
         fields.includes('sdrId') || fields.includes('closerId')

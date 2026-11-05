@@ -13,7 +13,7 @@ export const leadUpdateSchema = z
     // Aceita as antigas para o lead que já está nelas; trocar para uma antiga a API recusa.
     source: z.enum(LEAD_SOURCES).optional(),
     sourceOther: f.sourceOther.nullable(),
-    tier: f.tier.optional(),
+    // Perfil não se troca à mão: muda junto com `incomeBand` (strict recusa `tier`).
     stageKey: f.stageKey.removeDefault().optional(),
     sdrId: f.sdrId,
     closerId: f.closerId.nullable(),

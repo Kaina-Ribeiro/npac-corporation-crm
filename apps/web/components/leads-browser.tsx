@@ -1,6 +1,6 @@
 'use client';
 import type { LeadCatalog, LeadDTO, Page, Role, SavedViewDTO } from '@npac/shared';
-import { INCOME_BAND_LABELS, TIERS, isLeader } from '@npac/shared/enums';
+import { INCOME_BAND_LABELS, isLeader } from '@npac/shared/enums';
 import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { clientApi } from '@/lib/client-api';
@@ -9,7 +9,7 @@ import { LeadFilters, readFilters } from './lead-filters';
 import { CsvExport } from './csv-export';
 import { useCrmRefresh } from './shell/live-updates';
 
-type Change = Partial<Pick<LeadDTO, 'stageKey' | 'tier'>> & {
+type Change = Partial<Pick<LeadDTO, 'stageKey'>> & {
   sdrId?: string;
   closerId?: string | null;
 };
@@ -56,7 +56,6 @@ export function LeadsBrowser({
   const [saved, setSaved] = useState('');
   const [bulkMsg, setBulkMsg] = useState('');
   // Mesmas regras da API: closer só move etapa; troca de responsável é do Head.
-  const canTier = role !== 'CLOSER';
   const canAssign = isLeader(role);
   const sdrs = catalog.team.filter((u) => u.canProspect);
   const closers = catalog.team.filter((u) => u.canClose);
@@ -106,7 +105,6 @@ export function LeadsBrowser({
           : {
               ...x,
               ...(change.stageKey ? { stageKey: change.stageKey } : {}),
-              ...(change.tier ? { tier: change.tier } : {}),
               ...(change.sdrId ? { sdr: person(change.sdrId) } : {}),
               ...(change.closerId !== undefined
                 ? { closer: change.closerId ? person(change.closerId) : null }
@@ -447,18 +445,9 @@ export function LeadsBrowser({
                       <Link href={`/leads/${l.id}`}>{l.name}</Link>
                     </td>
                     <td className="border-b border-line px-2">{stageSelect(l, cell)}</td>
-                    <td className="border-b border-line px-2">
-                      <select
-                        aria-label={`Perfil de ${l.name}`}
-                        value={l.tier}
-                        disabled={!canTier}
-                        onChange={(e) => void edit(l, { tier: e.target.value as LeadDTO['tier'] })}
-                        className={`${cell} font-semibold`}
-                      >
-                        {TIERS.map((t) => (
-                          <option key={t}>{t}</option>
-                        ))}
-                      </select>
+                    {/* Perfil vem da faixa de renda: muda trocando a faixa na ficha. */}
+                    <td className="border-b border-line px-3.5">
+                      <span className={`tier tier-${l.tier}`}>{l.tier}</span>
                     </td>
                     <td className="border-b border-line px-3.5 whitespace-nowrap">
                       {INCOME_BAND_LABELS[l.incomeBand]}
@@ -535,13 +524,6 @@ export function LeadsBrowser({
             catalog.stages.filter((st) => st.key !== 'VENDA').map((st) => [st.key, st.label]),
             (v) => ({ stageKey: v as LeadDTO['stageKey'] }),
           )}
-          {canTier &&
-            bar(
-              'Mudar perfil',
-              'Perfil…',
-              TIERS.map((t) => [t, t]),
-              (v) => ({ tier: v as LeadDTO['tier'] }),
-            )}
           {canAssign &&
             bar(
               'Trocar SDR',

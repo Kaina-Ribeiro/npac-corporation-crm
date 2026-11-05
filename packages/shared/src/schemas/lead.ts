@@ -4,7 +4,6 @@ import {
   LEAD_SOURCE_OPTIONS,
   SOURCE_OTHER_MAX,
   STAGE_KEY_PATTERN,
-  TIERS,
 } from '../enums.js';
 import { normalizeInstagram, normalizePhoneBR } from '../normalize.js';
 
@@ -38,7 +37,7 @@ export const leadCreateSchema = z
     // Cadastro só oferece a lista atual; as antigas (Instagram, WhatsApp) ficam nos leads existentes.
     source: z.enum(LEAD_SOURCE_OPTIONS, { error: 'Escolha a origem' }),
     sourceOther: z.preprocess(blankToUndefined, z.string().trim().max(SOURCE_OTHER_MAX).optional()),
-    tier: z.enum(TIERS),
+    // Sem `tier`: o perfil vem da faixa de renda (TIER_BY_INCOME_BAND, gatilho no banco).
     sdrId: z.string().optional(),
     closerId: z.string().optional(),
     stageKey: stageKeySchema.default('SONDAGEM'),
