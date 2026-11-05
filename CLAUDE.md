@@ -42,7 +42,9 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   mock do protótipo `api/dev/mock-prototype.ts`
 - **Web:** layout/sidebar/bottom nav `web/app/(app)/layout.tsx`, `web/components/shell/*` (menu da
   sidebar e do Ctrl+K, grupos e sub-itens do Acompanhamento: `shell/nav-menu.tsx`, só servidor, para
-  não pesar no JS; `nav-items.tsx` vai ao cliente pela barra inferior) · classes de botão `lib/button.ts` · login,
+  não pesar no JS; `nav-items.tsx` vai ao cliente pela barra inferior) · classes de botão `lib/button.ts` · dropdown (todos os `<select>`) com o visual do CRM só por CSS
+  (`appearance: base-select` + `::picker(select)` no fim de `globals.css`; Safari fica com o do
+  sistema; Lightning CSS não aceita pseudo-classe depois de `::picker`, use `select:open::picker(select)`) · login,
   pedir acesso `web/components/login/*` · senha/MFA `components/conta/*`, `app/(conta)/*` · API
   server/client `web/lib/api.ts` / `lib/client-api.ts` · sessão (`getSession`, `pendingStep`)
   `web/lib/session.ts` · UI base (`Field`, `button`, `StageOptions`) `components/crm-ui.tsx` ·
@@ -141,9 +143,20 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
 - Dinheiro em centavos inteiros (`sh/money.ts`), nunca `parseFloat * 100`.
 - Venda: uma ativa por lead; `requestKey` idempotente + hash do payload; entrada + parcelas = total,
   parcelas futuras; só liderança estorna; lead com venda ativa não é excluído.
-- **Etapa VENDA = venda ativa**: entra só por `POST /finance/deals`, sai só pelo estorno. PATCH recusa
-  entrar (409 `SALE_REQUIRED`) e sair com venda (409 `ACTIVE_SALE`). Selects usam `<StageOptions>`
-  (Venda desabilitada); ação em massa não oferece Venda.
+- **Etapa VENDA = venda ativa ou venda a registrar**: entra por `POST /finance/deals` ou pelo
+  cadastro em Venda Fechada; sai pelo estorno. PATCH recusa entrar (409 `SALE_REQUIRED`) e sair com
+  venda (409 `ACTIVE_SALE`). Selects usam `<StageOptions>` (Venda desabilitada; `allowSale` só no
+  cadastro); ação em massa não oferece Venda.
+- **Venda Fechada no cadastro** (NPAC-39, 05/11/2026): todos que cadastram (SDR e liderança; closer
+  não cadastra) informam a reunião já realizada (`meeting`, até agora; criada `DONE` com `outcome_at`
+  = horário, origem DIRETO: o SDR recebe por ela nesse dia) e o closer dela vira o do lead. "Registrar
+  a venda agora" (`sale`, só `sale:register`; SDR → 403) usa `insertSale` de `finance.service.ts`:
+  `closedOn` (nunca futuro) vira `deals.closed_at`, entrada recebida nesse dia, closer = o da reunião,
+  idempotente por `requestKey` + hash do pedido. Sem a venda: **venda a registrar** (`saleToRegister`
+  no DTO, `lead_sale_pending()` da 0038), selo na ficha/Pipeline e aviso `sale.pending` ao closer.
+  Registrar depois mantém em Venda; o estorno dessa venda volta para EM_FOLLOW (`previous_stage_id`).
+  Regra em `api/leads/leads.service.ts` (`checkSoldLead`/`registerSold`); tela `components/sold-fields.tsx`
+  - `lib/sold-fields.ts`.
 - **Campos por etapa** (NPAC-38, 05/11/2026, "1A 2A 3A"): Agendados pedem `meeting` (criada na
   mesma transação, origem pela etapa, `rearm()` depois do commit; reunião futura aberta dispensa),
   Agendou Pagamento pede data (`next_contact_at`) + produto + valor, Sem Perfil pede `lost_reason`

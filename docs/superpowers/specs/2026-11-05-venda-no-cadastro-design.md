@@ -1,6 +1,6 @@
 # Venda Fechada no cadastro + dropdown do CRM — design (NPAC-39)
 
-Status: **aprovada** (Gabriel, 05/11/2026). Nada implementado.
+Status: **aprovada** (Gabriel, 05/11/2026). Implementada na branch `feat/NPAC-39-venda-no-cadastro`.
 
 Fonte: print do seletor de Etapa no "Novo lead" + "Coloca a opção de venda fechada também, tem casos
 que vamos subir um lead que já comprou" + "coloca a data que foi feita a venda, closer e produto,
@@ -14,7 +14,7 @@ registrar**.
 
 - **Onde:** só no cadastro (`lead-form.tsx`), pelo componente de campos por etapa
   (`stage-fields.tsx`, NPAC-38). Na ficha continua "Registrar venda" (`sale-flow.tsx`).
-- **Quem cadastra:** todos que cadastram lead (SDR, closer, liderança). A opção "Venda Fechada" deixa
+- **Quem cadastra:** SDR e liderança (o closer não cadastra lead). A opção "Venda Fechada" deixa
   de ficar desabilitada no cadastro (no PATCH e na ficha segue a regra de hoje).
 - **Reunião (sempre):** "Data e hora da reunião" (Brasília, já aconteceu: até agora) + "Closer da
   reunião", como nos Agendados. A reunião é criada **já realizada** (`outcome = DONE`,
@@ -55,10 +55,10 @@ registrar**.
 ## Testes
 
 - API (RED antes): SDR cadastra em Venda → lead + reunião realizada (valor por reunião do SDR no
-  dia da reunião) + venda a registrar + aviso ao closer; closer cadastra com venda → lead + reunião +
+  dia da reunião) + venda a registrar + aviso ao closer; liderança cadastra com venda → lead + reunião +
   venda + parcelas + pagamento numa transação; reunião ou venda no futuro e soma errada → 400; SDR
   mandando dados de venda → 403; venda com data passada entra no relatório daquele dia, não no de
   hoje; registrar depois mantém em Venda; estorno volta para `EM_FOLLOW`; idempotência.
 - Playwright: SDR cadastra lead em Venda Fechada (sem campos de venda) e a ficha mostra "Venda a
-  registrar"; closer cadastra com a venda e a ficha mostra a venda.
+  registrar"; liderança cadastra com a venda e a ficha mostra a venda.
 - Prints 375/768/1024/1440 do dropdown aberto (Chrome) nos temas claro e escuro.
