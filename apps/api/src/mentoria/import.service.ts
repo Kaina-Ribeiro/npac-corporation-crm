@@ -18,11 +18,14 @@ import {
 import {
   backupSchema,
   classificarNomes,
+  converterFormulario,
+  converterLegado,
   DIAGNOSTICO_CHAVES,
   FICHA_CAMPO_CHAVES,
   FORMATO_BACKUP,
   linkPermitido,
   MENTORADO_STATUS,
+  moduloDoLegado,
   nomeNormalizado,
   parseColaPlanilha,
   parseData,
@@ -36,7 +39,7 @@ import {
   type RegistroFicha,
   type RegistroRdv,
 } from '@npac/shared';
-import { asc, inArray, sql } from 'drizzle-orm';
+import { asc, eq, inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { AuditService } from '../audit/audit.service.js';
 import { DB } from '../common/db/db.module.js';
@@ -47,10 +50,26 @@ import { aad, MentoriaCrypto } from './mentoria-crypto.js';
 export const LIMITE_REGISTROS = 25_000;
 const ARQUIVOS = ['FOTO', 'VIDEO', 'PDF'];
 
+/**
+ * Coincidência de nome (12C, Eduarda 04/11): a equipe confirma cada uma. "MESMA" = a mesma
+ * pessoa (Dashboard atualiza a ficha; Linha do tempo e RDV ignoram); "OUTRA" = pessoa
+ * diferente, que entra com outro nome (o nome normalizado é único no módulo).
+ */
+const coincidencias = z
+  .record(
+    z.string().regex(/^\d{1,6}$/),
+    z.discriminatedUnion('acao', [
+      z.object({ acao: z.literal('MESMA') }).strict(),
+      z.object({ acao: z.literal('OUTRA'), nome: z.string().max(200) }).strict(),
+    ]),
+  )
+  .optional();
+
 export const entradaImportacao = z.discriminatedUnion('tipo', [
   z
     .object({
       tipo: z.literal('planilha'),
+      coincidencias,
       texto: z.string().max(5_000_000),
       escolhas: z
         .record(
@@ -65,7 +84,11 @@ export const entradaImportacao = z.discriminatedUnion('tipo', [
         .optional(),
     })
     .strict(),
-  z.object({ tipo: z.literal('json'), arquivo: z.unknown() }).strict(),
+  z.object({ tipo: z.literal('json'), arquivo: z.unknown(), coincidencias }).strict(),
+  /** Planilha .csv do formulário (Google Forms), só na Linha do tempo (P3). */
+  z
+    .object({ tipo: z.literal('formulario'), texto: z.string().max(25_000_000), coincidencias })
+    .strict(),
 ]);
 export type EntradaImportacao = z.output<typeof entradaImportacao>;
 
@@ -77,7 +100,16 @@ type Plano =
       pendentes: { linha: number; faltando: string[] }[];
       invalidas: number[];
     }
-  | { modulo: Modulo; tipo: 'json'; arquivo: BackupJson };
+  | {
+      modulo: Modulo;
+      tipo: 'json';
+      arquivo: BackupJson;
+      /** RDV antigo: "notasImportantes" não tem campo no RDV do PDF (aviso da prévia). */
+      notasDeFora: number;
+      /** Formulário: linhas sem nome (não entram). */
+      invalidas: number[];
+    };
+const NAO_E_DO_MODULO = 'O arquivo .json não é um backup deste módulo';
 
 const nomesDe = (p: Plano): string[] =>
   p.tipo === 'planilha' ? p.linhas.map((l) => l.nome) : p.arquivo.registros.map((r) => r.nome);
@@ -104,10 +136,26 @@ export class ImportService {
         throw new BadRequestException('Este módulo importa só o .json de backup');
       return { modulo, tipo: 'planilha', ...parseColaPlanilha(e.texto) };
     }
-    const r = backupSchema.safeParse(e.arquivo);
+    let bruto: unknown = e.tipo === 'json' ? e.arquivo : null;
+    let notasDeFora = 0;
+    let invalidas: number[] = [];
+    if (e.tipo === 'formulario') {
+      if (modulo !== 'linha-do-tempo')
+        throw new BadRequestException('A planilha do formulário entra só na Linha do tempo');
+      ({ arquivo: bruto, invalidas } = converterFormulario(e.texto, randomUUID));
+    } else if (Array.isArray(e.arquivo)) {
+      // .json da ferramenta antiga (P3): uma lista de registros, convertida para o do CRM.
+      if (moduloDoLegado(e.arquivo) !== modulo) throw new BadRequestException(NAO_E_DO_MODULO);
+      try {
+        ({ arquivo: bruto, notasDeFora } = converterLegado(modulo, e.arquivo, randomUUID));
+      } catch (err) {
+        throw new BadRequestException((err as Error).message);
+      }
+    }
+    const r = backupSchema.safeParse(bruto);
     if (!r.success || r.data.modulo !== modulo || r.data.formato !== FORMATO_BACKUP)
-      throw new BadRequestException('O arquivo .json não é um backup deste módulo');
-    return { modulo, tipo: 'json', arquivo: r.data };
+      throw new BadRequestException(NAO_E_DO_MODULO);
+    return { modulo, tipo: 'json', arquivo: r.data, notasDeFora, invalidas };
   }
 
   private async nomesNaBase(tx: Tx, modulo: Modulo): Promise<Set<string>> {
@@ -131,52 +179,101 @@ export class ImportService {
         entram: c.novos.length,
         jaExistem: c.jaExistem.length,
         repetidos: c.repetidos.length,
-        // Só as linhas que entram pedem escolha: as já existentes são ignoradas de qualquer jeito.
-        pendentes:
-          plano.tipo === 'planilha'
-            ? plano.pendentes.filter((p) => c.novos.some((i) => plano.linhas[i]!.linha === p.linha))
-            : [],
-        invalidas: plano.tipo === 'planilha' ? plano.invalidas : [],
+        // A tela mostra as pendências das linhas que entram (novas ou "outra pessoa").
+        pendentes: plano.tipo === 'planilha' ? plano.pendentes : [],
+        invalidas: plano.invalidas,
         midiasNaoRecuperadas: midiasNaoRecuperadas(plano),
+        // 12C: índices (nunca nomes) para a equipe confirmar cada coincidência na tela.
+        coincidencias: { naBase: c.jaExistem, noArquivo: c.repetidos },
+        notasDeFora: plano.tipo === 'json' ? plano.notasDeFora : 0,
       };
     });
   }
 
-  /** Importa numa transação só os novos (regra 8). Base vazia + `.json` = restauração com ids (D41). */
+  /**
+   * Importa numa transação (regra 8, D3 e 12C): novos entram; coincidência confirmada como a
+   * mesma pessoa atualiza a ficha no Dashboard e é ignorada na Linha do tempo e no RDV;
+   * "outra pessoa" entra com o nome novo. Base vazia + `.json` = restauração com ids (D41).
+   */
   importar(u: AuthUser, modulo: Modulo, e: EntradaImportacao) {
     const plano = this.planejar(modulo, e);
     return withUser(this.db, u.id, async (tx) => {
       const base = await this.nomesNaBase(tx, modulo);
-      const c = classificarNomes(base, nomesDe(plano));
-      if (plano.tipo === 'json' && c.repetidos.length)
-        throw new BadRequestException({
-          message: 'O arquivo tem nomes repetidos; nada foi gravado',
-          repetidos: c.repetidos,
-        });
+      const nomes = nomesDe(plano);
+      const c = classificarNomes(base, nomes);
+      const escolhas = e.coincidencias ?? {};
+
+      const renomear = new Map<number, string>();
+      for (const i of [...c.jaExistem, ...c.repetidos]) {
+        const esc = escolhas[String(i)];
+        if (esc?.acao !== 'OUTRA') continue;
+        const nome = esc.nome.trim();
+        if (!nome) throw new BadRequestException('Informe o outro nome de cada pessoa diferente');
+        renomear.set(i, nome);
+      }
+      const entram = [...c.novos, ...renomear.keys()].sort((a, b) => a - b);
+      // Nome novo não pode bater com a base nem com outra linha do arquivo (nome único).
+      const vistos = new Set([...base, ...nomes.map(nomeNormalizado)]);
+      for (const nome of renomear.values()) {
+        const n = nomeNormalizado(nome);
+        if (vistos.has(n))
+          throw new BadRequestException('Um dos nomes novos também já existe. Escolha outro.');
+        vistos.add(n);
+      }
+      const atualizar = modulo === 'dashboard' ? c.jaExistem.filter((i) => !renomear.has(i)) : [];
+
       const [total] = await tx.execute<{ n: number }>(sql`select
         (select count(*) from mentoria_mentorados) + (select count(*) from mentoria_fichas)
         + (select count(*) from mentoria_rdv_pessoas) as n`);
-      if (Number(total?.n ?? 0) + c.novos.length > LIMITE_REGISTROS)
+      if (Number(total?.n ?? 0) + entram.length > LIMITE_REGISTROS)
         throw new BadRequestException('A importação passaria do limite de 25.000 registros');
 
       const restaurar = base.size === 0;
       const novoId = (id: string) => (restaurar ? id : randomUUID());
+      const comNome = <T extends { nome: string }>(i: number, r: T): T =>
+        renomear.has(i) ? { ...r, nome: renomear.get(i)! } : r;
       if (plano.tipo === 'planilha') {
-        const linhas = c.novos.map((i) => plano.linhas[i]!);
+        const linhas = entram.map((i) => comNome(i, plano.linhas[i]!));
         await this.gravarPlanilha(tx, u, linhas, e.tipo === 'planilha' ? (e.escolhas ?? {}) : {});
+        for (const i of atualizar) {
+          const l = plano.linhas[i]!;
+          await this.atualizarMentorado(tx, u, l.nome, {
+            tipoCadastro: l.tipoCadastro,
+            tipoMentoria: l.tipoMentoria,
+            dataEntrada: l.dataEntrada,
+            status: l.status,
+          });
+        }
       } else if (plano.arquivo.modulo === 'dashboard') {
-        const regs = c.novos.map((i) => plano.arquivo.registros[i] as RegistroDashboard);
-        await this.gravarDashboardJson(tx, u, regs, novoId);
+        const regs = plano.arquivo.registros as RegistroDashboard[];
+        await this.gravarDashboardJson(
+          tx,
+          u,
+          entram.map((i) => comNome(i, regs[i]!)),
+          novoId,
+        );
+        for (const i of atualizar) await this.atualizarMentorado(tx, u, regs[i]!.nome, regs[i]!);
       } else if (plano.arquivo.modulo === 'linha-do-tempo') {
-        for (const i of c.novos)
-          await this.gravarFicha(tx, u, plano.arquivo.registros[i] as RegistroFicha, novoId);
+        for (const i of entram)
+          await this.gravarFicha(
+            tx,
+            u,
+            comNome(i, plano.arquivo.registros[i] as RegistroFicha),
+            novoId,
+          );
       } else {
-        for (const i of c.novos)
-          await this.gravarRdv(tx, u, plano.arquivo.registros[i] as RegistroRdv, novoId);
+        for (const i of entram)
+          await this.gravarRdv(
+            tx,
+            u,
+            comNome(i, plano.arquivo.registros[i] as RegistroRdv),
+            novoId,
+          );
       }
       const resultado = {
-        gravados: c.novos.length,
-        ignorados: c.jaExistem.length + c.repetidos.length,
+        gravados: entram.length,
+        atualizados: atualizar.length,
+        ignorados: nomes.length - entram.length - atualizar.length,
         midiasNaoRecuperadas: midiasNaoRecuperadas(plano),
       };
       await this.audit.record(
@@ -188,6 +285,7 @@ export class ImportService {
             modulo,
             tipo: plano.tipo,
             gravados: resultado.gravados,
+            atualizados: resultado.atualizados,
             ignorados: resultado.ignorados,
           },
         },
@@ -195,6 +293,36 @@ export class ImportService {
       );
       return resultado;
     }).catch((err) => erroDoBanco(err));
+  }
+
+  /**
+   * Dashboard (correção do PDF, Eduarda 04/11): nome repetido atualiza a ficha existente com
+   * o que veio preenchido no arquivo; o vazio não apaga o que já está gravado.
+   */
+  private async atualizarMentorado(
+    tx: Tx,
+    u: AuthUser,
+    nome: string,
+    v: {
+      tipoCadastro?: string | null;
+      tipoMentoria?: string | null;
+      dataEntrada?: string | null;
+      status?: RegistroDashboard['status'] | null;
+    },
+  ) {
+    const d = parseData(v.dataEntrada ?? '');
+    await tx
+      .update(mentoriaMentorados)
+      .set({
+        ...(v.tipoCadastro && { tipoCadastro: v.tipoCadastro }),
+        ...(v.tipoMentoria && { tipoMentoria: v.tipoMentoria }),
+        ...(d.texto && { dataEntradaTexto: d.texto, dataEntrada: d.data }),
+        ...(v.status && { status: v.status }),
+        version: sql`${mentoriaMentorados.version} + 1`,
+        updatedBy: u.id,
+        updatedAt: new Date(),
+      })
+      .where(eq(mentoriaMentorados.nomeNorm, nomeNormalizado(nome)));
   }
 
   private async gravarPlanilha(

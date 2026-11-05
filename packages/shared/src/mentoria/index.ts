@@ -11,3 +11,4 @@ export * from './eventos-colados.js';
 export * from './dto.js';
 export * from './field-queue.js';
 export * from './topicos.js';
+export * from './legado.js';

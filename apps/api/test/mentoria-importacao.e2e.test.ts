@@ -52,6 +52,8 @@ describe('importação do dashboard (colar planilha)', () => {
       ],
       invalidas: [],
       midiasNaoRecuperadas: 0,
+      coincidencias: { naBase: [], noArquivo: [3] },
+      notasDeFora: 0,
     });
   });
 
@@ -79,7 +81,7 @@ describe('importação do dashboard (colar planilha)', () => {
     expect(await contar('mentoria_mentorados')).toBe(0);
   });
 
-  it('importar grava só os novos e responde contagens', async () => {
+  it('importar grava os novos, atualiza o nome que já existe (correção do PDF) e responde contagens', async () => {
     await owner`insert into mentoria_mentorados (nome, nome_norm, status) values ('Mentorado Fictício 03', 'mentorado ficticio 03', 'EM_RISCO')`;
     const escolhas = { '3': { tipoMentoria: 'Mentoria Fictícia A' } };
     const previa = await h.post(
@@ -94,7 +96,7 @@ describe('importação do dashboard (colar planilha)', () => {
       carla,
     );
     expect(r.status).toBe(200);
-    expect(r.body).toEqual({ gravados: 2, ignorados: 2, midiasNaoRecuperadas: 0 });
+    expect(r.body).toEqual({ gravados: 2, atualizados: 1, ignorados: 1, midiasNaoRecuperadas: 0 });
     const rows =
       await owner`select nome, tipo_mentoria, status, data_entrada_texto from mentoria_mentorados order by nome_norm`;
     expect(rows).toEqual([
@@ -111,8 +113,9 @@ describe('importação do dashboard (colar planilha)', () => {
         data_entrada_texto: '03/2026',
       },
       {
+        // Já existia: o tipo de mentoria veio na planilha; status vazio não apaga o gravado.
         nome: 'Mentorado Fictício 03',
-        tipo_mentoria: null,
+        tipo_mentoria: 'Mentoria Fictícia B',
         status: 'EM_RISCO',
         data_entrada_texto: null,
       },
@@ -120,7 +123,13 @@ describe('importação do dashboard (colar planilha)', () => {
     const [a] = await owner<
       { data: unknown }[]
     >`select data from audit_log where action = 'mentoria.import'`;
-    expect(a?.data).toEqual({ modulo: 'dashboard', tipo: 'planilha', gravados: 2, ignorados: 2 });
+    expect(a?.data).toEqual({
+      modulo: 'dashboard',
+      tipo: 'planilha',
+      gravados: 2,
+      atualizados: 1,
+      ignorados: 1,
+    });
   });
 
   it('SDR recebe 404 na prévia e na importação', async () => {
@@ -163,7 +172,7 @@ describe('exportar e importar .json', () => {
     const arquivo = await baixar('dashboard');
     expect(arquivo.registros).toHaveLength(3);
     const de_novo = await h.post(`${B}/dashboard/importar`, { tipo: 'json', arquivo }, carla);
-    expect(de_novo.body).toMatchObject({ gravados: 0, ignorados: 3 });
+    expect(de_novo.body).toMatchObject({ gravados: 0, atualizados: 3, ignorados: 0 });
     await owner`truncate mentoria_mentorados cascade`;
     const restaura = await h.post(`${B}/dashboard/importar`, { tipo: 'json', arquivo }, carla);
     expect(restaura.body).toMatchObject({ gravados: 3, ignorados: 0 });
@@ -253,18 +262,17 @@ describe('exportar e importar .json', () => {
     expect(await contar('mentoria_fichas')).toBe(0);
   });
 
-  it('arquivo com nome repetido dentro dele é recusado com relatório e nada é gravado', async () => {
+  it('nome repetido dentro do arquivo: o primeiro entra e o repetido fica de fora sem escolha (12C)', async () => {
     const a = fichaJson(randomUUID());
     const b = fichaJson(randomUUID());
     b.registros[0]!.nome = 'MENTORADO  ficticio 05';
     const arquivo = { ...a, registros: [...a.registros, ...b.registros] };
+    const p = await h.post(`${B}/linha-do-tempo/importar/previa`, { tipo: 'json', arquivo }, carla);
+    expect(p.body.coincidencias).toEqual({ naBase: [], noArquivo: [1] });
     const r = await h.post(`${B}/linha-do-tempo/importar`, { tipo: 'json', arquivo }, carla);
-    expect(r.status).toBe(400);
-    expect(r.body).toMatchObject({
-      message: 'O arquivo tem nomes repetidos; nada foi gravado',
-      repetidos: [1],
-    });
-    expect(await contar('mentoria_fichas')).toBe(0);
+    expect(r.status).toBe(200);
+    expect(r.body).toMatchObject({ gravados: 1, ignorados: 1 });
+    expect(await contar('mentoria_fichas')).toBe(1);
   });
 
   it('endereço de mídia do .json vai para o relatório como mídia não recuperada', async () => {
