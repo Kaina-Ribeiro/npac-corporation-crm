@@ -1,6 +1,7 @@
 import { hash, verify } from '@node-rs/argon2';
 import * as schema from '@npac/db';
 import { user as userTable, type Db } from '@npac/db';
+import { MFA_LIGADO } from '@npac/shared';
 import { betterAuth, type BetterAuthPlugin } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { createAuthMiddleware, getSessionFromCtx, isAPIError } from 'better-auth/api';
@@ -93,6 +94,13 @@ function auditPlugin(db: Db, audit: AuditService): BetterAuthPlugin {
   };
 }
 
+/**
+ * MFA desligado (`MFA_LIGADO`): o plugin continua (rotas, tabela e autenticadores guardados), mas
+ * sem o gancho que pede o código no login. Religar a chave volta a pedir para quem tem cadastrado.
+ */
+const mfaPlugin = twoFactor({ issuer: 'NPAC Corporation' });
+const mfa = MFA_LIGADO ? mfaPlugin : { ...mfaPlugin, hooks: { after: [] } };
+
 export function createAuth(db: Db, env: Env, audit: AuditService) {
   return betterAuth({
     appName: 'NPAC Corporation',
@@ -127,7 +135,7 @@ export function createAuth(db: Db, env: Env, audit: AuditService) {
     disabledPaths: ['/sign-in/email', '/is-username-available'],
     plugins: [
       username({ minUsernameLength: 3, maxUsernameLength: 30 }),
-      twoFactor({ issuer: 'NPAC Corporation' }),
+      mfa,
       requestAccessPlugin(db, audit),
       auditPlugin(db, audit),
     ],

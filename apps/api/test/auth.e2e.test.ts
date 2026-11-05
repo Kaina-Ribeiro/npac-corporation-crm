@@ -1,5 +1,6 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Secret, TOTP } from 'otpauth';
+import { MFA_LIGADO } from '@npac/shared';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import {
   api,
@@ -103,7 +104,22 @@ describe('autenticação', () => {
     expect((await h.get('/api/me', s)).body).not.toHaveProperty('mfaPending');
   });
 
-  it('HEAD com MFA precisa do TOTP para entrar', async () => {
+  it.skipIf(MFA_LIGADO)(
+    'MFA desligado: quem tem autenticador cadastrado entra sem código',
+    async () => {
+      const s = await h.signIn('ana@npac.com.br');
+      expect(
+        (await h.post('/api/auth/two-factor/enable', { password: TEST_PASSWORD }, s)).status,
+      ).toBe(200);
+      await owner`update "user" set two_factor_enabled = true where email = 'ana@npac.com.br'`;
+      const login = await h.signInRaw('ana@npac.com.br');
+      expect(login.status).toBe(200);
+      expect(login.body.twoFactorRedirect).toBeUndefined();
+      expect((await h.get(protectedRoute, cookiesOf(login))).status).toBe(200);
+    },
+  );
+
+  it.skipIf(!MFA_LIGADO)('HEAD com MFA precisa do TOTP para entrar', async () => {
     const s = await h.signIn('ana@npac.com.br');
     const enable = await h.post('/api/auth/two-factor/enable', { password: TEST_PASSWORD }, s);
     expect(enable.status).toBe(200);

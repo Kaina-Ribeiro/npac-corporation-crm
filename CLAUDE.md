@@ -88,7 +88,11 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
 - **Limite de tentativas de login DESLIGADO** (temporário, 04/11/2026: travava os acessos):
   `customRules[SIGN_IN] = false` em `api/auth/auth.ts`; antes era 5/min por IP. O pedido de
   acesso (3/h) e o TOTP (3/10 s, padrão do plugin) continuam limitados. Religar depois.
-- MFA (TOTP) **opcional** (28/10/2026): cada um liga/desliga em `/conta/mfa`; quem ligou confirma o
+- **MFA DESLIGADO** (temporário, 05/11/2026, pedido do Gabriel): `MFA_LIGADO = false` em
+  `sh/enums.ts`. Login não pede código (o gancho do `twoFactor` em `api/auth/auth.ts` fica vazio), o
+  Acompanhamento não exige, a tela `/conta/mfa` e os links somem; autenticadores cadastrados ficam
+  guardados e os testes de MFA ligado são pulados. Religar depois: `true` e rodar as suítes.
+- MFA (TOTP) **opcional** (28/10/2026, vale com `MFA_LIGADO`): cada um liga/desliga em `/conta/mfa`; quem ligou confirma o
   login, código enviado sozinho aos 6 dígitos (`lib/otp-input.ts`). Primeiro acesso só obriga trocar a senha.
 - **Acompanhamento** (`ACOMPANHAMENTO`, 04/11/2026): só o módulo de mentorados; RLS por
   `mentoria_pode()` (papel cru, nunca `app_role()`), MFA obrigatório nas rotas `mentoria/*` para

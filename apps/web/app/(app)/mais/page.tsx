@@ -1,4 +1,4 @@
-import { hasCommercialAccess, isLeader } from '@npac/shared/enums';
+import { hasCommercialAccess, isLeader, MFA_LIGADO } from '@npac/shared/enums';
 import { pendingAccessRequests } from '@/lib/access-requests';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -100,12 +100,14 @@ export default async function MorePage() {
       >
         Trocar senha
       </Link>
-      <Link
-        href="/conta/mfa"
-        className="glass-card flex min-h-14 w-full items-center justify-center text-base font-semibold"
-      >
-        Autenticador
-      </Link>
+      {MFA_LIGADO && (
+        <Link
+          href="/conta/mfa"
+          className="glass-card flex min-h-14 w-full items-center justify-center text-base font-semibold"
+        >
+          Autenticador
+        </Link>
+      )}
       {commercial && (
         <Link
           href="/conta/avisos"

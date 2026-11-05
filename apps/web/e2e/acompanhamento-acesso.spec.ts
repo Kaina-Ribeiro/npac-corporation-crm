@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { closeTestConnections, ownerSql } from '@npac/db/testing';
+import { MFA_LIGADO } from '@npac/shared/enums';
 import { E2E_DB, E2E_PASSWORD } from './env.js';
 
 const owner = ownerSql(E2E_DB);
@@ -151,7 +152,30 @@ test('rotas do módulo respondem 404 para SDR', async ({ page }) => {
   }
 });
 
+test('MFA desligado: Diretoria e Carla usam o módulo sem autenticador, sem aviso nem link', async ({
+  page,
+  browser,
+}) => {
+  test.skip(MFA_LIGADO, 'só com o MFA desligado');
+  await login(page, 'diretor@npac.com.br', false);
+  await page.goto('/acompanhamento/backup');
+  await expect(page.getByText('Ative a verificação em duas etapas')).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Entrada e saída por módulo' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Autenticador' })).toHaveCount(0);
+  await page.goto('/mais');
+  await expect(page.getByRole('link', { name: 'Autenticador' })).toHaveCount(0);
+  // A tela do autenticador some: quem abrir o endereço volta para o início.
+  await page.goto('/conta/mfa');
+  await page.waitForURL(/\/dashboard/);
+  const outra = await browser.newPage();
+  await login(outra, 'carla@npac.com.br', false);
+  await outra.waitForURL(/\/acompanhamento\/dashboard/);
+  await expect(outra.getByRole('heading', { name: 'Dashboard', exact: true })).toBeVisible();
+  await outra.close();
+});
+
 test('Diretoria sem MFA vê o aviso para ativar o autenticador', async ({ page }) => {
+  test.skip(!MFA_LIGADO, 'só com o MFA ligado');
   await login(page, 'diretor@npac.com.br', false);
   await page.goto('/acompanhamento/backup');
   await expect(page.getByText('Ative a verificação em duas etapas')).toBeVisible();
