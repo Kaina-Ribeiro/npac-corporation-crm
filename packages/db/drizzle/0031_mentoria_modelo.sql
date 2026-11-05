@@ -186,7 +186,7 @@ ALTER TABLE "mentoria_rdv_quadros" ADD CONSTRAINT "mentoria_rdv_quadros_updated_
 --> statement-breakpoint
 
 -- RLS do módulo: todas as tabelas de pessoa usam mentoria_pode() (papel cru), nunca app_role().
--- Sem DELETE para npac_app: exclusão só pelas funções SECURITY DEFINER (0031). Campos de
+-- Sem DELETE para npac_app: exclusão só pelas funções SECURITY DEFINER (0032). Campos de
 -- fonte (regra 5) sem UPDATE: pasta_url, data de item de quadro e o diagnóstico inteiro.
 -- Status da dúvida muda só pelas funções de confirmar e descartar.
 ALTER TABLE mentoria_fichas ENABLE ROW LEVEL SECURITY;
@@ -275,7 +275,7 @@ CREATE POLICY mentoria_midia_acesso ON mentoria_midia FOR ALL USING (mentoria_po
 --> statement-breakpoint
 GRANT SELECT, INSERT ON mentoria_midia TO npac_app;
 --> statement-breakpoint
--- Fila de exclusão de mídia: sem policy nem GRANT; só as funções do worker (0031) acessam.
+-- Fila de exclusão de mídia: sem policy nem GRANT; só as funções do worker (0032) acessam.
 ALTER TABLE mentoria_midia_exclusao ENABLE ROW LEVEL SECURITY;
 --> statement-breakpoint
 ALTER TABLE mentoria_midia_exclusao FORCE ROW LEVEL SECURITY;

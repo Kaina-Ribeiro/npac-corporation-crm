@@ -22,7 +22,7 @@ ALTER TABLE "mentoria_mentorados" ADD CONSTRAINT "mentoria_mentorados_updated_by
 
 -- Acesso ao módulo Acompanhamento: papel cru (texto), nunca app_role(), que devolve HEAD para
 -- DIRETOR (0021). Só Diretoria e Acompanhamento, ativos. Compara como texto: o valor
--- ACOMPANHAMENTO entrou no enum na 0028 e não deve ser usado como literal de enum aqui.
+-- ACOMPANHAMENTO entrou no enum na 0029 e não deve ser usado como literal de enum aqui.
 CREATE FUNCTION mentoria_pode() RETURNS boolean
   LANGUAGE sql STABLE SECURITY DEFINER
   SET search_path = public, pg_temp
