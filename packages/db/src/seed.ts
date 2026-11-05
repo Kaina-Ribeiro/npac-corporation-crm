@@ -87,6 +87,14 @@ const TEAM: {
     canProspect: false,
     canClose: true,
   },
+  {
+    name: 'Carla',
+    username: 'carla',
+    email: 'carla@npac.com.br',
+    role: 'ACOMPANHAMENTO',
+    canProspect: false,
+    canClose: false,
+  },
 ];
 
 export async function seed(db: Db, opts: SeedOptions): Promise<void> {

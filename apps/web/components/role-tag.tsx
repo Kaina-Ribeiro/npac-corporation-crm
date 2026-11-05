@@ -5,9 +5,11 @@ export const ROLE_LABEL: Record<Role, string> = {
   HEAD: 'Head',
   SDR: 'SDR',
   CLOSER: 'Closer',
+  ACOMPANHAMENTO: 'Acompanhamento',
 };
 
-/** Etiqueta do cargo (cores em globals.css, `.role-*`): dourado = liderança, azul/rosa = time. */
+/** Etiqueta do cargo (cores em globals.css, `.role-*`): dourado = liderança, azul/rosa = time,
+ * verde = acompanhamento de mentorados. */
 export function RoleTag({ role, className = '' }: { role: Role; className?: string }) {
   return <span className={`role role-${role} ${className}`}>{ROLE_LABEL[role]}</span>;
 }

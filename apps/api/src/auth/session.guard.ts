@@ -15,6 +15,10 @@ import { DB } from '../common/db/db.module.js';
 import { AUTH, type Auth } from './auth.js';
 import { toHeaders } from './headers.js';
 import { ALLOW_INCOMPLETE, IS_PUBLIC } from './public.decorator.js';
+import { REQUIRES_MFA } from './requires-mfa.decorator.js';
+
+/** Papéis que usam o Acompanhamento: precisam de MFA ativo nas rotas que exigem (D18). */
+const MFA_ROLES: readonly Role[] = ['DIRETOR', 'ACOMPANHAMENTO'];
 
 @Injectable()
 export class SessionGuard implements CanActivate {
@@ -54,6 +58,17 @@ export class SessionGuard implements CanActivate {
       throw new ForbiddenException({
         code: 'PASSWORD_CHANGE_REQUIRED',
         message: 'Troque a senha inicial para continuar.',
+      });
+    }
+    // Só para os papéis do módulo: os demais seguem e recebem 404 da guarda do módulo.
+    if (
+      this.reflector.getAllAndOverride<boolean>(REQUIRES_MFA, targets) &&
+      MFA_ROLES.includes(req.user.role) &&
+      !req.user.twoFactorEnabled
+    ) {
+      throw new ForbiddenException({
+        code: 'MFA_REQUIRED',
+        message: 'Ative a verificação em duas etapas em Conta > MFA para usar o Acompanhamento.',
       });
     }
     return true;

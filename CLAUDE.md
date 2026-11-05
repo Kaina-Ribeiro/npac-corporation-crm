@@ -53,6 +53,13 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   rápida do Hoje `today-quick-action.tsx` · menu de CSV `csv-export.tsx` (API: `api/common/csv.ts`) ·
   avisos compartilhados (selo do chat, `(N)` na aba, lembretes) `lib/alerts.ts`, `meeting-reminder.tsx` ·
   push no aparelho `lib/push.ts`, `public/sw.js`, `/conta/avisos`
+- **Acompanhamento (mentorados):** API `api/mentoria/*` (guarda 404 + MFA: `MentoriaController` em
+  `mentoria.guard.ts`; leitura `mentoria.service.ts`, `fichas.service.ts`; RDV `rdv.service.ts`/`rdv.controller.ts`; escrita `escrita.service.ts`;
+  import/export `.json` `import.service.ts`; mídia `midia.controller.ts`, `media-store.ts`, `media-sniff.ts`,
+  `media-worker.ts`; cifra v2 `mentoria-crypto.ts`) · banco `db/src/schema/mentoria.ts` + 0029–0034
+  (`mentoria_pode()`, funções `mentoria_*`) · lógica pura `sh/mentoria/*` (cliente: `@npac/shared/mentoria`,
+  sem zod) · telas `web/app/(app)/acompanhamento/*`, `web/components/acompanhamento/*`, fila
+  `web/lib/acompanhamento-saver.ts` · backup cifrado `infra/backup/*` (age)
 - **Docs:** `docs/spec.md`; deploy `docs/deploy.md` (Oracle), `docs/deploy-cubeship.md`; planos `docs/superpowers/plans/`; releases `RELEASING.md`
 
 Next 16 tem APIs incompatíveis: em dúvida, `web/node_modules/next/dist/docs/`. Valor exportado de
@@ -83,6 +90,14 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   acesso (3/h) e o TOTP (3/10 s, padrão do plugin) continuam limitados. Religar depois.
 - MFA (TOTP) **opcional** (28/10/2026): cada um liga/desliga em `/conta/mfa`; quem ligou confirma o
   login, código enviado sozinho aos 6 dígitos (`lib/otp-input.ts`). Primeiro acesso só obriga trocar a senha.
+- **Acompanhamento** (`ACOMPANHAMENTO`, 04/11/2026): só o módulo de mentorados; RLS por
+  `mentoria_pode()` (papel cru, nunca `app_role()`), MFA obrigatório nas rotas `mentoria/*` para
+  Diretoria e Acompanhamento, 404 para os demais. Texto sensível cifrado com AAD
+  (`MENTORADO_ENCRYPTION_KEY`); mídia fora do banco em `MEDIA_DIR`; sem DELETE para `npac_app`
+  (exclusão só pelas funções, que enfileiram a mídia). Filhos usam a `version` do pai (D5).
+- **Siglas das mentorias** (Gabriel, 04/11/2026): RDV = Rico de Verdade · IDR = Introdução da
+  Riqueza · PME = Plano Mensal de Enriquecimento · 2M = Marco e Mudança · 6M = sem definição ainda.
+  Nas telas vale o texto literal do PDF, exceto IDR: "Introdução da Riqueza" (o PDF diz "à"; corrigido).
 - Cookies em vez de localStorage: último usuário `npac_last_user` (`Path=/login`); ordem dos cards
   `npac_dash_<hash do id>` (`Path=/dashboard`, só IDs, o servidor já renderiza na ordem).
 
@@ -154,6 +169,13 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
 
 - Migration nova: `pnpm --filter @npac/db generate` (ou SQL manual) → `00NN_nome.sql` + snapshot +
   `_journal.json`. **Nunca reescreva migration aplicada**; crie sucessora.
+- Journal: `idx` sequencial e `when` maior que o da última entrada. O migrator só aplica `when` acima
+  do último aplicado: migration de branch antiga com `when` menor é **pulada em produção sem erro**.
+  Ao trazer migrations do main, renumere as suas para depois e refaça `when`, snapshots e `prevId`
+  (teste "idx e `when` crescem juntos" em `db/test/migrations.test.ts`).
+- Drizzle: em select de uma tabela só, `${tabela.id}` sai sem o nome da tabela. Em subconsulta
+  correlacionada escreva o nome inteiro (`where c.ficha_id = mentoria_fichas.id`): o `id` solto é
+  lido da tabela de dentro e a contagem dá zero.
 - RLS, grants, triggers e SECURITY DEFINER são SQL manual: revise além do schema. `npac_app` sem
   UPDATE numa tabela não pode `SELECT … FOR UPDATE` nela.
 - Valor novo de enum não vale na mesma transação da migration (compare como texto).

@@ -16,7 +16,8 @@ export function NavLink({
   children: React.ReactNode;
 }) {
   const path = usePathname();
-  const active = path === item.href || path.startsWith(`${item.href}/`);
+  const base = item.match ?? item.href;
+  const active = path === base || path.startsWith(`${base}/`);
   return (
     <Link
       href={item.href}

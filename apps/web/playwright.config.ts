@@ -1,3 +1,5 @@
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { defineConfig, devices } from '@playwright/test';
 import { API_PORT, appDbUrl, WEB_ORIGIN, WEB_PORT } from './e2e/env.js';
 
@@ -8,6 +10,8 @@ const apiEnv = {
   API_PORT: String(API_PORT),
   WEB_ORIGIN,
   LOG_LEVEL: 'warn',
+  // API em modo produção exige MEDIA_DIR: pasta temporária do e2e, nunca o volume real.
+  MEDIA_DIR: join(tmpdir(), 'npac-e2e-media'),
   // O e2e prova o MFA real de HEAD, independente do .env local.
 } as Record<string, string>;
 
