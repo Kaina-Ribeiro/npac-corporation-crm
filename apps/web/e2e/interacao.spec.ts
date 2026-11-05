@@ -80,6 +80,50 @@ test('campo editável da tabela mantém o anel dourado no foco', async ({ page }
   }
 });
 
+test('secundário muda de fundo no hover', async ({ page }) => {
+  await abrirDashboard(page);
+  const btn = colarPlanilha(page);
+  const antes = await estilo(btn, 'backgroundColor');
+  await btn.hover();
+  await expect.poll(() => estilo(btn, 'backgroundColor')).not.toBe(antes);
+});
+
+test('pressionado encolhe para .97 e volta', async ({ page }) => {
+  await abrirDashboard(page);
+  // Fixa o botão do cabeçalho: ao soltar, a gaveta abre com outra aba "Colar planilha".
+  await colarPlanilha(page).evaluate((el) => el.setAttribute('data-teste', 'pressionar'));
+  const btn = page.locator('[data-teste="pressionar"]');
+  await btn.hover();
+  await page.mouse.down();
+  await expect.poll(() => estilo(btn, 'scale')).toBe('0.97');
+  await page.mouse.up();
+  await expect.poll(() => estilo(btn, 'scale')).toBe('none');
+});
+
+test('botão escuro do login também encolhe ao pressionar', async ({ page }) => {
+  await page.goto('/login');
+  const btn = page.getByRole('button', { name: 'Login', exact: true });
+  await btn.hover();
+  await page.mouse.down();
+  await expect.poll(() => estilo(btn, 'scale')).toBe('0.97');
+  await page.mouse.up();
+});
+
+test.describe('toque', () => {
+  test.use({ hasTouch: true, isMobile: true, viewport: { width: 375, height: 812 } });
+  test('sem hover grudado depois do toque', async ({ page }) => {
+    await abrirDashboard(page);
+    // Exportar não abre gaveta: o dedo continua "sobre" o botão depois do toque.
+    const btn = page
+      .getByRole('button', { name: 'Exportar .json', exact: true })
+      .filter({ visible: true });
+    const antes = await estilo(btn, 'backgroundColor');
+    await btn.tap();
+    await page.waitForTimeout(400); // mais que a transição: o fundo não pode ter mudado
+    expect(await estilo(btn, 'backgroundColor')).toBe(antes);
+  });
+});
+
 test.describe('movimento reduzido', () => {
   test.use({ reducedMotion: 'reduce' });
   test('duração ~0', async ({ page }) => {

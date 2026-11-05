@@ -25,10 +25,11 @@ export function FormError({ message }: { message?: string }) {
   ) : null;
 }
 export const control = 'field w-full text-ink dark:!bg-white/10';
-export const button =
-  'rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-[var(--bg)] disabled:opacity-50';
-export const quietButton =
-  'rounded-xl border border-line px-3 py-2 text-sm font-semibold disabled:opacity-50';
+/** Botões: classes em `globals.css` (`.btn-*`), com hover, pressionar e foco animados. */
+export const button = 'btn btn-primary';
+export const quietButton = 'btn btn-secondary';
+export const ghostButton = 'btn btn-ghost';
+export const dangerButton = 'btn btn-danger';
 
 /**
  * Opções de "mover para". Venda só entra registrando a venda na ficha (a API recusa o

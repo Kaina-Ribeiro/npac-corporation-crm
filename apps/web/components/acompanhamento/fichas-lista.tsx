@@ -89,23 +89,15 @@ export function FichasLista({ inicial }: { inicial: PaginaFichas }) {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            className={`${button} active:scale-[.98]`}
-            onClick={() => setNova(true)}
-          >
+          <button type="button" className={`${button}`} onClick={() => setNova(true)}>
             Nova ficha
           </button>
-          <button
-            type="button"
-            className={`${quietButton} active:scale-[.98]`}
-            onClick={() => setImportar(true)}
-          >
+          <button type="button" className={`${quietButton}`} onClick={() => setImportar(true)}>
             Importar .json
           </button>
           <button
             type="button"
-            className={`${quietButton} active:scale-[.98]`}
+            className={`${quietButton}`}
             onClick={() =>
               void baixarBackup('linha-do-tempo').catch((e: Error) => setErro(e.message))
             }
