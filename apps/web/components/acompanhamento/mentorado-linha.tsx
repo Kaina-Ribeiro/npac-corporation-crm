@@ -135,7 +135,7 @@ export function MentoradoLinha({
           onClick={onRemover}
           aria-label={`Remover ${m.nome}`}
           title="Remover (pede confirmação)"
-          className="inline-flex size-9 items-center justify-center rounded-lg text-ink3 transition-colors hover:bg-rose-500/10 hover:text-rose-700 active:scale-95"
+          className="inline-flex size-9 items-center justify-center rounded-lg text-ink3 hover:bg-rose-500/10 hover:text-rose-700 active:scale-95"
         >
           <svg
             viewBox="0 0 24 24"

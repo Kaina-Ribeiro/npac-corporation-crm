@@ -190,21 +190,21 @@ export function RdvFicha({ inicial }: { inicial: RdvDetalhe }) {
           <button
             type="button"
             onClick={() => setGaveta('colar')}
-            className="rounded-xl border border-line px-3 py-2 text-sm font-semibold transition-transform active:scale-[.98]"
+            className="rounded-xl border border-line px-3 py-2 text-sm font-semibold active:scale-[.98]"
           >
             Colar vários eventos
           </button>
           <button
             type="button"
             onClick={exportarPdf}
-            className="rounded-xl border border-line px-3 py-2 text-sm font-semibold transition-transform active:scale-[.98]"
+            className="rounded-xl border border-line px-3 py-2 text-sm font-semibold active:scale-[.98]"
           >
             Exportar PDF
           </button>
           <button
             type="button"
             onClick={() => setGaveta('remover')}
-            className="rounded-xl px-3 py-2 text-sm font-semibold text-rose-700 transition-colors hover:bg-rose-500/10 active:scale-[.98] dark:text-rose-300"
+            className="rounded-xl px-3 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-500/10 active:scale-[.98] dark:text-rose-300"
           >
             Remover mentorado
           </button>

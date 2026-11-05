@@ -251,7 +251,7 @@ export function Today({
             <a
               key={id}
               href={`#${id}`}
-              className="flex h-9 items-center gap-1.5 rounded-full bg-white/60 px-3.5 text-sm text-ink2 shadow-[inset_0_0_0_0.5px_rgba(60,60,67,0.18)] transition-[background-color,color,transform] hover:bg-white/90 hover:text-ink active:scale-[.97] dark:bg-white/[.06] dark:hover:bg-white/10"
+              className="flex h-9 items-center gap-1.5 rounded-full bg-white/60 px-3.5 text-sm text-ink2 shadow-[inset_0_0_0_0.5px_rgba(60,60,67,0.18)] hover:bg-white/90 hover:text-ink active:scale-[.97] dark:bg-white/[.06] dark:hover:bg-white/10"
             >
               {alert && n > 0 && <Dot className="bg-danger" />}
               <b className="font-semibold text-ink tabular-nums">{n}</b> {label}

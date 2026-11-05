@@ -104,7 +104,7 @@ export function Pipeline({
             <button
               type="button"
               aria-expanded={editing}
-              className={`${quietButton} min-h-10 transition-transform active:scale-[.97]`}
+              className={`${quietButton} min-h-10`}
               onClick={() => setEditing((v) => !v)}
             >
               Editar colunas
@@ -113,7 +113,7 @@ export function Pipeline({
           {canCreate && (
             <Link
               href="/leads/new"
-              className="rounded-xl bg-ink px-4 py-2 text-sm font-semibold text-[var(--bg)] transition-transform active:scale-[.97]"
+              className="rounded-xl bg-ink px-4 py-2 text-sm font-semibold text-[var(--bg)] active:scale-[.97]"
             >
               Novo lead
             </Link>

@@ -51,7 +51,7 @@ export function Inbox({ initial }: { initial: NotificationsDTO }) {
         <div className="flex flex-wrap items-center gap-2">
           <Link
             href="/conta/avisos"
-            className={`${quietButton} inline-flex min-h-11 items-center gap-2 transition-colors hover:bg-black/5 md:min-h-9 dark:hover:bg-white/10`}
+            className={`${quietButton} inline-flex min-h-11 items-center gap-2 hover:bg-black/5 md:min-h-9 dark:hover:bg-white/10`}
           >
             Avisos neste aparelho
           </Link>

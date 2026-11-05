@@ -124,6 +124,51 @@ test.describe('toque', () => {
   });
 });
 
+/**
+ * Quem encolhe ao pressionar precisa animar a escala; botão e link também animam o anel de foco;
+ * botão compartilhado (`.btn`) anima ainda o fundo. Um `transition-colors` ou
+ * `transition-[transform,…]` no chamador derruba isso (no Tailwind v4 a escala é a propriedade
+ * `scale`, não `transform`).
+ */
+const semAnimacao = (page: Page) =>
+  page.evaluate(() =>
+    [...document.querySelectorAll<HTMLElement>('[class*="active:scale"], .btn')]
+      .filter((el) => {
+        const p = getComputedStyle(el).transitionProperty;
+        if (/\ball\b/.test(p)) return false;
+        const precisa = ['scale'];
+        if (el.matches('button, a')) precisa.push('outline-offset');
+        if (el.classList.contains('btn')) precisa.push('background-color');
+        return !precisa.every((x) => p.split(', ').includes(x));
+      })
+      .map((el) => el.outerHTML.slice(0, 160)),
+  );
+
+test('quem encolhe ao pressionar anima a escala (Acompanhamento)', async ({ page }) => {
+  await owner`insert into mentoria_mentorados (nome, nome_norm, status, tipo_mentoria) values ('Mentorado Escala', 'mentorado escala', 'ENGAJADO', 'Mentoria Fictícia A')`;
+  try {
+    await abrirDashboard(page);
+    await expect(page.getByLabel('Nome de Mentorado Escala', { exact: true })).toBeVisible();
+    expect(await semAnimacao(page)).toEqual([]);
+  } finally {
+    await owner`truncate mentoria_mentorados, mentoria_fichas, mentoria_rdv_pessoas, mentoria_midia cascade`;
+  }
+});
+
+test('quem encolhe ao pressionar anima a escala (Pipeline e Hoje)', async ({ page }) => {
+  await page.goto('/login');
+  await page.getByLabel('Usuário', { exact: true }).fill('diretor');
+  await page.getByLabel('Senha').fill(E2E_PASSWORD);
+  await page.getByRole('button', { name: 'Login', exact: true }).click();
+  await page.waitForURL(/\/dashboard/);
+  await page.goto('/pipeline');
+  await expect(page.getByRole('button', { name: 'Editar colunas', exact: true })).toBeVisible();
+  expect(await semAnimacao(page)).toEqual([]);
+  await page.goto('/hoje');
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  expect(await semAnimacao(page)).toEqual([]);
+});
+
 test.describe('movimento reduzido', () => {
   test.use({ reducedMotion: 'reduce' });
   test('duração ~0', async ({ page }) => {

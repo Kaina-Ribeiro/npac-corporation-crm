@@ -229,7 +229,7 @@ export function FichaView({ inicial, extra }: { inicial: FichaDetalhe; extra?: R
           <button
             type="button"
             onClick={imprimir}
-            className="rounded-xl border border-line px-3 py-2 text-sm font-semibold transition-transform active:scale-[.98]"
+            className="rounded-xl border border-line px-3 py-2 text-sm font-semibold active:scale-[.98]"
           >
             Exportar PDF
           </button>
@@ -237,7 +237,7 @@ export function FichaView({ inicial, extra }: { inicial: FichaDetalhe; extra?: R
           <button
             type="button"
             onClick={() => setRemover({ kind: 'ficha', id: f.id })}
-            className="rounded-xl px-3 py-2 text-sm font-semibold text-rose-700 transition-colors hover:bg-rose-500/10 active:scale-[.98] dark:text-rose-300"
+            className="rounded-xl px-3 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-500/10 active:scale-[.98] dark:text-rose-300"
           >
             Remover ficha
           </button>
@@ -404,7 +404,7 @@ export function FichaView({ inicial, extra }: { inicial: FichaDetalhe; extra?: R
               <button
                 type="button"
                 onClick={() => void novaConquista()}
-                className="flex min-h-40 flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-line px-4 text-center text-sm font-semibold text-ink2 transition-colors hover:bg-black/[0.03] active:scale-[.99] dark:hover:bg-white/[0.04]"
+                className="flex min-h-40 flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-line px-4 text-center text-sm font-semibold text-ink2 hover:bg-black/[0.03] active:scale-[.99] dark:hover:bg-white/[0.04]"
               >
                 <svg
                   viewBox="0 0 24 24"

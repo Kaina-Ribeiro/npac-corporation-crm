@@ -17,7 +17,7 @@ function Trigger({ busy, onClick }: { busy: boolean; onClick: () => void }) {
       title="Ação rápida"
       disabled={busy}
       onClick={onClick}
-      className="grid size-9 flex-none place-items-center rounded-full text-ink2 transition-[opacity,transform,background-color,color] duration-150 hover:bg-black/[.06] hover:text-ink active:scale-90 disabled:opacity-40 dark:hover:bg-white/10 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/row:opacity-100 [@media(hover:hover)]:group-focus-within/row:opacity-100 [&_svg]:size-[18px]"
+      className="grid size-9 flex-none place-items-center rounded-full text-ink2 duration-150 hover:bg-black/[.06] hover:text-ink active:scale-90 disabled:opacity-40 dark:hover:bg-white/10 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/row:opacity-100 [@media(hover:hover)]:group-focus-within/row:opacity-100 [&_svg]:size-[18px]"
     >
       <svg
         viewBox="0 0 24 24"
@@ -47,7 +47,7 @@ export function QuickAction({
   run: (body: object) => Promise<void>;
 }) {
   const [mode, setMode] = useState<Mode | null>(null);
-  const chip = `${quietButton} min-h-11 transition-[transform,background-color] hover:bg-black/5 active:scale-[.97] dark:hover:bg-white/10 aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-[var(--bg)]`;
+  const chip = `${quietButton} min-h-11 hover:bg-black/5 dark:hover:bg-white/10 aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-[var(--bg)]`;
   function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
@@ -153,7 +153,7 @@ export function MeetingAction({
     const t = setInterval(tick, 15_000);
     return () => clearInterval(t);
   }, [mode, started, at]);
-  const chip = `${quietButton} min-h-11 transition-[transform,background-color] hover:bg-black/5 active:scale-[.97] disabled:cursor-not-allowed disabled:opacity-45 disabled:active:scale-100 dark:hover:bg-white/10 aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-[var(--bg)]`;
+  const chip = `${quietButton} min-h-11 hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-45 dark:hover:bg-white/10 aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-[var(--bg)]`;
   if (!mode) return <Trigger busy={busy} onClick={() => setMode('menu')} />;
   return (
     <div className="flex w-full flex-col gap-2 rounded-xl bg-black/[.03] p-3 dark:bg-white/5">

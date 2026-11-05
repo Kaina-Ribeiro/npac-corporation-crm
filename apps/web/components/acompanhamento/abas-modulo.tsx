@@ -25,7 +25,7 @@ export function AbasModulo() {
               <Link
                 href={a.href}
                 aria-current={on ? 'page' : undefined}
-                className={`flex h-9 items-center rounded-xl px-3.5 text-sm font-semibold whitespace-nowrap transition-colors ${
+                className={`flex h-9 items-center rounded-xl px-3.5 text-sm font-semibold whitespace-nowrap ${
                   on
                     ? 'bg-[var(--on)] text-ink shadow-[inset_0_1px_0_#fff,0_2px_10px_rgba(0,0,0,.08)]'
                     : 'text-ink2 hover:bg-black/5 hover:text-ink active:scale-[.98] dark:hover:bg-white/10'

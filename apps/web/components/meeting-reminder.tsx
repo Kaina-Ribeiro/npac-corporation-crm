@@ -74,7 +74,7 @@ export function ReminderNotice({
           type="button"
           disabled={busy}
           onClick={() => void confirm()}
-          className="min-h-11 w-full rounded-full bg-ink px-4 sm:w-auto text-sm font-semibold text-[var(--bg)] transition-[transform,opacity] hover:opacity-90 active:scale-[.97] disabled:opacity-50 md:min-h-9"
+          className="min-h-11 w-full rounded-full bg-ink px-4 sm:w-auto text-sm font-semibold text-[var(--bg)] hover:opacity-90 active:scale-[.97] disabled:opacity-50 md:min-h-9"
         >
           Confirmação enviada
         </button>

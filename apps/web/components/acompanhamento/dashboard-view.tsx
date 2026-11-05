@@ -225,7 +225,7 @@ export function DashboardView({ inicial }: { inicial: ResumoDashboard }) {
               type="button"
               aria-pressed={on}
               onClick={() => setF((x) => ({ ...x, tipoMentoria: on ? null : t.nome }))}
-              className={`inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[13px] transition-colors active:scale-[.98] ${
+              className={`inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[13px] active:scale-[.98] ${
                 on
                   ? 'border-line bg-[var(--on)] font-semibold text-ink shadow-sm'
                   : 'border-dashed border-line text-ink2 hover:text-ink'
