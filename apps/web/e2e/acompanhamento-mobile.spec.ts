@@ -110,6 +110,11 @@ test('RDV no celular: "+" abre Novo mentorado; ficha e gaveta sem overflow em 37
   await page.goto(`/acompanhamento/rdv/${PESSOA}`);
   await expect(page.getByRole('textbox', { name: 'Nome do mentorado' })).toBeVisible();
   await semOverflow(page);
+  // "+" dentro da ficha volta para a lista já com Novo mentorado aberto (como na Linha do tempo).
+  await abas(page).getByRole('button', { name: 'Novo mentorado' }).click();
+  await expect(page.getByRole('dialog', { name: 'Novo mentorado' })).toBeVisible();
+  await page.goto(`/acompanhamento/rdv/${PESSOA}`);
+  await expect(page.getByRole('textbox', { name: 'Nome do mentorado' })).toBeVisible();
   await page.getByRole('button', { name: 'Colar vários eventos' }).click();
   await page
     .getByRole('dialog')

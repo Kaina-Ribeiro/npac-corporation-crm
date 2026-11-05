@@ -61,6 +61,8 @@ export function AbasMobile() {
     // Dentro da ficha, a lista é que tem o cadastro: volta para ela já com o cadastro aberto.
     if (aba === 'Linha' && path !== '/acompanhamento/linha-do-tempo')
       return router.push('/acompanhamento/linha-do-tempo?nova=1');
+    if (aba === 'RDV' && path !== '/acompanhamento/rdv')
+      return router.push('/acompanhamento/rdv?novo=1');
     window.dispatchEvent(new CustomEvent(EVENTO_MAIS, { detail: aba }));
   }
 
