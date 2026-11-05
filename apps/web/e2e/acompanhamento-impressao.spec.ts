@@ -72,3 +72,20 @@ test('emulateMedia print esconde navegação e botões; imprimir grava mentoria.
   await expect(page.getByRole('tab', { name: 'Lado a lado' })).toBeHidden();
   await expect(page.getByText('Mentorado Fictício 60').first()).toBeVisible();
 });
+
+test('impressão da linha do tempo: sem "Adicionar…" e linha em cor', async ({ page }) => {
+  await abrir(page);
+  const fe = page.getByRole('textbox', { name: 'Fé antes' });
+  await fe.fill('Pouca prática');
+  await fe.blur();
+  await page.emulateMedia({ media: 'print' });
+  const painel = page.getByRole('tabpanel', { name: 'Linha do tempo' });
+  await expect(painel.locator('.campo-vazio').first()).toBeHidden();
+  await expect(page.getByRole('textbox', { name: 'Fé hoje' })).toBeHidden();
+  await expect(page.getByRole('textbox', { name: 'Saúde antes' })).toBeHidden();
+  expect(
+    await painel.locator('.linha-rail').evaluate((el) => getComputedStyle(el).printColorAdjust),
+  ).toBe('exact');
+  await expect(page.getByLabel('Fé antes', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Enviar foto de antes')).toBeHidden();
+});

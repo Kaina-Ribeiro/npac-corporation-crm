@@ -44,10 +44,13 @@ export async function removerMidia(id: string): Promise<void> {
 export function MidiaCartao({
   m,
   rotulo,
+  altura = 'h-44',
   onRemover,
 }: {
   m: MidiaDTO;
   rotulo: string;
+  /** Altura da foto (classe Tailwind); miniaturas da ficha usam menos. */
+  altura?: string;
   onRemover: () => void;
 }) {
   const src = `/api/mentoria/midia/${m.id}`;
@@ -55,7 +58,7 @@ export function MidiaCartao({
     <div className="group relative overflow-hidden rounded-2xl border border-line bg-black/[0.03] dark:bg-white/[0.04]">
       {m.tipo === 'FOTO' ? (
         // Stream autenticado da API: <img> simples, sem o otimizador do Next.
-        <img src={src} alt={rotulo} className="h-44 w-full object-cover" />
+        <img src={src} alt={rotulo} className={`${altura} w-full object-cover`} />
       ) : (
         <a
           href={m.tipo === 'LINK_VIDEO' ? (m.urlVideo ?? '#') : src}
@@ -96,11 +99,14 @@ export function EnviarArquivo({
   rotulo,
   aceita = 'image/jpeg,image/png,image/webp,video/mp4,video/quicktime,application/pdf',
   altura = 'h-32',
+  texto,
   onArquivo,
 }: {
   rotulo: string;
   aceita?: string;
   altura?: string;
+  /** Texto visível no lugar de "<rótulo> (até 20 MB)" (miniaturas); o nome acessível segue o rótulo. */
+  texto?: React.ReactNode;
   onArquivo: (f: File) => Promise<void>;
 }) {
   const id = useId();
@@ -122,7 +128,7 @@ export function EnviarArquivo({
         >
           <path d="M12 5v14M5 12h14" />
         </svg>
-        {ocupado ? 'Enviando…' : `${rotulo} (até 20 MB)`}
+        {ocupado ? 'Enviando…' : (texto ?? `${rotulo} (até 20 MB)`)}
       </label>
       <input
         id={id}
