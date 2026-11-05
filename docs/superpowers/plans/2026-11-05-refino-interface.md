@@ -23,9 +23,9 @@ consumido por sidebar e Ctrl+K. O Dashboard troca só a apresentação; ações,
 | 1 | 1.3 Conflitos de escala, verificação visual e PR | ✅ (PR #40 mergeado) |
 | 2 | 2.1 Dados da navegação e Ctrl+K | ✅ |
 | 2 | 2.2 Sidebar com grupos e sub-itens | ✅ |
-| 2 | 2.3 Tirar as abas do topo e o sobretítulo; verificação e PR | ✅ (falta o PR, com o "sim") |
-| 3 | 3.1 Faixa de status | ⏳ |
-| 3 | 3.2 Cabeçalho, ação principal e estado vazio; verificação e PR | ⏳ |
+| 2 | 2.3 Tirar as abas do topo e o sobretítulo; verificação e PR | ✅ (PR #41 mergeado) |
+| 3 | 3.1 Faixa de status | ✅ |
+| 3 | 3.2 Cabeçalho, ação principal e estado vazio; verificação e PR | ✅ (falta o PR, com o "sim") |
 
 Uma sessão nova por fase. Atualize a coluna Status ao fechar cada tarefa (✅).
 

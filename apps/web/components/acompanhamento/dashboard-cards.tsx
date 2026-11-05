@@ -1,26 +1,10 @@
 'use client';
 import type { MentoradoStatus } from '@npac/shared/mentoria';
 
-const CARDS: { status: MentoradoStatus; label: string; icone: string; cor: string }[] = [
-  {
-    status: 'ENGAJADO',
-    label: 'Engajados',
-    icone: 'M5 12l5 5L20 7',
-    cor: 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-300',
-  },
-  {
-    status: 'EM_ATENCAO',
-    label: 'Em atenção',
-    icone: 'M12 8v5M12 17h.01M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18',
-    cor: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
-  },
-  {
-    status: 'EM_RISCO',
-    label: 'Em risco',
-    icone:
-      'M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0',
-    cor: 'bg-rose-500/12 text-rose-700 dark:text-rose-300',
-  },
+const CARDS: { status: MentoradoStatus; label: string; ponto: string }[] = [
+  { status: 'ENGAJADO', label: 'Engajados', ponto: 'bg-emerald-500' },
+  { status: 'EM_ATENCAO', label: 'Em atenção', ponto: 'bg-amber-500' },
+  { status: 'EM_RISCO', label: 'Em risco', ponto: 'bg-rose-500' },
 ];
 
 const iniciais = (nome: string) =>
@@ -32,8 +16,9 @@ const iniciais = (nome: string) =>
     .join('');
 
 /**
- * Cards por status (Módulo 1): contagem e os nomes de quem está em cada grupo, à vista também
- * no celular. Clicar no card filtra a tabela; clicar de novo tira o filtro.
+ * Faixa de status (Módulo 1): cada card inteiro é o botão de filtro (ponto, rótulo e número na
+ * mesma linha); clicar de novo tira o filtro. Selecionado = barra dourada na lateral. Os nomes
+ * de quem está no grupo ficam abaixo, à vista também no celular; com zero, o número já diz.
  */
 export function DashboardCards({
   contagem,
@@ -53,49 +38,25 @@ export function DashboardCards({
         const sel = filtro === c.status;
         const titulo = `card-${c.status}`;
         return (
-          <section
-            key={c.status}
-            aria-labelledby={titulo}
-            className={`glass-card flex min-w-0 flex-col gap-3 p-4 transition-shadow ${sel ? 'ring-2 ring-ink/70' : ''}`}
-          >
+          <section key={c.status} aria-labelledby={titulo} className="flex min-w-0 flex-col gap-2">
             <button
               type="button"
               id={titulo}
               aria-pressed={sel}
               onClick={() => onFiltro(sel ? null : c.status)}
-              className="flex flex-col items-start gap-1 rounded-xl text-left active:scale-[.99]"
+              className={`glass-card card-click flex h-14 w-full items-center gap-2.5 px-4 text-left ${sel ? 'card-sel' : ''}`}
             >
-              <span className="flex items-center gap-2 text-sm font-semibold text-ink2">
-                <span
-                  className={`inline-flex size-7 items-center justify-center rounded-lg ${c.cor}`}
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    className="size-4"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    <path d={c.icone} />
-                  </svg>
-                </span>
+              <span aria-hidden="true" className={`size-2.5 shrink-0 rounded-full ${c.ponto}`} />
+              <span className={`truncate text-sm ${sel ? 'font-semibold text-ink' : 'text-ink2'}`}>
                 {c.label}
               </span>
-              <span className="text-[34px] leading-none font-bold tracking-[-0.03em] tabular-nums">
+              <span className="ml-auto text-[22px] leading-none font-bold tracking-[-0.02em] tabular-nums">
                 {n}
               </span>
-              <span className="text-xs text-ink3">
-                {n === 1 ? '1 mentorado' : `${n} mentorados`}
-              </span>
             </button>
-            {n === 0 ? (
-              <p className="text-[13px] text-ink3">Ninguém neste status.</p>
-            ) : (
+            {n > 0 && (
               <ul
-                className="flex max-h-28 flex-wrap gap-1.5 overflow-x-hidden overflow-y-auto"
+                className="flex max-h-28 flex-wrap gap-1.5 overflow-x-hidden overflow-y-auto px-0.5"
                 aria-label={`Nomes: ${c.label}`}
               >
                 {(nomes[c.status] ?? []).map((m) => (
