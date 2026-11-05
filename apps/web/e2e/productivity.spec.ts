@@ -267,7 +267,7 @@ test('hoje: ação rápida da reunião marca realizada e remarca', async ({ page
 
   await row('Reunião Feita').getByRole('button', { name: 'Ação rápida' }).click();
   await row('Reunião Feita').getByRole('button', { name: 'Realizada', exact: true }).click();
-  await expect(row('Reunião Feita').getByText(/· Realizada/)).toBeVisible();
+  await expect(row('Reunião Feita').getByText('Realizada', { exact: true })).toBeVisible();
   await expect(row('Reunião Feita').getByRole('button', { name: 'Ação rápida' })).toHaveCount(0);
 
   await row('Reunião Remarcar').getByRole('button', { name: 'Ação rápida' }).click();

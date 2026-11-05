@@ -9,7 +9,7 @@ import type {
 } from '@npac/shared';
 import { money } from '@npac/shared/money';
 import Link from 'next/link';
-import { type CSSProperties, useMemo, useState, type FormEvent } from 'react';
+import { type CSSProperties, useMemo, useRef, useState, type FormEvent } from 'react';
 import { clientApi } from '@/lib/client-api';
 import { DASH_CARDS } from '@/lib/dashboard-layout';
 import { button, control, Field, FormError, quietButton } from './crm-ui';
@@ -24,7 +24,7 @@ import {
   chartColors,
 } from './dashboard-charts';
 import { BoardProvider, DashboardBoard, RestoreOrder, type BoardCard } from './dashboard-board';
-import { CsvExport } from './csv-export';
+import { CsvExport, downloadCsv } from './csv-export';
 import { CloserDesk, SdrTable, TeamFeed } from './dashboard-team';
 import { CountUp } from './count-up';
 import { useCrmRefresh } from './shell/live-updates';
@@ -186,11 +186,25 @@ export function Reports({
       setBusy(false);
     }
   }
+  const form = useRef<HTMLFormElement>(null);
+  const read = (el: HTMLFormElement) =>
+    Object.fromEntries([...new FormData(el)].map(([k, v]) => [k, String(v)]).filter(([, v]) => v));
+  /** Exportações usam o que está selecionado no formulário, mesmo sem clicar em "Atualizar". */
+  const selected = () => (form.current ? read(form.current) : filters);
+  async function exportPeriod() {
+    setBusy(true);
+    setError('');
+    try {
+      await downloadCsv('/api/reports/export', selected(), 'npac-relatorio-periodo.csv');
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const f = Object.fromEntries(
-      [...new FormData(e.currentTarget)].map(([k, v]) => [k, String(v)]).filter(([, v]) => v),
-    );
+    const f = read(e.currentTarget);
     setFilters(f);
     setBusy(true);
     setError('');
@@ -205,7 +219,11 @@ export function Reports({
   async function copy() {
     setError('');
     try {
-      const { text } = await clientApi<{ text: string }>('/api/reports/summary', 'POST', filters);
+      const { text } = await clientApi<{ text: string }>(
+        '/api/reports/summary',
+        'POST',
+        selected(),
+      );
       await navigator.clipboard.writeText(text);
       setCopied(true);
     } catch (e) {
@@ -435,7 +453,7 @@ export function Reports({
         ['A receber das vendas do período', money(m.outstandingCents ?? 0)],
       ];
   const page = (
-    <div className="mx-auto flex max-w-[1920px] flex-col gap-5">
+    <div className="flex w-full flex-col gap-5">
       {dashboard ? (
         <header className="reveal flex flex-wrap items-end justify-between gap-4">
           <div className="min-w-0">
@@ -501,8 +519,8 @@ export function Reports({
         </>
       )}
       {!dashboard && (
-        <form className="glass-card p-4" onSubmit={submit}>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <form ref={form} className="glass-card p-4" onSubmit={submit}>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 3xl:grid-cols-5">
             <Field label="Período do relatório">
               <select name="period" className={control} defaultValue="MONTH">
                 <option value="MONTH">Mês até hoje</option>
@@ -581,9 +599,49 @@ export function Reports({
               </>
             }
           </div>
-          <button className={`${button} mt-4`} disabled={busy}>
-            Atualizar relatório
-          </button>
+          <div className="mt-4 flex flex-wrap items-start gap-3">
+            <button className={button} disabled={busy}>
+              Atualizar relatório
+            </button>
+            <button
+              type="button"
+              className={quietButton}
+              disabled={busy}
+              onClick={() => void exportPeriod()}
+            >
+              Exportar relatório do período
+            </button>
+            <button
+              type="button"
+              className={quietButton}
+              disabled={busy}
+              onClick={() => void copy()}
+            >
+              {copied ? 'Resumo copiado' : 'Copiar resumo sem telefone'}
+            </button>
+            <button type="button" className={quietButton} onClick={() => window.print()}>
+              Imprimir / salvar PDF
+            </button>
+            {head && (
+              <CsvExport
+                label="CSV com contatos"
+                align="left"
+                endpoint="/api/reports/csv"
+                filename="npac-relatorio.csv"
+                options={[
+                  {
+                    label: 'Só o período',
+                    body: () => {
+                      const f = selected();
+                      return { period: f.period, from: f.from, to: f.to };
+                    },
+                  },
+                  { label: 'Com os filtros atuais', body: () => selected() },
+                  { label: 'Tudo', body: () => ({ period: 'ALL' }) },
+                ]}
+              />
+            )}
+          </div>
         </form>
       )}
       <FormError message={error} />
@@ -594,7 +652,7 @@ export function Reports({
         />
       ) : (
         <>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 3xl:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 4xl:grid-cols-6">
             {cards.map(([label, value], i) => (
               <article key={label} className="glass-card p-5">
                 <p className="text-sm text-ink2">{label}</p>
@@ -626,7 +684,7 @@ export function Reports({
               </span>
             )}
           </section>
-          <div className="grid items-start gap-5">
+          <div className="grid items-start gap-5 2xl:grid-cols-2">
             <Breakdown title="Por SDR" rows={data.bySdr} />
             <Breakdown title="Por closer" rows={data.byCloser} />
             <Breakdown title="Por produto" rows={data.byProduct} />
@@ -635,29 +693,6 @@ export function Reports({
       )}
       {!dashboard && (
         <>
-          <div className="flex flex-wrap gap-3">
-            <button className={quietButton} onClick={() => window.print()}>
-              Imprimir / salvar PDF
-            </button>
-            <button className={quietButton} disabled={busy} onClick={() => void copy()}>
-              {copied ? 'Resumo copiado' : 'Copiar resumo sem telefone'}
-            </button>
-            {head && (
-              <CsvExport
-                label="CSV com contatos"
-                endpoint="/api/reports/csv"
-                filename="npac-relatorio.csv"
-                options={[
-                  {
-                    label: 'Só o período',
-                    body: () => ({ period: filters.period, from: filters.from, to: filters.to }),
-                  },
-                  { label: 'Com os filtros atuais', body: () => filters },
-                  { label: 'Tudo', body: () => ({ period: 'ALL' }) },
-                ]}
-              />
-            )}
-          </div>
           <section className="glass-card p-5">
             <h2 className="mb-4 text-lg font-bold">
               Leads novos do período · página {data.page} de{' '}

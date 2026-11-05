@@ -1,4 +1,5 @@
 import type { MeetingOutcome } from './enums.js';
+import type { ReminderStepConfirm } from './reminders.js';
 export type TodayDTO = {
   charges: import('./finance.js').ChargeDTO[];
   overdue: { id: string; name: string; nextContactAt: string | null; version: number }[];
@@ -10,6 +11,8 @@ export type TodayDTO = {
     scheduledAt: string;
     outcome: MeetingOutcome | null;
     version: number;
+    /** Só para o dono do lead (SDR): etapas já confirmadas no horário atual. */
+    reminders: { confirmed: ReminderStepConfirm[] } | null;
   }[];
   tasks: {
     id: string;

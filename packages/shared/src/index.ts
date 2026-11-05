@@ -23,3 +23,4 @@ export * from './mentoria/legado.js';
 export * from './mentoria/dto.js';
 export * from './mentoria/field-queue.js';
 export * from './mentoria/topicos.js';
+export * from './reminders.js';

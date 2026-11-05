@@ -10,3 +10,4 @@ export * from './collab.js';
 export * from './lgpd.js';
 export * from './access-requests.js';
 export * from './mentoria.js';
+export * from './reminders.js';

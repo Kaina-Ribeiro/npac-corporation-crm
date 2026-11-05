@@ -3,7 +3,7 @@ import { pendingAccessRequests } from '@/lib/access-requests';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { ACOMPANHAMENTO_ITEM, ADMIN_ITEM, MORE_ITEMS } from '@/components/shell/nav-items';
-import { InboxCard } from '@/components/inbox';
+import { ChatBadge, InboxCard } from '@/components/inbox';
 import { SearchButton } from '@/components/shell/command-palette';
 import { SignOutButton } from '@/components/shell/sign-out-button';
 import { ThemeSwitch } from '@/components/shell/theme-switch';
@@ -68,8 +68,11 @@ export default async function MorePage() {
             href={item.href}
             className="glass-card flex min-h-28 flex-col justify-between gap-3 p-4 transition-transform active:scale-[.98]"
           >
-            <span className="inline-flex size-10 items-center justify-center rounded-xl bg-black/5 text-ink dark:bg-white/10 [&_svg]:size-5">
-              {item.icon}
+            <span className="flex items-start justify-between gap-2">
+              <span className="inline-flex size-10 items-center justify-center rounded-xl bg-black/5 text-ink dark:bg-white/10 [&_svg]:size-5">
+                {item.icon}
+              </span>
+              {item.href === '/chat' && <ChatBadge />}
             </span>
             <span>
               <b className="block font-semibold">{item.label}</b>
@@ -99,6 +102,12 @@ export default async function MorePage() {
         className="glass-card flex min-h-14 w-full items-center justify-center text-base font-semibold"
       >
         Autenticador
+      </Link>
+      <Link
+        href="/conta/avisos"
+        className="glass-card flex min-h-14 w-full items-center justify-center text-base font-semibold"
+      >
+        Avisos neste aparelho
       </Link>
       <SignOutButton className="glass-card min-h-14 w-full text-base font-semibold text-danger" />
 

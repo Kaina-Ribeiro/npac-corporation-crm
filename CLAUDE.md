@@ -38,6 +38,7 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   Hoje `api/today/*` · avisos/filtros salvos `api/notifications/notifications.ts`, `views.ts` ·
   chat/handoff/equipe/playbook `api/collab/*` · admin `api/admin/users.ts`, `catalog.ts`, `lgpd.ts`,
   `access-requests.ts` · SSE `api/events/events.controller.ts` · import Firebase `api/import/*` ·
+  push (Web Push) e despertador dos lembretes `api/push/*` ·
   mock do protótipo `api/dev/mock-prototype.ts`
 - **Web:** layout/sidebar/bottom nav `web/app/(app)/layout.tsx`, `web/components/shell/*` · login,
   pedir acesso `web/components/login/*` · senha/MFA `components/conta/*`, `app/(conta)/*` · API
@@ -49,11 +50,13 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   (cards reordenáveis: `dashboard-board.tsx`, `lib/dashboard-layout.ts`, `lib/board-motion.ts`) ·
   admin `admin.tsx`, `access-requests.tsx` · Ctrl+K `shell/command-palette.tsx` · avisos `inbox.tsx` ·
   textos de atividade `lib/activity-text.ts` · editor de colunas `pipeline-columns-editor.tsx` · ação
-  rápida do Hoje `today-quick-action.tsx` · menu de CSV `csv-export.tsx` (API: `api/common/csv.ts`)
+  rápida do Hoje `today-quick-action.tsx` · menu de CSV `csv-export.tsx` (API: `api/common/csv.ts`) ·
+  avisos compartilhados (selo do chat, `(N)` na aba, lembretes) `lib/alerts.ts`, `meeting-reminder.tsx` ·
+  push no aparelho `lib/push.ts`, `public/sw.js`, `/conta/avisos`
 - **Acompanhamento (mentorados):** API `api/mentoria/*` (guarda 404 + MFA: `MentoriaController` em
   `mentoria.guard.ts`; leitura `mentoria.service.ts`, `fichas.service.ts`; RDV `rdv.service.ts`/`rdv.controller.ts`; escrita `escrita.service.ts`;
   import/export `.json` `import.service.ts`; mídia `midia.controller.ts`, `media-store.ts`, `media-sniff.ts`,
-  `media-worker.ts`; cifra v2 `mentoria-crypto.ts`) · banco `db/src/schema/mentoria.ts` + 0028–0032
+  `media-worker.ts`; cifra v2 `mentoria-crypto.ts`) · banco `db/src/schema/mentoria.ts` + 0029–0034
   (`mentoria_pode()`, funções `mentoria_*`) · lógica pura `sh/mentoria/*` (cliente: `@npac/shared/mentoria`,
   sem zod) · telas `web/app/(app)/acompanhamento/*`, `web/components/acompanhamento/*`, fila
   `web/lib/acompanhamento-saver.ts` · backup cifrado `infra/backup/*` (age)
@@ -141,9 +144,26 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
 - Métricas em SQL com CTEs que não multiplicam linhas; vendas contam por `deals`, não por etapa.
 - Paginação no servidor; CSV recusa > 10 mil linhas; cabeçalhos do CSV com `csvHeaders` depois de
   gerar o arquivo (com `@Header` fixo, erro de validação virava 500). Leads e Relatórios exportam por
-  período, filtro atual ou tudo (`period: 'ALL'` só no CSV).
+  período, filtro atual ou tudo (`period: 'ALL'` só no CSV). `POST /reports/export` = relatório do
+  período em CSV (resumo + por SDR/closer/produto, sem contato), para todos; SDR sem venda. As
+  exportações dos Relatórios leem o formulário na tela, não o último "Atualizar".
 - Erros da API em português para o usuário final (`BadRequestException('…')`); o `clientApi` mostra a
   mensagem, as padrão do Nest viram texto genérico. `clientApi` aceita 204.
+
+## Avisos e lembretes (NPAC-26, 04/11/2026)
+
+- Chat: selo de não lidas (`chatUnread` em `/notifications`) e `(N)` no título, pelo SSE. Push sem
+  texto: "Nova mensagem no Chat" (Geral → todos menos o autor) ou "de <nome>" (DM → destinatário).
+- Lembretes só para o dono do lead (`leads.sdr_id`): `H1` (60 min) e `M15` (15 min) com
+  "Confirmação enviada" (`POST /meetings/:id/confirm`, `meeting_confirmations` por horário, timeline
+  `meeting.confirmed`); `M1` só aviso. Etapa vigente calculada no navegador (`sh/reminders.ts`).
+  Liderança vê "1 h: não confirmada" na ficha. Remarcar recomeça; cancelada/resultado não avisa.
+- Push dos lembretes: `ReminderScheduler` = um único timer para o próximo (`meeting_reminder_next`),
+  rearmado ao subir a API e depois de criar/remarcar/cancelar/resultado/transferir. Disparo via
+  `meeting_reminder_claim` (advisory lock + `meeting_reminders_sent`): uma vez por etapa, só a mais
+  recente se a API ficou parada. Sem polling. Testes trocam `PUSH_SENDER` e `REMINDER_CLOCK`.
+- Push: VAPID opcional no env (sem chaves = desligado). Inscrição por `push_subscribe` (o aparelho
+  vai para quem logou por último); sair e desativar usuário apagam; 404/410 apaga.
 
 ## Banco
 
@@ -155,7 +175,9 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
 - Aplicar no dev: `pnpm --filter @npac/db build && pnpm --filter @npac/db migrate`.
   psql: `docker exec npac-corporation-postgres-1 psql -U npac_owner -d npac`.
 - Apagar lead/usuário à mão: FKs em `chat_reads`, `chat_*`, `payments`, `deals`, `lead_notes`,
-  `lead_tasks`, `notifications`, `lead_timeline`, `meetings`, `lgpd_requests` (usuário: também `session`, `account`).
+  `lead_tasks`, `notifications`, `lead_timeline`, `meetings` (`meeting_confirmations` e
+  `meeting_reminders_sent` em cascata), `lgpd_requests` (usuário: também `session`, `account`,
+  `push_subscriptions`). `truncate` de `meetings` nos testes lista as duas tabelas de lembretes.
 
 ## Comandos
 

@@ -14,12 +14,12 @@ export default async function NewLeadPage() {
   if (!isLeader(me.role) && !me.canProspect) redirect('/leads');
   const catalog = await apiGet<LeadCatalog>('/api/leads/catalog');
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-5">
+    <div className="flex w-full flex-col gap-5">
       <Link href="/leads" className="text-sm text-ink2">
         ‹ Leads
       </Link>
       <h1 className="text-3xl font-bold tracking-tight">Novo lead</h1>
-      <section className="glass-card p-5 md:p-7">
+      <section className="glass-card w-full p-5 md:p-7">
         <LeadForm catalog={catalog} me={me} />
       </section>
     </div>

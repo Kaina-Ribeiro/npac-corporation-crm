@@ -5,6 +5,7 @@ import {
   payments,
   leads,
   leadTasks,
+  meetingConfirmations,
   meetings,
   pipelineStages,
   withUser,
@@ -16,6 +17,7 @@ import {
   asc,
   eq,
   gte,
+  inArray,
   isNotNull,
   isNull,
   lt,
@@ -68,6 +70,7 @@ export class TodayService {
           scheduledAt: meetings.scheduledAt,
           outcome: meetings.outcome,
           version: meetings.version,
+          sdrId: leads.sdrId,
         })
         .from(meetings)
         .innerJoin(leads, eq(leads.id, meetings.leadId))
@@ -146,7 +149,38 @@ export class TodayService {
             )
             .orderBy(asc(payments.dueAt), asc(payments.id))
             .limit(100);
-      return { overdue, contacts, meetings: calls, tasks, charges };
+      // Lembretes de confirmação: só nas reuniões em que a pessoa é dona do lead.
+      const own = calls.filter((c) => c.sdrId === u.id && !c.outcome);
+      const confirmed = own.length
+        ? await tx
+            .select({
+              meetingId: meetingConfirmations.meetingId,
+              step: meetingConfirmations.step,
+              scheduledAt: meetingConfirmations.scheduledAt,
+            })
+            .from(meetingConfirmations)
+            .where(
+              inArray(
+                meetingConfirmations.meetingId,
+                own.map((c) => c.id),
+              ),
+            )
+        : [];
+      const withReminders = calls.map(({ sdrId, ...c }) => ({
+        ...c,
+        reminders:
+          sdrId === u.id && !c.outcome
+            ? {
+                confirmed: confirmed
+                  .filter(
+                    (x) =>
+                      x.meetingId === c.id && x.scheduledAt.getTime() === c.scheduledAt.getTime(),
+                  )
+                  .map((x) => x.step as 'H1' | 'M15'),
+              }
+            : null,
+      }));
+      return { overdue, contacts, meetings: withReminders, tasks, charges };
     });
   }
 }

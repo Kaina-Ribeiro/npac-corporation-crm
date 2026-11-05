@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { Fragment, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { clientApi } from '@/lib/client-api';
+import { SIDEBAR_EVENT } from '@/lib/sidebar';
 import { navItems } from './nav-items';
 import { useSavedViews } from './saved-views-nav';
 
@@ -28,6 +29,9 @@ const ICON = {
   filter: glyph('M4 6h16M7 12h10M10 18h4'),
   theme: glyph('M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z'),
   search: glyph('m20 20-4.2-4.2M11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14Z'),
+  sidebar: glyph(
+    'M6.5 4.5h11a3.5 3.5 0 0 1 3.5 3.5v8a3.5 3.5 0 0 1-3.5 3.5h-11A3.5 3.5 0 0 1 3 16V8a3.5 3.5 0 0 1 3.5-3.5ZM9.5 4.5v15',
+  ),
 };
 
 const fold = (s: string) =>
@@ -156,6 +160,17 @@ export function CommandPalette({ head, mentoria = false }: { head: boolean; ment
       run: () => {
         setOpen(false);
         setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
+      },
+    },
+    {
+      id: 'sidebar',
+      label: 'Recolher ou expandir a barra lateral',
+      group: 'Ações',
+      hint: 'Ctrl B',
+      icon: ICON.sidebar,
+      run: () => {
+        setOpen(false);
+        window.dispatchEvent(new Event(SIDEBAR_EVENT));
       },
     },
   ];

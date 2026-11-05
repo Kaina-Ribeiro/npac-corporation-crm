@@ -7,6 +7,65 @@ import { AppModule } from '../src/app.module.js';
 import { configureApp } from '../src/app.setup.js';
 import { Can } from '../src/auth/can.decorator.js';
 import { TEST_PASSWORD } from './global-setup.js';
+import {
+  PUSH_SENDER,
+  type PushPayload,
+  type PushResult,
+  type PushSender,
+  type PushTarget,
+} from '../src/push/push.service.js';
+import { REMINDER_CLOCK, type Clock } from '../src/push/reminders.js';
+
+/** Push de mentira: guarda o que seria enviado; `gone` simula inscrição expirada. */
+export class MemoryPushSender implements PushSender {
+  readonly publicKey = 'test-public-key';
+  sent: { endpoint: string; payload: PushPayload }[] = [];
+  gone = new Set<string>();
+  send(target: PushTarget, payload: PushPayload): Promise<PushResult> {
+    if (this.gone.has(target.endpoint)) return Promise.resolve('gone');
+    this.sent.push({ endpoint: target.endpoint, payload });
+    return Promise.resolve('ok');
+  }
+}
+
+/**
+ * Relógio dos testes: começa no relógio real e só anda quando o teste manda. Timers não
+ * disparam sozinhos; `advance` executa os vencidos e espera o que eles disparam.
+ */
+export class FakeClock implements Clock {
+  // Parado de verdade: com Date.now() + offset, o tempo real corria entre o cálculo do atraso
+  // e este setTimeout, o timer ficava ~1 ms depois da etapa e `advanceTo` às vezes não o rodava.
+  private base = Date.now();
+  private offset = 0;
+  private seq = 0;
+  timers = new Map<number, { at: number; fn: () => void }>();
+  now() {
+    return this.base + this.offset;
+  }
+  setTimeout(fn: () => void, ms: number) {
+    const id = ++this.seq;
+    this.timers.set(id, { at: this.now() + ms, fn });
+    return id;
+  }
+  clearTimeout(h: unknown) {
+    this.timers.delete(h as number);
+  }
+  reset() {
+    this.base = Date.now();
+    this.offset = 0;
+    this.timers.clear();
+  }
+  /** Avança até `at` (ms) e roda os timers vencidos. */
+  advanceTo(at: number) {
+    this.offset += Math.max(0, at - this.now());
+    for (const [id, t] of [...this.timers]) {
+      if (t.at <= this.now()) {
+        this.timers.delete(id);
+        t.fn();
+      }
+    }
+  }
+}
 
 export { TEST_PASSWORD };
 export const owner = ownerSql('npac_test_api');
@@ -33,7 +92,12 @@ export async function createTestApp(): Promise<NestFastifyApplication> {
   const moduleRef = await Test.createTestingModule({
     imports: [AppModule],
     controllers: [TestOnlyController],
-  }).compile();
+  })
+    .overrideProvider(PUSH_SENDER)
+    .useValue(new MemoryPushSender())
+    .overrideProvider(REMINDER_CLOCK)
+    .useValue(new FakeClock())
+    .compile();
   const app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter(), {
     // TEST_LOGS=1 mostra exceções da API ao depurar testes.
     logger: process.env.TEST_LOGS ? ['error'] : false,

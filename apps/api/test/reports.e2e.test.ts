@@ -10,7 +10,7 @@ beforeAll(async () => {
 afterAll(async () => closeTestApp(app));
 beforeEach(async () => {
   await resetAuthState();
-  await owner`truncate lgpd_requests, chat_reads, chat_messages, chat_members, payments, deals, lead_notes, lead_tasks, notifications, lead_timeline, meetings, leads`;
+  await owner`truncate lgpd_requests, chat_reads, chat_messages, chat_members, payments, deals, lead_notes, lead_tasks, notifications, lead_timeline, meeting_reminders_sent, meeting_confirmations, meetings, leads`;
   ale = await h.signIn('ale@npac.com.br');
   head = await h.signIn('ronaldo@npac.com.br');
   const murilo = await h.signIn('murilo@npac.com.br');
@@ -81,6 +81,30 @@ it('CSV só HEAD e neutraliza fórmula; resumo não inclui contato', async () =>
   const r = await h.post('/api/reports/summary', { period: 'TODAY' }, ale);
   expect(r.status).toBe(200);
   expect(r.body.text).not.toContain('rel.ale');
+});
+it('exporta o relatório do período (números, sem contato); SDR sem valores de venda', async () => {
+  const lead = await h.post('/api/reports/export', { period: 'TODAY' }, head);
+  expect(lead.status).toBe(200);
+  expect(lead.headers['content-type']).toContain('text/csv');
+  expect(lead.headers['content-disposition']).toContain('npac-relatorio-periodo.csv');
+  expect(lead.text).toContain('"Leads novos";"2"');
+  expect(lead.text).toContain('"Vendido (R$)";"5500,00"');
+  expect(lead.text).toContain('"Por SDR"');
+  expect(lead.text).toContain('"Por closer"');
+  expect(lead.text).toContain('"Por produto"');
+  expect(lead.text).not.toContain('rel.ale');
+  expect(lead.text).not.toContain('SUM(1,1)');
+
+  const sdr = await h.post('/api/reports/export', { period: 'TODAY' }, ale);
+  expect(sdr.status).toBe(200);
+  expect(sdr.text).toContain('"Realizadas";"2"');
+  expect(sdr.text).not.toContain('Vendido');
+  expect(sdr.text).not.toContain('2500,00');
+  expect(sdr.text).not.toContain('"Por produto"');
+
+  const range = await h.post('/api/reports/export', { period: 'RANGE' }, head);
+  expect(range.status).toBe(400);
+  expect(range.headers['content-type']).not.toContain('text/csv');
 });
 it('leads excluídos não entram em métricas, linhas nem CSV do HEAD', async () => {
   const gone = await h.post(

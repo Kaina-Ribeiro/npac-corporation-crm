@@ -27,6 +27,7 @@ import {
 } from '@npac/db';
 import { isLeader, ROLES, usernameSchema, type AuthUser, type Role } from '@npac/shared';
 import { and, asc, count, eq, isNull, sql } from 'drizzle-orm';
+import { ReminderScheduler } from '../push/reminders.js';
 import { z } from 'zod';
 import { AuditService } from '../audit/audit.service.js';
 import { Can } from '../auth/can.decorator.js';
@@ -68,6 +69,7 @@ export class AdminUsersService {
   constructor(
     @Inject(DB) private readonly db: Db,
     private readonly audit: AuditService,
+    private readonly reminders: ReminderScheduler,
   ) {}
 
   async list(actor: AuthUser) {
@@ -130,6 +132,8 @@ export class AdminUsersService {
       entityId: from,
       data: { to, moved },
     });
+    // Os lembretes seguem o novo dono.
+    void this.reminders.rearm();
     return { moved };
   }
 
@@ -194,7 +198,12 @@ export class AdminUsersService {
         .where(eq(user.id, id))
         .returning({ id: user.id });
       if (!row) throw new NotFoundException();
-      if (input.active === false) await tx.delete(session).where(eq(session.userId, id));
+      if (input.active === false) {
+        await tx.delete(session).where(eq(session.userId, id));
+        // Avisos no aparelho também param (push_purge_user exige liderança na RLS).
+        await tx.execute(sql`select set_config('app.user_id', ${actor.id}, true)`);
+        await tx.execute(sql`select push_purge_user(${id})`);
+      }
     });
     await this.record(actor, 'admin.user.update', id, Object.keys(input));
     return { id };

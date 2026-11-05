@@ -1,5 +1,5 @@
 {
-  "id": "8211dde1-af71-4ad9-9ff2-1c3cecf97423",
+  "id": "260a5946-bab0-4fef-8736-49c93aaee785",
   "prevId": "80eb2b17-88b4-4b40-ab6b-bdb20ab9407e",
   "version": "7",
   "dialect": "postgresql",
@@ -1466,11 +1466,11 @@
       "checkConstraints": {
         "timeline_kind_allowed": {
           "name": "timeline_kind_allowed",
-          "value": "\"lead_timeline\".\"kind\" in ('lead.created','lead.updated','lead.moved','lead.reassigned','lead.deleted','lead.called','lead.contact_rescheduled','note.created','note.updated','task.created','task.updated','meeting.scheduled','meeting.rescheduled','meeting.canceled','meeting.outcome','sale.registered','sale.reversed','payment.received')"
+          "value": "\"lead_timeline\".\"kind\" in ('lead.created','lead.updated','lead.moved','lead.reassigned','lead.deleted','lead.called','lead.contact_rescheduled','note.created','note.updated','task.created','task.updated','meeting.scheduled','meeting.rescheduled','meeting.canceled','meeting.outcome','meeting.confirmed','sale.registered','sale.reversed','payment.received')"
         },
         "timeline_fields_allowed": {
           "name": "timeline_fields_allowed",
-          "value": "\"lead_timeline\".\"fields\" <@ ARRAY['name','phone','instagram','incomeBand','source','tier','stageKey','sdrId','closerId','nextContactAt','summary','body','title','dueAt','completedAt','assigneeId','scheduledAt','origin','outcome','canceledAt']::text[]"
+          "value": "\"lead_timeline\".\"fields\" <@ ARRAY['name','phone','instagram','incomeBand','source','tier','stageKey','sdrId','closerId','nextContactAt','summary','body','title','dueAt','completedAt','assigneeId','scheduledAt','origin','outcome','canceledAt','step']::text[]"
         }
       },
       "isRLSEnabled": false
@@ -2807,6 +2807,260 @@
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
+    },
+    "public.meeting_confirmations": {
+      "name": "meeting_confirmations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "meeting_id": {
+          "name": "meeting_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "step": {
+          "name": "step",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "scheduled_at": {
+          "name": "scheduled_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "meeting_confirmations_meeting_id_meetings_id_fk": {
+          "name": "meeting_confirmations_meeting_id_meetings_id_fk",
+          "tableFrom": "meeting_confirmations",
+          "tableTo": "meetings",
+          "columnsFrom": [
+            "meeting_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "meeting_confirmations_user_id_user_id_fk": {
+          "name": "meeting_confirmations_user_id_user_id_fk",
+          "tableFrom": "meeting_confirmations",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "meeting_confirmations_once": {
+          "name": "meeting_confirmations_once",
+          "nullsNotDistinct": false,
+          "columns": [
+            "meeting_id",
+            "step",
+            "scheduled_at"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "meeting_confirmations_step": {
+          "name": "meeting_confirmations_step",
+          "value": "\"meeting_confirmations\".\"step\" in ('H1','M15')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.meeting_reminders_sent": {
+      "name": "meeting_reminders_sent",
+      "schema": "",
+      "columns": {
+        "meeting_id": {
+          "name": "meeting_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "step": {
+          "name": "step",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "scheduled_at": {
+          "name": "scheduled_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sent_at": {
+          "name": "sent_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "meeting_reminders_sent_meeting_id_meetings_id_fk": {
+          "name": "meeting_reminders_sent_meeting_id_meetings_id_fk",
+          "tableFrom": "meeting_reminders_sent",
+          "tableTo": "meetings",
+          "columnsFrom": [
+            "meeting_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "meeting_reminders_sent_meeting_id_step_scheduled_at_pk": {
+          "name": "meeting_reminders_sent_meeting_id_step_scheduled_at_pk",
+          "columns": [
+            "meeting_id",
+            "step",
+            "scheduled_at"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "meeting_reminders_step": {
+          "name": "meeting_reminders_step",
+          "value": "\"meeting_reminders_sent\".\"step\" in ('H1','M15','M1')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.push_subscriptions": {
+      "name": "push_subscriptions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "endpoint": {
+          "name": "endpoint",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "p256dh": {
+          "name": "p256dh",
+          "type": "bytea",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "auth": {
+          "name": "auth",
+          "type": "bytea",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_agent": {
+          "name": "user_agent",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "push_subscriptions_user_idx": {
+          "name": "push_subscriptions_user_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "push_subscriptions_user_id_user_id_fk": {
+          "name": "push_subscriptions_user_id_user_id_fk",
+          "tableFrom": "push_subscriptions",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "push_subscriptions_endpoint_unique": {
+          "name": "push_subscriptions_endpoint_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "endpoint"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     }
   },
   "enums": {
@@ -2863,8 +3117,7 @@
         "DIRETOR",
         "HEAD",
         "SDR",
-        "CLOSER",
-        "ACOMPANHAMENTO"
+        "CLOSER"
       ]
     },
     "public.tier": {
