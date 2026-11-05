@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import {
+  type AnyPgColumn,
   check,
   customType,
   date,
@@ -11,7 +12,14 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 import { user } from './auth.js';
-import { incomeBandEnum, leadSourceEnum, legalBasisEnum, tierEnum } from './enums.js';
+import {
+  incomeBandEnum,
+  leadLostReasonEnum,
+  leadSourceEnum,
+  legalBasisEnum,
+  tierEnum,
+} from './enums.js';
+import { products } from './finance.js';
 import { pipelineStages } from './pipeline.js';
 
 const bytea = customType<{ data: Buffer; driverData: Buffer }>({
@@ -40,6 +48,12 @@ export const leads = pgTable(
     closerId: text('closer_id').references(() => user.id),
     nextContactAt: timestamp('next_contact_at', { withTimezone: true }),
     summary: text('summary'),
+    /** Agendou Pagamento: produto e valor combinados (só nessa etapa; a API limpa ao sair). */
+    paymentProductId: uuid('payment_product_id').references((): AnyPgColumn => products.id),
+    paymentAmountCents: integer('payment_amount_cents'),
+    /** Sem Perfil: motivo e, com "Outro", o texto (até 80 caracteres; a LGPD apaga). */
+    lostReason: leadLostReasonEnum('lost_reason'),
+    lostReasonOther: text('lost_reason_other'),
     legalBasis: legalBasisEnum('legal_basis').notNull().default('LEGITIMATE_INTEREST'),
     retentionUntil: date('retention_until'),
     version: integer('version').notNull().default(1),
@@ -63,6 +77,15 @@ export const leads = pgTable(
     check(
       'leads_source_other_check',
       sql`${t.sourceOther} is null or (${t.source} = 'OUTRO' and char_length(${t.sourceOther}) between 1 and 80)`,
+    ),
+    // Produto e valor andam juntos; a etapa (FK) o CHECK não enxerga: essa regra fica na API.
+    check(
+      'leads_payment_check',
+      sql`(${t.paymentProductId} is null) = (${t.paymentAmountCents} is null) and (${t.paymentAmountCents} is null or ${t.paymentAmountCents} > 0)`,
+    ),
+    check(
+      'leads_lost_reason_other_check',
+      sql`${t.lostReasonOther} is null or (${t.lostReason} = 'OUTRO' and char_length(${t.lostReasonOther}) between 1 and 80)`,
     ),
   ],
 );

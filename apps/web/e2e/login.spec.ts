@@ -222,6 +222,14 @@ test('mobile mostra barra inferior', async ({ page }) => {
   await page
     .getByRole('combobox', { name: 'Mover Lead e2e CRM para', exact: true })
     .selectOption('AGENDADO_FOLLOW');
+  // Agendado pede a reunião (NPAC-38): a janelinha só fecha depois de salvar.
+  const meeting = page.getByRole('dialog', { name: 'Mover Lead e2e CRM para Agendado do Follow' });
+  await meeting
+    .getByLabel('Data e hora da reunião (Brasília)', { exact: true })
+    .fill('2030-02-01T14:00');
+  await meeting.getByLabel('Closer da reunião', { exact: true }).selectOption({ label: 'Sônia' });
+  await meeting.getByRole('button', { name: 'Mover', exact: true }).click();
+  await expect(meeting).toHaveCount(0);
   await tabs.getByRole('button', { name: /^Agendado do Follow/ }).click();
   await expect(page.getByText('Lead e2e CRM', { exact: true })).toBeVisible();
   await page.screenshot({ path: 'test-results/pipeline-mobile.png', fullPage: true });

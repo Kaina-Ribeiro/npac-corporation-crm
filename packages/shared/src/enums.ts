@@ -117,6 +117,24 @@ export const LEAD_SOURCE_LABELS: Record<LeadSource, string> = {
 /** Texto livre de "Outro". */
 export const SOURCE_OTHER_MAX = 80;
 
+/** Motivo do Sem Perfil (pedido do cliente, 05/11/2026). "Outro" pede o texto em `lostReasonOther`. */
+export const LOST_REASONS = ['SEM_RENDA', 'SEM_INTERESSE', 'NAO_RESPONDEU', 'OUTRO'] as const;
+export type LostReason = (typeof LOST_REASONS)[number];
+export const LOST_REASON_LABELS: Record<LostReason, string> = {
+  SEM_RENDA: 'Sem renda',
+  SEM_INTERESSE: 'Sem interesse',
+  NAO_RESPONDEU: 'Não respondeu',
+  OUTRO: 'Outro',
+};
+/** Texto livre do motivo "Outro". */
+export const LOST_REASON_OTHER_MAX = 80;
+
+/** Agendados: a etapa pede a reunião (data e closer); a origem da reunião vem da etapa. */
+export const MEETING_ORIGIN_BY_STAGE: Partial<Record<string, 'DIRETO' | 'FOLLOW'>> = {
+  AGENDADO_DIRETO: 'DIRETO',
+  AGENDADO_FOLLOW: 'FOLLOW',
+};
+
 export const STAGE_KEYS = [
   'SONDAGEM',
   'AGENDADO_DIRETO',

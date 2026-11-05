@@ -1,5 +1,6 @@
 'use client';
-import { isLeader } from '@npac/shared/enums';
+import { isLeader, LOST_REASON_LABELS } from '@npac/shared/enums';
+import { money } from '@npac/shared/money';
 import { REMINDER_MINUTES } from '@npac/shared/reminders';
 import { HandoffActions } from './handoff-actions';
 import type {
@@ -13,10 +14,18 @@ import type {
 } from '@npac/shared';
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
+import { activityFields } from '@/lib/activity-text';
 import { useReminderClock } from '@/lib/alerts';
 import { brasiliaInput, clientApi } from '@/lib/client-api';
+import {
+  nextContactLabel,
+  readStageFields,
+  stageFieldsKind,
+  stageNeedsFields,
+} from '@/lib/stage-fields';
 import { button, control, Field, FormError, quietButton, StageOptions } from './crm-ui';
 import { LeadForm } from './lead-form';
+import { StageFields } from './stage-fields';
 import { FinancePanel } from './finance-panel';
 import { useCrmRefresh } from './shell/live-updates';
 
@@ -136,6 +145,37 @@ export function LeadDetail({
   };
   const person = (id: string) => catalog.team.find((u) => u.id === id)?.name ?? 'Membro do time';
   const stage = catalog.stages.find((s) => s.key === lead.stageKey)?.label;
+  // "Mover para" uma etapa que pede dados (NPAC-38) mostra os campos antes de salvar.
+  const [moveTo, setMoveTo] = useState('');
+  const open = meetings.find(
+    (m) => !m.canceledAt && !m.outcome && new Date(m.scheduledAt).getTime() > Date.now(),
+  );
+  const openMeeting = open
+    ? { scheduledAt: open.scheduledAt, closerName: person(open.closerId) }
+    : null;
+  // Closer não agenda reunião (a API recusa): o Agendado só segue com reunião já marcada.
+  const moveBlocked = stageFieldsKind(moveTo) === 'MEETING' && !openMeeting && me.role === 'CLOSER';
+  const payment = products.find((p) => p.id === lead.paymentProductId);
+  function move(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    let body;
+    try {
+      body = readStageFields(moveTo, new FormData(e.currentTarget), {
+        changed: true,
+        withMeeting: !openMeeting,
+      });
+    } catch (err) {
+      setError((err as Error).message);
+      return;
+    }
+    void mutate(`/api/leads/${lead.id}`, 'PATCH', {
+      version: lead.version,
+      stageKey: moveTo,
+      ...body,
+    }).then((ok) => {
+      if (ok) setMoveTo('');
+    });
+  }
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -161,27 +201,84 @@ export function LeadDetail({
         </div>
       </div>
       <FormError message={error} />
-      <div className="glass-card flex flex-wrap items-end gap-3 p-4">
+      <form onSubmit={move} className="glass-card flex flex-wrap items-end gap-3 p-4">
         <Field label="Mover para">
           <select
             id="move-stage"
             className={control}
-            value={lead.stageKey}
-            onChange={(e) =>
-              void mutate(`/api/leads/${lead.id}`, 'PATCH', {
-                version: lead.version,
-                stageKey: e.target.value,
-              })
-            }
+            value={moveTo || lead.stageKey}
+            onChange={(e) => {
+              const target = e.target.value;
+              setError('');
+              if (target === lead.stageKey) setMoveTo('');
+              else if (stageNeedsFields(target)) setMoveTo(target);
+              else {
+                setMoveTo('');
+                void mutate(`/api/leads/${lead.id}`, 'PATCH', {
+                  version: lead.version,
+                  stageKey: target,
+                });
+              }
+            }}
             disabled={busy}
           >
             <StageOptions stages={catalog.stages} current={lead.stageKey} />
           </select>
         </Field>
-        <span className="pb-3 text-xs text-ink2">
-          Próximo contato: {lead.nextContactAt ? date(lead.nextContactAt) : 'sem data'}
-        </span>
-      </div>
+        {moveTo ? (
+          // Campos da etapa numa grade própria, abaixo do "Mover para" (larguras iguais no celular).
+          <div className="grid w-full items-end gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <StageFields
+              key={moveTo}
+              stage={moveTo}
+              changed
+              openMeeting={openMeeting}
+              team={catalog.team}
+              products={products}
+              role={me.role}
+              lead={lead}
+            />
+            <div className="flex gap-2">
+              {!moveBlocked && (
+                <button className={button} disabled={busy}>
+                  {busy ? 'Salvando…' : 'Mover'}
+                </button>
+              )}
+              <button
+                type="button"
+                className={quietButton}
+                onClick={() => {
+                  setMoveTo('');
+                  setError('');
+                }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        ) : (
+          <span className="pb-3 text-xs text-ink2">
+            {lead.stageKey === 'PERDIDO' ? (
+              <>
+                Motivo:{' '}
+                {lead.lostReason === 'OUTRO' && lead.lostReasonOther
+                  ? lead.lostReasonOther
+                  : lead.lostReason
+                    ? LOST_REASON_LABELS[lead.lostReason]
+                    : 'não informado'}
+              </>
+            ) : (
+              <>
+                {nextContactLabel(lead.stageKey)}:{' '}
+                {lead.nextContactAt ? date(lead.nextContactAt) : 'sem data'}
+                {payment &&
+                  lead.paymentAmountCents &&
+                  ` · ${payment.name} · ${money(lead.paymentAmountCents)}`}
+              </>
+            )}
+          </span>
+        )}
+      </form>
       <div className="grid items-start gap-5 lg:grid-cols-2 3xl:grid-cols-3 4xl:grid-cols-4">
         <section className="glass-card flex flex-col gap-4 p-5">
           <h2 className="text-lg font-bold">Notas</h2>
@@ -447,7 +544,13 @@ export function LeadDetail({
           <ol className="flex flex-col gap-4">
             {activity.timeline.map((t) => (
               <li key={t.id} className="border-l-2 border-line pl-3">
-                <p className="text-sm">{EVENT_LABEL[t.kind] ?? 'Registro atualizado'}</p>
+                <p className="text-sm">
+                  {EVENT_LABEL[t.kind] ?? 'Registro atualizado'}
+                  {(t.kind === 'lead.updated' || t.kind === 'lead.moved') &&
+                    activityFields(t.fields) && (
+                      <span className="text-ink2"> · {activityFields(t.fields)}</span>
+                    )}
+                </p>
                 <p className="mt-1 text-xs text-ink2">
                   {person(t.actorId)} · {date(t.at)}
                 </p>
@@ -461,7 +564,13 @@ export function LeadDetail({
         <details className="glass-card p-5">
           <summary className="cursor-pointer font-semibold">Editar dados do lead</summary>
           <div className="mt-5">
-            <LeadForm lead={lead} catalog={catalog} me={me} />
+            <LeadForm
+              lead={lead}
+              catalog={catalog}
+              me={me}
+              products={products}
+              openMeeting={openMeeting}
+            />
           </div>
         </details>
       )}

@@ -40,3 +40,28 @@ export function activityWhen(iso: string) {
 
 /** Frase do que a pessoa fez no lead ("registrou a venda de"), para feed e avisos. */
 export const activityVerb = (kind: string) => VERB[kind] ?? 'alterou';
+
+/** Nome legível dos campos que a timeline registra (só nomes, nunca valores). */
+const FIELD_LABEL: Record<string, string> = {
+  name: 'nome',
+  phone: 'WhatsApp',
+  instagram: 'Instagram',
+  incomeBand: 'faixa de renda',
+  source: 'origem',
+  tier: 'perfil',
+  stageKey: 'etapa',
+  sdrId: 'SDR',
+  closerId: 'closer',
+  nextContactAt: 'próximo contato',
+  summary: 'resumo',
+  // Campos por etapa (NPAC-38): Agendou Pagamento e Sem Perfil.
+  payment: 'pagamento combinado',
+  lostReason: 'motivo do Sem Perfil',
+};
+
+/** "nome, WhatsApp": campos de lead alterados, sem a etapa (o evento já diz que ela mudou). */
+export const activityFields = (fields: string[]) =>
+  fields
+    .filter((f) => f !== 'stageKey' && FIELD_LABEL[f])
+    .map((f) => FIELD_LABEL[f])
+    .join(', ');

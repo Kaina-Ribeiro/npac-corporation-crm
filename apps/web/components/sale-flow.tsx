@@ -18,9 +18,15 @@ export function SaleFlow({
 }) {
   const [version] = useState(lead.version);
   const [key] = useState(() => crypto.randomUUID());
+  // Agendou Pagamento (NPAC-38): abre com o produto e o valor combinados, se o produto está na lista.
+  const agreed = products.find(
+    (p) => p.id === lead.paymentProductId && (me.role !== 'CLOSER' || p.closerId === me.id),
+  );
   const [step, setStep] = useState(0),
-    [productId, setProductId] = useState(''),
-    [total, setTotal] = useState(''),
+    [productId, setProductId] = useState(agreed?.id ?? ''),
+    [total, setTotal] = useState(
+      agreed && lead.paymentAmountCents ? (lead.paymentAmountCents / 100).toFixed(2) : '',
+    ),
     [method, setMethod] = useState('PIX'),
     [entry, setEntry] = useState('0');
   const [parts, setParts] = useState([{ amount: '', due: '' }]),

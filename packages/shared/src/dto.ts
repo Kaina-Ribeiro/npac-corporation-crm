@@ -1,4 +1,4 @@
-import type { IncomeBand, LeadSource, StageKey, Tier } from './enums.js';
+import type { IncomeBand, LeadSource, LostReason, StageKey, Tier } from './enums.js';
 
 /** Lead como a API devolve (telefone já decifrado; só para quem pode ver o lead). */
 export type LeadDTO = {
@@ -16,6 +16,12 @@ export type LeadDTO = {
   closer: { id: string; name: string } | null;
   nextContactAt: string | null;
   summary: string | null;
+  /** Agendou Pagamento: produto e valor combinados (pré-preenchem o registro da venda). */
+  paymentProductId: string | null;
+  paymentAmountCents: number | null;
+  /** Sem Perfil: motivo e o texto de "Outro". */
+  lostReason: LostReason | null;
+  lostReasonOther: string | null;
   version: number;
   createdAt: string;
 };

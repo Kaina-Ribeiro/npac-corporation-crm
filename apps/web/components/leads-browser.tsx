@@ -4,15 +4,19 @@ import { INCOME_BAND_LABELS, isLeader } from '@npac/shared/enums';
 import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { clientApi } from '@/lib/client-api';
+import type { StageFieldsBody } from '@/lib/stage-fields';
+import { stageFieldsKind, stageNeedsFields } from '@/lib/stage-kind';
+import type { StageMoveDialog as Dialog } from './stage-move-dialog';
 import { StageOptions } from './crm-ui';
 import { LeadFilters, readFilters } from './lead-filters';
 import { CsvExport } from './csv-export';
 import { useCrmRefresh } from './shell/live-updates';
 
-type Change = Partial<Pick<LeadDTO, 'stageKey'>> & {
-  sdrId?: string;
-  closerId?: string | null;
-};
+type Change = Partial<Pick<LeadDTO, 'stageKey'>> &
+  StageFieldsBody & {
+    sdrId?: string;
+    closerId?: string | null;
+  };
 
 /** Select que parece texto até receber hover/foco (edição direto na célula, como no Attio). */
 const cell =
@@ -55,6 +59,20 @@ export function LeadsBrowser({
   const [selected, setSelected] = useState<string[]>([]);
   const [saved, setSaved] = useState('');
   const [bulkMsg, setBulkMsg] = useState('');
+  // Mudança de etapa que pede dados: um lead (célula) ou os selecionados (massa, só Sem Perfil).
+  const [pending, setPending] = useState<{ lead?: LeadDTO; target: string } | null>(null);
+  // Janelinha dos campos da etapa (NPAC-38): só baixa quando abre, fora da primeira carga de /leads.
+  const [StageMoveDialog, setDialog] = useState<typeof Dialog | null>(null);
+  function askStage(p: { lead?: LeadDTO; target: string }) {
+    setPending(p);
+    if (!StageMoveDialog)
+      import('./stage-move-dialog')
+        .then((m) => setDialog(() => m.StageMoveDialog))
+        .catch(() => {
+          setPending(null);
+          setError('Não foi possível abrir. Tente novamente.');
+        });
+  }
   // Mesmas regras da API: closer só move etapa; troca de responsável é do Head.
   const canAssign = isLeader(role);
   const sdrs = catalog.team.filter((u) => u.canProspect);
@@ -152,7 +170,11 @@ export function LeadsBrowser({
     <select
       aria-label={`Etapa de ${l.name}`}
       value={l.stageKey}
-      onChange={(e) => void edit(l, { stageKey: e.target.value as LeadDTO['stageKey'] })}
+      onChange={(e) => {
+        const target = e.target.value as LeadDTO['stageKey'];
+        if (stageNeedsFields(target)) askStage({ lead: l, target });
+        else void edit(l, { stageKey: target });
+      }}
       className={className}
     >
       <StageOptions stages={catalog.stages} current={l.stageKey} />
@@ -171,13 +193,16 @@ export function LeadsBrowser({
     label: string,
     placeholder: string,
     options: [string, string][],
-    run: (v: string) => Change,
+    run: (v: string) => Change | null,
   ) => (
     <select
       aria-label={label}
       value=""
       disabled={busy}
-      onChange={(e) => void bulk(run(e.target.value))}
+      onChange={(e) => {
+        const change = run(e.target.value);
+        if (change) void bulk(change);
+      }}
       className={barSelect}
     >
       <option value="" disabled>
@@ -509,6 +534,26 @@ export function LeadsBrowser({
       <p role="status" className="sr-only">
         {saved}
       </p>
+      {pending && StageMoveDialog && (
+        <StageMoveDialog
+          key={`${pending.lead?.id ?? 'massa'}-${pending.target}`}
+          title={`Mover ${pending.lead ? pending.lead.name : `${selected.length} ${selected.length === 1 ? 'lead' : 'leads'}`} para ${catalog.stages.find((st) => st.key === pending.target)?.label ?? 'a etapa'}`}
+          stage={pending.target}
+          lead={pending.lead}
+          team={catalog.team}
+          role={role}
+          onSubmit={async (fields) => {
+            const change = { stageKey: pending.target as LeadDTO['stageKey'], ...fields };
+            if (pending.lead) {
+              setSaved('');
+              await patch(pending.lead, change);
+              setSaved('Salvo');
+            } else await bulk(change);
+          }}
+          // Cancelar não muda nada: a célula volta à etapa antiga.
+          onClose={() => setPending(null)}
+        />
+      )}
       {selected.length > 0 && (
         <section
           aria-label="Ações em massa"
@@ -520,9 +565,22 @@ export function LeadsBrowser({
           {bar(
             'Mover para etapa',
             'Mover para…',
-            // Venda só entra registrando a venda, lead a lead.
-            catalog.stages.filter((st) => st.key !== 'VENDA').map((st) => [st.key, st.label]),
-            (v) => ({ stageKey: v as LeadDTO['stageKey'] }),
+            // Venda só entra registrando a venda, lead a lead. Agendados e Agendou Pagamento pedem
+            // dados de cada lead (reunião, pagamento): só na ficha, no Pipeline ou na célula (2A).
+            catalog.stages
+              .filter(
+                (st) =>
+                  st.key !== 'VENDA' && !['MEETING', 'PAYMENT'].includes(stageFieldsKind(st.key)),
+              )
+              .map((st) => [st.key, st.label]),
+            (v) => {
+              // Sem Perfil: um motivo que vale para todos os selecionados.
+              if (stageNeedsFields(v)) {
+                askStage({ target: v });
+                return null;
+              }
+              return { stageKey: v as LeadDTO['stageKey'] };
+            },
           )}
           {canAssign &&
             bar(

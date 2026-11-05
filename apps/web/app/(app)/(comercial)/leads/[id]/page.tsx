@@ -27,7 +27,8 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
       apiGet<LeadCatalog>('/api/leads/catalog'),
       apiGet<MeetingDTO[]>(`/api/meetings?leadId=${id}`),
       sells ? apiGet<DealDTO[]>(`/api/finance/leads/${id}`) : null,
-      sells ? apiGet<ProductDTO[]>('/api/finance/products') : [],
+      // Produtos para todos: Agendou Pagamento pede produto e valor (NPAC-38).
+      apiGet<ProductDTO[]>('/api/finance/products'),
     ]);
     return (
       <div className="flex w-full flex-col gap-5">

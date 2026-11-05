@@ -153,9 +153,18 @@ export class FinanceService {
             dueAt: p.dueAt,
           })),
         );
+      // Saiu de Agendou Pagamento (NPAC-38): o combinado vira a venda e deixa de ser estado do lead.
       await tx
         .update(leads)
-        .set({ stageId: stage.id, version: lead.version + 1, updatedAt: now })
+        .set({
+          stageId: stage.id,
+          paymentProductId: null,
+          paymentAmountCents: null,
+          lostReason: null,
+          lostReasonOther: null,
+          version: lead.version + 1,
+          updatedAt: now,
+        })
         .where(eq(leads.id, lead.id));
       await recordActivity(tx, u, lead.id, 'sale.registered', [], d!.id);
       return { id: d!.id };
