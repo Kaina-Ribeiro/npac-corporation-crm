@@ -1,6 +1,6 @@
 import 'server-only';
 import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 
 const API = process.env.API_INTERNAL_URL ?? 'http://localhost:4000';
 
@@ -17,6 +17,8 @@ async function fail(path: string, res: Response): Promise<never> {
   const body = (await res.json().catch(() => ({}))) as { code?: string };
   if (body.code === 'PASSWORD_CHANGE_REQUIRED') redirect('/conta/senha');
   if (res.status === 401 && path !== '/api/me') redirect('/login');
+  // Invisível = 404 na API: a página vira a tela de 404, não um erro 500.
+  if (res.status === 404) notFound();
   throw new ApiError(res.status, body.code);
 }
 

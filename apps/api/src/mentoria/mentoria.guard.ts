@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import type { Role } from '@npac/shared';
 import type { FastifyRequest } from 'fastify';
+import { AllRoles } from '../auth/all-roles.decorator.js';
 import { RequiresMfa } from '../auth/requires-mfa.decorator.js';
 
 const PAPEIS: readonly Role[] = ['DIRETOR', 'ACOMPANHAMENTO'];
@@ -31,4 +32,9 @@ export class MentoriaGuard implements CanActivate {
  * de papel. Todo controller do módulo usa este decorator; um teste varre as rotas.
  */
 export const MentoriaController = (path: string) =>
-  applyDecorators(Controller(`mentoria/${path}`), RequiresMfa(), UseGuards(MentoriaGuard));
+  applyDecorators(
+    Controller(`mentoria/${path}`),
+    AllRoles(),
+    RequiresMfa(),
+    UseGuards(MentoriaGuard),
+  );

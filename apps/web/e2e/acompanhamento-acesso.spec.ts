@@ -29,29 +29,99 @@ async function login(page: Page, email: string, mfa = true) {
 const sidebarLinks = (page: Page) =>
   page.getByRole('navigation', { name: 'Navegação lateral' }).getByRole('link').allInnerTexts();
 
-test('Carla (MFA ativo) entra e vê o mesmo menu que a Diretoria (sem variação por cargo)', async ({
-  page,
-  browser,
-}) => {
+test('Carla vê só o Acompanhamento na sidebar, na tela Mais e no Ctrl+K', async ({ page }) => {
   await login(page, 'carla@npac.com.br');
-  const carla = (await sidebarLinks(page)).map((t) => t.trim());
-  const outra = await browser.newPage();
-  await login(outra, 'diretor@npac.com.br');
-  const diretor = (await sidebarLinks(outra)).map((t) => t.trim());
-  expect(carla).toContain('Acompanhamento');
-  // Mesmo menu; a Diretoria só tem a mais o Admin (liderança).
-  expect(diretor.filter((t) => !t.startsWith('Admin'))).toEqual(carla);
-  await outra.close();
+  await page.waitForURL(/\/acompanhamento\/dashboard/);
+  await expect(
+    page.getByRole('navigation', { name: 'Navegação lateral' }).getByRole('link'),
+  ).toHaveText(['Acompanhamento']);
+  await page.keyboard.press('Control+k');
+  const opcoes = page.getByRole('option');
+  await expect(opcoes.filter({ hasText: 'Acompanhamento' })).not.toHaveCount(0);
+  for (const nome of ['Leads', 'Pipeline', 'Chat', 'Equipe'])
+    await expect(opcoes.filter({ hasText: nome })).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await page.goto('/mais');
+  const secoes = page.getByRole('navigation', { name: 'Mais seções' }).getByRole('link');
+  expect((await secoes.allInnerTexts()).map((t) => t.split('\n')[0]!.trim())).toEqual([
+    'Acompanhamento',
+  ]);
+  await expect(page.getByRole('link', { name: 'Avisos neste aparelho' })).toHaveCount(0);
+  await expect(page.getByRole('main').getByRole('button', { name: 'Sair' })).toBeVisible();
+  // Celular: nada da barra comercial; as abas do módulo levam de volta.
+  await expect(page.locator('nav[aria-label="Navegação inferior"]')).toHaveCount(0);
+  await expect(page.locator('nav[aria-label="Abas do acompanhamento"]')).toHaveCount(1);
 });
 
-test('telas comerciais respondem 404 para a Carla, com aviso e link para o módulo', async ({
+test('Carla troca a senha no primeiro acesso e cai no Acompanhamento', async ({ page }) => {
+  await owner`update "user" set must_change_password = true where email = 'carla@npac.com.br'`;
+  await page.goto('/login');
+  await page.getByLabel('Usuário', { exact: true }).fill('carla');
+  await page.getByLabel('Senha').fill(E2E_PASSWORD);
+  await page.getByRole('button', { name: 'Login', exact: true }).click();
+  await page.waitForURL(/\/conta\/senha/);
+  await page.getByLabel('Senha atual').fill(E2E_PASSWORD);
+  await page.getByLabel('Nova senha', { exact: true }).fill(E2E_PASSWORD);
+  await page.getByLabel('Confirme a nova senha').fill(E2E_PASSWORD);
+  await page.getByRole('button', { name: 'Salvar senha' }).click();
+  await page.waitForURL(/\/acompanhamento\/dashboard/);
+});
+
+test('Diretoria convida e muda alguém para o cargo Acompanhamento pela tela', async ({ page }) => {
+  await login(page, 'diretor@npac.com.br');
+  await page.goto('/admin');
+  await expect(
+    page.locator('select[name="role"]').first().locator('option', { hasText: 'Acompanhamento' }),
+  ).toHaveCount(1);
+  await expect(
+    page.getByLabel('Cargo de Ale', { exact: false }).first().locator('option', {
+      hasText: 'Acompanhamento',
+    }),
+  ).toHaveCount(1);
+});
+
+test('Carla navega no módulo e nunca chega numa tela comercial (Link, URL ou 404)', async ({
   page,
 }) => {
   await login(page, 'carla@npac.com.br');
-  const res = await page.goto('/leads');
-  expect(res?.status()).toBe(404);
+  await page.waitForURL(/\/acompanhamento\/dashboard/);
+  // Navegação do navegador dentro do módulo.
+  await page.getByRole('link', { name: 'Linha do tempo', exact: true }).first().click();
+  await page.waitForURL(/\/acompanhamento\/linha-do-tempo/);
+  // Módulo → comercial por navegação do navegador (como um Link do Next): volta ao módulo.
+  for (const alvo of ['/leads', '/equipe', '/dashboard']) {
+    await page.evaluate((href) => {
+      (window as unknown as { next: { router: { push: (h: string) => void } } }).next.router.push(
+        href,
+      );
+    }, alvo);
+    await page.waitForURL(/\/acompanhamento\/dashboard/);
+    await expect(page.getByRole('heading', { name: 'Dashboard', exact: true })).toBeVisible();
+  }
+  // Por URL também.
+  // A tela troca de endereço logo ao abrir: o goto pode ser interrompido; vale o destino.
+  await page.goto('/pipeline').catch(() => {});
+  await page.waitForURL(/\/acompanhamento\/dashboard/);
+  await expect(page.getByRole('heading', { name: 'Dashboard', exact: true })).toBeVisible();
+  // Endereço solto fora do módulo também leva a ele (cai em [secao] do comercial).
+  // A tela troca de endereço logo ao abrir: o goto pode ser interrompido; vale o destino.
+  await page.goto('/nao-existe').catch(() => {});
+  await page.waitForURL(/\/acompanhamento\/dashboard/);
+  // Do 404 (endereço inexistente no módulo), o botão leva ao módulo.
+  await page.goto('/acompanhamento/nao-existe');
   await expect(page.getByText('Esta tela não faz parte do seu acesso.')).toBeVisible();
+  await expect(
+    page.getByRole('navigation', { name: 'Navegação lateral' }).getByRole('link'),
+  ).toHaveText(['Acompanhamento']);
   await page.getByRole('link', { name: 'Ir para o Acompanhamento' }).click();
+  await page.waitForURL(/\/acompanhamento\/dashboard/);
+  await expect(page.getByRole('heading', { name: 'Dashboard', exact: true })).toBeVisible();
+  // Da tela Mais (fora do módulo) para o módulo, pelo card.
+  await page.goto('/mais');
+  await page
+    .getByRole('navigation', { name: 'Mais seções' })
+    .getByRole('link', { name: /Acompanhamento/ })
+    .click();
   await page.waitForURL(/\/acompanhamento\/dashboard/);
 });
 

@@ -13,12 +13,15 @@ import { SidebarToggle } from './sidebar-shell';
 export function Sidebar({
   head = false,
   mentoria = false,
+  commercial = true,
   adminBadge = 0,
   footer,
 }: {
   head?: boolean;
   /** Mostra a entrada do Acompanhamento (Diretoria e equipe de acompanhamento). */
   mentoria?: boolean;
+  /** Falso para o cargo Acompanhamento: sem Avisos, telas comerciais e filtros salvos. */
+  commercial?: boolean;
   /** Pedidos de acesso esperando a liderança. */
   adminBadge?: number;
   footer?: React.ReactNode;
@@ -36,8 +39,8 @@ export function Sidebar({
       {/* Mesmo preenchimento dos campos (.field): claro sobre o vidro, não um contorno cinza. */}
       <SearchButton className="side-search flex h-[34px] flex-none items-center gap-2.5 rounded-lg bg-white/60 px-2.5 text-sm font-medium text-ink2 shadow-[inset_0_0_0_0.5px_rgba(60,60,67,0.2),inset_0_1px_2px_rgba(0,0,0,0.05)] transition-colors hover:bg-white/85 hover:text-ink dark:bg-white/[0.06] dark:shadow-[inset_0_0_0_0.5px_rgba(235,235,245,0.14)] dark:hover:bg-white/10 [&_svg]:h-4 [&_svg]:w-4 [&_svg]:flex-none" />
       <nav aria-label="Navegação lateral" className="side-nav flex flex-col gap-px">
-        <InboxLink />
-        {navItems({ head, mentoria }).map((item) => (
+        {commercial && <InboxLink />}
+        {navItems({ head, mentoria, commercial }).map((item) => (
           <NavLink
             key={item.href}
             item={item}
@@ -56,11 +59,13 @@ export function Sidebar({
           </NavLink>
         ))}
       </nav>
-      <div className="side-hide flex min-h-0 flex-col">
-        <Suspense>
-          <SavedViewsNav />
-        </Suspense>
-      </div>
+      {commercial && (
+        <div className="side-hide flex min-h-0 flex-col">
+          <Suspense>
+            <SavedViewsNav />
+          </Suspense>
+        </div>
+      )}
       {footer && <div className="side-foot mt-auto border-t border-line px-1 pt-3">{footer}</div>}
     </aside>
   );

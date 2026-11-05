@@ -1,6 +1,5 @@
 'use client';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useRef, useState, type FormEvent } from 'react';
 import { authClient } from '@/lib/auth-client';
 import { submitWhenComplete } from '@/lib/otp-input';
@@ -22,7 +21,6 @@ const GENERIC_ERROR = 'Usuário ou senha inválidos';
 
 /** Login em dois passos: usuário + senha, depois o código do autenticador (se exigido). */
 export function LoginForm({ lastUser }: { lastUser?: string }) {
-  const router = useRouter();
   const [hint, setHint] = useState(false);
   const [remembered, setRemembered] = useState(lastUser);
   const [suggest, setSuggest] = useState(false);
@@ -67,8 +65,8 @@ export function LoginForm({ lastUser }: { lastUser?: string }) {
       return setStep('totp');
     }
     // Segue "Entrando…" até a navegação trocar a tela: nada de liberar o botão antes.
-    router.replace('/dashboard');
-    router.refresh();
+    // Carga completa: o servidor manda cada cargo para a sua tela inicial (Acompanhamento → módulo).
+    window.location.replace('/');
   }
 
   async function onTotp(e: FormEvent<HTMLFormElement>) {
@@ -77,8 +75,8 @@ export function LoginForm({ lastUser }: { lastUser?: string }) {
     if (!start()) return; // envio automático + clique não mandam o código duas vezes
     const { error: err } = await authClient.twoFactor.verifyTotp({ code });
     if (err) return fail('Código inválido. Tente de novo.');
-    router.replace('/dashboard');
-    router.refresh();
+    // Carga completa: o servidor manda cada cargo para a sua tela inicial (Acompanhamento → módulo).
+    window.location.replace('/');
   }
 
   if (step === 'totp') {

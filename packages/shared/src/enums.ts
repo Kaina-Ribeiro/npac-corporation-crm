@@ -8,6 +8,8 @@ export type Role = (typeof ROLES)[number];
 /** Liderança: vê toda a equipe e administra. Só a Diretoria dá ou tira cargo de liderança. */
 export const LEADER_ROLES: readonly Role[] = ['DIRETOR', 'HEAD'];
 export const isLeader = (role: Role) => LEADER_ROLES.includes(role);
+/** Quem usa o CRM comercial (leads, equipe, chat, avisos…). O Acompanhamento só vê o módulo. */
+export const hasCommercialAccess = (role: Role) => role !== 'ACOMPANHAMENTO';
 
 export const TIERS = ['P0', 'P1', 'P2'] as const;
 export type Tier = (typeof TIERS)[number];

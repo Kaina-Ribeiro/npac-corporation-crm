@@ -1,9 +1,8 @@
 import { Suspense } from 'react';
-import { isLeader } from '@npac/shared/enums';
+import { hasCommercialAccess, isLeader } from '@npac/shared/enums';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
-import { headers } from 'next/headers';
-import { notFound, redirect } from 'next/navigation';
+import { redirect } from 'next/navigation';
 import { CommandPalette } from '@/components/shell/command-palette';
 import { LiveUpdates } from '@/components/shell/live-updates';
 import { TabTitle } from '@/components/inbox';
@@ -23,11 +22,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!me) redirect('/login');
   const pending = pendingStep(me);
   if (pending) redirect(pending);
-  // Equipe de acompanhamento: mesmo menu de todos (D23), mas as telas comerciais dão 404.
-  if (me.role === 'ACOMPANHAMENTO') {
-    const path = (await headers()).get('x-pathname') ?? '';
-    if (!/^\/(acompanhamento|mais)(\/|$)/.test(path)) notFound();
-  }
+  // Cargo Acompanhamento: shell reduzido (só o módulo). O bloqueio das telas comerciais fica no
+  // layout de (comercial), que roda de novo na navegação do navegador; este não roda.
+  const commercial = hasCommercialAccess(me.role);
   const requests = await pendingAccessRequests(me.role);
 
   const avatar = (
@@ -60,11 +57,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <NavProgress />
       </Suspense>
       <LiveUpdates />
-      <TabTitle />
-      <CommandPalette head={isLeader(me.role)} mentoria={me.modules.mentoria} />
+      {commercial && <TabTitle />}
+      <CommandPalette
+        head={isLeader(me.role)}
+        mentoria={me.modules.mentoria}
+        commercial={commercial}
+      />
       <Sidebar
         head={isLeader(me.role)}
         mentoria={me.modules.mentoria}
+        commercial={commercial}
         adminBadge={requests}
         footer={
           <div className="flex flex-col">
@@ -88,7 +90,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           {children}
         </main>
       </div>
-      <BottomNav />
+      {/* Celular: o cargo Acompanhamento usa as abas do módulo (no /mais, a própria tela as põe). */}
+      {commercial && <BottomNav />}
     </SidebarShell>
   );
 }
