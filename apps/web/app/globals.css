@@ -49,6 +49,12 @@
     radial-gradient(80% 38% at 100% 0%, rgba(226, 187, 102, 0.38), transparent 70%),
     radial-gradient(70% 40% at 0% 100%, rgba(110, 145, 255, 0.22), transparent 70%),
     radial-gradient(50% 30% at 25% 48%, rgba(255, 140, 165, 0.1), transparent 70%);
+  /* Movimento (NPAC-31): entrar no pressionado, hover, foco/seleção, soltar com mola. As curvas
+     `--ease-out` e `--ease-spring` ficam mais abaixo, junto de quem as criou. */
+  --dur-press: 80ms;
+  --dur-fast: 140ms;
+  --dur: 200ms;
+  --dur-slow: 320ms;
 }
 
 .dark {
@@ -113,9 +119,37 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-:focus-visible {
-  outline: 2px solid #c2922e;
-  outline-offset: 2px;
+/* Base de interação (NPAC-31): todo controle anima cor, fundo, sombra, escala e foco, sem
+   editar componente por componente. Fica em `@layer base` para que quem tem `transition` próprio
+   (componentes, utilitários, sidebar) e o anel do `.field` continuem valendo. O anel de foco
+   cresce em vez de piscar: em repouso é transparente e colado; no foco fica dourado a 2 px. */
+@layer base {
+  button,
+  a,
+  [role='button'],
+  summary,
+  input,
+  select,
+  textarea {
+    transition-property:
+      color, background-color, border-color, box-shadow, opacity, scale, translate, outline-color,
+      outline-offset;
+    transition-duration: var(--dur-fast);
+    transition-timing-function: var(--ease-out);
+    outline: 2px solid transparent;
+    outline-offset: 0;
+  }
+  :focus-visible {
+    outline: 2px solid #c2922e;
+    outline-offset: 2px;
+    transition-duration: var(--dur);
+  }
+  /* Alto contraste do Windows pinta contorno transparente: em repouso, nenhum contorno. */
+  @media (forced-colors: active) {
+    :is(button, a, [role='button'], summary, input, select, textarea):not(:focus-visible) {
+      outline-style: none;
+    }
+  }
 }
 
 @layer components {
@@ -233,18 +267,147 @@ body {
       inset 0 1px 0 rgba(255, 255, 255, 0.2),
       0 12px 26px -10px rgba(0, 0, 0, 0.6);
     transition:
-      transform 0.1s,
-      background 0.2s;
+      background-color var(--dur-fast) var(--ease-out),
+      opacity var(--dur-fast) var(--ease-out),
+      outline-color var(--dur) var(--ease-out),
+      outline-offset var(--dur) var(--ease-out),
+      scale var(--dur-slow) var(--ease-spring);
   }
-  .btn-dark:hover {
-    background: #000;
+  @media (hover: hover) {
+    .btn-dark:hover:not(:disabled) {
+      background: #000;
+    }
   }
-  .btn-dark:active {
-    transform: scale(0.985);
+  .btn-dark:active:not(:disabled) {
+    scale: 0.97;
+    transition-duration: var(--dur-press);
   }
   .btn-dark:disabled {
     opacity: 0.6;
     cursor: wait;
+  }
+  /* Botões compartilhados (`button`, `quietButton`, `ghostButton`, `dangerButton` em
+     crm-ui.tsx): mesma forma e altura (40 px), quatro pesos. Hover só com mouse (no toque ficaria
+     "grudado"); pressionar encolhe rápido e volta com mola; desabilitado não reage. */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    padding: 9px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 20px;
+    cursor: pointer;
+    transition:
+      color var(--dur-fast) var(--ease-out),
+      background-color var(--dur-fast) var(--ease-out),
+      border-color var(--dur-fast) var(--ease-out),
+      box-shadow var(--dur-fast) var(--ease-out),
+      opacity var(--dur-fast) var(--ease-out),
+      outline-color var(--dur) var(--ease-out),
+      outline-offset var(--dur) var(--ease-out),
+      scale var(--dur-slow) var(--ease-spring);
+  }
+  .btn:active:not(:disabled) {
+    scale: 0.97;
+    transition-duration: var(--dur-press);
+  }
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+  .btn-primary {
+    background-color: var(--ink);
+    color: var(--bg);
+  }
+  .btn-secondary {
+    background-color: rgba(255, 255, 255, 0.58);
+    border-color: var(--line);
+  }
+  .dark .btn-secondary {
+    background-color: rgba(255, 255, 255, 0.06);
+  }
+  .btn-ghost {
+    background-color: transparent;
+  }
+  .btn-danger {
+    background-color: transparent;
+    border-color: color-mix(in srgb, var(--danger) 40%, transparent);
+    color: var(--danger);
+  }
+  @media (hover: hover) {
+    /* Escuro: clarear o quase-branco não aparece; misturar com o fundo vale nos dois temas. */
+    .btn-primary:hover:not(:disabled) {
+      background-color: color-mix(in srgb, var(--ink) 92%, var(--bg));
+    }
+    .btn-secondary:hover:not(:disabled),
+    .btn-ghost:hover:not(:disabled) {
+      background-color: rgba(0, 0, 0, 0.05);
+    }
+    .dark .btn-secondary:hover:not(:disabled) {
+      background-color: rgba(255, 255, 255, 0.12);
+    }
+    .dark .btn-ghost:hover:not(:disabled) {
+      background-color: rgba(255, 255, 255, 0.08);
+    }
+    .btn-danger:hover:not(:disabled) {
+      background-color: color-mix(in srgb, var(--danger) 10%, transparent);
+    }
+  }
+  /* Card que é botão inteiro (faixa de status do Acompanhamento, NPAC-33): fio de borda, sobe
+     2 px sob o mouse com a borda mais forte; pressionar encolhe de leve. Selecionado = barra
+     dourada de 3 px na lateral esquerda, que cresce de cima para baixo. */
+  .card-click {
+    border-radius: 16px;
+    cursor: pointer;
+    box-shadow:
+      var(--glhi),
+      var(--gld),
+      inset 0 0 0 1px var(--line);
+    transition:
+      translate var(--dur-slow) var(--ease-out),
+      box-shadow var(--dur-slow) var(--ease-out),
+      background-color var(--dur-slow) var(--ease-out),
+      outline-color var(--dur) var(--ease-out),
+      outline-offset var(--dur) var(--ease-out),
+      scale var(--dur-slow) var(--ease-spring);
+  }
+  .card-click::after {
+    content: '';
+    position: absolute;
+    top: 14px;
+    bottom: 14px;
+    left: 0;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: var(--gold);
+    scale: 1 0;
+    transform-origin: top;
+    transition: scale var(--dur-slow) var(--ease-out);
+    pointer-events: none;
+  }
+  /* No claro, o dourado de marca some sobre o vidro: barra no tom fundo (contraste > 3:1). */
+  :root:not(.dark) .card-click::after {
+    background: var(--gold-deep);
+  }
+  .card-sel::after {
+    scale: 1 1;
+  }
+  .card-click:active {
+    scale: 0.99;
+    transition-duration: var(--dur-press);
+  }
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .card-click:hover {
+      translate: 0 -2px;
+      box-shadow:
+        var(--glhi),
+        var(--gld),
+        inset 0 0 0 1px color-mix(in srgb, var(--ink) 22%, transparent);
+    }
   }
   .tier {
     display: inline-flex;
@@ -778,6 +941,67 @@ html[data-dash-dragging] * {
     grid-template-rows var(--side-t) var(--side-ease),
     opacity 110ms ease,
     visibility 0s linear var(--side-t);
+}
+/* Sub-itens de um item da sidebar (módulo do Acompanhamento para a Diretoria): abrem só dentro
+   do módulo (o pai ganha aria-current no NavLink), com altura animada (grid 0fr → 1fr). Fechado =
+   `visibility: hidden` (fora do Tab e do leitor de tela) e transparente. Só CSS: nada de JS.
+   O padding/margin negativo do miolo deixa o anel de foco dos filhos fora do recorte. */
+.side-sub {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    grid-template-rows var(--dur-slow) var(--ease-out),
+    opacity var(--dur-slow) var(--ease-out),
+    visibility 0s linear var(--dur-slow);
+}
+.side-parent[aria-current] + .side-sub {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  visibility: visible;
+  transition:
+    grid-template-rows var(--dur-slow) var(--ease-out),
+    opacity var(--dur-slow) var(--ease-out),
+    visibility 0s;
+}
+/* Recuo de 12 px à esquerda; 4 px livres em volta para o anel de foco não ser cortado. */
+.side-sub > div {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-height: 0;
+  margin: -4px 0 -4px 8px;
+  padding: 4px;
+  overflow: hidden;
+}
+/* No trilho só o ícone do pai fica: os filhos somem sem ocupar altura (mais específico que a
+   regra de aberto acima, que também vale dentro do módulo). */
+.shell[data-side='collapsed'] .side-parent + .side-sub {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    grid-template-rows var(--side-t) var(--side-ease),
+    opacity 110ms ease,
+    visibility 0s linear var(--side-t);
+}
+/* Pai aberto na sidebar expandida: o destaque fica no filho ativo; o pai só ganha peso. No
+   trilho (filhos ocultos), o pai mantém o fundo de item ativo. */
+.shell:not([data-side='collapsed']) .side-parent[aria-current]:not(:hover) {
+  background: transparent;
+  box-shadow: none;
+}
+.side-parent[aria-current] {
+  font-weight: 600;
+}
+.side-chevron {
+  transition:
+    rotate var(--dur-slow) var(--ease-out),
+    opacity 180ms ease 80ms;
+}
+.side-parent[aria-current] .side-chevron {
+  rotate: 90deg;
 }
 .side-head,
 .side-foot,

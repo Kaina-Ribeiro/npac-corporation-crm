@@ -1,5 +1,11 @@
 import { z } from 'zod';
-import { INCOME_BANDS, LEAD_SOURCES, STAGE_KEY_PATTERN, TIERS } from '../enums.js';
+import {
+  INCOME_BANDS,
+  LEAD_SOURCE_OPTIONS,
+  SOURCE_OTHER_MAX,
+  STAGE_KEY_PATTERN,
+  TIERS,
+} from '../enums.js';
 import { normalizeInstagram, normalizePhoneBR } from '../normalize.js';
 
 /** Etapa por chave; a existência é conferida no banco ("Etapa inexistente"). */
@@ -29,7 +35,9 @@ export const leadCreateSchema = z
     phone: normalized('Telefone', normalizePhoneBR),
     instagram: normalized('Instagram', normalizeInstagram),
     incomeBand: z.enum(INCOME_BANDS),
-    source: z.enum(LEAD_SOURCES).default('INSTAGRAM'),
+    // Cadastro só oferece a lista atual; as antigas (Instagram, WhatsApp) ficam nos leads existentes.
+    source: z.enum(LEAD_SOURCE_OPTIONS, { error: 'Escolha a origem' }),
+    sourceOther: z.preprocess(blankToUndefined, z.string().trim().max(SOURCE_OTHER_MAX).optional()),
     tier: z.enum(TIERS),
     sdrId: z.string().optional(),
     closerId: z.string().optional(),
@@ -43,6 +51,11 @@ export const leadCreateSchema = z
   .refine((v) => v.phone !== undefined || v.instagram !== undefined, {
     message: 'Informe telefone ou Instagram',
     path: ['phone'],
+  })
+  // O texto só acompanha "Outro"; nas demais origens a API descarta.
+  .refine((v) => v.source !== 'OUTRO' || v.sourceOther !== undefined, {
+    message: 'Escreva qual é a origem',
+    path: ['sourceOther'],
   });
 
 export type LeadCreateInput = z.output<typeof leadCreateSchema>;

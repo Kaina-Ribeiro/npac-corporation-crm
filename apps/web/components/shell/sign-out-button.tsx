@@ -1,13 +1,12 @@
 'use client';
+import { ghostButton } from '@/lib/button';
+
 // fetch direto (sem o client do Better Auth) para manter o JS das telas do app enxuto.
 export function SignOutButton({ className }: { className?: string }) {
   return (
     <button
       type="button"
-      className={
-        className ??
-        'h-9 rounded-full px-3.5 text-sm font-semibold text-ink2 transition-colors hover:bg-black/5 hover:text-ink'
-      }
+      className={className ?? `${ghostButton} h-9 px-3.5 text-ink2 hover:text-ink`}
       onClick={async () => {
         // Sair tira os avisos deste aparelho (outra pessoa pode usar o mesmo navegador).
         await import('@/lib/push').then((m) => m.disablePush()).catch(() => {});

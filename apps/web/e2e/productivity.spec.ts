@@ -74,7 +74,13 @@ test('lista: edita perfil direto na célula e move vários leads de uma vez', as
   const ids: string[] = [];
   for (const n of [1, 2]) {
     const r = await page.request.post('/api/leads', {
-      data: { name: `Massa ${n}`, instagram: `@massa.${n}.e2e`, incomeBand: 'R5_8K', tier: 'P2' },
+      data: {
+        name: `Massa ${n}`,
+        instagram: `@massa.${n}.e2e`,
+        incomeBand: 'R5_8K',
+        source: 'BIO',
+        tier: 'P2',
+      },
     });
     expect(r.status()).toBe(201);
     ids.push(((await r.json()) as { id: string }).id);
@@ -206,6 +212,7 @@ test('hoje: ação rápida de chamado, remarcado e próxima ação', async ({ pa
         name,
         instagram: `@rapido.${Date.now()}.${ids.length}`,
         incomeBand: 'R5_8K',
+        source: 'BIO',
         tier: 'P1',
       },
     });
@@ -249,6 +256,7 @@ test('hoje: ação rápida da reunião marca realizada e remarca', async ({ page
         name,
         instagram: `@reuniao.${Date.now()}.${ids.length}`,
         incomeBand: 'R5_8K',
+        source: 'BIO',
         tier: 'P0',
       },
     });
@@ -292,7 +300,13 @@ test('hoje: reunião futura mostra Realizada/No-show bloqueados e libera no hor�
   await page.clock.install({ time: now });
   await login(page, 'ale@npac.com.br');
   const res = await page.request.post('/api/leads', {
-    data: { name: 'Reunião Logo', instagram: `@logo.${now}`, incomeBand: 'R5_8K', tier: 'P0' },
+    data: {
+      name: 'Reunião Logo',
+      instagram: `@logo.${now}`,
+      incomeBand: 'R5_8K',
+      source: 'BIO',
+      tier: 'P0',
+    },
   });
   const { id } = (await res.json()) as { id: string };
   await owner`insert into meetings (lead_id, closer_id, scheduled_at, origin, created_by)
@@ -327,7 +341,13 @@ test('hoje: contato que vence com a página aberta vai para atrasados pelo naveg
   await page.clock.install({ time: now });
   await login(page, 'ale@npac.com.br');
   const res = await page.request.post('/api/leads', {
-    data: { name: 'Vence já', instagram: `@vence.${now}`, incomeBand: 'R5_8K', tier: 'P1' },
+    data: {
+      name: 'Vence já',
+      instagram: `@vence.${now}`,
+      incomeBand: 'R5_8K',
+      source: 'BIO',
+      tier: 'P1',
+    },
   });
   const { id } = (await res.json()) as { id: string };
   await owner`update leads set next_contact_at = ${new Date(now + 90_000)} where id = ${id}`;

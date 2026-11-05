@@ -31,6 +31,7 @@ export interface LeadRow {
   instagram: string | null;
   incomeBand: IncomeBand;
   source: LeadSource;
+  sourceOther: string | null;
   tier: Tier;
   stageKey: StageKey;
   sdrId: string;
@@ -160,6 +161,7 @@ export class LeadsRepository {
         instagram: leads.instagram,
         incomeBand: leads.incomeBand,
         source: leads.source,
+        sourceOther: leads.sourceOther,
         tier: leads.tier,
         stageKey: pipelineStages.key,
         sdrId: leads.sdrId,

@@ -8,6 +8,8 @@ export type LeadDTO = {
   instagram: string | null;
   incomeBand: IncomeBand;
   source: LeadSource;
+  /** Texto de quando a origem é "Outro". */
+  sourceOther: string | null;
   tier: Tier;
   stageKey: StageKey;
   sdr: { id: string; name: string };

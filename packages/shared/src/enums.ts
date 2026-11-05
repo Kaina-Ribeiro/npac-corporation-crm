@@ -30,8 +30,81 @@ export const INCOME_BAND_LABELS: Record<IncomeBand, string> = {
   R50K_PLUS: 'R$ 50 mil+',
 };
 
-export const LEAD_SOURCES = ['INSTAGRAM', 'WHATSAPP', 'INDICACAO', 'OUTRO'] as const;
+/**
+ * Origens que o cadastro oferece, na ordem da lista do cliente (05/11/2026). "Outro" pede o texto
+ * em `sourceOther`.
+ */
+export const LEAD_SOURCE_OPTIONS = [
+  'AUDIO_AUTOMACAO',
+  'AUTOMACAO_COMENTARIOS',
+  'LEVANTADA_MAO_STORY',
+  'CALCULADORA',
+  'BIO',
+  'NACAO',
+  'EMAIL',
+  'YOUTUBE',
+  'CLUBE',
+  'SALA_SECRETA',
+  'FOLLOW',
+  'ATIVACAO_STORIES',
+  'ATIVACAO_COMENTARIOS',
+  'DIRECT_INTERESSE',
+  'DIRECT_FECHAR',
+  'INDICACAO_DESAFIO_NACAO',
+  'LISTA_DIAGNOSTICO_FINANCEIRO',
+  'TIKTOK',
+  'EVENTO',
+  'LEVANTADA_MAO_AULA',
+  'MAGIA_FIM_DE_MES',
+  'PDF_6',
+  'PDF_10',
+  'FOLLOW_AULA',
+  'SUPORTE',
+  'INDICACAO',
+  'OUTRO',
+] as const;
+/** Origens antigas: seguem nos leads já cadastrados, mas o cadastro não oferece mais. */
+export const LEGACY_LEAD_SOURCES = ['INSTAGRAM', 'WHATSAPP'] as const;
+/** Todas as origens válidas no banco (enum `lead_source`). */
+export const LEAD_SOURCES = [...LEGACY_LEAD_SOURCES, ...LEAD_SOURCE_OPTIONS] as const;
 export type LeadSource = (typeof LEAD_SOURCES)[number];
+export type LeadSourceOption = (typeof LEAD_SOURCE_OPTIONS)[number];
+export const isLegacyLeadSource = (s: LeadSource) =>
+  (LEGACY_LEAD_SOURCES as readonly string[]).includes(s);
+
+export const LEAD_SOURCE_LABELS: Record<LeadSource, string> = {
+  AUDIO_AUTOMACAO: 'Áudio / automação',
+  AUTOMACAO_COMENTARIOS: 'Automação comentários',
+  LEVANTADA_MAO_STORY: 'Levantada de mão story',
+  CALCULADORA: 'Calculadora',
+  BIO: 'BIO',
+  NACAO: 'Nação',
+  EMAIL: 'E-mail',
+  YOUTUBE: 'YouTube',
+  CLUBE: 'Clube',
+  SALA_SECRETA: 'Sala Secreta',
+  FOLLOW: 'Follow',
+  ATIVACAO_STORIES: 'Ativação stories',
+  ATIVACAO_COMENTARIOS: 'Ativação comentários',
+  DIRECT_INTERESSE: 'Chamou no direct / interesse',
+  DIRECT_FECHAR: 'Direct chamou para fechar',
+  INDICACAO_DESAFIO_NACAO: 'Indicação Desafio da Nação',
+  LISTA_DIAGNOSTICO_FINANCEIRO: 'Lista Diagnóstico Financeiro',
+  TIKTOK: 'TikTok',
+  EVENTO: 'Evento',
+  LEVANTADA_MAO_AULA: 'Levantada de mão / Aula',
+  MAGIA_FIM_DE_MES: 'MAGIA FIM DE MÊS',
+  PDF_6: 'PDF 6',
+  PDF_10: 'PDF 10',
+  FOLLOW_AULA: 'Follow / Aula',
+  SUPORTE: 'Suporte',
+  INDICACAO: 'Indicação',
+  OUTRO: 'Outro',
+  INSTAGRAM: 'Instagram (antigo)',
+  WHATSAPP: 'WhatsApp (antigo)',
+};
+/** Texto livre de "Outro". */
+export const SOURCE_OTHER_MAX = 80;
 
 export const STAGE_KEYS = [
   'SONDAGEM',

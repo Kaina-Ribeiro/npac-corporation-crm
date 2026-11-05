@@ -9,6 +9,7 @@ import { button, control, FormError, quietButton } from '@/components/crm-ui';
 import { EVENTO_MAIS } from './abas-mobile';
 import { iniciais } from './fichas-lista';
 import { ImportarGaveta } from './importar-gaveta';
+import { CabecalhoModulo } from './cabecalho-modulo';
 
 const BUSCA = '/api/mentoria/rdv/search';
 
@@ -74,38 +75,27 @@ export function RdvLista({ inicial }: { inicial: PaginaRdv }) {
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-[28px] font-bold tracking-[-0.03em]">Linha do tempo RDV</h1>
-          <p className="mt-1 text-sm text-ink2">
-            Tudo o que aconteceu com cada mentorado da trilha RDV, em ordem cronológica · {total}{' '}
-            {total === 1 ? 'pessoa ou casal' : 'pessoas ou casais'}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            className={`${button} active:scale-[.98]`}
-            onClick={() => setNovo(true)}
-          >
-            Novo mentorado
-          </button>
-          <button
-            type="button"
-            className={`${quietButton} active:scale-[.98]`}
-            onClick={() => setImportar(true)}
-          >
-            Importar .json
-          </button>
-          <button
-            type="button"
-            className={`${quietButton} active:scale-[.98]`}
-            onClick={() => void baixarBackup('rdv').catch((e: Error) => setErro(e.message))}
-          >
-            Exportar .json
-          </button>
-        </div>
-      </div>
+      <CabecalhoModulo
+        titulo="Linha do tempo RDV"
+        descricao={`Tudo o que aconteceu com cada mentorado da trilha RDV, em ordem cronológica · ${total} ${total === 1 ? 'pessoa ou casal' : 'pessoas ou casais'}`}
+        acoes={
+          <>
+            <button type="button" className={`${button}`} onClick={() => setNovo(true)}>
+              Novo mentorado
+            </button>
+            <button type="button" className={`${quietButton}`} onClick={() => setImportar(true)}>
+              Importar .json
+            </button>
+            <button
+              type="button"
+              className={`${quietButton}`}
+              onClick={() => void baixarBackup('rdv').catch((e: Error) => setErro(e.message))}
+            >
+              Exportar .json
+            </button>
+          </>
+        }
+      />
 
       <div className="flex flex-wrap items-center gap-3">
         <input

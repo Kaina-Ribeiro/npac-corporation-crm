@@ -18,11 +18,12 @@ export function NavLink({
   const path = usePathname();
   const base = item.match ?? item.href;
   const active = path === base || path.startsWith(`${base}/`);
+  // Item que cobre várias telas (`match`, o pai do grupo): quem marca a página é o filho ativo.
   return (
     <Link
       href={item.href}
       prefetch={item.ready}
-      aria-current={active ? 'page' : undefined}
+      aria-current={active ? (item.match ? 'true' : 'page') : undefined}
       className={`${className} ${active ? activeClassName : ''}`}
     >
       {children}

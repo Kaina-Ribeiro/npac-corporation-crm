@@ -40,7 +40,9 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   `access-requests.ts` · SSE `api/events/events.controller.ts` · import Firebase `api/import/*` ·
   push (Web Push) e despertador dos lembretes `api/push/*` ·
   mock do protótipo `api/dev/mock-prototype.ts`
-- **Web:** layout/sidebar/bottom nav `web/app/(app)/layout.tsx`, `web/components/shell/*` · login,
+- **Web:** layout/sidebar/bottom nav `web/app/(app)/layout.tsx`, `web/components/shell/*` (menu da
+  sidebar e do Ctrl+K, grupos e sub-itens do Acompanhamento: `shell/nav-menu.tsx`, só servidor, para
+  não pesar no JS; `nav-items.tsx` vai ao cliente pela barra inferior) · classes de botão `lib/button.ts` · login,
   pedir acesso `web/components/login/*` · senha/MFA `components/conta/*`, `app/(conta)/*` · API
   server/client `web/lib/api.ts` / `lib/client-api.ts` · sessão (`getSession`, `pendingStep`)
   `web/lib/session.ts` · UI base (`Field`, `button`, `StageOptions`) `components/crm-ui.tsx` ·
@@ -147,6 +149,11 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
 - **Etapas**: `pipeline_stages.key` é texto; `system` é coluna gerada (`key` ∈ `STAGE_KEYS`). A
   liderança cria (`C_` + 8 hex), renomeia, reordena e exclui; não exclui de sistema, com lead ativo
   ou referenciada por venda (`deals.previous_stage_id`, imutável). Validação: `stageKeySchema`.
+- **Origem do lead** (lista do cliente, 05/11/2026): `LEAD_SOURCE_OPTIONS` + rótulos
+  `LEAD_SOURCE_LABELS` em `sh/enums.ts`; cadastro exige uma delas. "Outro" pede texto em
+  `source_other` (≤ 80, CHECK só com `OUTRO`; timeline grava como campo `source`; LGPD apaga).
+  Instagram/WhatsApp são antigas: ficam nos leads existentes ("(antigo)"), filtros mostram, cadastro
+  e troca recusam. Origem nova = valor no enum `lead_source` (migration) + rótulo.
 - Hoje: atrasado = próximo contato < **agora**; a tela move vencidos no navegador (sem polling, que
   gravaria auditoria). Ação rápida `POST /leads/:id/quick-action` (Chamado/Remarcado/Próxima ação).
 - Desativar usuário derruba sessões; leads dele vão por `POST /admin/users/:id/transfer-leads`.

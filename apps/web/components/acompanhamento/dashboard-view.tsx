@@ -10,12 +10,13 @@ import { useEffect, useRef, useState } from 'react';
 import { baixarBackup } from '@/lib/acompanhamento-download';
 import { useFieldSaver } from '@/lib/acompanhamento-saver';
 import { clientApi } from '@/lib/client-api';
-import { FormError, quietButton } from '@/components/crm-ui';
+import { FormError, button, ghostButton, quietButton } from '@/components/crm-ui';
 import { EVENTO_MAIS } from './abas-mobile';
 import { DashboardCards } from './dashboard-cards';
 import { ImportarGaveta } from './importar-gaveta';
 import { MentoradoLinha } from './mentorado-linha';
 import { RemoverConfirma } from './remover-confirma';
+import { CabecalhoModulo } from './cabecalho-modulo';
 
 const BUSCA = '/api/mentoria/mentorados/search';
 
@@ -158,162 +159,199 @@ export function DashboardView({ inicial }: { inicial: ResumoDashboard }) {
   const totalBase = Object.values(resumo.contagemPorStatus).reduce((a, b) => a + b, 0);
   const temFiltro = !!(f.q.trim() || f.status || f.tipoMentoria);
 
+  const vazio = totalBase === 0;
+  const icColar = icone('M5 4h14v16H5zM9 4V2h6v2M9 10h6M9 14h6');
+  const icImportar = icone('M12 3v12M7 10l5 5 5-5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2');
+
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-[28px] font-bold tracking-[-0.03em]">Dashboard</h1>
-          <p className="mt-1 text-sm text-ink2">
-            Lista geral de todos os mentorados com o status de engajamento de cada um · {totalBase}{' '}
-            cadastrados
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            className={`${quietButton} inline-flex items-center gap-2 active:scale-[.98]`}
-            onClick={() => setGaveta('planilha')}
-          >
-            {icone('M5 4h14v16H5zM9 4V2h6v2M9 10h6M9 14h6')}Colar planilha
-          </button>
-          <button
-            type="button"
-            className={`${quietButton} inline-flex items-center gap-2 active:scale-[.98]`}
-            onClick={() => setGaveta('json')}
-          >
-            {icone('M12 3v12M7 10l5 5 5-5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2')}Importar .json
-          </button>
-          <button
-            type="button"
-            className={`${quietButton} inline-flex items-center gap-2 active:scale-[.98]`}
-            onClick={() => void baixarBackup('dashboard').catch((e: Error) => setErro(e.message))}
-          >
-            {icone('M12 15V3M7 8l5-5 5 5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2')}Exportar .json
-          </button>
-        </div>
-      </div>
-
-      <DashboardCards
-        contagem={resumo.contagemPorStatus}
-        nomes={resumo.nomesPorStatus}
-        filtro={f.status}
-        onFiltro={(status) => setF((x) => ({ ...x, status }))}
+      {/* Com a base vazia, as ações ficam só no convite (sem botão repetido). */}
+      <CabecalhoModulo
+        titulo="Dashboard"
+        descricao={`Lista geral de todos os mentorados com o status de engajamento de cada um · ${
+          totalBase === 1 ? '1 cadastrado' : `${totalBase} cadastrados`
+        }`}
+        acoes={
+          vazio ? undefined : (
+            <>
+              <button type="button" className={ghostButton} onClick={() => setGaveta('json')}>
+                {icImportar}Importar .json
+              </button>
+              <button
+                type="button"
+                className={ghostButton}
+                onClick={() =>
+                  void baixarBackup('dashboard').catch((e: Error) => setErro(e.message))
+                }
+              >
+                {icone('M12 15V3M7 8l5-5 5 5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2')}Exportar
+                .json
+              </button>
+              <button type="button" className={button} onClick={() => setGaveta('planilha')}>
+                {icColar}Colar planilha
+              </button>
+            </>
+          )
+        }
       />
 
-      <div className="flex flex-wrap items-center gap-2">
-        <label className="relative w-full max-w-sm">
-          <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-ink3">
-            {icone('M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-3.5-3.5')}
-          </span>
-          <input
-            type="search"
-            aria-label="Buscar mentorados"
-            placeholder="Buscar por nome"
-            value={f.q}
-            onChange={(e) => setF((x) => ({ ...x, q: e.target.value }))}
-            className="field w-full pl-9 text-ink dark:!bg-white/10"
-          />
-        </label>
-        {resumo.contagemPorMentoria.length > 0 && (
-          <span className="text-xs text-ink3">Tipo de mentoria:</span>
-        )}
-        {resumo.contagemPorMentoria.map((t) => {
-          const on = f.tipoMentoria === t.nome;
-          return (
-            <button
-              key={t.nome}
-              type="button"
-              aria-pressed={on}
-              onClick={() => setF((x) => ({ ...x, tipoMentoria: on ? null : t.nome }))}
-              className={`inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[13px] transition-colors active:scale-[.98] ${
-                on
-                  ? 'border-line bg-[var(--on)] font-semibold text-ink shadow-sm'
-                  : 'border-dashed border-line text-ink2 hover:text-ink'
-              }`}
-            >
-              {t.nome}
-              <span className="rounded-full bg-black/[0.06] px-1.5 text-[11.5px] text-ink2 dark:bg-white/10">
-                {t.n}
-              </span>
-            </button>
-          );
-        })}
-        {temFiltro && (
-          <button
-            type="button"
-            className="h-8 rounded-lg px-2.5 text-xs font-semibold text-ink2 hover:text-ink"
-            onClick={() => setF({ q: '', status: null, tipoMentoria: null })}
+      {vazio ? (
+        <section
+          aria-labelledby="vazio-titulo"
+          className="flex flex-col items-center gap-4 rounded-[20px] border border-dashed border-line px-6 py-14 text-center"
+        >
+          <span
+            aria-hidden="true"
+            className="inline-flex size-12 items-center justify-center rounded-2xl bg-black/[0.05] text-ink2 dark:bg-white/[0.08]"
           >
-            Limpar filtros
-          </button>
-        )}
-      </div>
-
-      <FormError message={erro} />
-
-      <section className="glass-card min-w-0 overflow-hidden" aria-labelledby="lista-titulo">
-        <div className="flex flex-wrap items-baseline justify-between gap-2 px-4 pt-4 pb-2">
-          <h2 id="lista-titulo" className="text-base font-semibold">
-            {titulo}{' '}
-            <span className="text-xs font-normal text-ink3">
-              {itens.length} de {resumo.total}
-            </span>
-          </h2>
-          <span className="text-xs text-ink3">
-            Edite direto na célula · salva ao sair do campo · a cor da linha segue o status
-          </span>
-        </div>
-        <datalist id="mentorias">
-          {resumo.contagemPorMentoria.map((t) => (
-            <option key={t.nome} value={t.nome} />
-          ))}
-        </datalist>
-        <div className="overflow-x-auto">
-          <table aria-label="Mentorados" className="w-full min-w-[820px] text-left text-sm">
-            <thead className="text-xs text-ink3">
-              <tr className="border-y border-line">
-                <th className="w-[30%] px-4 py-2.5 font-semibold">Nome</th>
-                <th className="px-4 py-2.5 font-semibold">Tipo</th>
-                <th className="px-4 py-2.5 font-semibold">Tipo de mentoria</th>
-                <th className="px-4 py-2.5 font-semibold">Data de entrada</th>
-                <th className="px-4 py-2.5 font-semibold">Status</th>
-                <th className="px-4 py-2.5">
-                  <span className="sr-only">Ações</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-line">
-              {itens.map((m) => (
-                <MentoradoLinha
-                  key={m.id}
-                  m={m}
-                  onSalvar={(campo, valor) => salvar(m, campo, valor)}
-                  onRemover={() => setRemover(m)}
-                />
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {itens.length === 0 && (
-          <p className="px-4 py-6 text-sm text-ink2">
-            {temFiltro
-              ? 'Ninguém com esses filtros.'
-              : 'Nenhum mentorado ainda. Use Colar planilha ou Importar .json.'}
-          </p>
-        )}
-        {cursor && (
-          <div className="border-t border-line p-3">
-            <button
-              type="button"
-              className={`${quietButton} active:scale-[.98]`}
-              disabled={carregando}
-              onClick={() => void carregarMais()}
+            <svg
+              viewBox="0 0 24 24"
+              className="size-6"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.9"
+              strokeLinecap="round"
+              strokeLinejoin="round"
             >
-              Carregar mais
+              <path d="M16 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 18.5V20M10 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7M20 20v-1.5a3.5 3.5 0 0 0-2.5-3.35M15.5 4.15a3.5 3.5 0 0 1 0 6.7" />
+            </svg>
+          </span>
+          <div className="flex flex-col gap-1">
+            <h2 id="vazio-titulo" className="text-lg font-semibold tracking-[-0.01em]">
+              Comece trazendo seus mentorados
+            </h2>
+            <p className="text-sm text-ink2">Cole a planilha ou importe um backup .json.</p>
+          </div>
+          <div className="flex flex-wrap justify-center gap-2">
+            <button type="button" className={quietButton} onClick={() => setGaveta('json')}>
+              {icImportar}Importar .json
+            </button>
+            <button type="button" className={button} onClick={() => setGaveta('planilha')}>
+              {icColar}Colar planilha
             </button>
           </div>
-        )}
-      </section>
+        </section>
+      ) : (
+        <>
+          <DashboardCards
+            contagem={resumo.contagemPorStatus}
+            nomes={resumo.nomesPorStatus}
+            filtro={f.status}
+            onFiltro={(status) => setF((x) => ({ ...x, status }))}
+          />
+
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="relative w-full max-w-sm">
+              <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-ink3">
+                {icone('M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-3.5-3.5')}
+              </span>
+              <input
+                type="search"
+                aria-label="Buscar mentorados"
+                placeholder="Buscar por nome"
+                value={f.q}
+                onChange={(e) => setF((x) => ({ ...x, q: e.target.value }))}
+                className="field w-full pl-9 text-ink dark:!bg-white/10"
+              />
+            </label>
+            {resumo.contagemPorMentoria.length > 0 && (
+              <span className="text-xs text-ink3">Tipo de mentoria:</span>
+            )}
+            {resumo.contagemPorMentoria.map((t) => {
+              const on = f.tipoMentoria === t.nome;
+              return (
+                <button
+                  key={t.nome}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => setF((x) => ({ ...x, tipoMentoria: on ? null : t.nome }))}
+                  className={`inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[13px] active:scale-[.98] ${
+                    on
+                      ? 'border-line bg-[var(--on)] font-semibold text-ink shadow-sm'
+                      : 'border-dashed border-line text-ink2 hover:text-ink'
+                  }`}
+                >
+                  {t.nome}
+                  <span className="rounded-full bg-black/[0.06] px-1.5 text-[11.5px] text-ink2 dark:bg-white/10">
+                    {t.n}
+                  </span>
+                </button>
+              );
+            })}
+            {temFiltro && (
+              <button
+                type="button"
+                className="h-8 rounded-lg px-2.5 text-xs font-semibold text-ink2 hover:text-ink"
+                onClick={() => setF({ q: '', status: null, tipoMentoria: null })}
+              >
+                Limpar filtros
+              </button>
+            )}
+          </div>
+
+          <FormError message={erro} />
+
+          <section className="glass-card min-w-0 overflow-hidden" aria-labelledby="lista-titulo">
+            <div className="flex flex-wrap items-baseline justify-between gap-2 px-4 pt-4 pb-2">
+              <h2 id="lista-titulo" className="text-base font-semibold">
+                {titulo}{' '}
+                <span className="text-xs font-normal text-ink3">
+                  {itens.length} de {resumo.total}
+                </span>
+              </h2>
+              <span className="text-xs text-ink3">
+                Edite direto na célula · salva ao sair do campo · a cor da linha segue o status
+              </span>
+            </div>
+            <datalist id="mentorias">
+              {resumo.contagemPorMentoria.map((t) => (
+                <option key={t.nome} value={t.nome} />
+              ))}
+            </datalist>
+            <div className="overflow-x-auto">
+              <table aria-label="Mentorados" className="w-full min-w-[820px] text-left text-sm">
+                <thead className="text-xs text-ink3">
+                  <tr className="border-y border-line">
+                    <th className="w-[30%] px-4 py-2.5 font-semibold">Nome</th>
+                    <th className="px-4 py-2.5 font-semibold">Tipo</th>
+                    <th className="px-4 py-2.5 font-semibold">Tipo de mentoria</th>
+                    <th className="px-4 py-2.5 font-semibold">Data de entrada</th>
+                    <th className="px-4 py-2.5 font-semibold">Status</th>
+                    <th className="px-4 py-2.5">
+                      <span className="sr-only">Ações</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line">
+                  {itens.map((m) => (
+                    <MentoradoLinha
+                      key={m.id}
+                      m={m}
+                      onSalvar={(campo, valor) => salvar(m, campo, valor)}
+                      onRemover={() => setRemover(m)}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {itens.length === 0 && (
+              <p className="px-4 py-6 text-sm text-ink2">Ninguém com esses filtros.</p>
+            )}
+            {cursor && (
+              <div className="border-t border-line p-3">
+                <button
+                  type="button"
+                  className={`${quietButton}`}
+                  disabled={carregando}
+                  onClick={() => void carregarMais()}
+                >
+                  Carregar mais
+                </button>
+              </div>
+            )}
+          </section>
+        </>
+      )}
 
       {gaveta && (
         <ImportarGaveta

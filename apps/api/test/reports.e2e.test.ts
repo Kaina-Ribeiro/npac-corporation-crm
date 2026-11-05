@@ -24,7 +24,7 @@ beforeEach(async () => {
   ] as const) {
     const lead = await h.post(
       '/api/leads',
-      { name, instagram: insta, incomeBand: 'R5_8K', tier: 'P1' },
+      { name, instagram: insta, incomeBand: 'R5_8K', source: 'BIO', tier: 'P1' },
       cookie,
     );
     expect(
@@ -109,7 +109,13 @@ it('exporta o relatório do período (números, sem contato); SDR sem valores de
 it('leads excluídos não entram em métricas, linhas nem CSV do HEAD', async () => {
   const gone = await h.post(
     '/api/leads',
-    { name: 'Lead excluído', instagram: '@rel.gone', incomeBand: 'R5_8K', tier: 'P0' },
+    {
+      name: 'Lead excluído',
+      instagram: '@rel.gone',
+      incomeBand: 'R5_8K',
+      source: 'BIO',
+      tier: 'P0',
+    },
     ale,
   );
   expect(gone.status).toBe(201);
@@ -206,7 +212,13 @@ describe('comparecimento (pedido do cliente de 04/11)', () => {
     ] as const) {
       const lead = await h.post(
         '/api/leads',
-        { name: `Comp ${key}`, instagram: `@comp.${key}`, incomeBand: 'R5_8K', tier },
+        {
+          name: `Comp ${key}`,
+          instagram: `@comp.${key}`,
+          incomeBand: 'R5_8K',
+          source: 'BIO',
+          tier,
+        },
         ale,
       );
       ids[key] = lead.body.id;

@@ -90,7 +90,7 @@ export function RemoverConfirma({
             type="button"
             disabled={ocupado}
             onClick={() => void confirmar()}
-            className="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-rose-700 active:scale-[.98] disabled:opacity-50"
+            className="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-rose-700 active:scale-[.98] disabled:opacity-50"
           >
             Confirmar exclusão
           </button>

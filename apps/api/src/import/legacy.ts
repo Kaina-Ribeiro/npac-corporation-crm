@@ -1,4 +1,6 @@
 import {
+  LEAD_SOURCE_LABELS,
+  LEAD_SOURCE_OPTIONS,
   normalizeInstagram,
   normalizePhoneBR,
   type IncomeBand,
@@ -111,6 +113,9 @@ export function stageKey(v: unknown): StageKey | null {
 
 export function source(v: unknown): LeadSource {
   const text = plain(v);
+  // Texto igual ao de uma origem da lista atual ("Sala Secreta", "pdf 10"…) vira ela.
+  const exact = LEAD_SOURCE_OPTIONS.find((s) => plain(LEAD_SOURCE_LABELS[s]) === text);
+  if (exact) return exact;
   if (text.includes('insta')) return 'INSTAGRAM';
   if (text.includes('whats') || text.includes('zap')) return 'WHATSAPP';
   if (text.includes('indica')) return 'INDICACAO';

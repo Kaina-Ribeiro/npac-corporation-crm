@@ -51,6 +51,7 @@ beforeEach(async () => {
       phone: '11987654321',
       instagram: '@lead.lembrete',
       incomeBand: 'R5_8K',
+      source: 'BIO',
       tier: 'P1',
     },
     ale,
