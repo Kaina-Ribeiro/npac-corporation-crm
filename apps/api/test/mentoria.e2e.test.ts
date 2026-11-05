@@ -1,5 +1,6 @@
 import { ModulesContainer } from '@nestjs/core';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
+import { MFA_LIGADO } from '@npac/shared';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { REQUIRES_MFA } from '../src/auth/requires-mfa.decorator.js';
 import { api, auditCount, closeTestApp, createTestApp, owner, resetAuthState } from './helpers.js';
@@ -56,7 +57,17 @@ describe('acesso', () => {
     }
   });
 
-  it('ACOMPANHAMENTO (carla) sem MFA recebe 403 MFA_REQUIRED', async () => {
+  it.skipIf(MFA_LIGADO)(
+    'MFA desligado: Carla e Diretoria usam o módulo sem autenticador',
+    async () => {
+      for (const email of ['carla@npac.com.br', 'ana@npac.com.br']) {
+        const s = await h.signIn(email);
+        expect((await h.get(LISTA, s)).status, email).toBe(200);
+      }
+    },
+  );
+
+  it.skipIf(!MFA_LIGADO)('ACOMPANHAMENTO (carla) sem MFA recebe 403 MFA_REQUIRED', async () => {
     const carla = await h.signIn('carla@npac.com.br');
     const res = await h.get(LISTA, carla);
     expect(res.status).toBe(403);
@@ -79,7 +90,7 @@ describe('acesso', () => {
     });
   });
 
-  it('DIRETOR sem MFA recebe 403; com MFA recebe 200', async () => {
+  it.skipIf(!MFA_LIGADO)('DIRETOR sem MFA recebe 403; com MFA recebe 200', async () => {
     const semMfa = await h.signIn('ana@npac.com.br');
     const r = await h.get(LISTA, semMfa);
     expect(r.status).toBe(403);

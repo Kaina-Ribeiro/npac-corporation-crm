@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { hasCommercialAccess, isLeader } from '@npac/shared/enums';
+import { hasCommercialAccess, isLeader, MFA_LIGADO } from '@npac/shared/enums';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -43,10 +43,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <Link href="/conta/senha" className="underline-offset-2 hover:text-ink hover:underline">
           Trocar senha
         </Link>
-        ·
-        <Link href="/conta/mfa" className="underline-offset-2 hover:text-ink hover:underline">
-          Autenticador
-        </Link>
+        {MFA_LIGADO && (
+          <>
+            ·
+            <Link href="/conta/mfa" className="underline-offset-2 hover:text-ink hover:underline">
+              Autenticador
+            </Link>
+          </>
+        )}
       </small>
     </span>
   );
