@@ -4,9 +4,10 @@ import { useState } from 'react';
 import { EnviarArquivo, MidiaCartao } from './midia';
 import { Topicos } from './ficha-lado-a-lado';
 
-const caixa =
-  'field w-full text-sm text-ink dark:!bg-white/10 transition-shadow focus:shadow-[0_0_0_3px_rgba(0,0,0,.06)]';
-const area = `${caixa} min-h-24 resize-y leading-relaxed`;
+/** Campo discreto (`.campo-quieto` em globals.css): sem caixa em repouso, cresce com o texto. */
+const quieto = 'campo-quieto';
+const legenda = 'block px-2.5 text-[11px] font-semibold tracking-[0.06em] text-ink3 uppercase';
+const legendaFim = `${legenda} !text-emerald-700 dark:!text-emerald-300`;
 
 /** Campo que guarda o texto local e salva ao sair, só se mudou (regra 2). */
 export function useCampo(inicial: string | null, salvar: (v: string | null) => void) {
@@ -49,6 +50,21 @@ const estrela = (
   </svg>
 );
 
+function Seta({ className = '' }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className={`size-3.5 flex-none text-ink3 ${className}`}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden="true"
+    >
+      <path d="M5 12h14M13 6l6 6-6 6" />
+    </svg>
+  );
+}
+
 /**
  * Um ponto da linha vertical: nó (número ou ícone) no fio à esquerda, título e subtítulo na
  * mesma linha. `tom` dá a cor: início dourado, meio neutro, fim verde (fio em degradê no CSS).
@@ -80,9 +96,34 @@ function NoLinha({
   );
 }
 
+/** Foto de antes/depois em miniatura (96 px) com o envio atual. */
+function Miniatura({
+  foto,
+  rotulo,
+  onEnviar,
+  onTirar,
+}: {
+  foto: MidiaDTO | undefined;
+  rotulo: string;
+  onEnviar: (a: File) => Promise<void>;
+  onTirar: (m: MidiaDTO) => void;
+}) {
+  return foto ? (
+    <MidiaCartao m={foto} rotulo={rotulo} altura="h-24" onRemover={() => onTirar(foto)} />
+  ) : (
+    <EnviarArquivo
+      rotulo={`Enviar ${rotulo}`}
+      aceita="image/jpeg,image/png,image/webp"
+      altura="h-24"
+      onArquivo={onEnviar}
+    />
+  );
+}
+
 /**
- * Visão "Linha do tempo" da ficha (Módulo 2): edição direta nas caixas, salva ao sair do campo
- * pela fila (version da ficha, D5). Fotos e mídias com "×" que remove na hora.
+ * Visão "Linha do tempo" da ficha (Módulo 2): uma linha vertical do Momento inicial ao Depois da
+ * mentoria. Edição direta nos campos, salva ao sair pela fila (version da ficha, D5). Fotos e
+ * mídias com "×" que remove na hora.
  */
 export function FichaLinha({
   f,
@@ -110,47 +151,40 @@ export function FichaLinha({
           titulo="Momento inicial"
           sub={`Como chegou · ${f.dataInicioTexto ?? 'sem data'}`}
         >
-          <div className="grid gap-4 lg:grid-cols-3">
-            <div className="glass-card flex flex-col gap-3 p-4">
-              <span className="text-xs font-semibold tracking-[0.06em] text-ink3 uppercase">
-                Foto de antes
-              </span>
-              {fotoAntes ? (
-                <MidiaCartao
-                  m={fotoAntes}
-                  rotulo="foto de antes"
-                  onRemover={() => tirar(fotoAntes)}
-                />
-              ) : (
-                <EnviarArquivo
-                  rotulo="Enviar foto de antes"
-                  aceita="image/jpeg,image/png,image/webp"
-                  altura="h-44"
-                  onArquivo={(a) => anexar('ficha-antes', f.id, a)}
-                />
-              )}
-              <label className="flex flex-col gap-1.5 text-xs font-semibold text-ink2">
-                Data de início
+          <div className="glass-card flex flex-col gap-4 p-4 sm:flex-row md:p-5">
+            <div className="flex flex-col gap-2 sm:w-24 sm:flex-none">
+              <Miniatura
+                foto={fotoAntes}
+                rotulo="foto de antes"
+                onEnviar={(a) => anexar('ficha-antes', f.id, a)}
+                onTirar={tirar}
+              />
+              <div className="flex flex-col gap-0.5 sm:-mx-2.5">
+                <span className={legenda} aria-hidden="true">
+                  Início
+                </span>
                 <input
                   aria-label="Data de início"
                   placeholder="DD/MM/AAAA"
+                  inputMode="numeric"
                   aria-invalid={dataRuim || undefined}
-                  className={`${caixa} ${dataRuim ? '!shadow-[0_0_0_1px_rgba(225,29,72,.5)]' : ''}`}
+                  className={`${quieto} tabular-nums`}
                   {...dataInicio}
                 />
-              </label>
+              </div>
             </div>
-            <div className="glass-card flex flex-col gap-2 p-4 lg:col-span-2">
-              <span className="text-xs font-semibold tracking-[0.06em] text-ink3 uppercase">
+            <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+              <span className={legenda} aria-hidden="true">
                 Notas livres
               </span>
               <textarea
                 aria-label="Notas do momento inicial"
-                className={`${area} min-h-40`}
+                placeholder="Adicionar…"
+                className={quieto}
                 {...notasIni}
               />
               <ComoFica notas={notasIni.value} />
-              <span className="text-xs text-ink3">
+              <span className="px-2.5 text-xs text-ink3">
                 Profissão, como conheceu a mentoria, o que buscava, disciplina, comunicação, sonhos,
                 se guardava ou investia dinheiro. Cada linha (cada Enter) vira um tópico;
                 &quot;Rótulo: texto&quot; destaca o rótulo. Salva ao sair do campo.
@@ -165,7 +199,7 @@ export function FichaLinha({
           titulo="Os 4 pilares"
           sub="Fé, saúde, dinheiro e relacionamentos · antes e hoje"
         >
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-3 md:grid-cols-2">
             {f.pilares.map((p) => (
               <Pilar
                 key={p.chave}
@@ -184,12 +218,6 @@ export function FichaLinha({
           sub="Antes → depois · valores como vieram da fonte"
         >
           <div className="glass-card overflow-hidden">
-            <div className="hidden grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_20px_minmax(0,1fr)] gap-3 border-b border-line bg-black/[0.03] px-4 py-2 text-xs text-ink3 md:grid dark:bg-white/[0.03]">
-              <span>Item</span>
-              <span>Antes</span>
-              <span />
-              <span>Depois</span>
-            </div>
             <ul className="divide-y divide-line">
               {f.evolucao.map((e) => (
                 <Evolucao
@@ -204,46 +232,38 @@ export function FichaLinha({
         </NoLinha>
 
         <NoLinha tom="fim" marca="4" titulo="Depois da mentoria" sub="Como está agora">
-          <div className="grid gap-4 lg:grid-cols-3">
-            <div className="glass-card flex flex-col gap-3 p-4">
-              <span className="text-xs font-semibold tracking-[0.06em] text-amber-700 uppercase dark:text-amber-300">
-                Foto de depois
-              </span>
-              {fotoDepois ? (
-                <MidiaCartao
-                  m={fotoDepois}
-                  rotulo="foto de depois"
-                  onRemover={() => tirar(fotoDepois)}
-                />
-              ) : (
-                <EnviarArquivo
-                  rotulo="Enviar foto de depois"
-                  aceita="image/jpeg,image/png,image/webp"
-                  altura="h-44"
-                  onArquivo={(a) => anexar('ficha-depois', f.id, a)}
-                />
-              )}
-              <label className="flex flex-col gap-1.5 text-xs font-semibold text-ink2">
-                Tempo de mentoria
+          <div className="glass-card flex flex-col gap-4 p-4 sm:flex-row md:p-5">
+            <div className="flex flex-col gap-2 sm:w-24 sm:flex-none">
+              <Miniatura
+                foto={fotoDepois}
+                rotulo="foto de depois"
+                onEnviar={(a) => anexar('ficha-depois', f.id, a)}
+                onTirar={tirar}
+              />
+              <div className="flex flex-col gap-0.5 sm:-mx-2.5">
+                <span className={legendaFim} aria-hidden="true">
+                  Tempo
+                </span>
                 <input
                   aria-label="Tempo de mentoria"
                   placeholder="ex.: 8 meses"
-                  className={caixa}
+                  className={quieto}
                   {...tempo}
                 />
-              </label>
+              </div>
             </div>
-            <div className="glass-card flex flex-col gap-2 p-4 lg:col-span-2">
-              <span className="text-xs font-semibold tracking-[0.06em] text-amber-700 uppercase dark:text-amber-300">
+            <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+              <span className={legendaFim} aria-hidden="true">
                 Notas do momento atual
               </span>
               <textarea
                 aria-label="Notas do momento atual"
-                className={`${area} min-h-40`}
+                placeholder="Adicionar notas do momento atual"
+                className={quieto}
                 {...notasAtual}
               />
               <ComoFica notas={notasAtual.value} />
-              <span className="text-xs text-ink3">
+              <span className="px-2.5 text-xs text-ink3">
                 Cada linha vira um tópico. &quot;Rótulo: texto&quot; destaca o rótulo. Salva ao sair
                 do campo.
               </span>
@@ -257,7 +277,7 @@ export function FichaLinha({
           titulo="Galeria de conquistas"
           sub="Fotos ou vídeos com data e descrição · do mais antigo ao mais recente"
         >
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 2xl:grid-cols-4">
             {f.conquistas.map((c) => (
               <Conquista
                 key={c.id}
@@ -273,7 +293,7 @@ export function FichaLinha({
             <button
               type="button"
               onClick={() => void novaConquista()}
-              className="flex min-h-40 flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-line px-4 text-center text-sm font-semibold text-ink2 hover:bg-black/[0.03] active:scale-[.99] dark:hover:bg-white/[0.04]"
+              className="flex min-h-32 flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-line px-3 text-center text-sm font-semibold text-ink2 transition-[background-color,scale] duration-[var(--dur)] hover:bg-black/[0.03] active:scale-[.99] dark:hover:bg-white/[0.04]"
             >
               <svg
                 viewBox="0 0 24 24"
@@ -297,63 +317,79 @@ export function FichaLinha({
   );
 }
 
+/** Pilar: card com o nome e "Antes" → "Hoje", um embaixo do outro (a seta não empurra o texto). */
 function Pilar({
   p,
   onAntes,
   onDepois,
 }: {
   p: FichaDetalhe['pilares'][number];
-  onAntes: (v: string | null) => void;
-  onDepois: (v: string | null) => void;
+  onAntes: Salvar;
+  onDepois: Salvar;
 }) {
   const antes = useCampo(p.antes, onAntes);
   const depois = useCampo(p.depois, onDepois);
   return (
-    <div className="glass-card flex flex-col gap-3 p-4">
-      <h3 className="text-sm font-bold">{p.rotulo}</h3>
-      <label className="flex flex-col gap-1.5 text-xs font-semibold text-ink3">
-        Antes
-        <textarea aria-label={`${p.rotulo} antes`} className={area} {...antes} />
-      </label>
-      <label className="flex flex-col gap-1.5 text-xs font-semibold text-ink3">
-        Hoje
-        <textarea aria-label={`${p.rotulo} hoje`} className={area} {...depois} />
-      </label>
+    <div className="glass-card flex flex-col gap-2 p-4">
+      <h3 className="px-2.5 text-sm font-bold">{p.rotulo}</h3>
+      <div className="grid grid-cols-[3.75rem_minmax(0,1fr)] items-baseline gap-x-1 gap-y-1">
+        <span className="pl-2.5 text-xs font-semibold text-ink3" aria-hidden="true">
+          Antes
+        </span>
+        <textarea
+          aria-label={`${p.rotulo} antes`}
+          placeholder="Adicionar antes"
+          className={quieto}
+          {...antes}
+        />
+        <span
+          className="flex items-center gap-1 pl-2.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300"
+          aria-hidden="true"
+        >
+          <Seta className="!size-3 !text-current" />
+          Hoje
+        </span>
+        <textarea
+          aria-label={`${p.rotulo} hoje`}
+          placeholder="Adicionar hoje"
+          className={`${quieto} font-semibold`}
+          {...depois}
+        />
+      </div>
     </div>
   );
 }
 
+/** Uma linha "rótulo: antes → depois"; no celular o rótulo fica em cima. */
 function Evolucao({
   e,
   onAntes,
   onDepois,
 }: {
   e: FichaDetalhe['evolucao'][number];
-  onAntes: (v: string | null) => void;
-  onDepois: (v: string | null) => void;
+  onAntes: Salvar;
+  onDepois: Salvar;
 }) {
   const antes = useCampo(e.antes, onAntes);
   const depois = useCampo(e.depois, onDepois);
   return (
-    <li className="grid gap-2 px-4 py-3 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_20px_minmax(0,1fr)] md:items-center md:gap-3">
-      <span className="text-sm font-semibold">{e.rotulo}</span>
-      <input aria-label={`${e.rotulo} antes`} placeholder="Antes" className={caixa} {...antes} />
-      <svg
-        viewBox="0 0 24 24"
-        className="hidden size-4 text-ink3 md:block"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        aria-hidden="true"
-      >
-        <path d="M5 12h14M13 6l6 6-6 6" />
-      </svg>
-      <input
-        aria-label={`${e.rotulo} depois`}
-        placeholder="Depois"
-        className={`${caixa} font-semibold`}
-        {...depois}
-      />
+    <li className="grid gap-1 px-4 py-2.5 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] md:items-center md:gap-3">
+      <span className="px-2.5 text-sm font-semibold md:px-0">{e.rotulo}</span>
+      <div className="grid grid-cols-[minmax(0,1fr)_14px_minmax(0,1fr)] items-center gap-1.5">
+        <input
+          aria-label={`${e.rotulo} antes`}
+          placeholder="Adicionar antes"
+          className={quieto}
+          {...antes}
+        />
+        <Seta />
+        <input
+          aria-label={`${e.rotulo} depois`}
+          placeholder="Adicionar depois"
+          className={`${quieto} font-semibold`}
+          {...depois}
+        />
+      </div>
     </li>
   );
 }
@@ -369,8 +405,8 @@ function Conquista({
 }: {
   c: FichaDetalhe['conquistas'][number];
   midias: MidiaDTO[];
-  onData: (v: string | null) => void;
-  onDescricao: (v: string | null) => void;
+  onData: Salvar;
+  onDescricao: Salvar;
   onAnexar: (a: File) => Promise<void>;
   onTirar: (m: MidiaDTO) => void;
   onRemover: () => void;
@@ -379,31 +415,38 @@ function Conquista({
   const desc = useCampo(c.descricao, onDescricao);
   const ruim = !!data.value.trim() && !parseData(data.value).data;
   return (
-    <div className="glass-card flex flex-col gap-2 p-3">
+    <div className="glass-card flex flex-col gap-1.5 p-2.5">
       {midias.map((m) => (
-        <MidiaCartao key={m.id} m={m} rotulo="mídia da conquista" onRemover={() => onTirar(m)} />
+        <MidiaCartao
+          key={m.id}
+          m={m}
+          rotulo="mídia da conquista"
+          altura="h-32"
+          onRemover={() => onTirar(m)}
+        />
       ))}
       {midias.length === 0 && (
-        <EnviarArquivo rotulo="Enviar foto ou vídeo" altura="h-28" onArquivo={onAnexar} />
+        <EnviarArquivo rotulo="Enviar foto ou vídeo" altura="h-32" onArquivo={onAnexar} />
       )}
       <input
         aria-label="Data da conquista"
         placeholder="DD/MM/AAAA"
+        inputMode="numeric"
         aria-invalid={ruim || undefined}
-        className={caixa}
+        className={`${quieto} tabular-nums text-xs`}
         {...data}
       />
       <input
         aria-label="Descrição da conquista"
-        placeholder="Descrição"
-        className={`${caixa} font-semibold`}
+        placeholder="Adicionar…"
+        className={`${quieto} font-semibold`}
         {...desc}
       />
       <button
         type="button"
         onClick={onRemover}
         aria-label="Remover conquista"
-        className="self-end rounded-lg px-2 py-1 text-xs font-semibold text-ink3 hover:bg-rose-500/10 hover:text-rose-700"
+        className="self-end rounded-lg px-2 py-1 text-xs font-semibold text-ink3 transition-colors duration-[var(--dur-fast)] hover:bg-rose-500/10 hover:text-rose-700 dark:hover:text-rose-300"
       >
         Remover
       </button>

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useFieldSaver } from '@/lib/acompanhamento-saver';
+import { dangerButton, quietButton } from '@/lib/button';
 import { clientApi } from '@/lib/client-api';
 import { FormError } from '@/components/crm-ui';
 import { iniciais } from './fichas-lista';
@@ -182,18 +183,14 @@ export function FichaView({ inicial, extra }: { inicial: FichaDetalhe; extra?: R
               </button>
             ))}
           </div>
-          <button
-            type="button"
-            onClick={imprimir}
-            className="rounded-xl border border-line px-3 py-2 text-sm font-semibold active:scale-[.98]"
-          >
+          <button type="button" onClick={imprimir} className={quietButton}>
             Exportar PDF
           </button>
           {extra}
           <button
             type="button"
             onClick={() => setRemover({ kind: 'ficha', id: f.id })}
-            className="rounded-xl px-3 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-500/10 active:scale-[.98] dark:text-rose-300"
+            className={dangerButton}
           >
             Remover ficha
           </button>

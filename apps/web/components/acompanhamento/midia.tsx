@@ -44,10 +44,13 @@ export async function removerMidia(id: string): Promise<void> {
 export function MidiaCartao({
   m,
   rotulo,
+  altura = 'h-44',
   onRemover,
 }: {
   m: MidiaDTO;
   rotulo: string;
+  /** Altura da foto (classe Tailwind); miniaturas da ficha usam menos. */
+  altura?: string;
   onRemover: () => void;
 }) {
   const src = `/api/mentoria/midia/${m.id}`;
@@ -55,7 +58,7 @@ export function MidiaCartao({
     <div className="group relative overflow-hidden rounded-2xl border border-line bg-black/[0.03] dark:bg-white/[0.04]">
       {m.tipo === 'FOTO' ? (
         // Stream autenticado da API: <img> simples, sem o otimizador do Next.
-        <img src={src} alt={rotulo} className="h-44 w-full object-cover" />
+        <img src={src} alt={rotulo} className={`${altura} w-full object-cover`} />
       ) : (
         <a
           href={m.tipo === 'LINK_VIDEO' ? (m.urlVideo ?? '#') : src}

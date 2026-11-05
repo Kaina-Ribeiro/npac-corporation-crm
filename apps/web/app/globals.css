@@ -1247,6 +1247,73 @@ html[data-dash-dragging] * {
   }
 }
 
+/* Campo discreto da ficha (NPAC-36): em repouso é texto (sem borda nem fundo); vazio mostra só o
+   placeholder em 1 linha. Hover (só mouse) dá um fundo leve; foco = fundo e anel do `.field`.
+   A altura acompanha o texto (`field-sizing`); sem suporte, 3 linhas e alça de redimensionar. */
+@layer components {
+  .campo-quieto {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    border: 0;
+    border-radius: 10px;
+    padding: 6px 10px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--ink);
+    background: transparent;
+    box-shadow:
+      inset 0 0 0 1px transparent,
+      0 0 0 4px transparent;
+    resize: none;
+    transition:
+      background-color var(--dur) var(--ease-out),
+      box-shadow var(--dur) var(--ease-out);
+  }
+  textarea.campo-quieto {
+    field-sizing: content;
+    min-height: calc(1.5em + 12px);
+  }
+  .campo-quieto::placeholder {
+    color: var(--ink3);
+    opacity: 1;
+    font-weight: 400;
+  }
+  @media (hover: hover) {
+    .campo-quieto:hover {
+      background: rgba(0, 0, 0, 0.035);
+    }
+    .dark .campo-quieto:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+  }
+  .campo-quieto:focus,
+  .campo-quieto:focus-visible {
+    outline: none;
+    background: rgba(255, 255, 255, 0.85);
+    box-shadow:
+      inset 0 0 0 1px var(--gold-ring),
+      0 0 0 4px rgba(194, 146, 46, 0.18);
+  }
+  .dark .campo-quieto:focus,
+  .dark .campo-quieto:focus-visible {
+    background: rgba(255, 255, 255, 0.1);
+  }
+  .campo-quieto[aria-invalid='true'] {
+    box-shadow:
+      inset 0 0 0 1px rgba(225, 29, 72, 0.5),
+      0 0 0 4px transparent;
+  }
+  @supports not (field-sizing: content) {
+    textarea.campo-quieto {
+      min-height: calc(4.5em + 12px);
+      resize: vertical;
+    }
+  }
+}
+
 /* Lembrete de reunião que acabou de entrar na etapa (NPAC-26). */
 .reminder-pop {
   animation: dash-pop 0.45s var(--ease-spring) both;
