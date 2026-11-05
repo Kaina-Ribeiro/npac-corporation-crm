@@ -5,9 +5,13 @@ export type NavItem = {
   icon: React.ReactNode;
   /** Prefixo que deixa o item ativo, quando difere do href (ex.: todas as telas do módulo). */
   match?: string;
+  /** Título de grupo mostrado na sidebar antes do primeiro item da seção. */
+  section?: 'Acompanhamento' | 'Dados';
+  /** Sub-itens (módulo do Acompanhamento para a Diretoria): abrem dentro de `match`. */
+  children?: NavItem[];
 };
 
-const svg = (d: React.ReactNode) => (
+export const svg = (d: React.ReactNode) => (
   <svg
     viewBox="0 0 24 24"
     fill="none"
@@ -91,23 +95,6 @@ export const ACOMPANHAMENTO_ITEM: NavItem = {
   ready: true,
   icon: ICONS.acompanhamento,
 };
-
-/**
- * Itens da sidebar e do Ctrl+K para a pessoa. Quem não usa o comercial (cargo Acompanhamento)
- * vê só o módulo (Gabriel, 05/11/2026; substitui o "mesmo menu para todos" da D23).
- */
-export function navItems(opts: {
-  head: boolean;
-  mentoria: boolean;
-  commercial?: boolean;
-}): NavItem[] {
-  if (opts.commercial === false) return opts.mentoria ? [ACOMPANHAMENTO_ITEM] : [];
-  return [
-    ...SIDEBAR_ITEMS,
-    ...(opts.mentoria ? [ACOMPANHAMENTO_ITEM] : []),
-    ...(opts.head ? [ADMIN_ITEM] : []),
-  ];
-}
 
 /** Mobile: os quatro primeiros da sidebar, na mesma ordem, + Mais (Dashboard sempre primeiro). */
 export const BOTTOM_ITEMS: NavItem[] = [

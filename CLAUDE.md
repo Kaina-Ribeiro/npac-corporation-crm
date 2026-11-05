@@ -40,7 +40,9 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   `access-requests.ts` · SSE `api/events/events.controller.ts` · import Firebase `api/import/*` ·
   push (Web Push) e despertador dos lembretes `api/push/*` ·
   mock do protótipo `api/dev/mock-prototype.ts`
-- **Web:** layout/sidebar/bottom nav `web/app/(app)/layout.tsx`, `web/components/shell/*` · login,
+- **Web:** layout/sidebar/bottom nav `web/app/(app)/layout.tsx`, `web/components/shell/*` (menu da
+  sidebar e do Ctrl+K, grupos e sub-itens do Acompanhamento: `shell/nav-menu.tsx`, só servidor, para
+  não pesar no JS; `nav-items.tsx` vai ao cliente pela barra inferior) · classes de botão `lib/button.ts` · login,
   pedir acesso `web/components/login/*` · senha/MFA `components/conta/*`, `app/(conta)/*` · API
   server/client `web/lib/api.ts` / `lib/client-api.ts` · sessão (`getSession`, `pendingStep`)
   `web/lib/session.ts` · UI base (`Field`, `button`, `StageOptions`) `components/crm-ui.tsx` ·

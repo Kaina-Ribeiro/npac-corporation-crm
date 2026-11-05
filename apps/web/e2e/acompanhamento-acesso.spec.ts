@@ -27,6 +27,9 @@ async function login(page: Page, email: string, mfa = true) {
   if (mfa) await owner`update "user" set two_factor_enabled = true where email = ${email}`;
 }
 
+/** Sub-itens do módulo, na ordem das antigas abas do topo. */
+const MODULOS = ['Dashboard', 'Linha do tempo', 'Linha do tempo RDV', 'Importação e backup'];
+
 const sidebarLinks = (page: Page) =>
   page.getByRole('navigation', { name: 'Navegação lateral' }).getByRole('link').allInnerTexts();
 
@@ -35,10 +38,12 @@ test('Carla vê só o Acompanhamento na sidebar, na tela Mais e no Ctrl+K', asyn
   await page.waitForURL(/\/acompanhamento\/dashboard/);
   await expect(
     page.getByRole('navigation', { name: 'Navegação lateral' }).getByRole('link'),
-  ).toHaveText(['Acompanhamento']);
+  ).toHaveText(MODULOS);
   await page.keyboard.press('Control+k');
   const opcoes = page.getByRole('option');
-  await expect(opcoes.filter({ hasText: 'Acompanhamento' })).not.toHaveCount(0);
+  await expect(opcoes.filter({ hasText: 'Acompanhamento · Linha do tempo RDV' })).toHaveCount(1);
+  for (const nome of MODULOS)
+    await expect(opcoes.filter({ hasText: `Acompanhamento · ${nome}` })).not.toHaveCount(0);
   for (const nome of ['Leads', 'Pipeline', 'Chat', 'Equipe'])
     await expect(opcoes.filter({ hasText: nome })).toHaveCount(0);
   await page.keyboard.press('Escape');
@@ -113,7 +118,7 @@ test('Carla navega no módulo e nunca chega numa tela comercial (Link, URL ou 40
   await expect(page.getByText('Esta tela não faz parte do seu acesso.')).toBeVisible();
   await expect(
     page.getByRole('navigation', { name: 'Navegação lateral' }).getByRole('link'),
-  ).toHaveText(['Acompanhamento']);
+  ).toHaveText(MODULOS);
   await page.getByRole('link', { name: 'Ir para o Acompanhamento' }).click();
   await page.waitForURL(/\/acompanhamento\/dashboard/);
   await expect(page.getByRole('heading', { name: 'Dashboard', exact: true })).toBeVisible();

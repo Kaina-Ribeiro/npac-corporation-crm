@@ -125,8 +125,31 @@ test('RDV no celular: "+" abre Novo mentorado; ficha e gaveta sem overflow em 37
   await semOverflow(page);
 });
 
-test('desktop: sem abas no rodapé; abas do módulo no topo', async ({ page }) => {
+test('desktop: sem abas no rodapé nem no topo; "Tudo salvo" no cabeçalho de cada tela', async ({
+  page,
+}) => {
   await abrir(page, '/acompanhamento/dashboard', 1280);
   await expect(abas(page)).toBeHidden();
-  await expect(page.getByRole('navigation', { name: 'Módulos do acompanhamento' })).toBeVisible();
+  // Os módulos ficam na sidebar: sem a barra de abas e sem o sobretítulo.
+  await expect(page.getByRole('navigation', { name: 'Módulos do acompanhamento' })).toHaveCount(0);
+  await expect(page.getByText('Acompanhamento de mentorados', { exact: true })).toHaveCount(0);
+  const salvo = page.getByRole('status').filter({ hasText: 'Tudo salvo' });
+  await expect(salvo).toHaveCount(1);
+  await expect(
+    page.locator('header').filter({ has: page.getByRole('heading', { name: 'Dashboard' }) }),
+  ).toContainText('Tudo salvo');
+  // Ficha da Linha do tempo (sem H1): o indicador numa linha própria no topo.
+  await page
+    .getByRole('navigation', { name: 'Navegação lateral' })
+    .getByRole('link', { name: 'Linha do tempo', exact: true })
+    .click();
+  await page.waitForURL(/\/acompanhamento\/linha-do-tempo$/);
+  await expect(salvo).toHaveCount(1);
+  await page
+    .getByRole('link', { name: /Mentorado Fictício 80/ })
+    .first()
+    .click();
+  await page.waitForURL(new RegExp(FICHA));
+  await expect(salvo).toHaveCount(1);
+  await expect(salvo).toBeVisible();
 });
