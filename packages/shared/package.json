@@ -18,6 +18,10 @@
       "types": "./dist/mentoria/index.d.ts",
       "default": "./dist/mentoria/index.js"
     },
+    "./permissions": {
+      "types": "./dist/permissions.d.ts",
+      "default": "./dist/permissions.js"
+    },
     "./money": {
       "types": "./dist/money.d.ts",
       "default": "./dist/money.js"

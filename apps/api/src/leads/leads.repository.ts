@@ -45,6 +45,7 @@ export interface LeadRow {
   paymentAmountCents: number | null;
   lostReason: LostReason | null;
   lostReasonOther: string | null;
+  saleToRegister: boolean;
   version: number;
   createdAt: Date;
 }
@@ -179,6 +180,8 @@ export class LeadsRepository {
         paymentAmountCents: leads.paymentAmountCents,
         lostReason: leads.lostReason,
         lostReasonOther: leads.lostReasonOther,
+        // Venda a registrar (NPAC-39): em Venda sem venda ativa; função do banco (0038).
+        saleToRegister: sql<boolean>`lead_sale_pending(${leads.id})`,
         version: leads.version,
         createdAt: leads.createdAt,
       })

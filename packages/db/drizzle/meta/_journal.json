@@ -267,6 +267,13 @@
       "when": 1793910011282,
       "tag": "0037_campos_por_etapa",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1793915841343,
+      "tag": "0038_venda_a_registrar",
+      "breakpoints": true
     }
   ]
 }

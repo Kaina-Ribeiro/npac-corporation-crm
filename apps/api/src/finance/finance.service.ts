@@ -16,13 +16,123 @@ import {
   user,
   withUser,
   type Db,
+  type Tx,
 } from '@npac/db';
 import type { AuthUser } from '@npac/shared';
-import { and, asc, desc, eq, isNull, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { DB } from '../common/db/db.module.js';
 import { recordActivity } from '../leads/activity.js';
 import { lockLead } from '../leads/lead-mutations.service.js';
 import type { SaleInput } from './schemas.js';
+
+/** O que o registro de venda pede (ficha e cadastro em Venda Fechada). */
+export type SaleCore = Pick<
+  SaleInput,
+  'productId' | 'closerId' | 'totalCents' | 'method' | 'entryCents' | 'installments' | 'requestKey'
+>;
+
+/**
+ * Grava venda, entrada e parcelas na transação de quem chama (que já travou o lead e conferiu a
+ * idempotência). `closedAt`: dia da venda informado no cadastro (NPAC-39); a entrada é recebida
+ * nesse instante. Não mexe no lead: devolve a etapa Venda para quem chama.
+ */
+export async function insertSale(
+  tx: Tx,
+  u: AuthUser,
+  lead: { id: string; sdrId: string; stageId: string },
+  input: SaleCore,
+  hash: string,
+  closedAt?: Date,
+) {
+  if (u.role === 'CLOSER' && input.closerId !== u.id) throw new ForbiddenException();
+  const [product] = await tx
+    .select({ id: products.id, name: products.name, priceCents: products.priceCents })
+    .from(products)
+    .innerJoin(user, eq(user.id, products.closerId))
+    .where(
+      and(
+        eq(products.id, input.productId),
+        eq(products.closerId, input.closerId),
+        eq(products.active, true),
+        eq(user.active, true),
+        eq(user.canClose, true),
+      ),
+    );
+  if (!product) throw new BadRequestException('Produto/closer inválido');
+  const direct = input.method === 'CARD' || input.method === 'PIX';
+  if (
+    direct
+      ? input.installments.length > 0 || input.entryCents !== 0
+      : input.installments.length === 0 ||
+        input.entryCents + input.installments.reduce((a, p) => a + p.amountCents, 0) !==
+          input.totalCents ||
+        input.installments.some((p) => p.dueAt.getTime() <= Date.now()) ||
+        (input.method === 'PARTIAL'
+          ? input.entryCents <= 0 || input.entryCents >= input.totalCents
+          : input.entryCents !== 0)
+  )
+    throw new BadRequestException(
+      'Entrada e parcelas precisam fechar o total; vencimentos devem ser futuros',
+    );
+  const [existing] = await tx
+    .select({ id: deals.id })
+    .from(deals)
+    .where(and(eq(deals.leadId, lead.id), isNull(deals.reversedAt)));
+  if (existing) throw new ConflictException('Este lead já tem uma venda ativa');
+  const stages = await tx
+    .select({ id: pipelineStages.id, key: pipelineStages.key })
+    .from(pipelineStages)
+    .where(inArray(pipelineStages.key, ['VENDA', 'EM_FOLLOW']));
+  const venda = stages.find((s) => s.key === 'VENDA');
+  if (!venda) throw new BadRequestException('Etapa de venda não configurada');
+  // Venda a registrar (já em Venda) não tem etapa anterior real: o estorno volta para Em follow.
+  const previousStageId =
+    lead.stageId === venda.id
+      ? (stages.find((s) => s.key === 'EM_FOLLOW')?.id ?? null)
+      : lead.stageId;
+  const when = closedAt ?? new Date();
+  const [d] = await tx
+    .insert(deals)
+    .values({
+      leadId: lead.id,
+      productId: product.id,
+      productName: product.name,
+      catalogPriceCents: product.priceCents,
+      closerId: input.closerId,
+      sdrId: lead.sdrId,
+      totalCents: input.totalCents,
+      method: input.method,
+      requestKey: input.requestKey,
+      requestHash: hash,
+      previousStageId,
+      createdBy: u.id,
+      closedAt: when,
+    })
+    .returning();
+  const entry = direct ? input.totalCents : input.entryCents;
+  if (entry)
+    await tx.insert(payments).values({
+      dealId: d!.id,
+      amountCents: entry,
+      dueAt: when,
+      paidAt: when,
+      paidBy: u.id,
+      receiptKey: randomUUID(),
+    });
+  if (input.installments.length)
+    await tx.insert(payments).values(
+      input.installments.map((p) => ({
+        dealId: d!.id,
+        amountCents: p.amountCents,
+        dueAt: p.dueAt,
+      })),
+    );
+  return { id: d!.id, stageId: venda.id };
+}
+
+/** Hash do pedido para a idempotência por `requestKey`. */
+export const requestHash = (input: unknown) =>
+  createHash('sha256').update(JSON.stringify(input)).digest('hex');
 
 @Injectable()
 export class FinanceService {
@@ -69,7 +179,7 @@ export class FinanceService {
       await tx.execute(
         sql`select pg_advisory_xact_lock(hashtextextended(${`sale:${input.requestKey}`},0))`,
       );
-      const hash = createHash('sha256').update(JSON.stringify(input)).digest('hex');
+      const hash = requestHash(input);
       const [retry] = await tx.select().from(deals).where(eq(deals.requestKey, input.requestKey));
       if (retry) {
         if (retry.requestHash !== hash)
@@ -77,97 +187,22 @@ export class FinanceService {
         return { id: retry.id };
       }
       const lead = await lockLead(tx, input.leadId, input.version);
-      if (u.role === 'CLOSER' && input.closerId !== u.id) throw new ForbiddenException();
-      const [product] = await tx
-        .select({ id: products.id, name: products.name, priceCents: products.priceCents })
-        .from(products)
-        .innerJoin(user, eq(user.id, products.closerId))
-        .where(
-          and(
-            eq(products.id, input.productId),
-            eq(products.closerId, input.closerId),
-            eq(products.active, true),
-            eq(user.active, true),
-            eq(user.canClose, true),
-          ),
-        );
-      if (!product) throw new BadRequestException('Produto/closer inválido');
-      const direct = input.method === 'CARD' || input.method === 'PIX';
-      if (
-        direct
-          ? input.installments.length > 0 || input.entryCents !== 0
-          : input.installments.length === 0 ||
-            input.entryCents + input.installments.reduce((a, p) => a + p.amountCents, 0) !==
-              input.totalCents ||
-            input.installments.some((p) => p.dueAt.getTime() <= Date.now()) ||
-            (input.method === 'PARTIAL'
-              ? input.entryCents <= 0 || input.entryCents >= input.totalCents
-              : input.entryCents !== 0)
-      )
-        throw new BadRequestException(
-          'Entrada e parcelas precisam fechar o total; vencimentos devem ser futuros',
-        );
-      const [existing] = await tx
-        .select({ id: deals.id })
-        .from(deals)
-        .where(and(eq(deals.leadId, lead.id), isNull(deals.reversedAt)));
-      if (existing) throw new ConflictException('Este lead já tem uma venda ativa');
-      const [stage] = await tx
-        .select({ id: pipelineStages.id })
-        .from(pipelineStages)
-        .where(eq(pipelineStages.key, 'VENDA'));
-      if (!stage) throw new BadRequestException('Etapa de venda não configurada');
-      const [d] = await tx
-        .insert(deals)
-        .values({
-          leadId: lead.id,
-          productId: product.id,
-          productName: product.name,
-          catalogPriceCents: product.priceCents,
-          closerId: input.closerId,
-          sdrId: lead.sdrId,
-          totalCents: input.totalCents,
-          method: input.method,
-          requestKey: input.requestKey,
-          requestHash: hash,
-          previousStageId: lead.stageId,
-          createdBy: u.id,
-        })
-        .returning();
-      const now = new Date();
-      const entry = direct ? input.totalCents : input.entryCents;
-      if (entry)
-        await tx.insert(payments).values({
-          dealId: d!.id,
-          amountCents: entry,
-          dueAt: now,
-          paidAt: now,
-          paidBy: u.id,
-          receiptKey: randomUUID(),
-        });
-      if (input.installments.length)
-        await tx.insert(payments).values(
-          input.installments.map((p) => ({
-            dealId: d!.id,
-            amountCents: p.amountCents,
-            dueAt: p.dueAt,
-          })),
-        );
+      const d = await insertSale(tx, u, lead, input, hash);
       // Saiu de Agendou Pagamento (NPAC-38): o combinado vira a venda e deixa de ser estado do lead.
       await tx
         .update(leads)
         .set({
-          stageId: stage.id,
+          stageId: d.stageId,
           paymentProductId: null,
           paymentAmountCents: null,
           lostReason: null,
           lostReasonOther: null,
           version: lead.version + 1,
-          updatedAt: now,
+          updatedAt: new Date(),
         })
         .where(eq(leads.id, lead.id));
-      await recordActivity(tx, u, lead.id, 'sale.registered', [], d!.id);
-      return { id: d!.id };
+      await recordActivity(tx, u, lead.id, 'sale.registered', [], d.id);
+      return { id: d.id };
     });
   }
   receive(u: AuthUser, id: string, input: { version: number; requestKey: string }) {

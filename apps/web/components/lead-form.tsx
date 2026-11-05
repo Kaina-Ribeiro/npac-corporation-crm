@@ -1,5 +1,6 @@
 'use client';
 import {
+  can,
   leadCreateSchema,
   leadUpdateSchema,
   type LeadCatalog,
@@ -20,8 +21,10 @@ import {
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import { clientApi } from '@/lib/client-api';
+import { readSoldFields } from '@/lib/sold-fields';
 import { readStageFields } from '@/lib/stage-fields';
 import { button, control, Field, FormError, StageOptions } from './crm-ui';
+import { SoldFields } from './sold-fields';
 import { StageFields, type OpenMeeting } from './stage-fields';
 
 export function LeadForm({
@@ -52,6 +55,10 @@ export function LeadForm({
   // A etapa escolhida troca os campos (NPAC-38); na edição, só a troca pede os dados da etapa.
   const [stage, setStage] = useState<string>(lead?.stageKey ?? 'SONDAGEM');
   const changed = !lead || stage !== lead.stageKey;
+  // Venda Fechada só no cadastro (NPAC-39): reunião realizada + venda opcional.
+  const sold = !lead && stage === 'VENDA';
+  // Mesma chave nas novas tentativas: a API devolve o mesmo lead se a primeira já gravou.
+  const [saleKey] = useState(() => crypto.randomUUID());
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setBusy(true);
@@ -59,7 +66,9 @@ export function LeadForm({
     const form = new FormData(e.currentTarget);
     let stageBody;
     try {
-      stageBody = readStageFields(stage, form, { changed, withMeeting: !openMeeting });
+      stageBody = sold
+        ? readSoldFields(form, saleKey)
+        : readStageFields(stage, form, { changed, withMeeting: !openMeeting });
     } catch (err) {
       setError((err as Error).message);
       setBusy(false);
@@ -232,19 +241,31 @@ export function LeadForm({
             value={stage}
             onChange={(e) => setStage(e.target.value)}
           >
-            <StageOptions stages={catalog.stages} current={lead?.stageKey ?? 'SONDAGEM'} />
+            <StageOptions
+              stages={catalog.stages}
+              current={lead?.stageKey ?? 'SONDAGEM'}
+              allowSale={!lead}
+            />
           </select>
         </Field>
-        <StageFields
-          key={stage}
-          stage={stage}
-          changed={changed}
-          openMeeting={openMeeting}
-          team={catalog.team}
-          products={products}
-          role={me.role}
-          lead={lead}
-        />
+        {sold ? (
+          <SoldFields
+            team={catalog.team}
+            products={products}
+            canRegister={can(me, 'sale:register')}
+          />
+        ) : (
+          <StageFields
+            key={stage}
+            stage={stage}
+            changed={changed}
+            openMeeting={openMeeting}
+            team={catalog.team}
+            products={products}
+            role={me.role}
+            lead={lead}
+          />
+        )}
         {isLeader(me.role) && (
           <>
             <Field label="SDR responsável">
@@ -264,18 +285,21 @@ export function LeadForm({
                   ))}
               </select>
             </Field>
-            <Field label="Closer sugerido">
-              <select className={control} name="closerId" defaultValue={lead?.closer?.id ?? ''}>
-                <option value="">Sem sugestão</option>
-                {catalog.team
-                  .filter((u) => u.canClose)
-                  .map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.name}
-                    </option>
-                  ))}
-              </select>
-            </Field>
+            {/* Na Venda Fechada o closer do lead é o da reunião. */}
+            {!sold && (
+              <Field label="Closer sugerido">
+                <select className={control} name="closerId" defaultValue={lead?.closer?.id ?? ''}>
+                  <option value="">Sem sugestão</option>
+                  {catalog.team
+                    .filter((u) => u.canClose)
+                    .map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.name}
+                      </option>
+                    ))}
+                </select>
+              </Field>
+            )}
           </>
         )}
       </div>
