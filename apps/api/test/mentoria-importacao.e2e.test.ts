@@ -54,6 +54,7 @@ describe('importação do dashboard (colar planilha)', () => {
       midiasNaoRecuperadas: 0,
       coincidencias: { naBase: [], noArquivo: [3] },
       notasDeFora: 0,
+      eventosSemData: 0,
     });
   });
 

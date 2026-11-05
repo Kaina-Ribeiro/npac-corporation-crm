@@ -106,6 +106,8 @@ type Plano =
       arquivo: BackupJson;
       /** RDV antigo: "notasImportantes" não tem campo no RDV do PDF (aviso da prévia). */
       notasDeFora: number;
+      /** RDV antigo: eventos sem data, que não entram (regra 4). */
+      eventosSemData: number;
       /** Formulário: linhas sem nome (não entram). */
       invalidas: number[];
     };
@@ -138,6 +140,7 @@ export class ImportService {
     }
     let bruto: unknown = e.tipo === 'json' ? e.arquivo : null;
     let notasDeFora = 0;
+    let eventosSemData = 0;
     let invalidas: number[] = [];
     if (e.tipo === 'formulario') {
       if (modulo !== 'linha-do-tempo')
@@ -147,7 +150,11 @@ export class ImportService {
       // .json da ferramenta antiga (P3): uma lista de registros, convertida para o do CRM.
       if (moduloDoLegado(e.arquivo) !== modulo) throw new BadRequestException(NAO_E_DO_MODULO);
       try {
-        ({ arquivo: bruto, notasDeFora } = converterLegado(modulo, e.arquivo, randomUUID));
+        ({
+          arquivo: bruto,
+          notasDeFora,
+          eventosSemData,
+        } = converterLegado(modulo, e.arquivo, randomUUID));
       } catch (err) {
         throw new BadRequestException((err as Error).message);
       }
@@ -155,7 +162,7 @@ export class ImportService {
     const r = backupSchema.safeParse(bruto);
     if (!r.success || r.data.modulo !== modulo || r.data.formato !== FORMATO_BACKUP)
       throw new BadRequestException(NAO_E_DO_MODULO);
-    return { modulo, tipo: 'json', arquivo: r.data, notasDeFora, invalidas };
+    return { modulo, tipo: 'json', arquivo: r.data, notasDeFora, eventosSemData, invalidas };
   }
 
   private async nomesNaBase(tx: Tx, modulo: Modulo): Promise<Set<string>> {
@@ -186,6 +193,7 @@ export class ImportService {
         // 12C: índices (nunca nomes) para a equipe confirmar cada coincidência na tela.
         coincidencias: { naBase: c.jaExistem, noArquivo: c.repetidos },
         notasDeFora: plano.tipo === 'json' ? plano.notasDeFora : 0,
+        eventosSemData: plano.tipo === 'json' ? plano.eventosSemData : 0,
       };
     });
   }

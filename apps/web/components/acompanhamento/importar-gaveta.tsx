@@ -52,6 +52,7 @@ type Previa = {
   midiasNaoRecuperadas: number;
   coincidencias: { naBase: number[]; noArquivo: number[] };
   notasDeFora: number;
+  eventosSemData: number;
 };
 type Resultado = {
   gravados: number;
@@ -345,6 +346,15 @@ export function ImportarGaveta({
                 ` · ${previa.midiasNaoRecuperadas} mídias não recuperadas (reanexar depois)`}
               {' · nada é gravado antes de confirmar'}
             </p>
+            {previa.eventosSemData > 0 && (
+              <p className="rounded-xl bg-amber-500/10 p-3 text-sm text-ink">
+                {previa.eventosSemData}{' '}
+                {previa.eventosSemData === 1
+                  ? 'evento sem data não entra'
+                  : 'eventos sem data não entram'}
+                : todo evento precisa de data. Cadastre à mão depois, se precisar.
+              </p>
+            )}
             {previa.notasDeFora > 0 && (
               <p className="rounded-xl bg-amber-500/10 p-3 text-sm text-ink">
                 {previa.notasDeFora} {previa.notasDeFora === 1 ? 'ficha tem' : 'fichas têm'}{' '}

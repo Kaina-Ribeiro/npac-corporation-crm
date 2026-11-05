@@ -265,3 +265,15 @@ describe('nomesDoArquivo: a tela mostra os nomes da prévia pelo índice', () =>
     expect(nomesDoArquivo({ registros: [{ nome: 'A' }, { nome: 'B' }] })).toEqual(['A', 'B']);
   });
 });
+
+describe('evento sem data no RDV antigo (revisão final)', () => {
+  it('fica de fora e é contado, sem travar a importação dos outros', () => {
+    const r = JSON.parse(JSON.stringify(rdvAntigo)) as typeof rdvAntigo;
+    r[0]!.events.push({ id: 'ev2', date: '', caption: 'Sem data', media: [], videoLinks: [] });
+    const { arquivo, eventosSemData } = converterLegado('rdv', r, uuid);
+    expect(backupSchema.safeParse(arquivo).success).toBe(true);
+    const reg = arquivo.registros[0] as { eventos: { descricao: string | null }[] };
+    expect(reg.eventos.map((e) => e.descricao)).toEqual(['Iniciou a mentoria RDV.']);
+    expect(eventosSemData).toBe(1);
+  });
+});

@@ -145,6 +145,7 @@ const QUADROS: [string, QuadroChave][] = [
 /** Eventos usam "date"/"caption"; itens dos quatro quadros usam "data"/"nome". */
 function rdv(dados: unknown[], uuid: () => string) {
   let notasDeFora = 0;
+  let eventosSemData = 0;
   const registros: RegistroRdv[] = dados.map((x, i) => {
     const r = obj(x);
     const id = uuid();
@@ -158,7 +159,13 @@ function rdv(dados: unknown[], uuid: () => string) {
       const t = txt(d[k]);
       if (t) diagnostico[chave] = t;
     }
-    const eventos: RegistroRdv['eventos'] = lista(r.events).map((y) => {
+    // Evento sem data não entra (regra 4: evento precisa de data); é contado para o aviso.
+    const comData = lista(r.events).filter((y) => {
+      const ok = /^\d{2}\/\d{2}\/\d{4}$/.test(dataBr(obj(y).date) ?? '');
+      if (!ok) eventosSemData += 1;
+      return ok;
+    });
+    const eventos: RegistroRdv['eventos'] = comData.map((y) => {
       const e = obj(y);
       const eid = uuid();
       for (const m of lista(e.media))
@@ -190,10 +197,10 @@ function rdv(dados: unknown[], uuid: () => string) {
       midias,
     };
   });
-  return { registros, notasDeFora };
+  return { registros, notasDeFora, eventosSemData };
 }
 
-export type Convertido = { arquivo: BackupJson; notasDeFora: number };
+export type Convertido = { arquivo: BackupJson; notasDeFora: number; eventosSemData: number };
 
 /** `.json` da ferramenta antiga (uma lista de registros por módulo) → backup do CRM. */
 export function converterLegado(
@@ -202,14 +209,19 @@ export function converterLegado(
   uuid: () => string,
 ): Convertido {
   if (modulo === 'dashboard')
-    return { arquivo: { ...cabecalho, modulo, registros: dashboard(dados, uuid) }, notasDeFora: 0 };
+    return {
+      arquivo: { ...cabecalho, modulo, registros: dashboard(dados, uuid) },
+      notasDeFora: 0,
+      eventosSemData: 0,
+    };
   if (modulo === 'linha-do-tempo')
     return {
       arquivo: { ...cabecalho, modulo, registros: linhaDoTempo(dados, uuid) },
       notasDeFora: 0,
+      eventosSemData: 0,
     };
-  const { registros, notasDeFora } = rdv(dados, uuid);
-  return { arquivo: { ...cabecalho, modulo, registros }, notasDeFora };
+  const { registros, notasDeFora, eventosSemData } = rdv(dados, uuid);
+  return { arquivo: { ...cabecalho, modulo, registros }, notasDeFora, eventosSemData };
 }
 
 /** CSV (RFC 4180): vírgula, aspas duplas, quebra de linha dentro de campo entre aspas. */
