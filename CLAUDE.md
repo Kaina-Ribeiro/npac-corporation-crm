@@ -174,8 +174,8 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   Ao trazer migrations do main, renumere as suas para depois e refaça `when`, snapshots e `prevId`
   (teste "idx e `when` crescem juntos" em `db/test/migrations.test.ts`).
 - Drizzle: em select de uma tabela só, `${tabela.id}` sai sem o nome da tabela. Em subconsulta
-  correlacionada escreva o nome inteiro (`where c.ficha_id = mentoria_fichas.id`), senão compara a
-  coluna com ela mesma.
+  correlacionada escreva o nome inteiro (`where c.ficha_id = mentoria_fichas.id`): o `id` solto é
+  lido da tabela de dentro e a contagem dá zero.
 - RLS, grants, triggers e SECURITY DEFINER são SQL manual: revise além do schema. `npac_app` sem
   UPDATE numa tabela não pode `SELECT … FOR UPDATE` nela.
 - Valor novo de enum não vale na mesma transação da migration (compare como texto).
