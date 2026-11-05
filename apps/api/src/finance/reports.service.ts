@@ -274,6 +274,87 @@ export class ReportsService {
       ]),
     ]);
   }
+  /**
+   * Relatório do período em CSV: os mesmos números da tela (resumo, por SDR, closer e produto),
+   * sem contato de lead. O SDR recebe sem os valores de venda (`search` já corta).
+   */
+  async exportReport(u: AuthUser, q: ReportQuery) {
+    const r = await this.search(u, { ...q, page: 1, pageSize: 1 }, { audit: false });
+    await this.audit.record({
+      actorId: u.id,
+      action: 'report.export.period',
+      entityType: 'report',
+    });
+    const reais = (c: number) => (c / 100).toFixed(2).replace('.', ',');
+    const pct = (bps: number) => (bps / 100).toFixed(2).replace('.', ',');
+    const fmt = (key: string, v: unknown) =>
+      key.endsWith('Cents')
+        ? reais(Number(v ?? 0))
+        : key.endsWith('Bps')
+          ? pct(Number(v ?? 0))
+          : (v ?? 0);
+    const day = (iso: string) =>
+      new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo' }).format(new Date(iso));
+    const lastDay = new Date(new Date(r.to).getTime() - 1).toISOString();
+    const m = r.metrics as Record<string, unknown>;
+    const indicators: [string, string][] = [
+      ['leads', 'Leads novos'],
+      ['p0', 'P0'],
+      ['p1', 'P1'],
+      ['p2', 'P2'],
+      ['meetings', 'Agendamentos'],
+      ['direct', 'Direto'],
+      ['follow', 'Follow'],
+      ['done', 'Realizadas'],
+      ['noShow', 'No-show'],
+      ['rescheduled', 'Remarcadas'],
+      ['attendanceBps', 'Comparecimento (%)'],
+      ['noShowBps', 'No-show (%)'],
+      ['meetingValueCents', 'Valor por reuniões realizadas (R$)'],
+      ['sales', 'Vendas'],
+      ['soldCents', 'Vendido (R$)'],
+      ['receivedCents', 'Recebido no período (R$)'],
+      ['outstandingCents', 'A receber das vendas do período (R$)'],
+      ['conversionBps', 'Conversão (%)'],
+    ];
+    const table = (title: string, rows: Record<string, unknown>[], cols: [string, string][]) => {
+      const present = cols.filter(([k]) => rows.some((row) => row[k] !== undefined));
+      if (!rows.length) return [[], [title], ['Nenhum resultado no período']];
+      return [
+        [],
+        [title],
+        ['Nome', ...present.map(([, label]) => label)],
+        ...rows.map((row) => [row.name, ...present.map(([k]) => fmt(k, row[k]))]),
+      ];
+    };
+    const people: [string, string][] = [
+      ['leads', 'Leads'],
+      ['p0', 'P0'],
+      ['p1', 'P1'],
+      ['p2', 'P2'],
+      ['direct', 'Direto'],
+      ['follow', 'Follow'],
+      ['meetings', 'Agendados'],
+      ['done', 'Realizadas'],
+      ['noShow', 'No-show'],
+      ['sales', 'Vendas'],
+      ['soldCents', 'Vendido (R$)'],
+      ['ticketCents', 'Ticket médio (R$)'],
+      ['conversionBps', 'Conversão (%)'],
+      ['noShowBps', 'No-show (%)'],
+    ];
+    return toCsv([
+      ['Relatório NPAC'],
+      ['Período', `${day(r.from)} a ${day(lastDay)}`],
+      [],
+      ['Resumo'],
+      ['Indicador', 'Valor'],
+      ...indicators.filter(([k]) => m[k] !== undefined).map(([k, label]) => [label, fmt(k, m[k])]),
+      ...table('Por SDR', r.bySdr, people),
+      ...table('Por closer', r.byCloser, people),
+      ...(u.role === 'SDR' ? [] : table('Por produto', r.byProduct, people)),
+    ]);
+  }
   async summary(u: AuthUser, q: ReportQuery) {
     const r = await this.search(u, q);
     const m = r.metrics;

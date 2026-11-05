@@ -129,7 +129,9 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
 - Métricas em SQL com CTEs que não multiplicam linhas; vendas contam por `deals`, não por etapa.
 - Paginação no servidor; CSV recusa > 10 mil linhas; cabeçalhos do CSV com `csvHeaders` depois de
   gerar o arquivo (com `@Header` fixo, erro de validação virava 500). Leads e Relatórios exportam por
-  período, filtro atual ou tudo (`period: 'ALL'` só no CSV).
+  período, filtro atual ou tudo (`period: 'ALL'` só no CSV). `POST /reports/export` = relatório do
+  período em CSV (resumo + por SDR/closer/produto, sem contato), para todos; SDR sem venda. As
+  exportações dos Relatórios leem o formulário na tela, não o último "Atualizar".
 - Erros da API em português para o usuário final (`BadRequestException('…')`); o `clientApi` mostra a
   mensagem, as padrão do Nest viram texto genérico. `clientApi` aceita 204.
 
