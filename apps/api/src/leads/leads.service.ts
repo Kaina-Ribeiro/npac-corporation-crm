@@ -23,8 +23,11 @@ import { AuditService } from '../audit/audit.service.js';
 import { toCsv } from '../common/csv.js';
 import { FieldCrypto } from '../common/crypto/field-crypto.js';
 import { DB } from '../common/db/db.module.js';
+import { scheduleMeeting } from '../meetings/meetings.service.js';
+import { ReminderScheduler } from '../push/reminders.js';
 import { recordActivity } from './activity.js';
 import { saleRequired } from './lead-mutations.service.js';
+import { EMPTY_STAGE_STATE, resolveStageFields } from './stage-fields.js';
 import {
   LeadsRepository,
   type LeadFilters,
@@ -61,6 +64,7 @@ export class LeadsService {
     private readonly repo: LeadsRepository,
     private readonly crypto: FieldCrypto,
     private readonly audit: AuditService,
+    private readonly reminders: ReminderScheduler,
   ) {}
 
   async catalog(u: AuthUser) {
@@ -134,6 +138,13 @@ export class LeadsService {
       }
       const stageId = await this.repo.stageId(tx, input.stageKey);
       if (!stageId) throw new BadRequestException('Etapa inexistente');
+      // Dados que a etapa pede (NPAC-38): reunião, pagamento combinado ou motivo.
+      const stage = await resolveStageFields(tx, {
+        target: input.stageKey,
+        changed: true,
+        input,
+        old: EMPTY_STAGE_STATE,
+      });
       const created = await this.repo.insert(tx, {
         name: input.name,
         phoneEnc: input.phone ? this.crypto.encrypt(input.phone) : null,
@@ -147,15 +158,19 @@ export class LeadsService {
         stageId,
         sdrId,
         closerId: input.closerId ?? null,
-        nextContactAt: input.nextContactAt ?? null,
+        ...stage.values,
         summary: input.summary ?? null,
         createdBy: u.id,
       });
       await recordActivity(tx, u, created, 'lead.created', [], undefined, meta);
-      return created;
+      // Mesma transação: se a reunião falhar, o lead não fica criado.
+      if (stage.meeting) await scheduleMeeting(tx, u, { leadId: created, ...stage.meeting });
+      return { id: created, scheduled: Boolean(stage.meeting) };
     });
 
-    return { id };
+    // Depois do commit, como no POST /meetings.
+    if (id.scheduled) void this.reminders.rearm();
+    return { id: id.id };
   }
 
   async list(u: AuthUser, q: LeadListQuery, meta: RequestMeta): Promise<Page<LeadDTO>> {
@@ -265,6 +280,10 @@ export class LeadsService {
       closer: r.closerId && r.closerName ? { id: r.closerId, name: r.closerName } : null,
       nextContactAt: r.nextContactAt?.toISOString() ?? null,
       summary: r.summary,
+      paymentProductId: r.paymentProductId,
+      paymentAmountCents: r.paymentAmountCents,
+      lostReason: r.lostReason,
+      lostReasonOther: r.lostReasonOther,
       version: r.version,
       createdAt: r.createdAt.toISOString(),
     };
