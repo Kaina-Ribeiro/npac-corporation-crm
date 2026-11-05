@@ -97,6 +97,29 @@ test('390 px e 375 px: sem overflow horizontal nas abas, na ficha e na gaveta', 
   }
 });
 
+test('RDV no celular: "+" abre Novo mentorado; ficha e gaveta sem overflow em 375 px', async ({
+  page,
+}) => {
+  const PESSOA = '99999999-9999-4999-8999-999999999999';
+  await owner`insert into mentoria_rdv_pessoas (id, nome, nome_norm) values (${PESSOA}, 'Casal Fictício 90', 'casal ficticio 90')`;
+  await owner`insert into mentoria_rdv_eventos (pessoa_id, data_texto, data, origem) values (${PESSOA}, '01/08/2026', '2026-08-01', 'MANUAL')`;
+  await abrir(page, '/acompanhamento/rdv', 375);
+  await abas(page).getByRole('button', { name: 'Novo mentorado' }).click();
+  await expect(page.getByRole('dialog', { name: 'Novo mentorado' })).toBeVisible();
+  await semOverflow(page);
+  await page.goto(`/acompanhamento/rdv/${PESSOA}`);
+  await expect(page.getByRole('textbox', { name: 'Nome do mentorado' })).toBeVisible();
+  await semOverflow(page);
+  await page.getByRole('button', { name: 'Colar vários eventos' }).click();
+  await page
+    .getByRole('dialog')
+    .getByLabel('Eventos colados')
+    .fill('14/08/2026 - Linha fictícia com uma descrição bem comprida para testar a quebra');
+  await page.getByRole('dialog').getByRole('button', { name: 'Ver prévia' }).click();
+  await expect(page.getByRole('combobox', { name: /Tipo da linha/ })).toBeVisible();
+  await semOverflow(page);
+});
+
 test('desktop: sem abas no rodapé; abas do módulo no topo', async ({ page }) => {
   await abrir(page, '/acompanhamento/dashboard', 1280);
   await expect(abas(page)).toBeHidden();
