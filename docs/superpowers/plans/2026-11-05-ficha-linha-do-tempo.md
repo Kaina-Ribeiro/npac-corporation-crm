@@ -18,7 +18,7 @@ altura automática só em CSS (`globals.css`), sem JS novo.
 | Tarefa | Status |
 |---|---|
 | 0 Release, branch e docs | ✅ (release/v0.8 aberta; branch e docs criados pela sessão coordenadora) |
-| 1 Separar a visão em `ficha-linha.tsx` (sem mudança visual) | ⏳ |
+| 1 Separar a visão em `ficha-linha.tsx` (sem mudança visual) | ✅ |
 | 2 Linha vertical e nós | ⏳ |
 | 3 Campos discretos e layout das seções | ⏳ |
 | 4 Impressão, verificação visual e PR | ⏳ |
