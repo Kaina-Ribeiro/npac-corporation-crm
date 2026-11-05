@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { isLeader } from '@npac/shared/enums';
+import { hasCommercialAccess, isLeader } from '@npac/shared/enums';
 import { Sidebar } from '@/components/shell/sidebar';
 import { SignOutButton } from '@/components/shell/sign-out-button';
 import { RoleTag } from '@/components/role-tag';
@@ -8,8 +8,8 @@ import { getSession } from '@/lib/session';
 export const metadata = { title: 'Página não encontrada' };
 
 /**
- * 404 do app. Logado, mantém a navegação (o mesmo menu de todos os cargos, D23); para a equipe
- * de acompanhamento, as telas comerciais caem aqui com o caminho para o módulo.
+ * 404 do app. Logado, mantém a navegação do cargo (o Acompanhamento vê só o módulo) e o caminho
+ * para o módulo.
  */
 export default async function NotFound() {
   const me = await getSession().catch(() => null);
@@ -50,6 +50,7 @@ export default async function NotFound() {
       <Sidebar
         head={isLeader(me.role)}
         mentoria={me.modules.mentoria}
+        commercial={hasCommercialAccess(me.role)}
         footer={
           <div className="flex flex-col gap-2 px-1">
             <b className="truncate text-sm font-semibold">{me.name}</b>

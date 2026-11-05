@@ -8,6 +8,14 @@ export type Role = (typeof ROLES)[number];
 /** Liderança: vê toda a equipe e administra. Só a Diretoria dá ou tira cargo de liderança. */
 export const LEADER_ROLES: readonly Role[] = ['DIRETOR', 'HEAD'];
 export const isLeader = (role: Role) => LEADER_ROLES.includes(role);
+/**
+ * MFA (TOTP) DESLIGADO por pedido do Gabriel (05/11/2026: "deixa isso pra depois"). Sem pedir código
+ * no login, sem exigir no Acompanhamento (D18) e sem a tela do autenticador. Os autenticadores já
+ * cadastrados ficam guardados: religar = `true` aqui (API e web leem esta chave).
+ */
+export const MFA_LIGADO = false as boolean;
+/** Quem usa o CRM comercial (leads, equipe, chat, avisos…). O Acompanhamento só vê o módulo. */
+export const hasCommercialAccess = (role: Role) => role !== 'ACOMPANHAMENTO';
 
 export const TIERS = ['P0', 'P1', 'P2'] as const;
 export type Tier = (typeof TIERS)[number];

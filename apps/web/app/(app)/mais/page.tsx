@@ -1,8 +1,9 @@
-import { isLeader } from '@npac/shared/enums';
+import { hasCommercialAccess, isLeader, MFA_LIGADO } from '@npac/shared/enums';
 import { pendingAccessRequests } from '@/lib/access-requests';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { ACOMPANHAMENTO_ITEM, ADMIN_ITEM, MORE_ITEMS } from '@/components/shell/nav-items';
+import { AbasMobile } from '@/components/acompanhamento/abas-mobile';
 import { ChatBadge, InboxCard } from '@/components/inbox';
 import { SearchButton } from '@/components/shell/command-palette';
 import { SignOutButton } from '@/components/shell/sign-out-button';
@@ -25,8 +26,10 @@ const HINT: Record<string, string> = {
 export default async function MorePage() {
   const me = await getSession();
   if (!me) redirect('/login');
+  // Cargo Acompanhamento: só o módulo, sem Avisos nem push (são do comercial).
+  const commercial = hasCommercialAccess(me.role);
   const items = [
-    ...MORE_ITEMS,
+    ...(commercial ? MORE_ITEMS : []),
     ...(me.modules.mentoria ? [ACOMPANHAMENTO_ITEM] : []),
     ...(isLeader(me.role) ? [ADMIN_ITEM] : []),
   ];
@@ -59,7 +62,7 @@ export default async function MorePage() {
 
       <SearchButton className="glass-card flex min-h-12 items-center gap-3 px-4 text-sm font-medium text-ink2 [&_kbd]:hidden [&_svg]:size-5" />
 
-      <InboxCard />
+      {commercial && <InboxCard />}
 
       <nav aria-label="Mais seções" className="grid grid-cols-2 gap-3">
         {items.map((item) => (
@@ -97,21 +100,29 @@ export default async function MorePage() {
       >
         Trocar senha
       </Link>
-      <Link
-        href="/conta/mfa"
-        className="glass-card flex min-h-14 w-full items-center justify-center text-base font-semibold"
-      >
-        Autenticador
-      </Link>
-      <Link
-        href="/conta/avisos"
-        className="glass-card flex min-h-14 w-full items-center justify-center text-base font-semibold"
-      >
-        Avisos neste aparelho
-      </Link>
+      {MFA_LIGADO && (
+        <Link
+          href="/conta/mfa"
+          className="glass-card flex min-h-14 w-full items-center justify-center text-base font-semibold"
+        >
+          Autenticador
+        </Link>
+      )}
+      {commercial && (
+        <Link
+          href="/conta/avisos"
+          className="glass-card flex min-h-14 w-full items-center justify-center text-base font-semibold"
+        >
+          Avisos neste aparelho
+        </Link>
+      )}
       <SignOutButton className="glass-card min-h-14 w-full text-base font-semibold text-danger" />
 
-      <p className="text-center text-xs text-ink3">NPAC Corporation · área comercial</p>
+      <p className="text-center text-xs text-ink3">
+        NPAC Corporation · {commercial ? 'área comercial' : 'acompanhamento de mentorados'}
+      </p>
+      {/* Cargo Acompanhamento no celular: as abas do módulo no lugar da barra comercial. */}
+      {!commercial && <AbasMobile />}
     </div>
   );
 }

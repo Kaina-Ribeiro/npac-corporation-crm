@@ -1,6 +1,5 @@
 'use client';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import { authClient } from '@/lib/auth-client';
 
@@ -9,7 +8,6 @@ const MIN = 3;
 
 /** `first`: primeiro acesso, troca obrigatória; senão, troca voluntária pelo menu. */
 export function ChangePasswordForm({ first = true }: { first?: boolean }) {
-  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -30,8 +28,8 @@ export function ChangePasswordForm({ first = true }: { first?: boolean }) {
     });
     setBusy(false);
     if (err) return setError('Não foi possível trocar a senha. Confira a senha atual.');
-    router.replace('/dashboard');
-    router.refresh();
+    // Carga completa: o servidor manda cada cargo para a sua tela inicial (Acompanhamento → módulo).
+    window.location.replace('/');
   }
 
   return (

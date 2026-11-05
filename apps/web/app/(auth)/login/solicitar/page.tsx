@@ -7,7 +7,7 @@ import { getSession } from '@/lib/session';
 export const metadata: Metadata = { title: 'Solicitar acesso' };
 
 export default async function RequestAccessPage() {
-  if (await getSession()) redirect('/dashboard');
+  if (await getSession()) redirect('/');
   return (
     <AuthShell>
       <RequestAccessForm />

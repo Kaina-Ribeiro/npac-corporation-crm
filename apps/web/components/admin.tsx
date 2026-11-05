@@ -99,7 +99,10 @@ export function Admin({
 }) {
   // Mesma regra da API: só a Diretoria dá cargo de liderança ou mexe em conta de Head/Diretoria.
   const diretor = meRole === 'DIRETOR';
-  const roles: Role[] = diretor ? ['SDR', 'CLOSER', 'HEAD', 'DIRETOR'] : ['SDR', 'CLOSER'];
+  // Acompanhamento lê dados sensíveis de mentorados: também só a Diretoria concede (D10).
+  const roles: Role[] = diretor
+    ? ['SDR', 'CLOSER', 'HEAD', 'DIRETOR', 'ACOMPANHAMENTO']
+    : ['SDR', 'CLOSER'];
   const router = useRouter();
   const [tab, setTab] = useState<(typeof TABS)[number]>('Usuários');
   const [data, setData] = useState(initial);

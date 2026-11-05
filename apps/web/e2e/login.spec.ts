@@ -1,6 +1,7 @@
 import { gzipSync } from 'node:zlib';
 import { expect, test, type Page } from '@playwright/test';
 import { closeTestConnections, ownerSql } from '@npac/db/testing';
+import { MFA_LIGADO } from '@npac/shared/enums';
 import { E2E_DB, E2E_PASSWORD, WEB_ORIGIN } from './env.js';
 import { totp } from './totp.js';
 
@@ -172,6 +173,7 @@ test('sem sessão redireciona para /login', async ({ page }) => {
 test('MFA é opcional: liderança entra direto e ativa e desativa o autenticador pelo menu', async ({
   page,
 }) => {
+  test.skip(!MFA_LIGADO, 'MFA desligado por ora (MFA_LIGADO)');
   await owner`update "user" set two_factor_enabled=false where email='ana@npac.com.br'`;
   await owner`delete from two_factor where user_id=(select id from "user" where email='ana@npac.com.br')`;
   await login(page, 'ana@npac.com.br');
@@ -256,6 +258,7 @@ test('busca mantém contato fora da URL e alterna o tema', async ({ page }) => {
 
 for (const head of ['ana', 'ronaldo']) {
   test(`${head}: ativa MFA e próximo login exige TOTP`, async ({ page }) => {
+    test.skip(!MFA_LIGADO, 'MFA desligado por ora (MFA_LIGADO)');
     const email = `${head}@npac.com.br`;
     await owner`update "user" set two_factor_enabled=false where email=${email}`;
     await owner`delete from two_factor where user_id=(select id from "user" where email=${email})`;

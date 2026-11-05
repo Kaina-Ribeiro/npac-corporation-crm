@@ -1,6 +1,5 @@
 'use client';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import QRCode from 'qrcode';
 import { useState, type FormEvent } from 'react';
 import { authClient } from '@/lib/auth-client';
@@ -39,7 +38,6 @@ const back = (
  * desativa com a senha. Quem ativou passa a confirmar cada login com o código.
  */
 export function MfaSetup({ enabled }: { enabled: boolean }) {
-  const router = useRouter();
   const [qr, setQr] = useState<string | null>(null);
   const [secret, setSecret] = useState<string | null>(null);
   const [backup, setBackup] = useState<string[]>([]);
@@ -49,8 +47,8 @@ export function MfaSetup({ enabled }: { enabled: boolean }) {
     String(new FormData(e.currentTarget).get('password') ?? '');
 
   function done() {
-    router.replace('/dashboard');
-    router.refresh();
+    // Carga completa: o servidor manda cada cargo para a sua tela inicial (Acompanhamento → módulo).
+    window.location.replace('/');
   }
 
   async function onEnable(e: FormEvent<HTMLFormElement>) {

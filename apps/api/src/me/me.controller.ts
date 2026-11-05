@@ -1,7 +1,9 @@
 import { Controller, Get } from '@nestjs/common';
+import { AllRoles } from '../auth/all-roles.decorator.js';
 import { AllowIncomplete } from '../auth/public.decorator.js';
 import { CurrentUser, type SessionUser } from '../auth/current-user.decorator.js';
 
+@AllRoles()
 @Controller('me')
 export class MeController {
   @Get()

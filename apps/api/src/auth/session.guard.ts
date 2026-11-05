@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { session as sessionTable, type Db } from '@npac/db';
-import type { Role } from '@npac/shared';
+import { MFA_LIGADO, type Role } from '@npac/shared';
 import { eq } from 'drizzle-orm';
 import type { FastifyRequest } from 'fastify';
 import { DB } from '../common/db/db.module.js';
@@ -61,7 +61,9 @@ export class SessionGuard implements CanActivate {
       });
     }
     // Só para os papéis do módulo: os demais seguem e recebem 404 da guarda do módulo.
+    // MFA desligado (`MFA_LIGADO`, 05/11/2026): o módulo não exige o autenticador por ora.
     if (
+      MFA_LIGADO &&
       this.reflector.getAllAndOverride<boolean>(REQUIRES_MFA, targets) &&
       MFA_ROLES.includes(req.user.role) &&
       !req.user.twoFactorEnabled

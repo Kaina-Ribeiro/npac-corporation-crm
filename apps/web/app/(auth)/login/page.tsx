@@ -9,7 +9,7 @@ import { getSession } from '@/lib/session';
 export const metadata: Metadata = { title: 'Login' };
 
 export default async function LoginPage() {
-  if (await getSession()) redirect('/dashboard');
+  if (await getSession()) redirect('/');
   // Gravado pelo próprio formulário após um login bem-sucedido neste aparelho.
   const last = (await cookies()).get(LAST_USER_COOKIE)?.value;
   const lastUser = last && /^[a-z0-9_.]{3,30}$/.test(last) ? last : undefined;

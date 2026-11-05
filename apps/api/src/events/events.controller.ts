@@ -3,12 +3,15 @@ import { withUser, type Db } from '@npac/db';
 import { sql } from 'drizzle-orm';
 import type { FastifyRequest } from 'fastify';
 import { exhaustMap, interval, startWith, takeWhile } from 'rxjs';
+import { AllRoles } from '../auth/all-roles.decorator.js';
 import { AUTH, type Auth } from '../auth/auth.js';
 import { toHeaders } from '../auth/headers.js';
 import { DB } from '../common/db/db.module.js';
 
 type Signal = 'ready' | 'invalidate' | 'heartbeat' | 'session-ended' | 'access-required';
 
+// O cargo Acompanhamento também precisa do aviso de sessão encerrada.
+@AllRoles()
 @Controller()
 export class EventsController {
   constructor(
