@@ -15,7 +15,15 @@ import { lockLead } from '../leads/lead-mutations.service.js';
 import { ReminderScheduler } from '../push/reminders.js';
 import { cancelMeeting } from './cancel.js';
 
-type Schedule = { leadId: string; closerId: string; scheduledAt: Date; origin: MeetingOrigin };
+type Schedule = {
+  leadId: string;
+  closerId: string;
+  scheduledAt: Date;
+  origin: MeetingOrigin;
+  /** Venda Fechada no cadastro (NPAC-39): a reunião já entra realizada. */
+  outcome?: 'DONE';
+  outcomeAt?: Date;
+};
 type MeetingChange = {
   version: number;
   scheduledAt?: Date;

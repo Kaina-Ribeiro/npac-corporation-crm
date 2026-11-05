@@ -34,15 +34,49 @@ const normalized = (label: string, fn: (s: string) => string | null) =>
  * Reunião pedida pelos Agendados (NPAC-38): criada junto com o lead ou a troca de etapa, com a
  * origem da etapa (Direto/Follow). Mesmas regras do POST /meetings: horário futuro, closer ativo.
  */
+const meetingShape = {
+  scheduledAt: z.iso.datetime({ offset: true }).transform((s) => new Date(s)),
+  closerId: z.string().min(1, 'Escolha o closer da reunião'),
+};
 export const stageMeetingSchema = z
   .object({
-    scheduledAt: z.iso
-      .datetime({ offset: true })
-      .transform((s) => new Date(s))
-      .refine((d) => d.getTime() > Date.now(), 'Escolha um horário futuro'),
-    closerId: z.string().min(1, 'Escolha o closer da reunião'),
+    ...meetingShape,
+    scheduledAt: meetingShape.scheduledAt.refine(
+      (d) => d.getTime() > Date.now(),
+      'Escolha um horário futuro',
+    ),
   })
   .strict();
+
+const cents = z.number().int().positive().max(2_000_000_000);
+
+/**
+ * Venda Fechada no cadastro (NPAC-39): "Registrar a venda agora", só para quem tem
+ * `sale:register`. Mesmas regras do registro da ficha; `closedOn` (dia de Brasília, nunca futuro)
+ * vira `deals.closed_at` e a entrada é o que já foi pago, recebido nesse dia. Closer = o da reunião.
+ */
+export const leadSaleSchema = z
+  .object({
+    closedOn: z.iso.date(),
+    productId: z.uuid(),
+    method: z.enum(['CARD', 'PIX', 'BANK_SLIP', 'PARTIAL']),
+    totalCents: cents,
+    entryCents: z.number().int().min(0).max(2_000_000_000).default(0),
+    installments: z
+      .array(
+        z
+          .object({
+            amountCents: cents,
+            dueAt: z.iso.datetime({ offset: true }).transform((s) => new Date(s)),
+          })
+          .strict(),
+      )
+      .max(120)
+      .default([]),
+    requestKey: z.uuid(),
+  })
+  .strict();
+export type LeadSaleInput = z.output<typeof leadSaleSchema>;
 
 /**
  * Campos que cada etapa pede (NPAC-38). Aqui só o formato; quando são exigidos (409
@@ -80,7 +114,15 @@ export const leadCreateSchema = z
       .optional(),
     summary: z.string().max(5000).optional(),
     ...stageFieldsShape,
+    // Venda Fechada (NPAC-39): a reunião já aconteceu (a API confere o horário).
+    meeting: z.object(meetingShape).strict().optional(),
+    sale: leadSaleSchema.optional(),
   })
+  // Agendados: reunião futura. Na Venda o horário é passado e a API responde em português.
+  .refine(
+    (v) => v.stageKey === 'VENDA' || !v.meeting || v.meeting.scheduledAt.getTime() > Date.now(),
+    { message: 'Escolha um horário futuro', path: ['meeting', 'scheduledAt'] },
+  )
   .refine((v) => v.phone !== undefined || v.instagram !== undefined, {
     message: 'Informe telefone ou Instagram',
     path: ['phone'],

@@ -22,6 +22,8 @@ export type LeadDTO = {
   /** Sem Perfil: motivo e o texto de "Outro". */
   lostReason: LostReason | null;
   lostReasonOther: string | null;
+  /** Em Venda sem venda ativa (NPAC-39): cadastrado como Venda Fechada, falta registrar a venda. */
+  saleToRegister: boolean;
   version: number;
   createdAt: string;
 };
@@ -65,7 +67,7 @@ export type MeetingDTO = {
 };
 export type PipelineLead = Pick<
   LeadDTO,
-  'id' | 'name' | 'tier' | 'stageKey' | 'version' | 'nextContactAt'
+  'id' | 'name' | 'tier' | 'stageKey' | 'version' | 'nextContactAt' | 'saleToRegister'
 >;
 export type PipelineDTO = {
   stage: LeadCatalog['stages'][number];

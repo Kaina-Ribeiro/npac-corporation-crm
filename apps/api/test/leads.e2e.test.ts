@@ -245,10 +245,10 @@ describe('leads', () => {
     expect(timeline.map((r) => r.kind)).toContain('lead.deleted');
     expect(JSON.stringify(timeline)).not.toContain('Maria');
   });
-  it('lead não nasce em Venda: a etapa só entra registrando a venda', async () => {
+  it('lead só nasce em Venda com a reunião realizada (NPAC-39)', async () => {
     const res = await h.post('/api/leads', lead({ stageKey: 'VENDA' }), ale);
     expect(res.status).toBe(409);
-    expect(res.body.code).toBe('SALE_REQUIRED');
+    expect(res.body.code).toBe('MEETING_REQUIRED');
   });
 
   it('lead excluído não abre nem para a liderança', async () => {
