@@ -157,6 +157,10 @@ export function LeadDetail({
   // Closer não agenda reunião (a API recusa): o Agendado só segue com reunião já marcada.
   const moveBlocked = stageFieldsKind(moveTo) === 'MEETING' && !openMeeting && me.role === 'CLOSER';
   const payment = products.find((p) => p.id === lead.paymentProductId);
+  // Venda a registrar (NPAC-41): o produto que o SDR informou no cadastro, só o nome.
+  const soldProduct = products.find((p) => p.id === lead.soldProductId);
+  // Pagamento parcial (NPAC-41): entrada já paga; o restante vence na data combinada.
+  const entry = lead.paymentAmountCents ? lead.paymentEntryCents : null;
   function move(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     let body;
@@ -189,6 +193,11 @@ export function LeadDetail({
             // Cadastrado como Venda Fechada sem a venda (NPAC-39): closer e liderança registram.
             <div className="mt-3 flex flex-wrap items-center gap-3">
               <span className="sale-pending">Venda a registrar</span>
+              {soldProduct && (
+                <span className="text-sm">
+                  Produto: <strong>{soldProduct.name}</strong>
+                </span>
+              )}
               {deals ? (
                 <a className={button} href="#vendas">
                   Registrar venda
@@ -209,6 +218,17 @@ export function LeadDetail({
               rel="noopener noreferrer"
             >
               WhatsApp
+            </a>
+          )}
+          {lead.instagram && (
+            <a
+              className={quietButton}
+              href={`https://www.instagram.com/${encodeURIComponent(lead.instagram)}/`}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={`Abrir o perfil @${lead.instagram} no Instagram`}
+            >
+              Instagram
             </a>
           )}
           {lead.instagram && <span className="px-3 py-2 text-sm text-ink2">@{lead.instagram}</span>}
@@ -283,11 +303,14 @@ export function LeadDetail({
               </>
             ) : (
               <>
-                {nextContactLabel(lead.stageKey)}:{' '}
+                {entry ? 'Restante combinado para' : nextContactLabel(lead.stageKey)}:{' '}
                 {lead.nextContactAt ? date(lead.nextContactAt) : 'sem data'}
                 {payment &&
                   lead.paymentAmountCents &&
                   ` · ${payment.name} · ${money(lead.paymentAmountCents)}`}
+                {entry &&
+                  lead.paymentAmountCents &&
+                  ` · entrada de ${money(entry)} paga, faltam ${money(lead.paymentAmountCents - entry)}`}
               </>
             )}
           </span>

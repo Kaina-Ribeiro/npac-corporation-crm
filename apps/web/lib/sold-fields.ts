@@ -34,6 +34,8 @@ export const spToday = () =>
 
 export type SoldBody = {
   meeting: { scheduledAt: string; closerId: string };
+  /** Sem a venda agora (NPAC-41): o produto vendido; o closer põe os valores depois. */
+  soldProductId?: string;
   sale?: {
     closedOn: string;
     productId: string;
@@ -54,14 +56,14 @@ export function readSoldFields(form: FormData, requestKey: string): SoldBody {
   const scheduledAt = brasiliaInput(at)!;
   if (new Date(scheduledAt).getTime() > Date.now())
     throw new Error('A reunião ainda não aconteceu: informe um horário passado.');
+  const productId = get(SOLD.product);
+  if (!productId) throw new Error('Escolha o produto vendido.');
   const body: SoldBody = { meeting: { scheduledAt, closerId } };
-  if (form.get(SOLD.register) !== 'on') return body;
+  if (form.get(SOLD.register) !== 'on') return { ...body, soldProductId: productId };
 
   const closedOn = get(SOLD.closedOn);
-  const productId = get(SOLD.product);
   if (!closedOn) throw new Error('Informe a data da venda.');
   if (closedOn > spToday()) throw new Error('A data da venda não pode ser futura.');
-  if (!productId) throw new Error('Escolha o produto da venda.');
   const method = get(SOLD.method) as SaleMethod;
   const totalCents = parseCents(get(SOLD.total));
   const deferred = deferredMethod(method);

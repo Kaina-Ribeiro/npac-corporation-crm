@@ -159,6 +159,8 @@ export class LeadMutationsService {
       if (input.stageKey) {
         patch.stageId = stageId;
         if (stageChanged) await this.guardSaleStage(tx, id, input.stageKey);
+        // Saiu da Venda sem a venda registrada: o produto informado no cadastro deixa de valer.
+        if (stageChanged && old.soldProductId) patch.soldProductId = null;
       }
       // Dados da etapa (NPAC-38): exigidos só na troca; fora da etapa são apagados.
       const stage = await resolveStageFields(tx, {

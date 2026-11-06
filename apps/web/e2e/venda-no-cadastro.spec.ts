@@ -63,12 +63,21 @@ test('SDR cadastra em Venda Fechada sem a venda: ficha e Pipeline mostram "Venda
   // O SDR não vê a venda nem valores.
   await expect(page.getByText('Registrar a venda agora')).toHaveCount(0);
   await expect(
-    page.getByText('O closer da reunião recebe o aviso para registrar a venda.'),
+    page.getByText('O closer da reunião recebe o aviso e põe os valores ao registrar a venda.'),
   ).toBeVisible();
   await page
     .getByLabel('Data e hora da reunião (Brasília)', { exact: true })
     .fill(spInput(new Date(Date.now() - 2 * DAY)));
+  // Produto vendido (NPAC-41): obrigatório; antes do closer fica travado.
+  const soldProduct = page.getByLabel('Produto vendido', { exact: true });
+  await expect(soldProduct).toBeDisabled();
   await page.getByLabel('Closer da reunião', { exact: true }).selectOption({ label: 'Sônia' });
+  // Só os produtos da closer da reunião, e o SDR não vê preço.
+  const labels = (await soldProduct.locator('option').allTextContents()).map((t) => t.trim());
+  expect(labels).toContain('Nação Padrão');
+  expect(labels).not.toContain('Mentoria RDV');
+  expect(labels.join(' ')).not.toContain('R$');
+  await soldProduct.selectOption({ label: 'Nação Padrão' });
   await shots(page, 'venda-cadastro-sdr');
 
   await page.getByRole('button', { name: 'Cadastrar lead', exact: true }).click();
@@ -77,6 +86,7 @@ test('SDR cadastra em Venda Fechada sem a venda: ficha e Pipeline mostram "Venda
   await expect(page.getByRole('heading', { level: 1, name })).toBeVisible();
   await expect(page.getByText('Venda a registrar', { exact: true }).first()).toBeVisible();
   await expect(page.getByText('O closer da reunião registra a venda.')).toBeVisible();
+  await expect(page.getByText('Produto: Nação Padrão')).toBeVisible();
   const [m] = await owner<
     { outcome: string }[]
   >`select outcome from meetings where lead_id = ${id}`;
@@ -94,7 +104,12 @@ test('SDR cadastra em Venda Fechada sem a venda: ficha e Pipeline mostram "Venda
   await closer.screenshot({ path: 'test-results/venda-pipeline-1440.png', animations: 'disabled' });
   await card.getByRole('link', { name: 'Registrar venda', exact: true }).click();
   await closer.waitForURL(new RegExp(`/leads/${id}#vendas$`));
-  await expect(closer.getByRole('form', { name: 'Registrar venda' })).toBeVisible();
+  const form = closer.getByRole('form', { name: 'Registrar venda' });
+  await expect(form).toBeVisible();
+  // O registro já abre com o produto que o SDR informou; o valor é da closer.
+  const [nacao] = await owner<{ id: string }[]>`
+    select id from products where code = 'NACAO_PADRAO'`;
+  await expect(form.getByLabel('Produto da venda', { exact: true })).toHaveValue(nacao!.id);
   await closer.goto(`/leads/${id}`);
   await expect(closer.getByRole('link', { name: 'Registrar venda', exact: true })).toBeVisible();
   await shots(closer, 'venda-ficha-a-registrar', false);
@@ -114,13 +129,14 @@ test('liderança cadastra em Venda Fechada registrando a venda no fim do formul�
     .getByLabel('Data e hora da reunião (Brasília)', { exact: true })
     .fill(spInput(new Date(Date.now() - 3 * DAY)));
   await page.getByLabel('Closer da reunião', { exact: true }).selectOption({ label: 'Ronaldo' });
+  // Só os produtos do closer da reunião; quem registra venda vê o preço.
+  await page
+    .getByLabel('Produto vendido', { exact: true })
+    .selectOption({ label: 'Mentoria RDV — R$ 18.000,00' });
   await page.getByLabel('Registrar a venda agora').check();
   const day = spInput(new Date(Date.now() - 2 * DAY)).slice(0, 10);
   await page.getByLabel('Data da venda', { exact: true }).fill(day);
-  // Só os produtos do closer da reunião; o valor começa com o preço.
-  await page
-    .getByLabel('Produto', { exact: true })
-    .selectOption({ label: 'Mentoria RDV — R$ 18.000,00' });
+  // O valor começa com o preço do produto.
   await expect(page.getByLabel('Valor total (R$)', { exact: true })).toHaveValue('18000,00');
   await page.getByLabel('Forma de pagamento', { exact: true }).selectOption('PARTIAL');
   await page.getByLabel('Já pago (R$)', { exact: true }).fill('6000');

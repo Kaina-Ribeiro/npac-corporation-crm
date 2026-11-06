@@ -195,6 +195,9 @@ export class FinanceService {
           stageId: d.stageId,
           paymentProductId: null,
           paymentAmountCents: null,
+          paymentEntryCents: null,
+          // Venda a registrar (NPAC-41): o produto informado no cadastro vira o da venda.
+          soldProductId: null,
           lostReason: null,
           lostReasonOther: null,
           version: lead.version + 1,

@@ -418,3 +418,103 @@ describe('closer marca a etapa depois da reunião', () => {
     ).toBe(403);
   });
 });
+
+// Pagamento parcial (NPAC-41, Igor 06/11/2026, "1A"): o lead já deu uma entrada e o restante tem
+// data combinada. Fica em Agendou Pagamento; só vira venda quando o closer registrar.
+describe('Agendou Pagamento parcial', () => {
+  const partial = (over: Record<string, unknown> = {}) =>
+    lead({
+      stageKey: 'AGENDOU_PAGAMENTO',
+      nextContactAt: inDays(10),
+      paymentProductId: productId,
+      paymentAmountCents: 1_800_000,
+      paymentEntryCents: 600_000,
+      ...over,
+    });
+
+  it('grava a entrada no cadastro e devolve no lead; nada vira venda', async () => {
+    const id = await create(partial());
+    expect(await get(id)).toMatchObject({
+      stageKey: 'AGENDOU_PAGAMENTO',
+      paymentAmountCents: 1_800_000,
+      paymentEntryCents: 600_000,
+    });
+    expect(await owner`select id from deals`).toHaveLength(0);
+    expect(await owner`select id from payments`).toHaveLength(0);
+  });
+
+  it('entrada igual ou maior que o valor → 400 e nada gravado', async () => {
+    for (const entry of [1_800_000, 2_000_000]) {
+      const res = await h.post('/api/leads', partial({ paymentEntryCents: entry }), ale);
+      expect(res.status).toBe(400);
+      expect(res.body.message).toMatch(/entrada/i);
+    }
+    expect(await owner`select id from leads`).toHaveLength(0);
+  });
+
+  it('na mesma etapa dá para tirar a entrada; sair da etapa apaga', async () => {
+    const id = await create(partial());
+    const clear = await h.patch(`/api/leads/${id}`, { version: 1, paymentEntryCents: null }, ale);
+    expect(clear.status).toBe(200);
+    expect((await get(id)).paymentEntryCents).toBeNull();
+    // A timeline só leva o nome do campo, nunca o valor.
+    expect((await timeline(id)).at(-1)).toMatchObject({
+      kind: 'lead.updated',
+      fields: ['payment'],
+    });
+
+    const again = await h.patch(
+      `/api/leads/${id}`,
+      { version: 2, paymentEntryCents: 500_000 },
+      ale,
+    );
+    expect(again.status).toBe(200);
+    const out = await h.patch(`/api/leads/${id}`, { version: 3, stageKey: 'EM_FOLLOW' }, ale);
+    expect(out.status).toBe(200);
+    expect(await get(id)).toMatchObject({ paymentEntryCents: null, paymentAmountCents: null });
+  });
+
+  it('closer grava a entrada junto da troca; registrar a venda apaga', async () => {
+    const id = await create(lead({ nextContactAt: inDays(1) }));
+    await owner`insert into meetings (lead_id, closer_id, scheduled_at, origin, created_by)
+      values (${id}, ${ids.sonia}, now() - interval '1 hour', 'DIRETO', ${ids.ale})`;
+    const [nacao] = await owner<{ id: string }[]>`
+      select id from products where code = 'NACAO_PADRAO'`;
+    const pay = await h.patch(
+      `/api/leads/${id}`,
+      {
+        version: 1,
+        stageKey: 'AGENDOU_PAGAMENTO',
+        nextContactAt: inDays(4),
+        paymentProductId: nacao!.id,
+        paymentAmountCents: 300_000,
+        paymentEntryCents: 100_000,
+      },
+      sonia,
+    );
+    expect(pay.status).toBe(200);
+    expect((await get(id, sonia)).paymentEntryCents).toBe(100_000);
+
+    const reg = await h.post(
+      '/api/finance/deals',
+      {
+        leadId: id,
+        productId: nacao!.id,
+        closerId: ids.sonia,
+        version: 2,
+        totalCents: 300_000,
+        method: 'PARTIAL',
+        entryCents: 100_000,
+        installments: [{ amountCents: 200_000, dueAt: inDays(4) }],
+        requestKey: randomUUID(),
+      },
+      sonia,
+    );
+    expect(reg.status).toBe(201);
+    expect(await get(id, sonia)).toMatchObject({
+      stageKey: 'VENDA',
+      paymentEntryCents: null,
+      paymentAmountCents: null,
+    });
+  });
+});
