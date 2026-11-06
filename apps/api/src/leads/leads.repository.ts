@@ -43,9 +43,11 @@ export interface LeadRow {
   summary: string | null;
   paymentProductId: string | null;
   paymentAmountCents: number | null;
+  paymentEntryCents: number | null;
   lostReason: LostReason | null;
   lostReasonOther: string | null;
   saleToRegister: boolean;
+  soldProductId: string | null;
   version: number;
   createdAt: Date;
 }
@@ -178,6 +180,8 @@ export class LeadsRepository {
         summary: leads.summary,
         paymentProductId: leads.paymentProductId,
         paymentAmountCents: leads.paymentAmountCents,
+        paymentEntryCents: leads.paymentEntryCents,
+        soldProductId: leads.soldProductId,
         lostReason: leads.lostReason,
         lostReasonOther: leads.lostReasonOther,
         // Venda a registrar (NPAC-39): em Venda sem venda ativa; função do banco (0038).

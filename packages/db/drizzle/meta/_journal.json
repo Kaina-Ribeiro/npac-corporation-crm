@@ -274,6 +274,13 @@
       "when": 1793915841343,
       "tag": "0038_venda_a_registrar",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1793987772595,
+      "tag": "0039_pagamento_parcial",
+      "breakpoints": true
     }
   ]
 }

@@ -10,6 +10,7 @@ import {
   deals,
   leadContactTaken,
   pipelineStages,
+  products,
   user,
   withUser,
   type Db,
@@ -27,7 +28,7 @@ import {
   isLeader,
   can,
 } from '@npac/shared';
-import { asc, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, sql } from 'drizzle-orm';
 import { AuditService } from '../audit/audit.service.js';
 import { toCsv } from '../common/csv.js';
 import { FieldCrypto } from '../common/crypto/field-crypto.js';
@@ -191,6 +192,7 @@ export class LeadsService {
         // Venda Fechada: o closer da reunião passa a ser o do lead.
         closerId: input.closerId ?? sold?.closerId ?? null,
         ...stage.values,
+        soldProductId: sold && !input.sale ? (input.soldProductId ?? null) : null,
         summary: input.summary ?? null,
         createdBy: u.id,
       });
@@ -293,6 +295,12 @@ export class LeadsService {
       });
     if (input.meeting.scheduledAt.getTime() > Date.now())
       throw new BadRequestException('A reunião ainda não aconteceu');
+    // Sem a venda agora, o produto vendido é obrigatório (NPAC-41); com ela, vale o da venda.
+    if (!input.sale && !input.soldProductId)
+      throw new ConflictException({
+        code: 'PRODUCT_REQUIRED',
+        message: 'Para cadastrar em Venda Fechada, escolha o produto vendido.',
+      });
     return input.meeting;
   }
 
@@ -318,6 +326,18 @@ export class LeadsService {
     });
     await recordActivity(tx, u, lead.id, 'meeting.outcome', ['outcome'], m.id);
     if (!input.sale) {
+      // Produto vendido: ativo e do closer da reunião (o closer da venda).
+      const [p] = await tx
+        .select({ id: products.id })
+        .from(products)
+        .where(
+          and(
+            eq(products.id, input.soldProductId!),
+            eq(products.closerId, meeting.closerId),
+            eq(products.active, true),
+          ),
+        );
+      if (!p) throw new BadRequestException('Produto inválido para o closer da reunião');
       await recordActivity(tx, u, lead.id, 'sale.pending', [], m.id);
       return;
     }
@@ -377,9 +397,12 @@ export class LeadsService {
       summary: r.summary,
       paymentProductId: r.paymentProductId,
       paymentAmountCents: r.paymentAmountCents,
+      paymentEntryCents: r.paymentEntryCents,
       lostReason: r.lostReason,
       lostReasonOther: r.lostReasonOther,
       saleToRegister: r.saleToRegister,
+      // Só vale enquanto a venda não é registrada (a API apaga ao registrar).
+      soldProductId: r.saleToRegister ? r.soldProductId : null,
       version: r.version,
       createdAt: r.createdAt.toISOString(),
     };

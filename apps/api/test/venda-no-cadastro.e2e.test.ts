@@ -21,6 +21,8 @@ const lead = (over: Record<string, unknown> = {}) => ({
   incomeBand: 'R8_15K',
   source: 'BIO',
   stageKey: 'VENDA',
+  // Produto vendido (NPAC-41): da Sônia, closer padrão das reuniões; com a venda, vale o dela.
+  soldProductId: nacao,
   ...over,
 });
 const DAY = 86_400_000;
@@ -309,5 +311,66 @@ describe('venda a registrar depois', () => {
     expect(rev.status).toBe(200);
     got = (await h.get(`/api/leads/${id}`, ronaldo)).body;
     expect(got).toMatchObject({ stageKey: 'EM_FOLLOW', saleToRegister: false });
+  });
+});
+
+// Produto vendido no cadastro (NPAC-41, Igor 06/11/2026, "2A"): obrigatório sem a venda, só o
+// nome na tela do SDR; o closer põe os valores ao registrar.
+describe('produto vendido na venda a registrar', () => {
+  it('sem o produto → 409 PRODUCT_REQUIRED e nada gravado', async () => {
+    const res = await h.post(
+      '/api/leads',
+      lead({ meeting: pastMeeting(), soldProductId: undefined }),
+      ale,
+    );
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe('PRODUCT_REQUIRED');
+    expect(res.body.message).toMatch(/produto/);
+    await nothingWritten();
+  });
+
+  it('produto de outro closer → 400 e nada gravado', async () => {
+    const res = await h.post(
+      '/api/leads',
+      lead({ meeting: pastMeeting(), soldProductId: rdv }),
+      ale,
+    );
+    expect(res.status).toBe(400);
+    await nothingWritten();
+  });
+
+  it('guarda o produto; o closer registra e ele some', async () => {
+    const id = await create(lead({ meeting: pastMeeting() }));
+    expect((await h.get(`/api/leads/${id}`, sonia)).body).toMatchObject({
+      saleToRegister: true,
+      soldProductId: nacao,
+    });
+    const reg = await h.post(
+      '/api/finance/deals',
+      {
+        leadId: id,
+        productId: nacao,
+        closerId: ids.sonia,
+        version: 1,
+        totalCents: 300_000,
+        method: 'PIX',
+        requestKey: randomUUID(),
+      },
+      sonia,
+    );
+    expect(reg.status).toBe(201);
+    expect((await h.get(`/api/leads/${id}`, sonia)).body.soldProductId).toBeNull();
+    expect(await owner`select id from leads where sold_product_id is not null`).toHaveLength(0);
+  });
+
+  it('sair de Venda pelo PATCH apaga o produto; com a venda já registrada nem grava', async () => {
+    const id = await create(lead({ meeting: pastMeeting() }));
+    expect(
+      (await h.patch(`/api/leads/${id}`, { version: 1, stageKey: 'EM_FOLLOW' }, ale)).status,
+    ).toBe(200);
+    expect(await owner`select id from leads where sold_product_id is not null`).toHaveLength(0);
+
+    await create(lead({ sdrId: ids.ale, meeting: pastMeeting('ronaldo'), sale: sale() }), ronaldo);
+    expect(await owner`select id from leads where sold_product_id is not null`).toHaveLength(0);
   });
 });
