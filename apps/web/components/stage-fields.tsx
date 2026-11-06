@@ -1,7 +1,7 @@
 'use client';
 import type { LeadCatalog, LeadDTO, ProductDTO, Role } from '@npac/shared';
 import { LOST_REASON_LABELS, LOST_REASON_OTHER_MAX, LOST_REASONS } from '@npac/shared/enums';
-import { money } from '@npac/shared/money';
+import { money, parseCents } from '@npac/shared/money';
 import { useState } from 'react';
 import {
   centsInput,
@@ -19,6 +19,7 @@ export type StageFieldsLead = Partial<
     | 'closer'
     | 'paymentProductId'
     | 'paymentAmountCents'
+    | 'paymentEntryCents'
     | 'lostReason'
     | 'lostReasonOther'
   >
@@ -72,6 +73,19 @@ export function StageFields({
     keep && lead?.paymentAmountCents ? centsInput(lead.paymentAmountCents) : '',
   );
   const [reason, setReason] = useState<string>(keep ? (lead?.lostReason ?? '') : '');
+  // Pagamento parcial (NPAC-41): já pagou uma entrada; o restante vence na data combinada.
+  const [partial, setPartial] = useState(keep && Boolean(lead?.paymentEntryCents));
+  const [entry, setEntry] = useState(
+    keep && lead?.paymentEntryCents ? centsInput(lead.paymentEntryCents) : '',
+  );
+  const rest = (() => {
+    try {
+      const v = parseCents(amount) - parseCents(entry);
+      return amount && entry && v > 0 ? v : null;
+    } catch {
+      return null;
+    }
+  })();
 
   if (kind === 'MEETING') {
     // Lead que já está no Agendado: a reunião se cuida na seção Reuniões da ficha.
@@ -119,7 +133,28 @@ export function StageFields({
   if (kind === 'PAYMENT') {
     return (
       <>
-        <Field label="Data combinada do pagamento (Brasília)">
+        <label className="col-span-full flex cursor-pointer items-center gap-3 self-end py-2">
+          <input
+            type="checkbox"
+            name={SF.partial}
+            className="size-5 accent-[var(--gold-deep)]"
+            checked={partial}
+            onChange={(e) => setPartial(e.target.checked)}
+          />
+          <span className="flex flex-col">
+            <span className="text-sm font-semibold">Já pagou uma entrada</span>
+            <span className="text-xs text-ink2">
+              Pagamento parcial: o restante fica para a data combinada.
+            </span>
+          </span>
+        </label>
+        <Field
+          label={
+            partial
+              ? 'Data combinada para o restante (Brasília)'
+              : 'Data combinada do pagamento (Brasília)'
+          }
+        >
           <input
             name={SF.next}
             type="datetime-local"
@@ -165,6 +200,27 @@ export function StageFields({
             onChange={(e) => setAmount(e.target.value)}
           />
         </Field>
+        {partial && (
+          <Field label="Entrada já paga (R$)">
+            <input
+              name={SF.entry}
+              className={control}
+              required
+              inputMode="decimal"
+              autoComplete="off"
+              placeholder="0,00"
+              pattern="\d+([.,]\d{1,2})?"
+              title="Use números com até duas casas decimais, ex.: 500,00"
+              value={entry}
+              onChange={(e) => setEntry(e.target.value)}
+            />
+          </Field>
+        )}
+        {partial && rest !== null && (
+          <p className="self-end pb-3 text-sm text-ink2" aria-live="polite">
+            Restante: <strong className="text-ink">{money(rest)}</strong>
+          </p>
+        )}
       </>
     );
   }

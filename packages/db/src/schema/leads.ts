@@ -51,6 +51,13 @@ export const leads = pgTable(
     /** Agendou Pagamento: produto e valor combinados (só nessa etapa; a API limpa ao sair). */
     paymentProductId: uuid('payment_product_id').references((): AnyPgColumn => products.id),
     paymentAmountCents: integer('payment_amount_cents'),
+    /** Agendou Pagamento parcial (NPAC-41): entrada já paga; o restante vence em `next_contact_at`. */
+    paymentEntryCents: integer('payment_entry_cents'),
+    /**
+     * Venda a registrar (NPAC-41): produto vendido informado no cadastro em Venda Fechada, sem
+     * valores (o closer registra). Apagado quando a venda é registrada ou o lead sai da Venda.
+     */
+    soldProductId: uuid('sold_product_id').references((): AnyPgColumn => products.id),
     /** Sem Perfil: motivo e, com "Outro", o texto (até 80 caracteres; a LGPD apaga). */
     lostReason: leadLostReasonEnum('lost_reason'),
     lostReasonOther: text('lost_reason_other'),
@@ -82,6 +89,11 @@ export const leads = pgTable(
     check(
       'leads_payment_check',
       sql`(${t.paymentProductId} is null) = (${t.paymentAmountCents} is null) and (${t.paymentAmountCents} is null or ${t.paymentAmountCents} > 0)`,
+    ),
+    // A entrada só existe com o valor combinado, e fica abaixo dele.
+    check(
+      'leads_payment_entry_check',
+      sql`${t.paymentEntryCents} is null or (${t.paymentAmountCents} is not null and ${t.paymentEntryCents} > 0 and ${t.paymentEntryCents} < ${t.paymentAmountCents})`,
     ),
     check(
       'leads_lost_reason_other_check',

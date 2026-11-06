@@ -15,8 +15,9 @@ const tryCents = (v: string) => {
 };
 
 /**
- * Venda Fechada no cadastro (NPAC-39): a reunião que já aconteceu (o SDR recebe por ela) e, no
- * fim, "Registrar a venda agora" para quem registra venda. Sem a venda, o lead entra como
+ * Venda Fechada no cadastro (NPAC-39): a reunião que já aconteceu (o SDR recebe por ela), o
+ * produto vendido (NPAC-41; para o SDR, só o nome) e, no fim, "Registrar a venda agora" para quem
+ * registra venda. Sem a venda, o lead entra como
  * "venda a registrar" e o closer da reunião é avisado. Fica na grade do `LeadForm`.
  */
 export function SoldFields({
@@ -76,9 +77,40 @@ export function SoldFields({
             ))}
         </select>
       </Field>
+      <Field label="Produto vendido">
+        <select
+          name={SOLD.product}
+          className={control}
+          required
+          value={productId}
+          disabled={!closerId}
+          onChange={(e) => {
+            setProductId(e.target.value);
+            const p = products.find((x) => x.id === e.target.value);
+            // O valor da venda começa com o preço do produto e pode ser editado.
+            if (p && canRegister) setTotal(centsInput(p.priceCents));
+          }}
+        >
+          <option value="" disabled>
+            {!closerId
+              ? 'Escolha antes o closer da reunião'
+              : closerProducts.length
+                ? 'Escolha o produto'
+                : 'Este closer não tem produtos ativos'}
+          </option>
+          {closerProducts.map((p) => (
+            <option key={p.id} value={p.id}>
+              {/* SDR vê só o nome (NPAC-41): os valores o closer põe ao registrar a venda. */}
+              {canRegister ? `${p.name} — ${money(p.priceCents)}` : p.name}
+            </option>
+          ))}
+        </select>
+      </Field>
       <p className="col-span-full -mt-1 text-xs text-ink2">
         A reunião entra como realizada e conta para o SDR no dia dela.
-        {canRegister ? '' : ' O closer da reunião recebe o aviso para registrar a venda.'}
+        {canRegister
+          ? ''
+          : ' O closer da reunião recebe o aviso e põe os valores ao registrar a venda.'}
       </p>
       {canRegister && (
         <fieldset className="sold-sale col-span-full flex flex-col gap-4 rounded-2xl border border-line p-4">
@@ -88,7 +120,11 @@ export function SoldFields({
               name={SOLD.register}
               className="mt-0.5 size-5 accent-[var(--gold-deep)]"
               checked={register}
-              onChange={(e) => setRegister(e.target.checked)}
+              onChange={(e) => {
+                setRegister(e.target.checked);
+                const p = products.find((x) => x.id === productId);
+                if (e.target.checked && p && !total) setTotal(centsInput(p.priceCents));
+              }}
             />
             <span className="flex flex-col">
               <span className="font-semibold">Registrar a venda agora</span>
@@ -109,34 +145,6 @@ export function SoldFields({
                   max={spToday()}
                   required
                 />
-              </Field>
-              <Field label="Produto">
-                <select
-                  name={SOLD.product}
-                  className={control}
-                  required
-                  value={productId}
-                  disabled={!closerId}
-                  onChange={(e) => {
-                    setProductId(e.target.value);
-                    const p = products.find((x) => x.id === e.target.value);
-                    // O valor começa com o preço do produto e pode ser editado.
-                    if (p) setTotal(centsInput(p.priceCents));
-                  }}
-                >
-                  <option value="" disabled>
-                    {!closerId
-                      ? 'Escolha antes o closer da reunião'
-                      : closerProducts.length
-                        ? 'Escolha o produto'
-                        : 'Este closer não tem produtos ativos'}
-                  </option>
-                  {closerProducts.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} — {money(p.priceCents)}
-                    </option>
-                  ))}
-                </select>
               </Field>
               <Field label="Valor total (R$)">
                 <input

@@ -87,6 +87,11 @@ export const stageFieldsShape = {
   /** Agendou Pagamento: produto e valor combinados (centavos); a data vai em `nextContactAt`. */
   paymentProductId: z.uuid().optional(),
   paymentAmountCents: z.number().int().positive().optional(),
+  /**
+   * Pagamento parcial (NPAC-41): entrada já paga, menor que o valor; o restante vence na data
+   * combinada. `null` apaga (deixou de ser parcial).
+   */
+  paymentEntryCents: z.number().int().positive().nullable().optional(),
   /** Sem Perfil: motivo; "Outro" pede o texto. */
   lostReason: z.enum(LOST_REASONS).optional(),
   lostReasonOther: z.preprocess(
@@ -117,6 +122,8 @@ export const leadCreateSchema = z
     // Venda Fechada (NPAC-39): a reunião já aconteceu (a API confere o horário).
     meeting: z.object(meetingShape).strict().optional(),
     sale: leadSaleSchema.optional(),
+    // Sem a venda agora: o produto vendido (obrigatório; do closer da reunião). NPAC-41.
+    soldProductId: z.uuid().optional(),
   })
   // Agendados: reunião futura. Na Venda o horário é passado e a API responde em português.
   .refine(

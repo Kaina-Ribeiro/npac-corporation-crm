@@ -3,6 +3,7 @@ import type { LeadDTO, ProductDTO, Role } from '@npac/shared';
 import { money, parseCents } from '@npac/shared/money';
 import { useState, type FormEvent } from 'react';
 import { brasiliaInput, clientApi } from '@/lib/client-api';
+import { toBrasiliaInput } from '@/lib/stage-fields';
 import { button, control, Field, FormError, quietButton } from './crm-ui';
 
 export function SaleFlow({
@@ -19,17 +20,33 @@ export function SaleFlow({
   const [version] = useState(lead.version);
   const [key] = useState(() => crypto.randomUUID());
   // Agendou Pagamento (NPAC-38): abre com o produto e o valor combinados, se o produto está na lista.
-  const agreed = products.find(
-    (p) => p.id === lead.paymentProductId && (me.role !== 'CLOSER' || p.closerId === me.id),
-  );
+  // Venda a registrar (NPAC-41): abre com o produto que o SDR informou no cadastro.
+  const mine = (id: string | null) =>
+    products.find((p) => p.id === id && (me.role !== 'CLOSER' || p.closerId === me.id));
+  const agreed = mine(lead.paymentProductId);
+  const sold = agreed ? undefined : mine(lead.soldProductId);
+  // Pagamento parcial (NPAC-41): entrada já paga + o restante na data combinada, se ainda futura.
+  const entryCents = agreed && lead.paymentAmountCents ? lead.paymentEntryCents : null;
+  const restDue =
+    lead.nextContactAt && new Date(lead.nextContactAt).getTime() > Date.now()
+      ? toBrasiliaInput(lead.nextContactAt)
+      : '';
   const [step, setStep] = useState(0),
-    [productId, setProductId] = useState(agreed?.id ?? ''),
+    [productId, setProductId] = useState(agreed?.id ?? sold?.id ?? ''),
     [total, setTotal] = useState(
-      agreed && lead.paymentAmountCents ? (lead.paymentAmountCents / 100).toFixed(2) : '',
+      agreed && lead.paymentAmountCents
+        ? (lead.paymentAmountCents / 100).toFixed(2)
+        : sold
+          ? (sold.priceCents / 100).toFixed(2)
+          : '',
     ),
-    [method, setMethod] = useState('PIX'),
-    [entry, setEntry] = useState('0');
-  const [parts, setParts] = useState([{ amount: '', due: '' }]),
+    [method, setMethod] = useState(entryCents ? 'PARTIAL' : 'PIX'),
+    [entry, setEntry] = useState(entryCents ? (entryCents / 100).toFixed(2) : '0');
+  const [parts, setParts] = useState([
+      entryCents && lead.paymentAmountCents
+        ? { amount: ((lead.paymentAmountCents - entryCents) / 100).toFixed(2), due: restDue }
+        : { amount: '', due: '' },
+    ]),
     [busy, setBusy] = useState(false),
     [error, setError] = useState('');
   const product = products.find((p) => p.id === productId);

@@ -19,11 +19,15 @@ export type LeadDTO = {
   /** Agendou Pagamento: produto e valor combinados (pré-preenchem o registro da venda). */
   paymentProductId: string | null;
   paymentAmountCents: number | null;
+  /** Pagamento parcial (NPAC-41): entrada já paga; o restante vence em `nextContactAt`. */
+  paymentEntryCents: number | null;
   /** Sem Perfil: motivo e o texto de "Outro". */
   lostReason: LostReason | null;
   lostReasonOther: string | null;
   /** Em Venda sem venda ativa (NPAC-39): cadastrado como Venda Fechada, falta registrar a venda. */
   saleToRegister: boolean;
+  /** Produto vendido informado no cadastro da venda a registrar (NPAC-41); pré-preenche a venda. */
+  soldProductId: string | null;
   version: number;
   createdAt: string;
 };

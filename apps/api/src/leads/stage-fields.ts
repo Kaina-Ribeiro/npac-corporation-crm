@@ -5,7 +5,7 @@ import { and, eq, gt, isNull } from 'drizzle-orm';
 
 /**
  * Campos por etapa (NPAC-38, pedido do cliente de 05/11/2026): Agendados pedem a reunião,
- * Agendou Pagamento pede data + produto + valor, Sem Perfil pede o motivo. A API recusa a troca
+ * Agendou Pagamento pede data + produto + valor (+ entrada já paga, se parcial: NPAC-41), Sem Perfil pede o motivo. A API recusa a troca
  * de etapa sem eles (409), como a Venda; leads que já estão na etapa ficam como estão (3A).
  */
 export const meetingRequired = () =>
@@ -29,6 +29,7 @@ export interface StageFieldsInput {
   meeting?: { scheduledAt: Date; closerId: string };
   paymentProductId?: string;
   paymentAmountCents?: number;
+  paymentEntryCents?: number | null;
   lostReason?: LostReason;
   lostReasonOther?: string;
   nextContactAt?: Date | null;
@@ -38,6 +39,7 @@ export interface StageFieldsInput {
 export interface StageState {
   paymentProductId: string | null;
   paymentAmountCents: number | null;
+  paymentEntryCents: number | null;
   lostReason: LostReason | null;
   lostReasonOther: string | null;
   nextContactAt: Date | null;
@@ -46,6 +48,7 @@ export interface StageState {
 export const EMPTY_STAGE_STATE: StageState = {
   paymentProductId: null,
   paymentAmountCents: null,
+  paymentEntryCents: null,
   lostReason: null,
   lostReasonOther: null,
   nextContactAt: null,
@@ -56,13 +59,14 @@ export const STAGE_DATA_FIELDS = [
   'nextContactAt',
   'paymentProductId',
   'paymentAmountCents',
+  'paymentEntryCents',
   'lostReason',
   'lostReasonOther',
 ] as const;
 
 /** Nome do campo na timeline (lista fechada no banco; nunca o valor). */
 export const timelineField = (k: string) =>
-  k === 'paymentProductId' || k === 'paymentAmountCents'
+  k === 'paymentProductId' || k === 'paymentAmountCents' || k === 'paymentEntryCents'
     ? 'payment'
     : k === 'lostReasonOther'
       ? 'lostReason'
@@ -112,6 +116,18 @@ export async function resolveStageFields(
     values.paymentAmountCents = input.paymentAmountCents ?? old.paymentAmountCents;
     if ((values.paymentProductId === null) !== (values.paymentAmountCents === null))
       throw new BadRequestException('Informe o produto e o valor combinados');
+    // Pagamento parcial (NPAC-41): a entrada já paga fica abaixo do valor combinado.
+    values.paymentEntryCents =
+      input.paymentEntryCents !== undefined
+        ? input.paymentEntryCents
+        : changed
+          ? null
+          : old.paymentEntryCents;
+    if (
+      values.paymentEntryCents !== null &&
+      (values.paymentAmountCents === null || values.paymentEntryCents >= values.paymentAmountCents)
+    )
+      throw new BadRequestException('A entrada precisa ser menor que o valor combinado');
     if (input.paymentProductId) {
       const [p] = await tx
         .select({ id: products.id })

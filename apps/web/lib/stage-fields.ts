@@ -25,6 +25,8 @@ export type StageFieldsBody = {
   meeting?: { scheduledAt: string; closerId: string };
   paymentProductId?: string;
   paymentAmountCents?: number;
+  /** Pagamento parcial (NPAC-41): entrada já paga; `null` = não é parcial (no PATCH, apaga). */
+  paymentEntryCents?: number | null;
   lostReason?: LostReason;
   lostReasonOther?: string;
 };
@@ -36,6 +38,8 @@ export const SF = {
   meetingCloser: 'sf_meeting_closer',
   product: 'sf_product',
   amount: 'sf_amount',
+  partial: 'sf_partial',
+  entry: 'sf_entry',
   reason: 'sf_reason',
   reasonOther: 'sf_reason_other',
 } as const;
@@ -76,6 +80,15 @@ export function readStageFields(
       if (cents <= 0) throw new Error('Informe um valor maior que zero.');
       body.paymentProductId = product;
       body.paymentAmountCents = cents;
+      // Pagamento parcial (NPAC-41): a entrada já paga fica entre zero e o valor combinado.
+      if (form.get(SF.partial) === 'on') {
+        const entry = get(SF.entry);
+        if (!entry) throw new Error('Informe quanto já foi pago de entrada.');
+        const entryCents = parseCents(entry);
+        if (entryCents <= 0 || entryCents >= cents)
+          throw new Error('A entrada precisa ser maior que zero e menor que o valor combinado.');
+        body.paymentEntryCents = entryCents;
+      } else body.paymentEntryCents = null;
     }
     return body;
   }
