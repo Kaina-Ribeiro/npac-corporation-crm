@@ -223,3 +223,93 @@ test('pipeline e lista: mudar para etapa com dados abre a janelinha; cancelar de
     select lost_reason as reason, payment_amount_cents as cents from leads where name = ${name}`;
   expect(lost).toEqual({ reason: 'SEM_INTERESSE', cents: null });
 });
+
+/** `datetime-local` em Brasília. */
+const spInput = (d: Date) =>
+  d.toLocaleString('sv-SE', { timeZone: 'America/Sao_Paulo' }).replace(' ', 'T').slice(0, 16);
+
+test('Agendou Pagamento parcial (NPAC-41): entrada e data do restante até o registro da venda', async ({
+  page,
+  browser,
+}) => {
+  await login(page, 'ale@npac.com.br');
+  await page.goto('/leads/new');
+  await page.getByLabel('Nome', { exact: true }).fill('Lead com entrada');
+  await page.getByLabel('Instagram', { exact: true }).fill('@lead.entrada');
+  await page.getByLabel('Faixa de renda', { exact: true }).selectOption('R8_15K');
+  await page.getByLabel('Origem', { exact: true }).selectOption('BIO');
+  await page.getByLabel('Etapa', { exact: true }).selectOption('AGENDOU_PAGAMENTO');
+  await expect(page.getByLabel('Entrada já paga (R$)', { exact: true })).toHaveCount(0);
+  await page.getByLabel('Já pagou uma entrada').check();
+  const due = spInput(new Date(Date.now() + 10 * 86_400_000));
+  await page.getByLabel('Data combinada para o restante (Brasília)', { exact: true }).fill(due);
+  const product = page.getByLabel('Produto', { exact: true });
+  const nacao = (await product.locator('option').allTextContents()).find((t) =>
+    t.includes('Nação Padrão'),
+  )!;
+  await product.selectOption({ label: nacao.trim() });
+  await page.getByLabel('Valor combinado (R$)', { exact: true }).fill('3000');
+  // Entrada igual ao valor: o formulário avisa antes da API.
+  await page.getByLabel('Entrada já paga (R$)', { exact: true }).fill('3000');
+  await page.getByRole('button', { name: 'Cadastrar lead', exact: true }).click();
+  await expect(page.getByText('A entrada precisa ser maior que zero e menor')).toBeVisible();
+  await page.getByLabel('Entrada já paga (R$)', { exact: true }).fill('1000');
+  await expect(page.getByText('Restante: R$ 2.000,00')).toBeVisible();
+  for (const w of WIDTHS) {
+    await page.setViewportSize({ width: w, height: 900 });
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    ).toBe(true);
+    await page.screenshot({
+      path: `test-results/pagamento-parcial-cadastro-${w}.png`,
+      fullPage: true,
+      animations: 'disabled',
+    });
+  }
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.getByRole('button', { name: 'Cadastrar lead', exact: true }).click();
+  await page.waitForURL(/\/leads\/[0-9a-f-]{36}$/);
+  const id = page.url().split('/').pop()!;
+  await expect(page.getByText(/Restante combinado para:/)).toBeVisible();
+  await expect(
+    page.getByText(/entrada de R\$\s1\.000,00 paga, faltam R\$\s2\.000,00/),
+  ).toBeVisible();
+  const [row] = await owner<{ entry: number }[]>`
+    select payment_entry_cents as entry from leads where id = ${id}`;
+  expect(row?.entry).toBe(100_000);
+
+  // Botão do Instagram (NPAC-41, "3B"): abre o perfil, como o do WhatsApp abre a conversa.
+  const insta = page.getByRole('link', { name: 'Instagram', exact: true });
+  await expect(insta).toHaveAttribute('href', 'https://www.instagram.com/lead.entrada/');
+  await expect(insta).toHaveAttribute('target', '_blank');
+  await expect(page.getByText('@lead.entrada', { exact: true })).toBeVisible();
+  for (const w of WIDTHS) {
+    await page.setViewportSize({ width: w, height: 900 });
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    ).toBe(true);
+    await page.screenshot({
+      path: `test-results/pagamento-parcial-ficha-${w}.png`,
+      animations: 'disabled',
+    });
+  }
+
+  // Quem registra a venda já recebe Parcial com a entrada e o restante na data combinada.
+  const ctx = await browser.newContext();
+  const head = await ctx.newPage();
+  await login(head, 'ronaldo@npac.com.br');
+  await head.goto(`/leads/${id}`);
+  await head.getByRole('button', { name: 'Registrar venda', exact: true }).click();
+  const form = head.getByRole('form', { name: 'Registrar venda' });
+  await form.getByRole('button', { name: 'Continuar venda', exact: true }).click();
+  await expect(form.getByLabel('Forma de pagamento', { exact: true })).toHaveValue('PARTIAL');
+  await expect(form.getByLabel('Entrada recebida (R$)', { exact: true })).toHaveValue('1000.00');
+  await expect(form.getByLabel('Parcela 1 (R$)', { exact: true })).toHaveValue('2000.00');
+  await expect(form.getByLabel('Vencimento 1 (Brasília)', { exact: true })).toHaveValue(due);
+  await head.screenshot({
+    path: 'test-results/pagamento-parcial-venda-1280.png',
+    fullPage: true,
+    animations: 'disabled',
+  });
+  await ctx.close();
+});
