@@ -156,13 +156,20 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   no DTO, `lead_sale_pending()` da 0038), selo na ficha/Pipeline e aviso `sale.pending` ao closer.
   Registrar depois mantém em Venda; o estorno dessa venda volta para EM_FOLLOW (`previous_stage_id`).
   Regra em `api/leads/leads.service.ts` (`checkSoldLead`/`registerSold`); tela `components/sold-fields.tsx`
-  - `lib/sold-fields.ts`.
+  - `lib/sold-fields.ts`. **Produto vendido** (NPAC-41, Igor 06/11/2026, "2A"): obrigatório, do closer
+    da reunião (409 `PRODUCT_REQUIRED`); SDR vê só o nome, sem R$. Sem a venda fica em
+    `leads.sold_product_id` (0039): "Produto: X" na ficha e pré-preenche o registro; apagado ao
+    registrar ou sair da Venda (o gatilho deixa o closer zerá-lo sem trocar a etapa).
 - **Campos por etapa** (NPAC-38, 05/11/2026, "1A 2A 3A"): Agendados pedem `meeting` (criada na
   mesma transação, origem pela etapa, `rearm()` depois do commit; reunião futura aberta dispensa),
   Agendou Pagamento pede data (`next_contact_at`) + produto + valor, Sem Perfil pede `lost_reason`
   (+ texto se Outro; limpa o próximo contato). 409 `MEETING_/PAYMENT_/REASON_REQUIRED` só quando a
   etapa muda; leads antigos ficam como estão. Sair da etapa ou registrar venda apaga pagamento e
-  motivo. Closer grava esses campos só junto da troca (gatilho da 0037). Regra em `api/leads/stage-fields.ts`.
+  motivo. Closer grava esses campos só junto da troca (gatilho da 0037, refeito na 0039). Regra em `api/leads/stage-fields.ts`.
+  **Pagamento parcial** (NPAC-41, "1A"): caixa "Já pagou uma entrada" → `payment_entry_cents`
+  (0 < entrada < valor, CHECK + 400); a data vira a do restante. Não cria venda nem entra nos
+  relatórios até o closer registrar; o registro abre em Parcial com entrada + restante na data.
+- Ficha: botões WhatsApp (`wa.me`, conversa) e Instagram (perfil, `instagram.com/<usuario>/`, NPAC-41 "3B").
 - Resultado de reunião só depois do horário (400 "A reunião ainda não aconteceu"). Resultados:
   `DONE`, `NO_SHOW`, `RESCHEDULED`. Valor por reunião realizada = `MEETING_VALUE_CENTS`
   (P0 900, P1 700, P2 500), pelo perfil **atual** do lead; no-show e remarcada não somam.
