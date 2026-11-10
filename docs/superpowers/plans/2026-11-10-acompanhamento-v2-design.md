@@ -26,6 +26,7 @@
 | D15 | **Pausado existe e repõe o prazo**: o término anda pelo tempo parado (1C) · alerta da Caixa **20 dias depois do envio** (2A) · 2M e 6M passam pelas 6 etapas como regra, mas pode variar (3) | Eduarda, 10/11 |
 | D16 | Planilha da equipe entra como segunda fonte da importação (§7); CPF nunca é importado; variantes guardadas em texto; quem cancelou entra CANCELADO | Gabriel e Eduarda, 10/11 |
 | D17 | **2M tem acompanhamento mês a mês já na Fase 1 (1A)** · controle mensal vale para todas as mentorias (2C) · 2M e 6M usam as 6 etapas, pulando o que não se aplica (3B). Cadência de 2M, 6M e pulseiras lida da planilha (§5) | Eduarda, 10/11 |
+| D18 | **Fila do dia: agenda de hoje no topo, depois lista por urgência (Atrasados, Hoje) e painel do item ao lado.** Tipo vira filtro, com "Minha fila / Equipe". Desenho em `docs/acompanhamento/prototipo/canvas/` | Gabriel, 10/11 |
 
 ## 1. Objetivo e sucesso
 
@@ -202,7 +203,7 @@ Abas (desktop: sidebar via `nav-menu.tsx`; celular: rodapé com as principais + 
 
 | # | Aba | Fase 1 |
 |---|---|---|
-| 1 | Fila do dia | ✅ itens da §5, agrupados por tipo, com ação direta (concluir, abrir ficha, copiar mensagem). Cada perfil vê a sua; Leo não tem acesso na Fase 1 |
+| 1 | Fila do dia | ✅ itens da §5 (D18): agenda de hoje, depois Atrasados e Hoje, com filtro por tipo e "Minha fila / Equipe". Cada linha tem a ação principal; o painel do item traz a ação, o link da ficha e a mensagem pronta (no celular abre em tela cheia). Cada perfil vê a sua; Leo não tem acesso na Fase 1 |
 | 2 | Mentorados | ✅ foto, nome ("A e B" no casal), individual/casal, mês da jornada, status, responsável, último contato (contato ou reunião realizada); filtros por mês, status, responsável; lista "completar a ficha". PME atual, semáforo e % do PME entram na Fase 2 |
 | 3 | Ficha do mentorado | ✅ Inscrição · Pessoas · Momento inicial · Jornada (onboarding, mês, ações) · Histórico (reuniões, contatos, envios, anotações, alterações). Mudar individual ↔ casal (adiciona ou remove a pessoa 2, com confirmação). Pausar e retomar (ADMIN e ACOMPANHAMENTO). ADMIN: excluir inscrição (com confirmação, sem desfazer) |
 | 4 | Onboarding | ✅ funil das 6 etapas, dias parado por pessoa, caixas em trânsito, IDRs a agendar; dispensar etapa (2M e 6M) |

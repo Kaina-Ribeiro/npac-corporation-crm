@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Fila do dia</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="prototipo.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="app raiz">
+  <aside class="side glass">
+    <div class="brand"><span class="mark">N</span><b>NPAC Corporation</b></div>
+    <nav aria-label="Navegação lateral">
+      <sc-for list="{{menu}}" as="m" hint-placeholder-count="12">
+        <sc-if value="{{m.sec}}" hint-placeholder-val="{{no}}"><div class="nsec">{{m.label}}</div></sc-if>
+        <sc-if value="{{m.link}}" hint-placeholder-val="{{yes}}">
+          <a class="nl {{m.on}}" href="{{m.href}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{m.d}}"></path></svg><span>{{m.label}}</span><sc-if value="{{m.cnt}}" hint-placeholder-val="{{no}}"><span class="cnt">{{m.cnt}}</span></sc-if></a>
+        </sc-if>
+      </sc-for>
+    </nav>
+    <div class="foot"><span class="ava me">D</span><div><b>Duda</b><span>Acompanhamento e Admin</span></div></div>
+  </aside>
+  <main><div class="wrap">
+    <div class="mob"><span>Acompanhamento</span><span class="ava me">D</span></div>
+    <div class="top">
+      <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><input class="field" type="search" aria-label="Buscar mentorados" placeholder="Nome, telefone com DDD ou e-mail"></div>
+      <span class="tag gold">Protótipo com dados inventados</span>
+    </div>
+    <section class="view">
+      <div class="hrow">
+        <div><h1 class="h1">Fila do dia</h1><p class="sub">{{resumo}}</p></div>
+        <div class="acts">
+          <div class="seg" role="group" aria-label="De quem é a fila"><button class="{{minhaCls}}" onClick="{{verMinha}}">Minha fila</button><button class="{{equipeCls}}" onClick="{{verEquipe}}">Equipe</button></div>
+          <button class="btn s">Exportar</button>
+        </div>
+      </div>
+      <div class="fchips"><sc-for list="{{chips}}" as="c" hint-placeholder-count="5"><button class="fchip {{c.on}}" onClick="{{c.pick}}">{{c.l}}<span>{{c.n}}</span></button></sc-for></div>
+      <div class="fila">
+        <div class="fila-lista">
+          <sc-for list="{{bandas}}" as="b" hint-placeholder-count="3">
+            <section class="card band {{b.cls}}">
+              <header><h2>{{b.t}}</h2><span>{{b.n}}</span></header>
+              <ul>
+                <sc-for list="{{b.itens}}" as="x" hint-placeholder-count="3">
+                  <li class="fr {{x.cls}}">
+                    <button class="fr-hit" aria-label="{{x.aria}}" onClick="{{x.pick}}"></button>
+                    <sc-if value="{{x.hora}}" hint-placeholder-val="{{no}}"><span class="fr-hora">{{x.hora}}</span></sc-if>
+                    <span class="{{x.fc}}"><sc-for list="{{x.faces}}" as="f" hint-placeholder-count="1"><span class="ava {{f.c}}">{{f.l}}</span></sc-for></span>
+                    <div class="fr-texto"><div class="who">{{x.n}}</div><div class="what">{{x.w}}</div><div class="fr-m"><span class="due {{x.dueCls}}">{{x.due}}</span>, {{x.resp}}</div></div>
+                    <span class="fr-resp">{{x.resp}}</span>
+                    <span class="fr-due {{x.dueCls}}">{{x.due}}</span>
+                    <button class="btn s sm fr-acao" onClick="{{x.fazer}}">{{x.acao}}</button>
+                    <svg class="fr-seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+                  </li>
+                </sc-for>
+              </ul>
+            </section>
+          </sc-for>
+          <sc-if value="{{vazia}}" hint-placeholder-val="{{no}}"><section class="card fila-vazia">Nenhum item nesta visão. Troque o filtro para ver o resto da fila.</section></sc-if>
+        </div>
+        <aside class="painel card {{abertoCls}}" aria-label="Detalhe do item">
+          <sc-if value="{{temSel}}" hint-placeholder-val="{{yes}}">
+            <div class="pn">
+              <button class="pn-fechar" onClick="{{fechar}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>Voltar para a fila</button>
+              <div class="pn-h"><span class="{{p.fc}}"><sc-for list="{{p.faces}}" as="f" hint-placeholder-count="1"><span class="ava {{f.c}}">{{f.l}}</span></sc-for></span><div style="min-width: 0"><h2>{{p.n}}</h2><div class="pn-tags"><sc-for list="{{p.tags}}" as="t" hint-placeholder-count="3"><span class="tag {{t.c}}">{{t.l}}</span></sc-for></div></div></div>
+              <sc-if value="{{p.mes}}" hint-placeholder-val="{{no}}"><div class="pn-j"><b>Mês {{p.mes}} de 12</b><span class="trail"><sc-for list="{{p.trail}}" as="t" hint-placeholder-count="12"><i class="{{t.c}}"></i></sc-for></span></div></sc-if>
+              <div class="pn-t"><span class="due {{p.dueCls}}">{{p.dueLongo}}</span><h3>{{p.w}}</h3><p>{{p.full}}</p></div>
+              <div class="pn-a"><button class="btn p" onClick="{{p.fazer}}">{{p.acao}}</button><sc-if value="{{p.href}}" hint-placeholder-val="{{yes}}"><a class="btn s" href="{{p.href}}">Abrir ficha</a></sc-if></div>
+              <sc-if value="{{p.msg}}" hint-placeholder-val="{{yes}}">
+                <div class="pn-msg">
+                  <div class="pn-msg-h"><b>Mensagem pronta</b><span>{{p.msgNome}}</span></div>
+                  <p>{{p.msg}}</p>
+                  <div class="pn-wa"><sc-for list="{{p.wa}}" as="w" hint-placeholder-count="2"><button class="btn s sm wa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{w.d}}"></path></svg>{{w.l}}</button></sc-for></div>
+                  <small>Cada botão copia o texto e abre a conversa.</small>
+                  <sc-if value="{{p.nota}}" hint-placeholder-val="{{no}}"><small>{{p.nota}}</small></sc-if>
+                </div>
+              </sc-if>
+              <dl class="pn-ctx"><sc-for list="{{p.ctx}}" as="c" hint-placeholder-count="3"><div><dt>{{c.l}}</dt><dd>{{c.v}}</dd></div></sc-for></dl>
+            </div>
+          </sc-if>
+        </aside>
+      </div>
+    </section>
+  </div></main>
+  <nav class="bnav glass" aria-label="Abas do acompanhamento">
+    <a class="on" href="Main.dc.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"></path></svg>Fila</a>
+    <a href="Mentorados.dc.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7M22 19v-1a4 4 0 0 0-3-3.8M16 3.2a3.5 3.5 0 0 1 0 6.6"></path></svg>Mentorados</a>
+    <button class="plus" aria-label="Nova inscrição"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" width="22" height="22"><path d="M12 5v14M5 12h14"></path></svg></button>
+    <a href="#reunioes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M3 7h13v10H3zM16 11l5-3v8l-5-3"></path></svg>Reuniões</a>
+    <a href="#mais"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M5 12h.01M12 12h.01M19 12h.01"></path></svg>Mais</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"celular":{"editor":null},"aberto":{"editor":null},"$preview":{"width":1440,"height":1260}}'>
+class Component extends DCLogic {
+  state = { sel: null, aberto: false, tipo: 'TODOS', dono: 'EQUIPE', feitos: {} };
+
+  renderVals() {
+    const st = this.state;
+    const ic = { fila:'M4 6h16M4 12h16M4 18h10', ment:'M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7M22 19v-1a4 4 0 0 0-3-3.8M16 3.2a3.5 3.5 0 0 1 0 6.6', ficha:'M6 3h9l4 4v14H6zM9 12h7M9 16h7', onb:'M4 5h16l-6 7v6l-4 2v-8z', plano:'M4 6h16v15H4zM4 10h16M9 3v4M15 3v4', reun:'M3 7h13v10H3zM16 11l5-3v8l-5-3', pme:'M12 3a9 9 0 1 0 9 9M12 7v5l3 2', linha:'M4 6h16M4 12h10M4 18h7', env:'M3 8l9-5 9 5v8l-9 5-9-5zM3 8l9 5 9-5M12 13v8', ev:'M5 4h14v17H5zM5 9h14', ren:'M4 12a8 8 0 0 1 14-5l2 2M20 12a8 8 0 0 1-14 5l-2-2M20 4v5h-5M4 20v-5h5', conf:'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6M12 3v3M12 18v3M3 12h3M18 12h3' };
+    const WA = 'M21 12a9 9 0 0 1-13.5 7.8L3 21l1.2-4.5A9 9 0 1 1 21 12z';
+    const grupo = { l: 'Grupo', d: ic.ment };
+    const pes = (l) => ({ l, d: WA });
+    const ativo = { c: 'ativo', l: 'Ativo' };
+    const onb = { c: 'onb', l: 'Onboarding' };
+
+    const todos = [
+      { id: 'helena', banda: 'AGENDA', tipo: 'REUNIOES', hora: '15:00', ls: ['H'], g: 1, n: 'Helena Duarte', w: 'Reunião do 2º PME, no Meet', resp: 'Duda', due: 'Link enviado', dueCls: 'okc', dueLongo: 'Hoje às 15:00, link enviado', acao: 'Registrar', full: 'Reunião de acompanhamento ao fechar o 2º PME, com você.', mentoria: 'RDV', tipoI: 'Individual', st: ativo, mes: 2, href: 'Ficha.dc.html', msgNome: 'Lembrete de reunião', msg: 'Oi, Helena! Nossa reunião é hoje às 15h. O link já está no grupo.', wa: [grupo, pes('Helena')], ctx: [['Conduz', 'Duda'], ['Plataforma', 'Meet'], ['Último contato', 'há 2 dias']] },
+      { id: 'marcos', banda: 'AGENDA', tipo: 'REUNIOES', hora: '21:00', ls: ['M','P'], g: 0, n: 'Marcos e Paula Teixeira', w: 'IDR com o Leo, no Zoom', resp: 'Operação', due: 'Enviar às 20:30', dueCls: 'warn', dueLongo: 'Enviar o link às 20:30', acao: 'Link enviado', full: 'Reunião confirmada. O link vai no grupo 30 minutos antes.', mentoria: 'RDV', tipoI: 'Casal', st: onb, mes: 0, href: 'FichaCasal.dc.html', msgNome: 'Link da IDR, casal', msg: 'Oi, Marcos e Paula! Nossa reunião de Introdução da Riqueza começa às 21h. Aqui está o link.', wa: [grupo, pes('Marcos')], nota: 'Paula não tem WhatsApp cadastrado.', ctx: [['Conduz', 'Leo'], ['Plataforma', 'Zoom'], ['Caixa', 'Entregue em 05/11']] },
+      { id: 'renato', banda: 'ATRASADO', tipo: 'ONBOARDING', ls: ['R'], g: 3, n: 'Renato Lacerda', w: 'Caixa não recebida há 23 dias', resp: 'Operação', due: '3 dias', dueCls: 'late', dueLongo: 'Atrasado 3 dias', acao: 'Ver envio', full: 'A Caixa saiu em 18/10, e o prazo de 20 dias venceu em 07/11.', mentoria: '2M', tipoI: 'Individual', st: onb, mes: 0, href: 'Ficha.dc.html', msgNome: 'Caixa em trânsito', msg: 'Oi, Renato! Sua Caixa da Verdadeira Riqueza já chegou? Me avisa por aqui.', wa: [grupo, pes('Renato')], ctx: [['Enviada em', '18/10/2026'], ['Rastreio', 'BR000000000XX'], ['Último contato', 'hoje']] },
+      { id: 'camila', banda: 'ATRASADO', tipo: 'ONBOARDING', ls: ['C','T'], g: 4, n: 'Camila e Tiago Rocha', w: 'Parado há 6 dias em Grupos de WhatsApp', resp: 'Operação', due: '3 dias', dueCls: 'late', dueLongo: 'Atrasado 3 dias', acao: 'Concluir etapa', full: 'A etapa foi enviada em 04/11, e o prazo é de 3 dias.', mentoria: 'RDV', tipoI: 'Casal', st: onb, mes: 0, href: 'FichaCasal.dc.html', msgNome: 'Passo 2, casal', msg: 'Oi, Camila e Tiago! Vocês conseguiram entrar nos grupos? Me contem se precisarem de ajuda.', wa: [grupo, pes('Camila'), pes('Tiago')], ctx: [['Etapa', '2 de 6'], ['Enviada em', '04/11/2026'], ['Último contato', 'há 6 dias']] },
+      { id: 'vitor', banda: 'ATRASADO', tipo: 'PLANO', ls: ['V','A'], g: 3, n: 'Vitor e Aline Campos', w: 'Mês 10: pedir a foto da família', resp: 'Operação', due: '2 dias', dueCls: 'late', dueLongo: 'Atrasada 2 dias', acao: 'Concluir', full: 'A foto é para o presente do mês 11, com a frase "Nós somos ricos de verdade".', mentoria: 'RDV', tipoI: 'Casal', st: ativo, mes: 10, href: 'FichaCasal.dc.html', msgNome: 'Foto da família', msg: 'Oi, Vitor e Aline! Vocês podem nos mandar uma foto da família? Estamos preparando algo especial.', wa: [grupo, pes('Vitor'), pes('Aline')], ctx: [['Prevista para', '08/11/2026'], ['Responsável', 'Operação'], ['Último contato', 'há 6 dias']] },
+      { id: 'agenda', banda: 'ATRASADO', tipo: 'MES', ls: ['·'], g: 7, n: 'Toda a carteira', w: 'Enviar a arte da agenda de novembro', resp: 'Operação', due: '9 dias', dueCls: 'late', dueLongo: 'Desde 01/11', acao: 'Concluir', full: 'A arte da agenda sai todo dia 1º, para todos os mentorados.', tags: [{ c: '', l: 'Item do mês' }], mes: 0, ctx: [['Repete', 'Todo dia 1º']] },
+      { id: 'lucas', banda: 'HOJE', tipo: 'ONBOARDING', ls: ['L','S'], g: 6, n: 'Lucas e Sofia Prado', w: 'Criar o grupo e enviar as boas-vindas', resp: 'Operação', due: 'Hoje', dueCls: '', dueLongo: 'Vence hoje', acao: 'Marcar enviado', full: 'Inscrição nova de casal. A mensagem leva o formulário da Caixa.', mentoria: 'RDV', tipoI: 'Casal', st: onb, mes: 0, href: 'FichaCasal.dc.html', msgNome: 'Boas-vindas, casal', msg: 'Oi, Lucas e Sofia! Sejam muito bem-vindos à mentoria. Preencham o formulário para enviarmos a Caixa de vocês.', wa: [pes('Lucas'), pes('Sofia')], nota: 'O botão Grupo aparece depois que o link do grupo for salvo na ficha.', ctx: [['Etapa', '1 de 6'], ['Compra', '10/11/2026']] },
+      { id: 'beatriz', banda: 'HOJE', tipo: 'ONBOARDING', ls: ['B'], g: 5, n: 'Beatriz Moura', w: 'Enviar a Caixa', resp: 'Operação', due: 'Desde ontem', dueCls: '', dueLongo: 'Desde ontem', acao: 'Registrar envio', full: 'O formulário foi preenchido ontem. O endereço já está na ficha.', mentoria: 'RDV', tipoI: 'Individual', st: onb, mes: 0, href: 'Ficha.dc.html', ctx: [['Formulário', 'Preenchido em 09/11'], ['Etapa', '5 de 6']] },
+      { id: 'fernanda', banda: 'HOJE', tipo: 'ONBOARDING', ls: ['F'], g: 0, n: 'Fernanda Quintela', w: 'Agendar a IDR', resp: 'Operação', due: 'Hoje', dueCls: '', dueLongo: 'Vence hoje', acao: 'Agendar', full: 'A Caixa foi entregue em 07/11. Falta marcar a IDR.', mentoria: 'RDV', tipoI: 'Individual', st: onb, mes: 0, href: 'Ficha.dc.html', ctx: [['Caixa', 'Entregue em 07/11'], ['Etapa', '6 de 6']] },
+      { id: 'gustavo', banda: 'HOJE', tipo: 'ONBOARDING', ls: ['G'], g: 1, n: 'Gustavo Amaral', w: 'Enviar o 1º PME', resp: 'Operação', due: 'Hoje', dueCls: '', dueLongo: 'Vence hoje', acao: 'Marcar enviado', full: 'A IDR foi realizada ontem e iniciou os 12 meses.', mentoria: 'RDV', tipoI: 'Individual', st: ativo, mes: 1, href: 'Ficha.dc.html', msgNome: 'Envio do 1º PME', msg: 'Oi, Gustavo! Seu 1º PME já está disponível. Qualquer dúvida, me chama por aqui.', wa: [grupo, pes('Gustavo')], ctx: [['IDR', '09/11/2026'], ['Conduziu', 'Duda']] },
+      { id: 'isabela', banda: 'HOJE', tipo: 'PLANO', ls: ['I'], g: 2, n: 'Isabela Nunes', w: 'Mês 4: reunião mensal', resp: 'Duda', due: 'Hoje', dueCls: '', dueLongo: 'Vence hoje', acao: 'Concluir', full: 'Reunião mensal da mentoria 6M, ainda sem horário marcado.', mentoria: '6M', tipoI: 'Individual', st: ativo, mes: 4, href: 'Ficha.dc.html', ctx: [['Responsável', 'Duda'], ['Último contato', 'há 12 dias']] },
+      { id: 'rafael', banda: 'HOJE', tipo: 'PLANO', ls: ['R'], g: 4, n: 'Rafael Menezes', w: 'Mês 7: combinar cartões e milhas', resp: 'Duda', due: 'Este mês', dueCls: '', dueLongo: 'Até o fim do mês 7', acao: 'Concluir', full: 'Combine quando faz sentido: antes, no início ou no fim do PME.', mentoria: 'RDV', tipoI: 'Individual', st: ativo, mes: 7, href: 'Ficha.dc.html', ctx: [['Responsável', 'Duda'], ['Sugestão', 'Início do 7º PME']] },
+    ];
+
+    const concluir = (id) => this.setState({ feitos: { ...this.state.feitos, [id]: true }, sel: null, aberto: false });
+    const abertos = todos.filter((x) => !st.feitos[x.id]);
+    const daVisao = abertos.filter((x) => st.dono === 'EQUIPE' || x.resp === 'Duda');
+    const visiveis = daVisao.filter((x) => st.tipo === 'TODOS' || x.tipo === st.tipo);
+    const selecionado = visiveis.find((x) => x.id === st.sel) || visiveis[0] || null;
+
+    const emRosto = (x) => x.ls.map((l, i) => ({ l, c: (x.g === 7 ? 'g7' : 'g' + ((x.g + i * 3) % 7)) + (i ? ' b' : '') }));
+    const emLinha = (x) => ({
+      ...x,
+      faces: emRosto(x),
+      fc: x.ls.length > 1 ? 'pair' : 'solo',
+      cls: (x.hora ? 'ag ' : '') + (selecionado && selecionado.id === x.id && (!this.props.celular || st.aberto) ? 'sel' : ''),
+      aria: 'Abrir ' + x.n + ': ' + x.w,
+      pick: () => this.setState({ sel: x.id, aberto: true }),
+      fazer: () => concluir(x.id),
+    });
+    const banda = (chave, t, cls) => {
+      const itens = visiveis.filter((x) => x.banda === chave).map(emLinha);
+      return { t, cls, itens, n: itens.length };
+    };
+    const bandas = [banda('AGENDA', 'Agenda de hoje', ''), banda('ATRASADO', 'Atrasados', 'late'), banda('HOJE', 'Hoje', '')].filter((b) => b.n > 0);
+
+    const chip = (tipo, l) => ({ l, on: st.tipo === tipo ? 'on' : '', n: daVisao.filter((x) => tipo === 'TODOS' || x.tipo === tipo).length, pick: () => this.setState({ tipo, sel: null }) });
+    const chips = [chip('TODOS', 'Todos'), chip('REUNIOES', 'Reuniões'), chip('ONBOARDING', 'Onboarding'), chip('PLANO', 'Plano'), chip('MES', 'Do mês')];
+
+    const atrasados = visiveis.filter((x) => x.banda === 'ATRASADO').length;
+    const total = visiveis.length;
+    const resumo = 'Terça, 10 de novembro. ' + total + (total === 1 ? ' item, ' : ' itens, ') + atrasados + (atrasados === 1 ? ' atrasado.' : ' atrasados.');
+
+    const L = (label, d, href, on, cnt) => ({ link: true, label, d, href: href || '#em-breve', on: on ? 'on' : '', cnt: cnt || 0 });
+    const S = (label) => ({ sec: true, label });
+    const menu = [L('Fila do dia', ic.fila, 'Main.dc.html', true, abertos.length), L('Mentorados', ic.ment, 'Mentorados.dc.html'), L('Ficha do mentorado', ic.ficha, 'Ficha.dc.html'), L('Onboarding', ic.onb), L('Plano dos 12 meses', ic.plano), L('Reuniões', ic.reun), S('Em breve'), L('PMEs e ciclos', ic.pme), L('Linha do tempo e conquistas', ic.linha), L('Envios físicos', ic.env), L('Eventos e agenda', ic.ev), L('Renovações e gestão', ic.ren), S('Admin'), L('Configurações', ic.conf)];
+
+    const inicial = this.props.aberto ? todos.find((x) => x.id === 'vitor') : null;
+    const alvo = (st.sel ? selecionado : inicial) || selecionado;
+    const p = alvo ? {
+      ...alvo,
+      faces: emRosto(alvo),
+      fc: alvo.ls.length > 1 ? 'pair' : 'solo',
+      tags: alvo.tags || [{ c: 'gold', l: alvo.mentoria }, { c: '', l: alvo.tipoI }, alvo.st],
+      trail: Array.from({ length: 12 }, (_, k) => ({ c: k + 1 < alvo.mes ? 'f' : k + 1 === alvo.mes ? 'c' : '' })),
+      ctx: alvo.ctx.map((c) => ({ l: c[0], v: c[1] })),
+      fazer: () => concluir(alvo.id),
+    } : {};
+
+    return {
+      menu, chips, bandas, resumo, p,
+      temSel: !!alvo,
+      vazia: visiveis.length === 0,
+      abertoCls: this.props.aberto || st.aberto ? 'aberto' : '',
+      fechar: () => this.setState({ aberto: false }),
+      minhaCls: st.dono === 'MINHA' ? 'on' : '',
+      equipeCls: st.dono === 'EQUIPE' ? 'on' : '',
+      verMinha: () => this.setState({ dono: 'MINHA', sel: null }),
+      verEquipe: () => this.setState({ dono: 'EQUIPE', sel: null }),
+      yes: true, no: false,
+    };
+  }
+}
+</script>
+</body>
+</html>
