@@ -38,7 +38,7 @@ import { insertSale, requestHash } from '../finance/finance.service.js';
 import { scheduleMeeting } from '../meetings/meetings.service.js';
 import { ReminderScheduler } from '../push/reminders.js';
 import { recordActivity } from './activity.js';
-import { EMPTY_STAGE_STATE, resolveStageFields } from './stage-fields.js';
+import { assertIncomeStage, EMPTY_STAGE_STATE, resolveStageFields } from './stage-fields.js';
 import {
   LeadsRepository,
   type LeadFilters,
@@ -171,6 +171,7 @@ export class LeadsService {
       }
       const stageId = await this.repo.stageId(tx, input.stageKey);
       if (!stageId) throw new BadRequestException('Etapa inexistente');
+      assertIncomeStage(input.incomeBand, input.stageKey);
       // Dados que a etapa pede (NPAC-38): reunião, pagamento combinado ou motivo.
       const stage = await resolveStageFields(tx, {
         target: input.stageKey,

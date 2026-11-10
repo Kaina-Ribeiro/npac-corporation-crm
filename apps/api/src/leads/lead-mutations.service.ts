@@ -32,6 +32,7 @@ import { recordActivity } from './activity.js';
 import { LeadsRepository } from './leads.repository.js';
 import type { RequestMeta } from './leads.service.js';
 import {
+  assertIncomeStage,
   resolveStageFields,
   STAGE_DATA_FIELDS,
   timelineField,
@@ -105,6 +106,8 @@ export class LeadMutationsService {
         target = input.stageKey;
       }
       const stageChanged = stageId !== old.stageId;
+      if (stageChanged || input.incomeBand)
+        assertIncomeStage(input.incomeBand ?? old.incomeBand, target);
       // Closer move a etapa e, junto com a troca, grava os dados dela (pagamento, motivo, data).
       // Reunião nova ele não agenda (RLS e permissão `meeting:schedule`).
       if (

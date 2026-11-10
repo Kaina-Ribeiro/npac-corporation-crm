@@ -8,7 +8,7 @@ import type {
   Role,
   StageKey,
 } from '@npac/shared';
-import { TIER_LABELS } from '@npac/shared/enums';
+import { INCOME_DISCOVERY_STAGE, TIER_LABELS } from '@npac/shared/enums';
 import { can } from '@npac/shared/permissions';
 import Link from 'next/link';
 import { useState, type CSSProperties, type FormEvent } from 'react';
@@ -57,6 +57,13 @@ export function Pipeline({
   async function move(lead: PipelineLead, target: string) {
     if (busy || lead.stageKey === target) return;
     setError('');
+    // Arrastar o card: o select já trava as outras etapas (a API recusa com a mesma regra).
+    if (lead.tier === 'DESCOBRINDO' && target !== INCOME_DISCOVERY_STAGE) {
+      setError(
+        `${lead.name} está em Descobrindo renda. Informe a faixa de renda antes de mudar a etapa.`,
+      );
+      return;
+    }
     if (stageNeedsFields(target)) {
       setPending({ lead, target });
       return;
@@ -283,7 +290,11 @@ export function Pipeline({
                     disabled={busy}
                     onChange={(e) => void move(l, e.target.value)}
                   >
-                    <StageOptions stages={stages} current={l.stageKey} />
+                    <StageOptions
+                      stages={stages}
+                      current={l.stageKey}
+                      incomeUnknown={l.tier === 'DESCOBRINDO'}
+                    />
                   </select>
                 </article>
               ))}

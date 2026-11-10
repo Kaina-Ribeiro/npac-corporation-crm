@@ -177,7 +177,11 @@ export function LeadsBrowser({
       }}
       className={className}
     >
-      <StageOptions stages={catalog.stages} current={l.stageKey} />
+      <StageOptions
+        stages={catalog.stages}
+        current={l.stageKey}
+        incomeUnknown={l.tier === 'DESCOBRINDO'}
+      />
     </select>
   );
   const checkbox = (l: LeadDTO) => (

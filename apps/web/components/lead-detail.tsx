@@ -256,7 +256,11 @@ export function LeadDetail({
             }}
             disabled={busy}
           >
-            <StageOptions stages={catalog.stages} current={lead.stageKey} />
+            <StageOptions
+              stages={catalog.stages}
+              current={lead.stageKey}
+              incomeUnknown={lead.tier === 'DESCOBRINDO'}
+            />
           </select>
         </Field>
         {moveTo ? (
@@ -528,7 +532,14 @@ export function LeadDetail({
               )}
             </article>
           ))}
-          {me.role !== 'CLOSER' && (
+          {me.role !== 'CLOSER' && lead.tier === 'DESCOBRINDO' && (
+            // Só vai para a reunião quando a renda é descoberta (Igor, 10/11/2026).
+            <p className="rounded-xl border border-dashed border-ink3/50 p-3 text-sm text-ink2">
+              Lead em Descobrindo renda: informe a faixa de renda em “Editar dados do lead” para
+              agendar a reunião.
+            </p>
+          )}
+          {me.role !== 'CLOSER' && lead.tier !== 'DESCOBRINDO' && (
             <form
               className="flex flex-col gap-3"
               onSubmit={(e) => {

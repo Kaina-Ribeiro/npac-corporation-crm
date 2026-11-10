@@ -180,6 +180,9 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   **Descobrindo renda** (Igor, 10/11/2026, "1C"): faixa e perfil `DESCOBRINDO` (0040, último nas
   listas); telas mostram o perfil por `TIER_LABELS`, nunca a chave crua. Reunião vale R$ 0 (Igor: "só vai
   para a reunião quando descobrimos a renda"); trocar a faixa recalcula; relatórios contam `descobrindo` ao lado de p0–p2.
+  O lead fica **só em Criando Relacionamento** (SONDAGEM, etapa de descobrir os dados): cadastro,
+  PATCH (etapa ou faixa), reunião e venda dão 409 `INCOME_REQUIRED` (`assertIncomeStage`/`assertIncomeKnown`
+  em `api/leads/stage-fields.ts`); gatilhos da 0041 garantem no banco; telas travam via `StageOptions incomeUnknown`.
 - **Etapas**: `pipeline_stages.key` é texto; `system` é coluna gerada (`key` ∈ `STAGE_KEYS`). A
   liderança cria (`C_` + 8 hex), renomeia, reordena e exclui; não exclui de sistema, com lead ativo
   ou referenciada por venda (`deals.previous_stage_id`, imutável). Validação: `stageKeySchema`.

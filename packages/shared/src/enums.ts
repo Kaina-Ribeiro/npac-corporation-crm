@@ -56,6 +56,14 @@ export const TIER_BY_INCOME_BAND: Record<IncomeBand, Tier> = {
 };
 
 /**
+ * Lead em "Descobrindo renda" fica só em Criando Relacionamento, a etapa de descobrir os dados, e
+ * só vai para a reunião quando a renda é descoberta (Igor, 10/11/2026). Gatilhos na 0041.
+ */
+export const INCOME_DISCOVERY_STAGE = 'SONDAGEM';
+export const stageAllowedForBand = (band: IncomeBand, stageKey: string) =>
+  band !== 'DESCOBRINDO' || stageKey === INCOME_DISCOVERY_STAGE;
+
+/**
  * Origens que o cadastro oferece, na ordem da lista do cliente (05/11/2026). "Outro" pede o texto
  * em `sourceOther`.
  */

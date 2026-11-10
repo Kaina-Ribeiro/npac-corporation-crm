@@ -15,6 +15,7 @@ import {
   SOURCE_OTHER_MAX,
   TIER_BY_INCOME_BAND,
   TIER_LABELS,
+  INCOME_DISCOVERY_STAGE,
   isLeader,
   type IncomeBand,
   isLegacyLeadSource,
@@ -169,7 +170,12 @@ export function LeadForm({
             className={control}
             name="incomeBand"
             value={band}
-            onChange={(e) => setBand(e.target.value as IncomeBand)}
+            onChange={(e) => {
+              const next = e.target.value as IncomeBand;
+              setBand(next);
+              // Renda a descobrir: o lead fica em Criando Relacionamento (Igor, 10/11/2026).
+              if (next === 'DESCOBRINDO') setStage(INCOME_DISCOVERY_STAGE);
+            }}
             required
           >
             <option value="" disabled>
@@ -246,6 +252,7 @@ export function LeadForm({
               stages={catalog.stages}
               current={lead?.stageKey ?? 'SONDAGEM'}
               allowSale={!lead}
+              incomeUnknown={band === 'DESCOBRINDO'}
             />
           </select>
         </Field>
