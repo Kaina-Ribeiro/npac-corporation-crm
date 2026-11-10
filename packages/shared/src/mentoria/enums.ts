@@ -1,12 +1,86 @@
+/** As mentorias vendidas (D14: são mentorias, não planos). */
+export const MENTORIAS = ['RDV', '2M', '6M'] as const;
+export type Mentoria = (typeof MENTORIAS)[number];
+
+/** Perfil dentro do módulo (D3). Admin é um selo somado ao perfil, não um perfil (D13). */
+export const PERFIS = ['ACOMPANHAMENTO', 'OPERACAO', 'ESPECIALISTA', 'MENTOR'] as const;
+export type Perfil = (typeof PERFIS)[number];
+export const PERFIL_LABEL: Record<Perfil, string> = {
+  ACOMPANHAMENTO: 'Acompanhamento',
+  OPERACAO: 'Operação',
+  ESPECIALISTA: 'Especialista',
+  MENTOR: 'Mentor',
+};
+
+export const INSCRICAO_STATUS = [
+  'ONBOARDING',
+  'ATIVO',
+  'PAUSADO',
+  'CANCELADO',
+  'CONCLUIDO',
+  'RENOVADO',
+] as const;
+export type InscricaoStatus = (typeof INSCRICAO_STATUS)[number];
+export const INSCRICAO_STATUS_LABEL: Record<InscricaoStatus, string> = {
+  ONBOARDING: 'Onboarding',
+  ATIVO: 'Ativo',
+  PAUSADO: 'Pausado',
+  CANCELADO: 'Cancelado',
+  CONCLUIDO: 'Concluído',
+  RENOVADO: 'Renovado',
+};
+
+export const TIPOS_INSCRICAO = ['INDIVIDUAL', 'CASAL'] as const;
+export type TipoInscricao = (typeof TIPOS_INSCRICAO)[number];
+export const TIPO_INSCRICAO_LABEL: Record<TipoInscricao, string> = {
+  INDIVIDUAL: 'Individual',
+  CASAL: 'Casal',
+};
+
+export const OCUPACOES = ['EMPREGADO', 'AUTONOMO', 'EMPRESARIO'] as const;
+export type Ocupacao = (typeof OCUPACOES)[number];
+export const OCUPACAO_LABEL: Record<Ocupacao, string> = {
+  EMPREGADO: 'Empregado',
+  AUTONOMO: 'Autônomo',
+  EMPRESARIO: 'Empresário',
+};
+
+export const ORIGENS = ['NACAO_MILIONARIA', 'CLUBE_DA_RIQUEZA', 'INSTAGRAM', 'INDICACAO'] as const;
+export type Origem = (typeof ORIGENS)[number];
+export const ORIGEM_LABEL: Record<Origem, string> = {
+  NACAO_MILIONARIA: 'Nação Milionária',
+  CLUBE_DA_RIQUEZA: 'Clube da Riqueza',
+  INSTAGRAM: 'Instagram',
+  INDICACAO: 'Indicação',
+};
+
+export const STATUS_FINANCEIRO = ['EM_DIA', 'EM_ATRASO', 'QUITADO'] as const;
+export type StatusFinanceiro = (typeof STATUS_FINANCEIRO)[number];
+export const STATUS_FINANCEIRO_LABEL: Record<StatusFinanceiro, string> = {
+  EM_DIA: 'Em dia',
+  EM_ATRASO: 'Em atraso',
+  QUITADO: 'Quitado',
+};
+
+export const TECNOLOGIAS = ['BAIXA', 'MEDIA', 'ALTA'] as const;
+export type Tecnologia = (typeof TECNOLOGIAS)[number];
+export const TECNOLOGIA_LABEL: Record<Tecnologia, string> = {
+  BAIXA: 'Baixa',
+  MEDIA: 'Média',
+  ALTA: 'Alta',
+};
+
+export const ORIGENS_ENDERECO = ['FORMULARIO_CAIXA', 'MANUAL'] as const;
+export type OrigemEndereco = (typeof ORIGENS_ENDERECO)[number];
+
+export const TIPOS_AVALIACAO = ['PROVA_10_HABILIDADES', 'PILARES'] as const;
+export type TipoAvaliacao = (typeof TIPOS_AVALIACAO)[number];
+
+// Formato do gerenciador antigo, lido por `legado.ts` e `json-backup.ts` na importação.
+
 /** Status do mentorado (lista fixa do PDF, Módulo 1): muda a cor da linha no Dashboard. */
 export const MENTORADO_STATUS = ['ENGAJADO', 'EM_ATENCAO', 'EM_RISCO'] as const;
 export type MentoradoStatus = (typeof MENTORADO_STATUS)[number];
-
-export const MENTORADO_STATUS_LABEL: Record<MentoradoStatus, string> = {
-  ENGAJADO: 'Engajado',
-  EM_ATENCAO: 'Em atenção',
-  EM_RISCO: 'Em risco',
-};
 
 /** Os 4 pilares (antes e hoje), na ordem do PDF. */
 export const PILAR_CHAVES = ['FE', 'SAUDE', 'DINHEIRO', 'RELACIONAMENTOS'] as const;
@@ -20,33 +94,6 @@ export const EVOLUCAO_CHAVES = [
 ] as const;
 export const FICHA_CAMPO_CHAVES = [...PILAR_CHAVES, ...EVOLUCAO_CHAVES] as const;
 export type FichaCampoChave = (typeof FICHA_CAMPO_CHAVES)[number];
-export const secaoDoCampo = (c: FichaCampoChave): 'PILAR' | 'EVOLUCAO' =>
-  (PILAR_CHAVES as readonly string[]).includes(c) ? 'PILAR' : 'EVOLUCAO';
-
-/** Limite do PDF: 256 KB por registro, somando os textos do registro e dos filhos. */
-export const LIMITE_REGISTRO_BYTES = 256 * 1024;
-
-/** Rótulos dos pilares e da evolução, como na ficha. */
-export const FICHA_CAMPO_ROTULO: Record<FichaCampoChave, string> = {
-  FE: 'Fé',
-  SAUDE: 'Saúde',
-  DINHEIRO: 'Dinheiro',
-  RELACIONAMENTOS: 'Relacionamentos',
-  RESERVA_FINANCEIRA: 'Reserva financeira',
-  EVOLUCAO_RENDA: 'Evolução de renda',
-  EVOLUCAO_SAUDE: 'Evolução na saúde',
-  INVESTIMENTOS_MENTORIA: 'Investimentos feitos na mentoria',
-  AREA_ATUACAO: 'Área de atuação',
-};
-
-/** Pendências do documento de escopo (PDF, 30/10/2026), texto literal. Marcar não persiste (D26). */
-export const PENDENCIAS_PDF = [
-  'Reanexar as fotos e vídeos cadastrados antes da correção do armazenamento (não foram recuperados)',
-  'Publicar o medidor de espaço de mídia (pronto, aguardando OK)',
-  'Verificar o botão Exportar (.json) na página publicada: a plataforma avisou que downloads diretos podem não funcionar para quem acessa pelo link',
-  'Confirmar se "Gegê e Hellen" e "João Carlos (Gegê) e Hellen" são o mesmo casal (hoje há duas fichas no RDV)',
-] as const;
-
 /** Os 4 quadros rápidos do RDV ("Evoluções dentro da mentoria"), na ordem da ferramenta antiga. */
 export const QUADRO_CHAVES = [
   'EVENTOS_PRESENCIAIS',
@@ -55,12 +102,3 @@ export const QUADRO_CHAVES = [
   'MERCADO_IMOBILIARIO',
 ] as const;
 export type QuadroChave = (typeof QUADRO_CHAVES)[number];
-export const QUADRO_ROTULO: Record<QuadroChave, string> = {
-  EVENTOS_PRESENCIAIS: 'Eventos presenciais que já participou',
-  INVESTIMENTO_ATIVOS: 'Investimento em ativos',
-  IMOVEL_LEILAO: 'Imóvel de leilão',
-  MERCADO_IMOBILIARIO: 'Mercado imobiliário',
-};
-
-/** Data de evento: sempre `DD/MM/AAAA` válida (regra 4); mês sozinho não serve. */
-export const DATA_COMPLETA = /^\d{1,2}\/\d{1,2}\/\d{4}$/;

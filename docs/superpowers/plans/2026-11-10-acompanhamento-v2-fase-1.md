@@ -90,7 +90,7 @@ it('limpeza remove o modelo antigo e enfileira a mídia antiga', async () => {
 - [ ] **Step 5:** Commit `feat(NPAC-43): remove o módulo antigo do acompanhamento`.
 
 ### Tarefa 1.3: Banco base e perfis
-Status: ⏳
+Status: ✅
 
 **Files:** Create: `packages/db/drizzle/00NN_acompanhamento_v2_base.sql` (+ snapshot, journal), `sh/mentoria/enums.ts` (reescrito). Modify: `db/src/schema/mentoria.ts`. Test: `packages/db/test/mentoria-v2-rls.test.ts`.
 
