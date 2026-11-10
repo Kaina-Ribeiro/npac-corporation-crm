@@ -1,6 +1,12 @@
 import { Controller, Get, Inject, Injectable, NotFoundException, Param } from '@nestjs/common';
 import { withUser, type Db } from '@npac/db';
-import { INCOME_BAND_LABELS, type AuthUser, type IncomeBand } from '@npac/shared';
+import {
+  INCOME_BAND_LABELS,
+  TIER_LABELS,
+  type AuthUser,
+  type IncomeBand,
+  type Tier,
+} from '@npac/shared';
 import { sql } from 'drizzle-orm';
 import { AuditService } from '../audit/audit.service.js';
 import { CurrentUser, type SessionUser } from '../auth/current-user.decorator.js';
@@ -41,7 +47,7 @@ export class HandoffService {
     const row = await withUser(this.db, u.id, async (tx) => {
       const rows = await tx.execute<{
         name: string;
-        tier: string;
+        tier: Tier;
         income_band: IncomeBand;
         summary: string | null;
         sdr: string;
@@ -65,7 +71,7 @@ export class HandoffService {
     const text = [
       'Handoff NPAC',
       `Lead: ${row.name}`,
-      `Perfil: ${row.tier} · Renda ${INCOME_BAND_LABELS[row.income_band]}`,
+      `Perfil: ${TIER_LABELS[row.tier]} · Renda ${INCOME_BAND_LABELS[row.income_band]}`,
       `SDR: ${row.sdr}`,
       at ? `Reunião: ${brt(at)} com ${row.closer}` : 'Reunião: a agendar',
       row.summary ? `Resumo: ${row.summary}` : null,
@@ -78,7 +84,7 @@ export class HandoffService {
       url.searchParams.set('action', 'TEMPLATE');
       url.searchParams.set(
         'text',
-        `Reunião ${row.name} (${row.tier}) ${initials(row.scheduler ?? row.sdr)}`.trim(),
+        `Reunião ${row.name} (${TIER_LABELS[row.tier]}) ${initials(row.scheduler ?? row.sdr)}`.trim(),
       );
       url.searchParams.set('dates', `${gcal(at)}/${gcal(new Date(at.getTime() + 59 * 60_000))}`);
       url.searchParams.set(

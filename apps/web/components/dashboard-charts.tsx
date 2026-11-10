@@ -455,14 +455,25 @@ export function Funnel({ metrics }: { metrics: Record<string, number> }) {
 }
 
 /** Distribuição por perfil: rosca com legenda e rótulos (identidade nunca só pela cor). */
-export function TierDonut({ p0, p1, p2 }: { p0: number; p1: number; p2: number }) {
-  const total = p0 + p1 + p2;
+export function TierDonut({
+  p0,
+  p1,
+  p2,
+  descobrindo,
+}: {
+  p0: number;
+  p1: number;
+  p2: number;
+  descobrindo: number;
+}) {
+  const total = p0 + p1 + p2 + descobrindo;
   const R = 46,
     CIRC = 2 * Math.PI * R;
   const parts: [string, number, string][] = [
     ['P0 · Mentorias', p0, C1],
     ['P1 · Nação', p1, C2],
     ['P2 · Nação', p2, C3],
+    ['Descobrindo renda', descobrindo, 'var(--viz-4)'],
   ];
   let offset = 0;
   return (
@@ -471,7 +482,7 @@ export function TierDonut({ p0, p1, p2 }: { p0: number; p1: number; p2: number }
         viewBox="0 0 120 120"
         className="size-36 flex-none"
         role="img"
-        aria-label={`Leads por perfil: P0 ${p0}, P1 ${p1}, P2 ${p2}`}
+        aria-label={`Leads por perfil: P0 ${p0}, P1 ${p1}, P2 ${p2}, Descobrindo renda ${descobrindo}`}
       >
         <circle cx="60" cy="60" r={R} fill="none" stroke="var(--line)" strokeWidth="14" />
         {total > 0 &&

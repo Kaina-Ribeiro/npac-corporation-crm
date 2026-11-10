@@ -128,7 +128,7 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   que barra `@` e dígitos longos). Buscas/relatórios por POST. Exceção pedida pelo cliente (04/11):
   o link do Google Agenda leva nome do lead, perfil, sigla de quem agendou e o handoff; nunca
   telefone nem Instagram.
-- Telefone E.164 BR, AES-256-GCM + blind index HMAC. Renda só em faixas ≥ R$ 5 mil.
+- Telefone E.164 BR, AES-256-GCM + blind index HMAC. Renda só em faixas ≥ R$ 5 mil ou "Descobrindo renda".
 - Timeline append-only: tipo, IDs e nomes de campos, **nunca valores**. Auditoria sem e-mail nem nome.
 - API com `Cache-Control: no-store`. SSE só manda `{ type }`.
 - Chat: DM privada por RLS mesmo para liderança; mensagens append-only.
@@ -172,11 +172,17 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
 - Ficha: botões WhatsApp (`wa.me`, conversa) e Instagram (perfil, `instagram.com/<usuario>/`, NPAC-41 "3B").
 - Resultado de reunião só depois do horário (400 "A reunião ainda não aconteceu"). Resultados:
   `DONE`, `NO_SHOW`, `RESCHEDULED`. Valor por reunião realizada = `MEETING_VALUE_CENTS`
-  (P0 900, P1 700, P2 500), pelo perfil **atual** do lead; no-show e remarcada não somam.
+  (P0 900, P1 700, P2 500, DESCOBRINDO 0), pelo perfil **atual** do lead; no-show e remarcada não somam.
 - **Perfil = faixa de renda** (Igor, 05/11/2026, "1B, 2B"): 5–8 mil P2, 8–15 mil P1, 15 mil+ P0
   (`TIER_BY_INCOME_BAND` em `sh/enums.ts` + gatilho `leads_tier_from_income`, 0036, que reescreve
   `tier` em todo INSERT e UPDATE de faixa/perfil). Sem troca à mão: cadastro ignora `tier`, PATCH
   recusa; lista e ação em massa só mostram. A 0036 recalculou os leads antigos. Faixa nova = as duas tabelas.
+  **Descobrindo renda** (Igor, 10/11/2026, "1C"): faixa e perfil `DESCOBRINDO` (0040, último nas
+  listas); telas mostram o perfil por `TIER_LABELS`, nunca a chave crua. Reunião vale R$ 0 (Igor: "só vai
+  para a reunião quando descobrimos a renda"); trocar a faixa recalcula; relatórios contam `descobrindo` ao lado de p0–p2.
+  O lead fica **só em Criando Relacionamento** (SONDAGEM, etapa de descobrir os dados): cadastro,
+  PATCH (etapa ou faixa), reunião e venda dão 409 `INCOME_REQUIRED` (`assertIncomeStage`/`assertIncomeKnown`
+  em `api/leads/stage-fields.ts`); gatilhos da 0041 garantem no banco; telas travam via `StageOptions incomeUnknown`.
 - **Etapas**: `pipeline_stages.key` é texto; `system` é coluna gerada (`key` ∈ `STAGE_KEYS`). A
   liderança cria (`C_` + 8 hex), renomeia, reordena e exclui; não exclui de sistema, com lead ativo
   ou referenciada por venda (`deals.previous_stage_id`, imutável). Validação: `stageKeySchema`.

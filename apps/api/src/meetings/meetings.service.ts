@@ -12,6 +12,7 @@ import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import { DB } from '../common/db/db.module.js';
 import { recordActivity } from '../leads/activity.js';
 import { lockLead } from '../leads/lead-mutations.service.js';
+import { assertIncomeKnown } from '../leads/stage-fields.js';
 import { ReminderScheduler } from '../push/reminders.js';
 import { cancelMeeting } from './cancel.js';
 
@@ -38,6 +39,7 @@ type MeetingChange = {
  * Usada pelo POST /meetings e pelos Agendados do cadastro/troca de etapa (NPAC-38).
  */
 export async function scheduleMeeting(tx: Tx, u: AuthUser, input: Schedule) {
+  await assertIncomeKnown(tx, input.leadId, 'agendar a reunião');
   const [closer] = await tx
     .select({ id: user.id })
     .from(user)

@@ -23,6 +23,7 @@ import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { DB } from '../common/db/db.module.js';
 import { recordActivity } from '../leads/activity.js';
 import { lockLead } from '../leads/lead-mutations.service.js';
+import { assertIncomeKnown } from '../leads/stage-fields.js';
 import type { SaleInput } from './schemas.js';
 
 /** O que o registro de venda pede (ficha e cadastro em Venda Fechada). */
@@ -45,6 +46,7 @@ export async function insertSale(
   closedAt?: Date,
 ) {
   if (u.role === 'CLOSER' && input.closerId !== u.id) throw new ForbiddenException();
+  await assertIncomeKnown(tx, lead.id, 'registrar a venda');
   const [product] = await tx
     .select({ id: products.id, name: products.name, priceCents: products.priceCents })
     .from(products)

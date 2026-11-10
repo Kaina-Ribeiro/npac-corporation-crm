@@ -1,6 +1,7 @@
 'use client';
 import { cloneElement, useId, type ReactElement } from 'react';
 import type { StageKey } from '@npac/shared';
+import { INCOME_DISCOVERY_STAGE } from '@npac/shared/enums';
 
 export function Field({
   label,
@@ -35,17 +36,25 @@ export function StageOptions({
   stages,
   current,
   allowSale = false,
+  incomeUnknown = false,
 }: {
   stages: { key: StageKey; label: string }[];
   current: StageKey;
   /** Cadastro (NPAC-39): Venda Fechada entra com a reunião e, se quiser, a venda. */
   allowSale?: boolean;
+  /** "Descobrindo renda" (Igor, 10/11/2026): só Criando Relacionamento até informar a faixa. */
+  incomeUnknown?: boolean;
 }) {
   return stages.map((s) => {
-    const locked = s.key === 'VENDA' && current !== 'VENDA' && !allowSale;
+    const sale = s.key === 'VENDA' && current !== 'VENDA' && !allowSale;
+    const income = incomeUnknown && s.key !== INCOME_DISCOVERY_STAGE;
     return (
-      <option key={s.key} value={s.key} disabled={locked}>
-        {locked ? `${s.label} (registre na ficha)` : s.label}
+      <option key={s.key} value={s.key} disabled={sale || income}>
+        {income
+          ? `${s.label} (informe a renda)`
+          : sale
+            ? `${s.label} (registre na ficha)`
+            : s.label}
       </option>
     );
   });

@@ -187,6 +187,18 @@ describe('leads', () => {
     expect(timeline.map((t) => t.fields)).toEqual([['incomeBand', 'tier']]);
   });
 
+  it('"Descobrindo renda" é faixa e perfil; descobrir a renda troca o perfil (Igor, 10/11/2026)', async () => {
+    const id = await create(lead({ incomeBand: 'DESCOBRINDO' }), ale);
+    expect((await h.get(`/api/leads/${id}`, ale)).body).toMatchObject({
+      incomeBand: 'DESCOBRINDO',
+      tier: 'DESCOBRINDO',
+    });
+    expect((await h.get('/api/leads?tier=DESCOBRINDO', ale)).body.items).toHaveLength(1);
+    const res = await h.patch(`/api/leads/${id}`, { version: 1, incomeBand: 'R8_15K' }, ale);
+    expect(res.status).toBe(200);
+    expect((await h.get(`/api/leads/${id}`, ale)).body.tier).toBe('P1');
+  });
+
   it('edição usa versão otimista e nunca altera um lead invisível', async () => {
     const id = await create(lead(), ale);
     const [a, b] = await Promise.all([

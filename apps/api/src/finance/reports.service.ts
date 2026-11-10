@@ -1,6 +1,6 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { withUser, type Db } from '@npac/db';
-import { spDayRange, type AuthUser } from '@npac/shared';
+import { spDayRange, TIER_LABELS, TIERS, type AuthUser, type Tier } from '@npac/shared';
 import { MEETING_VALUE_CENTS } from '@npac/shared/money';
 import { sql, type SQL } from 'drizzle-orm';
 import { AuditService } from '../audit/audit.service.js';
@@ -87,7 +87,10 @@ function numeric(row: Record<string, unknown>) {
   );
 }
 /** Valor da reunião realizada pelo perfil atual do lead (`l` = alias do lead). */
-const meetingValue = sql`case l.tier when 'P0' then ${MEETING_VALUE_CENTS.P0}::int when 'P1' then ${MEETING_VALUE_CENTS.P1}::int else ${MEETING_VALUE_CENTS.P2}::int end`;
+const meetingValue = sql`case l.tier::text ${sql.join(
+  TIERS.map((t) => sql`when ${t} then ${MEETING_VALUE_CENTS[t]}::int`),
+  sql` `,
+)} else 0 end`;
 
 /** Campos de venda que o SDR não recebe (pedido do cliente, 04/11/2026): o corte é no servidor. */
 const SALE_FIELDS = new Set([
@@ -137,6 +140,7 @@ export class ReportsService {
    (select count(*) from scope where tier='P0' and created_at>=${start.toISOString()} and created_at<${end.toISOString()}) as "p0",
    (select count(*) from scope where tier='P1' and created_at>=${start.toISOString()} and created_at<${end.toISOString()}) as "p1",
    (select count(*) from scope where tier='P2' and created_at>=${start.toISOString()} and created_at<${end.toISOString()}) as "p2",
+   (select count(*) from scope where tier::text='DESCOBRINDO' and created_at>=${start.toISOString()} and created_at<${end.toISOString()}) as "descobrindo",
    (select count(*) from calls where true and created_at>=${start.toISOString()} and created_at<${end.toISOString()} and canceled_at is null) as "meetings",
    (select count(*) from calls where true and origin='DIRETO' and created_at>=${start.toISOString()} and created_at<${end.toISOString()} and canceled_at is null) as "direct",
    (select count(*) from calls where true and origin='FOLLOW' and created_at>=${start.toISOString()} and created_at<${end.toISOString()} and canceled_at is null) as "follow",
@@ -157,14 +161,14 @@ export class ReportsService {
           sql`${base}, outcomes as(select count(*) filter(where outcome='DONE') as done,count(*) filter(where outcome='NO_SHOW') as no_show from calls where outcome_at>=${start.toISOString()} and outcome_at<${end.toISOString()}) select coalesce(round(10000.0*no_show/nullif(done+no_show,0)),0) as "noShowBps",coalesce(round(10000.0*done/nullif(done+no_show,0)),0) as "attendanceBps" from outcomes`,
         );
         const bySdr = await tx.execute<Record<string, unknown>>(
-          sql`${base}, a as(select sdr_id as id,count(*) as leads,count(*) filter(where tier='P0') as p0,count(*) filter(where tier='P1') as p1,count(*) filter(where tier='P2') as p2 from scope where created_at>=${start.toISOString()} and created_at<${end.toISOString()} group by sdr_id),
+          sql`${base}, a as(select sdr_id as id,count(*) as leads,count(*) filter(where tier='P0') as p0,count(*) filter(where tier='P1') as p1,count(*) filter(where tier='P2') as p2,count(*) filter(where tier::text='DESCOBRINDO') as descobrindo from scope where created_at>=${start.toISOString()} and created_at<${end.toISOString()} group by sdr_id),
         b as(select l.sdr_id as id,count(*) filter(where m.created_at>=${start.toISOString()} and m.created_at<${end.toISOString()}) as meetings,
           count(*) filter(where m.origin='DIRETO' and m.created_at>=${start.toISOString()} and m.created_at<${end.toISOString()}) as direct,count(*) filter(where m.origin='FOLLOW' and m.created_at>=${start.toISOString()} and m.created_at<${end.toISOString()}) as follow,
           count(*) filter(where m.outcome='DONE' and m.outcome_at>=${start.toISOString()} and m.outcome_at<${end.toISOString()}) as done,
           count(*) filter(where m.outcome='NO_SHOW' and m.outcome_at>=${start.toISOString()} and m.outcome_at<${end.toISOString()}) as no_show
           from calls m join scope l on l.id=m.lead_id where (m.created_at>=${start.toISOString()} and m.created_at<${end.toISOString()}) or (m.outcome_at>=${start.toISOString()} and m.outcome_at<${end.toISOString()}) group by l.sdr_id),
         c as(select sdr_id as id,count(*) as sales,sum(total_cents) as cents from sales group by sdr_id), actors as(select id from a union select id from b union select id from c)
-        select u.id,u.name,coalesce(a.leads,0) as leads,coalesce(a.p0,0) as p0,coalesce(a.p1,0) as p1,coalesce(a.p2,0) as p2,coalesce(b.direct,0) as direct,coalesce(b.follow,0) as follow,coalesce(b.meetings,0) as meetings,coalesce(b.done,0) as done,coalesce(b.no_show,0) as "noShow",coalesce(c.sales,0) as sales,coalesce(c.cents,0) as "soldCents"
+        select u.id,u.name,coalesce(a.leads,0) as leads,coalesce(a.p0,0) as p0,coalesce(a.p1,0) as p1,coalesce(a.p2,0) as p2,coalesce(a.descobrindo,0) as descobrindo,coalesce(b.direct,0) as direct,coalesce(b.follow,0) as follow,coalesce(b.meetings,0) as meetings,coalesce(b.done,0) as done,coalesce(b.no_show,0) as "noShow",coalesce(c.sales,0) as sales,coalesce(c.cents,0) as "soldCents"
         from actors x join "user" u on u.id=x.id left join a on a.id=x.id left join b on b.id=x.id left join c on c.id=x.id order by coalesce(c.cents,0) desc,u.name`,
         );
         const byCloser = await tx.execute<Record<string, unknown>>(
@@ -270,7 +274,7 @@ export class ReportsService {
         r.name,
         r.phone_enc ? this.crypto.decrypt(r.phone_enc) : '',
         r.instagram ?? '',
-        r.tier,
+        TIER_LABELS[r.tier as Tier] ?? r.tier,
       ]),
     ]);
   }
@@ -302,6 +306,7 @@ export class ReportsService {
       ['p0', 'P0'],
       ['p1', 'P1'],
       ['p2', 'P2'],
+      ['descobrindo', 'Descobrindo renda'],
       ['meetings', 'Agendamentos'],
       ['direct', 'Direto'],
       ['follow', 'Follow'],
@@ -332,6 +337,7 @@ export class ReportsService {
       ['p0', 'P0'],
       ['p1', 'P1'],
       ['p2', 'P2'],
+      ['descobrindo', 'Descobrindo renda'],
       ['direct', 'Direto'],
       ['follow', 'Follow'],
       ['meetings', 'Agendados'],

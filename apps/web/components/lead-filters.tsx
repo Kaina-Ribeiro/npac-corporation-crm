@@ -3,6 +3,7 @@ import {
   LEAD_SOURCE_LABELS,
   LEAD_SOURCE_OPTIONS,
   LEGACY_LEAD_SOURCES,
+  TIER_LABELS,
   TIERS,
 } from '@npac/shared/enums';
 import { control, Field, quietButton } from './crm-ui';
@@ -36,7 +37,9 @@ export function LeadFilters({
           <select name="tier" form={form} defaultValue={values.tier ?? ''} className={control}>
             <option value="">Todos</option>
             {TIERS.map((t) => (
-              <option key={t}>{t}</option>
+              <option key={t} value={t}>
+                {TIER_LABELS[t]}
+              </option>
             ))}
           </select>
         </Field>

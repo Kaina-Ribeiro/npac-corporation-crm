@@ -60,6 +60,8 @@ export type ReportRow = {
   p0?: number;
   p1?: number;
   p2?: number;
+  /** Leads em "Descobrindo renda". */
+  descobrindo?: number;
   direct?: number;
   follow?: number;
   ticketCents?: number;
