@@ -155,7 +155,8 @@ export class ReportsService {
           sql`${base} select coalesce(round(10000.0*(select count(*) from sales)/nullif((select count(*) from calls where true and outcome='DONE' and outcome_at>=${start.toISOString()} and outcome_at<${end.toISOString()} and canceled_at is null),0)),0) as "conversionBps"`,
         );
         const byProduct = await tx.execute<Record<string, unknown>>(
-          sql`${base} select product_id as id, product_name as name,count(*) as sales,sum(total_cents) as "soldCents",round(avg(total_cents)) as "ticketCents" from sales group by product_id,product_name order by sum(total_cents) desc`,
+          // Pelo nome atual do catálogo: a venda guarda o nome da época e renomear dividiria a linha.
+          sql`${base} select s.product_id as id, p.name as name,count(*) as sales,sum(s.total_cents) as "soldCents",round(avg(s.total_cents)) as "ticketCents" from sales s join products p on p.id=s.product_id group by s.product_id,p.name order by sum(s.total_cents) desc`,
         );
         const rates = await tx.execute<Record<string, unknown>>(
           sql`${base}, outcomes as(select count(*) filter(where outcome='DONE') as done,count(*) filter(where outcome='NO_SHOW') as no_show from calls where outcome_at>=${start.toISOString()} and outcome_at<${end.toISOString()}) select coalesce(round(10000.0*no_show/nullif(done+no_show,0)),0) as "noShowBps",coalesce(round(10000.0*done/nullif(done+no_show,0)),0) as "attendanceBps" from outcomes`,

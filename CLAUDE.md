@@ -197,6 +197,7 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
 - Fuso `America/Sao_Paulo`; `datetime-local` = Brasília (`brasiliaInput`); intervalos [início, fim);
   em `sql` cru, datas como ISO string.
 - Métricas em SQL com CTEs que não multiplicam linhas; vendas contam por `deals`, não por etapa.
+  Relatório por produto usa o nome atual do catálogo (`deals.product_name` guarda o da época).
 - Paginação no servidor; CSV recusa > 10 mil linhas; cabeçalhos do CSV com `csvHeaders` depois de
   gerar o arquivo (com `@Header` fixo, erro de validação virava 500). Leads e Relatórios exportam por
   período, filtro atual ou tudo (`period: 'ALL'` só no CSV). `POST /reports/export` = relatório do

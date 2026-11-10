@@ -171,7 +171,7 @@ const LEADS: Mock[] = [
     dias: 12,
     ag: 'D',
     call: { dia: -7, hora: '15:00', res: 'feita' },
-    venda: { produto: 'Mentoria 2 Meses', valor: 30000, pago: 30000, dia: -7 },
+    venda: { produto: 'Mentoria 2M', valor: 30000, pago: 30000, dia: -7 },
     nota: 'Dono de rede de academias. Fechou na primeira call.',
   },
   {
@@ -427,8 +427,8 @@ function bulk(): Mock[] {
           tier === 'P0'
             ? pick([
                 ['Mentoria RDV', 18000],
-                ['Mentoria 2 Meses', 30000],
-                ['Mentoria 6 Meses', 80000],
+                ['Mentoria 2M', 30000],
+                ['Mentoria 6M', 80000],
               ] as const)
             : pick([
                 ['Nação Promocional', 2500],

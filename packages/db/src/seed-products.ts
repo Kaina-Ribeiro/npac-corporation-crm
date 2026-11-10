@@ -5,8 +5,8 @@ import { products, user } from './schema/index.js';
 // Atribuições iniciais são dados de implantação, não regras de autorização.
 const CATALOG = [
   ['RDV', 'Mentoria RDV', 1800000, 'ronaldo@npac.com.br'],
-  ['MENTORIA_2M', 'Mentoria 2 Meses', 3000000, 'ronaldo@npac.com.br'],
-  ['MENTORIA_6M', 'Mentoria 6 Meses', 8000000, 'ronaldo@npac.com.br'],
+  ['MENTORIA_2M', 'Mentoria 2M', 3000000, 'ronaldo@npac.com.br'],
+  ['MENTORIA_6M', 'Mentoria 6M', 8000000, 'ronaldo@npac.com.br'],
   ['NACAO_PROMO', 'Nação Promocional', 250000, 'sonia@npac.com.br'],
   ['NACAO_PADRAO', 'Nação Padrão', 300000, 'sonia@npac.com.br'],
   ['NACAO_COMPLETO', 'Nação Completo', 350000, 'sonia@npac.com.br'],

@@ -50,6 +50,20 @@ beforeEach(async () => {
    select ${lead.body.id},${p!.closer_id},now(),'DIRETO','DONE',now(),u.id from "user" u cross join generate_series(1,2) where u.email='ale@npac.com.br'`;
   }
 });
+it('produto renomeado continua em uma linha só, com o nome atual', async () => {
+  const [p] = await owner<
+    { id: string; name: string }[]
+  >`select id,name from products where code='NACAO_PROMO'`;
+  try {
+    await owner`update products set name='Produto Renomeado' where id=${p!.id}`;
+    const r = await h.post('/api/reports/search', { period: 'TODAY' }, head);
+    expect(r.status).toBe(200);
+    expect(r.body.byProduct).toHaveLength(1);
+    expect(r.body.byProduct[0]).toMatchObject({ id: p!.id, name: 'Produto Renomeado' });
+  } finally {
+    await owner`update products set name=${p!.name} where id=${p!.id}`;
+  }
+});
 it('SQL não duplica faturamento ao juntar duas reuniões e respeita escopo', async () => {
   const mine = await h.post('/api/reports/search', { period: 'TODAY' }, ale);
   expect(mine.status).toBe(200);

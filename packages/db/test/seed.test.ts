@@ -36,6 +36,12 @@ describe('seed', () => {
     ]);
     expect(rows.every((r) => r.can_close)).toBe(true);
   });
+  it('mentorias usam M no nome, não Meses', async () => {
+    const rows = await owner<
+      { name: string }[]
+    >`select name from products where code in ('MENTORIA_2M','MENTORIA_6M') order by code`;
+    expect(rows.map((r) => r.name)).toEqual(['Mentoria 2M', 'Mentoria 6M']);
+  });
   it('playbook inicial por tema, sem duplicar no segundo seed', async () => {
     const [p] = await owner<
       { n: number; topics: number }[]

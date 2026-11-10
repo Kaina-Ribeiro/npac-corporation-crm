@@ -22,6 +22,11 @@ test('chat: mensagem no Geral com #lead e DM privada', async ({ browser }) => {
   const ale = await browser.newPage();
   await login(ale, 'ale@npac.com.br');
   await ale.goto('/chat');
+  // O campo sugere "#lead": a busca aceita o nome com ou sem o #.
+  await ale.getByLabel('Mencionar lead').fill('#Lead do');
+  await expect(ale.getByRole('button', { name: 'Lead do Ale' })).toBeVisible();
+  await ale.getByLabel('Mencionar lead').fill('#Nome que não existe');
+  await expect(ale.getByText('Nenhum lead encontrado')).toBeVisible();
   await ale.getByLabel('Mencionar lead').fill('Lead do');
   await ale.getByRole('button', { name: 'Lead do Ale' }).click();
   await ale.getByLabel('Mensagem').fill('Bom dia, time');

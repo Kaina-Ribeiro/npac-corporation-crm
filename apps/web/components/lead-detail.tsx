@@ -235,6 +235,21 @@ export function LeadDetail({
         </div>
       </div>
       <FormError message={error} />
+      {/* Primeiro bloco da ficha (pedido do Igor, 10/11/2026): os dados à mão, sem rolar a página. */}
+      {me.role !== 'CLOSER' && (
+        <details className="glass-card p-5">
+          <summary className="cursor-pointer font-semibold">Editar dados do lead</summary>
+          <div className="mt-5">
+            <LeadForm
+              lead={lead}
+              catalog={catalog}
+              me={me}
+              products={products}
+              openMeeting={openMeeting}
+            />
+          </div>
+        </details>
+      )}
       <form onSubmit={move} className="glass-card flex flex-wrap items-end gap-3 p-4">
         <Field label="Mover para">
           <select
@@ -608,20 +623,6 @@ export function LeadDetail({
         </section>
       </div>
       {deals && <FinancePanel lead={lead} deals={deals} products={products} me={me} />}
-      {me.role !== 'CLOSER' && (
-        <details className="glass-card p-5">
-          <summary className="cursor-pointer font-semibold">Editar dados do lead</summary>
-          <div className="mt-5">
-            <LeadForm
-              lead={lead}
-              catalog={catalog}
-              me={me}
-              products={products}
-              openMeeting={openMeeting}
-            />
-          </div>
-        </details>
-      )}
       {isLeader(me.role) && (
         <details className="glass-card p-5">
           <summary className="cursor-pointer text-sm text-danger">Excluir lead</summary>
