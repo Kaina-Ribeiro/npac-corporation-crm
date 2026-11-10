@@ -151,7 +151,7 @@ Só entram inscrições com status ONBOARDING ou ATIVO: PAUSADO some da Fila e d
 | Dia da IDR, 30 min antes | "Enviar o link" | Operação + quem conduz, se for Duda | Reunião LINK_ENVIADO | Sim |
 | IDR REALIZADA | Na mesma transação: `data_idr` = `inicio_jornada` = **data de Brasília** do início, status ATIVO, ações do plano da mentoria, item "enviar o 1º PME". **Idempotente**: só a primeira IDR realizada inicia | Operação | `pme1_enviado_em` preenchido | — |
 | Data prevista de uma ação (não `anterior_ao_sistema`) | Ação do mês; depois da data, "atrasada" | Responsável ou o perfil | Ação FEITA | Sim, 1x no dia |
-| Mês 10 da jornada e sem foto da família | "Pedir a foto da família" (presente do mês 11) | Operação | Foto anexada | — |
+| Mês 10 da jornada (RDV) e sem foto da família | "Pedir a foto da família" (presente do mês 11) | Operação | Foto anexada | — |
 | Todo dia 1º, 8h | "Enviar a arte da agenda" e "agendar as reuniões mensais 6M" | Operação | `fila_feitos` | Sim |
 | Reunião hoje | Reunião com status e "link enviado?" | Quem conduz (se tiver acesso) + Operação | Reunião fora do dia | — |
 
