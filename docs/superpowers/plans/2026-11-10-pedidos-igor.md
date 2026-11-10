@@ -34,11 +34,11 @@ Feito quando: testes focados + `pnpm lint && pnpm typecheck` passam.
 
 Feito quando: e2e focados passam e há capturas em 375 / 768 / 1024 / 1440 px.
 
-- ⏳ **Item 8, colunas do Pipeline.** Cookie por pessoa em `Path=/pipeline`, só chaves de etapa,
+- ✅ **Item 8, colunas do Pipeline.** Cookie por pessoa em `Path=/pipeline`, só chaves de etapa,
   lido no servidor (padrão de `lib/dashboard-layout.ts`). Coluna nova aparece.
-- ⏳ **Item 11, filtro do Hoje.** Cookie por pessoa em `Path=/hoje`, só IDs. `hoje/page.tsx` aplica na
+- ✅ **Item 11, filtro do Hoje.** Cookie por pessoa em `Path=/hoje`, só IDs. `hoje/page.tsx` aplica na
   busca inicial; `<select>` abrem com o valor salvo; ID que não existe mais é ignorado.
-- ⏳ **Item 1, selo do closer.** `today.service.ts` devolve o closer da reunião. Selo com a inicial
+- ✅ **Item 1, selo do closer.** `today.service.ts` devolve o closer da reunião. Selo com a inicial
   e nome no `title`/`aria-label`, dourado se for da própria pessoa. Só para liderança com `canClose`.
 
 ## Fase 2: Atrasados (itens 5 e 6, resposta 1A)

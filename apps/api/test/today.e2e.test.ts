@@ -70,6 +70,12 @@ it('contato de hoje que já passou da hora está em atrasados', async () => {
     expect(later.body.overdue).toEqual([]);
   }
 });
+it('reunião do dia informa o closer', async () => {
+  await owner`insert into meetings (lead_id, closer_id, scheduled_at, origin, created_by)
+    values (${a}, ${ids('ronaldo')}, now(), 'DIRETO', ${ids('ale')})`;
+  const res = await h.post('/api/today/search', {}, ale);
+  expect(res.body.meetings[0].closer).toEqual({ id: ids('ronaldo'), name: 'Ronaldo' });
+});
 it('tarefas concluídas saem da aba Hoje', async () => {
   const task = await h.post(
     `/api/leads/${a}/tasks`,

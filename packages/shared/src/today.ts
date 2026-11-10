@@ -11,6 +11,7 @@ export type TodayDTO = {
     scheduledAt: string;
     outcome: MeetingOutcome | null;
     version: number;
+    closer: { id: string; name: string };
     /** Só para o dono do lead (SDR): etapas já confirmadas no horário atual. */
     reminders: { confirmed: ReminderStepConfirm[] } | null;
   }[];
