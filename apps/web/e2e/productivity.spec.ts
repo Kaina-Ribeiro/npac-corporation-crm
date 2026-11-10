@@ -180,6 +180,25 @@ test('closer não vê Novo lead no pipeline', async ({ page }) => {
   ).toHaveCount(0);
 });
 
+test('hoje tem botão Novo lead que abre o formulário', async ({ page }) => {
+  await login(page, 'ale@npac.com.br');
+  await page.goto('/hoje');
+  await page
+    .getByRole('link', { name: 'Novo lead', exact: true })
+    .filter({ visible: true })
+    .click();
+  await page.waitForURL(/\/leads\/new$/);
+});
+
+test('closer não vê Novo lead no Hoje', async ({ page }) => {
+  await login(page, 'sonia@npac.com.br');
+  await page.goto('/hoje');
+  await expect(page.getByRole('heading', { name: 'Hoje' }).first()).toBeVisible();
+  await expect(
+    page.getByRole('link', { name: 'Novo lead', exact: true }).filter({ visible: true }),
+  ).toHaveCount(0);
+});
+
 test('leads: liderança exporta CSV; SDR não vê a opção', async ({ page }) => {
   await login(page, 'ana@npac.com.br');
   await page.goto('/leads');

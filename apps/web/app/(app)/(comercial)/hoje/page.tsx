@@ -21,6 +21,7 @@ export default async function HojePage() {
       head={isLeader(me.role)}
       quick={me.role !== 'CLOSER'}
       charges={me.role !== 'SDR'}
+      canCreate={isLeader(me.role) || me.canProspect}
     />
   );
 }

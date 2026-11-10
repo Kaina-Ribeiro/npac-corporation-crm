@@ -127,6 +127,7 @@ export function Today({
   head,
   quick = false,
   charges = true,
+  canCreate = false,
 }: {
   initial: TodayDTO;
   name: string;
@@ -136,6 +137,8 @@ export function Today({
   quick?: boolean;
   /** Cobranças: só quem registra recebimento (closer e liderança), não o SDR. */
   charges?: boolean;
+  /** Botão Novo lead: mesma regra do Pipeline (liderança e quem prospecta). */
+  canCreate?: boolean;
 }) {
   const [data, setData] = useState(initial);
   const receiptKeys = useRef(new Map<string, string>());
@@ -246,18 +249,28 @@ export function Today({
             Olá, {name}. Seus próximos passos, no horário de Brasília.
           </p>
         </div>
-        <nav aria-label="Resumo do dia" className="flex flex-wrap gap-2">
-          {stats.map(([id, label, n, alert]) => (
-            <a
-              key={id}
-              href={`#${id}`}
-              className="flex h-9 items-center gap-1.5 rounded-full bg-white/60 px-3.5 text-sm text-ink2 shadow-[inset_0_0_0_0.5px_rgba(60,60,67,0.18)] hover:bg-white/90 hover:text-ink active:scale-[.97] dark:bg-white/[.06] dark:hover:bg-white/10"
+        <div className="flex flex-wrap items-center gap-2">
+          <nav aria-label="Resumo do dia" className="flex flex-wrap gap-2">
+            {stats.map(([id, label, n, alert]) => (
+              <a
+                key={id}
+                href={`#${id}`}
+                className="flex h-9 items-center gap-1.5 rounded-full bg-white/60 px-3.5 text-sm text-ink2 shadow-[inset_0_0_0_0.5px_rgba(60,60,67,0.18)] hover:bg-white/90 hover:text-ink active:scale-[.97] dark:bg-white/[.06] dark:hover:bg-white/10"
+              >
+                {alert && n > 0 && <Dot className="bg-danger" />}
+                <b className="font-semibold text-ink tabular-nums">{n}</b> {label}
+              </a>
+            ))}
+          </nav>
+          {canCreate && (
+            <Link
+              href="/leads/new"
+              className="rounded-xl bg-ink px-4 py-2 text-sm font-semibold text-[var(--bg)] active:scale-[.97]"
             >
-              {alert && n > 0 && <Dot className="bg-danger" />}
-              <b className="font-semibold text-ink tabular-nums">{n}</b> {label}
-            </a>
-          ))}
-        </nav>
+              Novo lead
+            </Link>
+          )}
+        </div>
       </header>
       {head && (
         <form className="glass-card flex flex-wrap items-end gap-3 p-4" onSubmit={filter}>

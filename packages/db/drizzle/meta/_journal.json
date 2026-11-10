@@ -295,6 +295,13 @@
       "when": 1794313355687,
       "tag": "0041_descobrindo_so_sondagem",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1794349353826,
+      "tag": "0042_mentorias_m",
+      "breakpoints": true
     }
   ]
 }
