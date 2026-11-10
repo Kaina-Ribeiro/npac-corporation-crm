@@ -3,41 +3,16 @@ import { Inject, Module, type OnModuleDestroy, type OnModuleInit } from '@nestjs
 import type { Db } from '@npac/db';
 import { DB } from '../common/db/db.module.js';
 import { ENV, type Env } from '../config/env.js';
-import { BackupController } from './backup.controller.js';
-import { EscritaService } from './escrita.service.js';
-import { FichasController } from './fichas.controller.js';
-import { FichasService } from './fichas.service.js';
-import { ImportController } from './import.controller.js';
-import { ImportService } from './import.service.js';
 import { MEDIA_STORE, VolumeMediaStore, type MediaStore } from './media-store.js';
 import { apagarPendentes } from './media-worker.js';
-import { MentoradosController } from './mentorados.controller.js';
 import { MentoriaCrypto } from './mentoria-crypto.js';
 import { MentoriaGuard } from './mentoria.guard.js';
-import { MentoriaService } from './mentoria.service.js';
 import { MidiaController } from './midia.controller.js';
-import { PessoasController, RegistrosController } from './registros.controller.js';
-import { RdvController } from './rdv.controller.js';
-import { RdvService } from './rdv.service.js';
 
 /** Acompanhamento de mentorados: base à parte do comercial, só Diretoria e Acompanhamento. */
 @Module({
-  controllers: [
-    MentoradosController,
-    FichasController,
-    RegistrosController,
-    PessoasController,
-    ImportController,
-    MidiaController,
-    BackupController,
-    RdvController,
-  ],
+  controllers: [MidiaController],
   providers: [
-    RdvService,
-    MentoriaService,
-    EscritaService,
-    FichasService,
-    ImportService,
     MentoriaGuard,
     {
       provide: MentoriaCrypto,

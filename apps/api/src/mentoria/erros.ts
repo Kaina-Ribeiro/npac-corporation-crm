@@ -1,4 +1,3 @@
-import { MSG_LIMITE_REGISTRO } from '@npac/shared';
 import { z } from 'zod';
 import { validate } from '../common/validate.js';
 import {
@@ -44,16 +43,8 @@ export function erroDoBanco(
   }
 }
 
-/** Como `validate`, mas o estouro do limite de 256 KB responde com a mensagem própria. */
-export function validarRegistro<T extends z.ZodType>(schema: T, input: unknown): z.output<T> {
-  const r = schema.safeParse(input);
-  if (!r.success && r.error.issues.some((i) => i.message === MSG_LIMITE_REGISTRO))
-    throw new BadRequestException(MSG_LIMITE_REGISTRO);
-  return validate(schema, input);
-}
-
 /**
- * Como `validarRegistro`, mas a regra própria do módulo (refine com mensagem: link fora da
+ * Como `validate`, mas a regra própria do módulo (refine com mensagem: link fora da
  * lista, data fora do formato) responde com a mensagem em português para a tela mostrar.
  */
 export function validarComAviso<T extends z.ZodType>(schema: T, input: unknown): z.output<T> {

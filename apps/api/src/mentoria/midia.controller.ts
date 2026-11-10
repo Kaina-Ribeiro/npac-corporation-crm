@@ -13,16 +13,7 @@ import {
   Res,
   StreamableFile,
 } from '@nestjs/common';
-import {
-  mentoriaConquistas,
-  mentoriaFichas,
-  mentoriaMidia,
-  mentoriaRdvEventos,
-  mentoriaRdvPessoas,
-  mentoriaRdvQuadros,
-  withUser,
-  type Db,
-} from '@npac/db';
+import { mentoriaMidia, withUser, type Db } from '@npac/db';
 import { linkPermitido, type AuthUser } from '@npac/shared';
 import { eq, isNotNull, sql } from 'drizzle-orm';
 import type { FastifyReply, FastifyRequest } from 'fastify';
@@ -41,19 +32,12 @@ export const LIMITE_ARQUIVO = 20 * 1024 * 1024;
 const FOLGA_MULTIPART = 64 * 1024;
 
 /** Dono da mídia na URL → tipo gravado e tabela onde o dono precisa existir (via RLS). */
-const DONOS = {
-  'ficha-antes': { tipo: 'FICHA_ANTES', tabela: mentoriaFichas },
-  'ficha-depois': { tipo: 'FICHA_DEPOIS', tabela: mentoriaFichas },
-  conquista: { tipo: 'CONQUISTA', tabela: mentoriaConquistas },
-  'rdv-pessoa': { tipo: 'RDV_PESSOA', tabela: mentoriaRdvPessoas },
-  'rdv-evento': { tipo: 'RDV_EVENTO', tabela: mentoriaRdvEventos },
-  'rdv-quadro': { tipo: 'RDV_QUADRO_ITEM', tabela: mentoriaRdvQuadros },
-} as const;
+const DONOS: Record<string, { tipo: string; tabela: typeof mentoriaMidia }> = {};
 type DonoUrl = keyof typeof DONOS;
 
 const dono = (d: string) => {
   if (!Object.hasOwn(DONOS, d)) throw new NotFoundException();
-  return DONOS[d as DonoUrl];
+  return DONOS[d]!;
 };
 
 const linkSchema = z
@@ -74,7 +58,7 @@ export class MidiaController {
   ) {}
 
   private async donoExiste(u: AuthUser, d: DonoUrl, id: string) {
-    const { tabela } = DONOS[d];
+    const { tabela } = DONOS[d]!;
     const achou = await withUser(this.db, u.id, (tx) =>
       tx.select({ id: tabela.id }).from(tabela).where(eq(tabela.id, id)),
     );

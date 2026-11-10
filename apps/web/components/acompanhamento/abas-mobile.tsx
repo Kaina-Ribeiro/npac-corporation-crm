@@ -1,7 +1,6 @@
 'use client';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { baixarBackup } from '@/lib/acompanhamento-download';
 
 /** Evento do "+" do rodapé: cada tela abre o próprio cadastro. */
 export const EVENTO_MAIS = 'acompanhamento:mais';
@@ -60,7 +59,6 @@ export function AbasMobile() {
           : 'Colar planilha';
 
   function mais() {
-    if (aba === 'Backup') return void baixarBackup('dashboard').catch(() => {});
     if (fora) return router.push('/acompanhamento/dashboard?colar=1');
     // Dentro da ficha, a lista é que tem o cadastro: volta para ela já com o cadastro aberto.
     if (aba === 'Linha' && path !== '/acompanhamento/linha-do-tempo')

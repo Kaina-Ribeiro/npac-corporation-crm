@@ -302,6 +302,13 @@
       "when": 1794349353826,
       "tag": "0042_mentorias_m",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1794351483995,
+      "tag": "0043_acompanhamento_v2_limpeza",
+      "breakpoints": true
     }
   ]
 }

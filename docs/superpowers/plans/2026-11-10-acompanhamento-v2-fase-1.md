@@ -66,7 +66,7 @@ Status: ⏳
 - [ ] **Step 3:** Commit `docs(NPAC-43): protótipo do acompanhamento v2`.
 
 ### Tarefa 1.2: Apagar o módulo antigo
-Status: ⏳
+Status: ✅
 
 **Files:**
 - Delete: `api/mentoria/{mentoria.service,fichas.service,fichas.controller,rdv.service,rdv.controller,escrita.service,import.service,import.controller,backup.controller,mentorados.controller,registros.controller}.ts`; `web/app/(app)/acompanhamento/{dashboard,linha-do-tempo,rdv,backup}`; `web/components/acompanhamento/*` exceto `abas-mobile.tsx`, `cabecalho-modulo.tsx`, `indicador-salvo.tsx`, `midia.tsx`, `remover-confirma.tsx`; `sh/mentoria/{planilha,eventos-colados,topicos,diagnostico}.ts`; `sh/schemas/mentoria.ts`; testes `apps/api/test/mentoria{,-backup,-escrita,-fichas,-importacao,-importacao-legado,-lgpd,-midia,-papel,-rdv,-rdv-eventos}.e2e.test.ts`, `packages/db/test/{mentoria-funcoes,mentoria-lgpd,mentoria-modelo,mentoria-rls,seed-mentoria}.test.ts`, `packages/shared/test/mentoria-{diagnostico,planilha,topicos}.test.ts`, `web/e2e/acompanhamento-{backup,dashboard,importacao,impressao,linha,mobile,rdv,rdv-eventos}.spec.ts`.
