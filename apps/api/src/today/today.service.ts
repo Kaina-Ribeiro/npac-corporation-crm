@@ -8,6 +8,7 @@ import {
   meetingConfirmations,
   meetings,
   pipelineStages,
+  user,
   withUser,
   type Db,
 } from '@npac/db';
@@ -71,9 +72,12 @@ export class TodayService {
           outcome: meetings.outcome,
           version: meetings.version,
           sdrId: leads.sdrId,
+          closerId: meetings.closerId,
+          closerName: user.name,
         })
         .from(meetings)
         .innerJoin(leads, eq(leads.id, meetings.leadId))
+        .innerJoin(user, eq(user.id, meetings.closerId))
         .where(
           and(
             ...scope,
@@ -166,8 +170,9 @@ export class TodayService {
               ),
             )
         : [];
-      const withReminders = calls.map(({ sdrId, ...c }) => ({
+      const withReminders = calls.map(({ sdrId, closerId, closerName, ...c }) => ({
         ...c,
+        closer: { id: closerId, name: closerName },
         reminders:
           sdrId === u.id && !c.outcome
             ? {

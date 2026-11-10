@@ -4,6 +4,13 @@ import Link from 'next/link';
 import { Fragment, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { money } from '@npac/shared/money';
 import { brasiliaInput, clientApi } from '@/lib/client-api';
+import {
+  parseTodayFilters,
+  serializeTodayFilters,
+  TODAY_COOKIE_PATH,
+  type TodayFilters,
+} from '@/lib/today-filters';
+import { readPreference, savePreference } from '@/lib/user-cookie';
 import { button, control, Field, FormError, quietButton } from './crm-ui';
 import { useCrmRefresh } from './shell/live-updates';
 import { MeetingReminder } from './meeting-reminder';
@@ -75,6 +82,29 @@ function Dot({ className }: { className: string }) {
   return <span aria-hidden="true" className={`size-2 flex-none rounded-full ${className}`} />;
 }
 
+/** Selo com a inicial do closer da reunião; dourado quando a reunião é da própria pessoa. */
+function CloserMark({
+  closer,
+  mine,
+}: {
+  closer: TodayDTO['meetings'][number]['closer'];
+  mine: boolean;
+}) {
+  const label = mine ? 'Sua reunião' : `Reunião de ${closer.name}`;
+  return (
+    <span
+      role="img"
+      aria-label={label}
+      title={label}
+      className={`relative z-[1] grid size-6 flex-none place-items-center rounded-full text-[11px] font-bold ${
+        mine ? 'bg-gold text-black' : 'bg-black/5 text-ink2 dark:bg-white/10'
+      }`}
+    >
+      {closer.name.charAt(0).toUpperCase()}
+    </span>
+  );
+}
+
 /** Título de bloco: nome, contador e, se vazio, "nada por aqui" na mesma linha. */
 function Heading({ title, count, tone }: { title: string; count: number; tone?: 'danger' }) {
   return (
@@ -128,6 +158,9 @@ export function Today({
   quick = false,
   charges = true,
   canCreate = false,
+  cookie,
+  initialFilters,
+  closerMarkFor,
 }: {
   initial: TodayDTO;
   name: string;
@@ -139,11 +172,18 @@ export function Today({
   charges?: boolean;
   /** Botão Novo lead: mesma regra do Pipeline (liderança e quem prospecta). */
   canCreate?: boolean;
+  /** Cookie da pessoa com o último filtro (pedido do Igor, 10/11/2026). */
+  cookie: string;
+  initialFilters: TodayFilters;
+  /** ID de quem é liderança e também atende: mostra de quem é cada reunião do dia. */
+  closerMarkFor?: string;
 }) {
   const [data, setData] = useState(initial);
   const receiptKeys = useRef(new Map<string, string>());
   useCrmRefresh(() => load());
-  const [filters, setFilters] = useState({});
+  const [filters, setFilters] = useState<TodayFilters>(initialFilters);
+  // O que está marcado nos campos, antes de clicar em Filtrar.
+  const [picked, setPicked] = useState<TodayFilters>(initialFilters);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   // Relógio do navegador para a marca "agora" da agenda: só depois de montar (sem divergir do
@@ -164,6 +204,17 @@ export function Today({
     }, 30_000);
     return () => clearInterval(t);
   }, []);
+  // Voltar no navegador reaproveita a página antiga: ao montar, o cookie tem o filtro mais recente.
+  const mounted = useRef({ head, cookie, team: catalog.team, initialFilters, load });
+  useEffect(() => {
+    const { head, cookie, team, initialFilters, load } = mounted.current;
+    if (!head) return;
+    const saved = parseTodayFilters(readPreference(cookie), team);
+    if (serializeTodayFilters(saved) === serializeTodayFilters(initialFilters)) return;
+    setFilters(saved);
+    setPicked(saved);
+    void load(saved).catch((e: Error) => setError(e.message));
+  }, []);
   async function action(path: string, method: string, body: object) {
     setBusy(true);
     setError('');
@@ -178,8 +229,11 @@ export function Today({
   }
   async function filter(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const selected = Object.fromEntries([...new FormData(e.currentTarget)].filter(([, v]) => v));
+    const selected = Object.fromEntries(
+      [...new FormData(e.currentTarget)].filter(([, v]) => v),
+    ) as TodayFilters;
     setFilters(selected);
+    savePreference(cookie, serializeTodayFilters(selected), TODAY_COOKIE_PATH);
     setBusy(true);
     try {
       await load(selected);
@@ -275,7 +329,12 @@ export function Today({
       {head && (
         <form className="glass-card flex flex-wrap items-end gap-3 p-4" onSubmit={filter}>
           <Field label="SDR">
-            <select name="sdrId" className={control}>
+            <select
+              name="sdrId"
+              className={control}
+              value={picked.sdrId ?? ''}
+              onChange={(e) => setPicked((p) => ({ ...p, sdrId: e.target.value || undefined }))}
+            >
               <option value="">Todos</option>
               {catalog.team
                 .filter((u) => u.canProspect)
@@ -287,7 +346,12 @@ export function Today({
             </select>
           </Field>
           <Field label="Closer">
-            <select name="closerId" className={control}>
+            <select
+              name="closerId"
+              className={control}
+              value={picked.closerId ?? ''}
+              onChange={(e) => setPicked((p) => ({ ...p, closerId: e.target.value || undefined }))}
+            >
               <option value="">Todos</option>
               {catalog.team
                 .filter((u) => u.canClose)
@@ -336,6 +400,9 @@ export function Today({
                           >
                             {hourMinute.format(new Date(m.scheduledAt))}
                           </span>
+                          {closerMarkFor && (
+                            <CloserMark closer={m.closer} mine={m.closer.id === closerMarkFor} />
+                          )}
                           <div className="min-w-0 flex-1">
                             <p
                               className={`truncate text-sm font-semibold ${m.outcome ? 'text-ink2' : ''}`}
