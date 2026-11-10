@@ -14,6 +14,7 @@ import {
   LEAD_SOURCE_OPTIONS,
   SOURCE_OTHER_MAX,
   TIER_BY_INCOME_BAND,
+  TIER_LABELS,
   isLeader,
   type IncomeBand,
   isLegacyLeadSource,
@@ -189,7 +190,7 @@ export function LeadForm({
           >
             {tier ? (
               <>
-                <span className={`tier tier-${tier}`}>{tier}</span>
+                <span className={`tier tier-${tier}`}>{TIER_LABELS[tier]}</span>
                 <span className="text-[13px]">pela faixa de renda</span>
               </>
             ) : (

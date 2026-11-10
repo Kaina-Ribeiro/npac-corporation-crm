@@ -1,5 +1,6 @@
 'use client';
 import type { LeadCatalog, LeadDTO, Page } from '@npac/shared';
+import { TIER_LABELS } from '@npac/shared/enums';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { Fragment, useEffect, useId, useRef, useState, type ReactNode } from 'react';
@@ -149,7 +150,7 @@ export function CommandPalettePanel({ nav, commercial, open, onClose }: PanelPro
       label: l.name,
       group: 'Leads',
       icon: ICON.lead,
-      hint: [l.tier, stages[l.stageKey], l.sdr.name].filter(Boolean).join(' · '),
+      hint: [TIER_LABELS[l.tier], stages[l.stageKey], l.sdr.name].filter(Boolean).join(' · '),
       run: go(`/leads/${l.id}`),
     })),
     ...commands.filter((c) => !f || fold(c.label).includes(f)),

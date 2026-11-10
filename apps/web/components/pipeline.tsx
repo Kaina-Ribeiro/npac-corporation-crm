@@ -8,6 +8,7 @@ import type {
   Role,
   StageKey,
 } from '@npac/shared';
+import { TIER_LABELS } from '@npac/shared/enums';
 import { can } from '@npac/shared/permissions';
 import Link from 'next/link';
 import { useState, type CSSProperties, type FormEvent } from 'react';
@@ -253,7 +254,7 @@ export function Pipeline({
                     <Link className="text-sm font-semibold" href={`/leads/${l.id}`}>
                       {l.name}
                     </Link>
-                    <span className={`tier tier-${l.tier}`}>{l.tier}</span>
+                    <span className={`tier tier-${l.tier}`}>{TIER_LABELS[l.tier]}</span>
                   </div>
                   {l.saleToRegister && (
                     <div className="mt-2 flex flex-wrap items-center gap-2">

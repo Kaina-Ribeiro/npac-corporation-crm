@@ -7,7 +7,14 @@ import type {
   Role,
   TeamActivityDTO,
 } from '@npac/shared';
-import { LEAD_SOURCE_LABELS, LEAD_SOURCE_OPTIONS, LEGACY_LEAD_SOURCES } from '@npac/shared/enums';
+import {
+  LEAD_SOURCE_LABELS,
+  LEAD_SOURCE_OPTIONS,
+  LEGACY_LEAD_SOURCES,
+  TIER_LABELS,
+  TIERS,
+  type Tier,
+} from '@npac/shared/enums';
 import { money } from '@npac/shared/money';
 import Link from 'next/link';
 import { type CSSProperties, useMemo, useRef, useState, type FormEvent } from 'react';
@@ -52,7 +59,9 @@ function Breakdown({ title, rows }: { title: string; rows: ReportRow[] }) {
           <thead>
             <tr className="text-left text-xs text-ink2">
               <th className="py-2 pr-4">Nome</th>
-              {rows.some((r) => r.p0 !== undefined) && <th className="px-3">P0 / P1 / P2</th>}
+              {rows.some((r) => r.p0 !== undefined) && (
+                <th className="px-3">P0 / P1 / P2 / Descobrindo</th>
+              )}
               {rows.some((r) => r.direct !== undefined) && (
                 <th className="px-3">Direto / Follow</th>
               )}
@@ -69,7 +78,7 @@ function Breakdown({ title, rows }: { title: string; rows: ReportRow[] }) {
                 <td className="py-3 pr-4">{r.name}</td>
                 {rows.some((v) => v.p0 !== undefined) && (
                   <td className="whitespace-nowrap px-3">
-                    {r.p0 ?? 0} / {r.p1 ?? 0} / {r.p2 ?? 0}
+                    {r.p0 ?? 0} / {r.p1 ?? 0} / {r.p2 ?? 0} / {r.descobrindo ?? 0}
                   </td>
                 )}
                 {rows.some((v) => v.direct !== undefined) && (
@@ -250,7 +259,7 @@ export function Reports({
               'kpi-leads',
               'Leads novos',
               m.leads ?? 0,
-              `P0 ${m.p0 ?? 0} · P1 ${m.p1 ?? 0} · P2 ${m.p2 ?? 0}`,
+              `P0 ${m.p0 ?? 0} · P1 ${m.p1 ?? 0} · P2 ${m.p2 ?? 0} · Descobrindo ${m.descobrindo ?? 0}`,
               'leads',
               chartColors.volume,
             ],
@@ -344,8 +353,8 @@ export function Reports({
               dayLabel="Valor do dia"
               foot={
                 <>
-                  P0 R$ 9 · P1 R$ 7 · P2 R$ 5 por reunião realizada · {m.done ?? 0}{' '}
-                  {(m.done ?? 0) === 1 ? 'realizada' : 'realizadas'}
+                  P0 R$ 9 · P1 R$ 7 · P2 R$ 5 · Descobrindo renda R$ 0 por reunião realizada ·{' '}
+                  {m.done ?? 0} {(m.done ?? 0) === 1 ? 'realizada' : 'realizadas'}
                 </>
               }
             />
@@ -380,7 +389,12 @@ export function Reports({
           size: 'narrow',
           node: (
             <ChartCard title="Perfil dos leads">
-              <TierDonut p0={m.p0 ?? 0} p1={m.p1 ?? 0} p2={m.p2 ?? 0} />
+              <TierDonut
+                p0={m.p0 ?? 0}
+                p1={m.p1 ?? 0}
+                p2={m.p2 ?? 0}
+                descobrindo={m.descobrindo ?? 0}
+              />
             </ChartCard>
           ),
         },
@@ -574,8 +588,10 @@ export function Reports({
                 <Field label="Perfil do relatório">
                   <select name="tier" className={control}>
                     <option value="">Todos</option>
-                    {['P0', 'P1', 'P2'].map((t) => (
-                      <option key={t}>{t}</option>
+                    {TIERS.map((t) => (
+                      <option key={t} value={t}>
+                        {TIER_LABELS[t]}
+                      </option>
                     ))}
                   </select>
                 </Field>
@@ -669,7 +685,8 @@ export function Reports({
           </div>
           <section className="glass-card flex flex-wrap gap-x-8 gap-y-3 p-5 text-sm">
             <span>
-              P0: <b>{m.p0}</b> · P1: <b>{m.p1}</b> · P2: <b>{m.p2}</b>
+              P0: <b>{m.p0}</b> · P1: <b>{m.p1}</b> · P2: <b>{m.p2}</b> · Descobrindo renda:{' '}
+              <b>{m.descobrindo ?? 0}</b>
             </span>
             <span>
               Direto: <b>{m.direct}</b> · Follow: <b>{m.follow}</b>
@@ -708,7 +725,7 @@ export function Reports({
                     {l.name}
                   </Link>
                   <span className="text-ink2">
-                    {l.stage} · {l.tier}
+                    {l.stage} · {TIER_LABELS[l.tier as Tier] ?? l.tier}
                   </span>
                 </li>
               ))}

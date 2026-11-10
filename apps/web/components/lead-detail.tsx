@@ -1,5 +1,5 @@
 'use client';
-import { isLeader, LOST_REASON_LABELS } from '@npac/shared/enums';
+import { isLeader, LOST_REASON_LABELS, TIER_LABELS } from '@npac/shared/enums';
 import { money } from '@npac/shared/money';
 import { REMINDER_MINUTES } from '@npac/shared/reminders';
 import { HandoffActions } from './handoff-actions';
@@ -187,7 +187,7 @@ export function LeadDetail({
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{lead.name}</h1>
           <p className="mt-1 text-sm text-ink2">
-            {stage} · {lead.tier} · SDR {lead.sdr.name}
+            {stage} · {TIER_LABELS[lead.tier]} · SDR {lead.sdr.name}
           </p>
           {lead.saleToRegister && (
             // Cadastrado como Venda Fechada sem a venda (NPAC-39): closer e liderança registram.

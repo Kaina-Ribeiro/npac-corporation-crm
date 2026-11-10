@@ -33,6 +33,15 @@ describe('perfil pela faixa de renda', () => {
     expect((await insert('R8_15K', 'P0')).tier).toBe('P1');
     expect((await insert('R15_50K', 'P2')).tier).toBe('P0');
     expect((await insert('R50K_PLUS', 'P2')).tier).toBe('P0');
+    expect((await insert('DESCOBRINDO', 'P0')).tier).toBe('DESCOBRINDO');
+  });
+
+  it('descobrir a renda troca o perfil "Descobrindo renda"', async () => {
+    const { id } = await insert('DESCOBRINDO', 'P2');
+    await owner`update leads set income_band = 'R15_50K' where id = ${id}`;
+    expect(await tierOf(id)).toBe('P0');
+    await owner`update leads set income_band = 'DESCOBRINDO' where id = ${id}`;
+    expect(await tierOf(id)).toBe('DESCOBRINDO');
   });
 
   it('trocar a faixa troca o perfil; trocar só o perfil não pega', async () => {

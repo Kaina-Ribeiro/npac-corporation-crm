@@ -17,10 +17,21 @@ export const MFA_LIGADO = false as boolean;
 /** Quem usa o CRM comercial (leads, equipe, chat, avisos…). O Acompanhamento só vê o módulo. */
 export const hasCommercialAccess = (role: Role) => role !== 'ACOMPANHAMENTO';
 
-export const TIERS = ['P0', 'P1', 'P2'] as const;
+/**
+ * Perfis do lead. DESCOBRINDO (Igor, 10/11/2026, "1C"): renda ainda desconhecida; vira P0/P1/P2
+ * quando o SDR troca a faixa. Nas telas, sempre por `TIER_LABELS`.
+ */
+export const TIERS = ['P0', 'P1', 'P2', 'DESCOBRINDO'] as const;
 export type Tier = (typeof TIERS)[number];
 
-export const INCOME_BANDS = ['R5_8K', 'R8_15K', 'R15_50K', 'R50K_PLUS'] as const;
+export const TIER_LABELS: Record<Tier, string> = {
+  P0: 'P0',
+  P1: 'P1',
+  P2: 'P2',
+  DESCOBRINDO: 'Descobrindo renda',
+};
+
+export const INCOME_BANDS = ['R5_8K', 'R8_15K', 'R15_50K', 'R50K_PLUS', 'DESCOBRINDO'] as const;
 export type IncomeBand = (typeof INCOME_BANDS)[number];
 
 export const INCOME_BAND_LABELS: Record<IncomeBand, string> = {
@@ -28,17 +39,20 @@ export const INCOME_BAND_LABELS: Record<IncomeBand, string> = {
   R8_15K: 'R$ 8–15 mil',
   R15_50K: 'R$ 15–50 mil',
   R50K_PLUS: 'R$ 50 mil+',
+  DESCOBRINDO: 'Descobrindo renda',
 };
 
 /**
  * Perfil que a faixa de renda define (pedido do cliente, 05/11/2026): 5–8 mil = P2, 8–15 mil = P1,
- * 15 mil para cima = P0. O formulário troca o perfil ao escolher a faixa; dá para ajustar à mão.
+ * 15 mil para cima = P0; "Descobrindo renda" tem perfil próprio (10/11/2026). Sem troca à mão:
+ * o gatilho `leads_tier_from_income` (0036, 0040) usa a mesma tabela.
  */
 export const TIER_BY_INCOME_BAND: Record<IncomeBand, Tier> = {
   R5_8K: 'P2',
   R8_15K: 'P1',
   R15_50K: 'P0',
   R50K_PLUS: 'P0',
+  DESCOBRINDO: 'DESCOBRINDO',
 };
 
 /**

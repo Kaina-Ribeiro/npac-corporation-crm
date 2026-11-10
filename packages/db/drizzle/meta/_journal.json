@@ -281,6 +281,13 @@
       "when": 1793987772595,
       "tag": "0039_pagamento_parcial",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1794313295687,
+      "tag": "0040_descobrindo_renda",
+      "breakpoints": true
     }
   ]
 }

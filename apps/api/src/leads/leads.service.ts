@@ -19,6 +19,7 @@ import {
 import {
   spDayRange,
   TIER_BY_INCOME_BAND,
+  TIER_LABELS,
   normalizeInstagram,
   normalizePhoneBR,
   type AuthUser,
@@ -255,7 +256,7 @@ export class LeadsService {
         r.name,
         r.phoneEnc ? this.crypto.decrypt(r.phoneEnc) : '',
         r.instagram ?? '',
-        r.tier,
+        TIER_LABELS[r.tier],
         r.stage,
         r.sdrName,
         brDate(r.createdAt),
