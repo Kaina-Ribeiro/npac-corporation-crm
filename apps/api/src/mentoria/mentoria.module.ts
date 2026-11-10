@@ -5,15 +5,25 @@ import { DB } from '../common/db/db.module.js';
 import { ENV, type Env } from '../config/env.js';
 import { MEDIA_STORE, VolumeMediaStore, type MediaStore } from './media-store.js';
 import { apagarPendentes } from './media-worker.js';
+import { FichaService } from './ficha.service.js';
+import { InscricoesController } from './inscricoes.controller.js';
+import { InscricoesService } from './inscricoes.service.js';
 import { MentoriaCrypto } from './mentoria-crypto.js';
 import { MentoriaGuard } from './mentoria.guard.js';
 import { MidiaController } from './midia.controller.js';
+import { PerfilGuard } from './perfil.guard.js';
+import { PerfisController } from './perfis.controller.js';
+import { PerfisService } from './perfis.service.js';
 
 /** Acompanhamento de mentorados: base à parte do comercial, só Diretoria e Acompanhamento. */
 @Module({
-  controllers: [MidiaController],
+  controllers: [PerfisController, InscricoesController, MidiaController],
   providers: [
     MentoriaGuard,
+    PerfilGuard,
+    PerfisService,
+    InscricoesService,
+    FichaService,
     {
       provide: MentoriaCrypto,
       inject: [ENV],

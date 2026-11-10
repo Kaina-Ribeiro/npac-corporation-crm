@@ -1,27 +1,135 @@
-import type { MentoradoStatus } from './enums.js';
+import type {
+  InscricaoStatus,
+  Mentoria,
+  Ocupacao,
+  Origem,
+  OrigemEndereco,
+  Perfil,
+  StatusFinanceiro,
+  Tecnologia,
+  TipoAvaliacao,
+  TipoInscricao,
+} from './enums.js';
 
-/** Linha do Dashboard (Módulo 1), como a API devolve. */
-export type MentoradoItem = {
+/** `GET mentoria/eu`: o perfil operacional e o selo de Admin de quem está logado. */
+export type EuMentoria = { perfil: Perfil | null; admin: boolean };
+
+export type PerfilLinha = { id: string; nome: string; perfil: Perfil | null; admin: boolean };
+
+export type PessoaResumo = { nome: string; apelido: string | null; fotoMidiaId: string | null };
+
+/** Linha da lista de Mentorados. `mesJornada` nulo = antes do início. */
+export type InscricaoItem = {
   id: string;
   nome: string;
-  tipoCadastro: string | null;
-  tipoMentoria: string | null;
-  dataEntradaTexto: string | null;
-  dataEntrada: string | null;
-  status: MentoradoStatus;
-  version: number;
-  pessoaRef: string | null;
+  tipo: TipoInscricao;
+  mentoria: Mentoria;
+  status: InscricaoStatus;
+  mesJornada: number | null;
+  responsavel: { id: string; nome: string } | null;
+  ultimoContato: string | null;
+  completar: boolean;
+  pessoas: PessoaResumo[];
 };
 
 /** Página da lista: 50 itens e cursor opaco (só o id do último, assinado). */
-export type PaginaMentorados = { itens: MentoradoItem[]; cursor: string | null };
+export type PaginaInscricoes = { itens: InscricaoItem[]; cursor: string | null; total: number };
 
-/** Primeira página do Dashboard: também os números dos cards e das etiquetas. */
-export type ResumoDashboard = PaginaMentorados & {
-  total: number;
-  contagemPorStatus: Record<MentoradoStatus, number>;
-  contagemPorMentoria: { nome: string; n: number }[];
-  nomesPorStatus: Record<MentoradoStatus, { id: string; nome: string }[]>;
+export type AvaliacaoDTO = {
+  id: string;
+  tipo: TipoAvaliacao;
+  version: number;
+  data: string | null;
+  notaFe: number | null;
+  notaSaude: number | null;
+  notaDinheiro: number | null;
+  notaRelacionamentos: number | null;
+  resultadoProva: string | null;
+};
+
+export type PessoaDTO = {
+  id: string;
+  ordem: number;
+  version: number;
+  nome: string;
+  apelido: string | null;
+  fotoMidiaId: string | null;
+  nascimento: string | null;
+  cidade: string | null;
+  uf: string | null;
+  whatsapp: string | null;
+  email: string | null;
+  instagram: string | null;
+  profissao: string | null;
+  ocupacao: Ocupacao | null;
+  filhosQuantidade: number | null;
+  filhosIdades: string | null;
+  tecnologia: Tecnologia | null;
+  melhorHorario: string | null;
+  canalPreferido: string | null;
+  pulseira: string | null;
+  avaliacoes: AvaliacaoDTO[];
+};
+
+export type EnderecoDTO = {
+  version: number;
+  endereco: string | null;
+  cep: string | null;
+  origem: OrigemEndereco;
+};
+
+export type MomentoDTO = {
+  version: number;
+  data: string | null;
+  recebeCentavos: number | null;
+  custoCentavos: number | null;
+  temDividas: boolean | null;
+  dividasCentavos: number | null;
+  guardadoCentavos: number | null;
+  dor: string | null;
+  sonho: string | null;
+  meta: string | null;
+  travadoEm: string | null;
+  travadoPor: string | null;
+};
+
+/** Ficha aberta: textos decifrados e o que a pessoa logada pode editar. */
+export type FichaDTO = {
+  id: string;
+  version: number;
+  nome: string;
+  tipo: TipoInscricao;
+  mentoria: Mentoria;
+  mentoriaVariante: string | null;
+  dataCompra: string | null;
+  dataCompraAproximada: boolean;
+  dataIdr: string | null;
+  inicioJornada: string | null;
+  terminoPrevisto: string | null;
+  mesJornada: number | null;
+  valorCentavos: number | null;
+  formaPagamento: string | null;
+  statusFinanceiro: StatusFinanceiro | null;
+  status: InscricaoStatus;
+  responsavelId: string | null;
+  origem: Origem | null;
+  linkPasta: string | null;
+  linkGrupo: string | null;
+  fotoFamiliaMidiaId: string | null;
+  importada: boolean;
+  pessoas: PessoaDTO[];
+  endereco: EnderecoDTO | null;
+  momento: MomentoDTO | null;
+  pode: { inscricao: boolean; momento: boolean; anotacao: boolean; admin: boolean };
+};
+
+export type HistoricoItem = {
+  id: string;
+  tipo: string;
+  quando: string;
+  ator: string;
+  campos: string[];
+  texto: string | null;
 };
 
 export type MidiaDTO = {
@@ -32,66 +140,4 @@ export type MidiaDTO = {
   urlVideo: string | null;
   mime: string | null;
   tamanhoBytes: number | null;
-};
-
-/** Linha da lista de fichas (Módulo 2). */
-export type FichaItem = {
-  id: string;
-  nome: string;
-  dataInicioTexto: string | null;
-  tempoMentoria: string | null;
-  conquistas: number;
-};
-export type PaginaFichas = { itens: FichaItem[]; cursor: string | null; total?: number };
-
-export type CampoFicha = {
-  chave: string;
-  rotulo: string;
-  antes: string | null;
-  depois: string | null;
-};
-
-/** Ficha aberta: textos decifrados, 4 pilares e 5 evoluções sempre nas linhas fixas. */
-export type FichaDetalhe = {
-  id: string;
-  nome: string;
-  dataInicioTexto: string | null;
-  notasMomentoInicial: string | null;
-  notasMomentoAtual: string | null;
-  tempoMentoria: string | null;
-  version: number;
-  pessoaRef: string | null;
-  pilares: CampoFicha[];
-  evolucao: CampoFicha[];
-  conquistas: { id: string; data: string | null; descricao: string | null }[];
-  midias: MidiaDTO[];
-};
-
-/** Linha da lista do RDV (Módulo 3). */
-export type RdvItem = { id: string; nome: string; eventos: number };
-export type PaginaRdv = { itens: RdvItem[]; cursor: string | null; total?: number };
-
-/** Campo do diagnóstico colado (só leitura na tela). */
-export type DiagnosticoCampo = { chave: string; rotulo: string; valor: string | null };
-
-/** Prévia de "Colar dados do diagnóstico": nada é gravado (D30). */
-export type DiagnosticoPrevia = {
-  campos: { chave: string; rotulo: string; atual: string | null; novo: string }[];
-  faltam: string[];
-  desconhecidos: number;
-};
-
-/** Pessoa do RDV aberta: cabeçalho, diagnóstico, pasta e mídias (foto de perfil). */
-export type RdvDetalhe = {
-  id: string;
-  nome: string;
-  version: number;
-  pessoaRef: string | null;
-  pastaUrl: string | null;
-  diagnostico: DiagnosticoCampo[];
-  /** Em ordem cronológica (data, id), calculada na leitura (regra 4). */
-  eventos: { id: string; data: string; descricao: string | null }[];
-  /** Itens dos 4 quadros, em ordem (data, id); sem data no fim (D34). */
-  quadros: { id: string; quadro: string; data: string | null; descricao: string | null }[];
-  midias: MidiaDTO[];
 };

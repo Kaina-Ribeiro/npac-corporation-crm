@@ -320,6 +320,62 @@ describe('demais tabelas', () => {
     }
   });
 
+  it('mês da jornada trata o fim de mês como a data prevista', async () => {
+    await owner`update mentoria_inscricoes set inicio_jornada = '2026-01-31' where id = ${inscricao}`;
+    const mes = async (hoje: string) =>
+      (
+        await um<{ m: number | null }>(
+          DUDA,
+          sql`select mentoria_mes_jornada(${inscricao}::uuid, ${hoje}::date) as m`,
+        )
+      ).m;
+    expect(await mes('2026-01-30')).toBeNull();
+    expect(await mes('2026-01-31')).toBe(1);
+    expect(await mes('2026-02-27')).toBe(1);
+    expect(await mes('2026-02-28')).toBe(2);
+    expect(await mes('2027-01-31')).toBe(13);
+  });
+
+  it('momento travado impede remover a pessoa 2', async () => {
+    await owner`update mentoria_inscricoes set tipo = 'CASAL' where id = ${inscricao}`;
+    await owner`insert into mentoria_pessoas (inscricao_id, ordem, nome, nome_norm)
+      values (${inscricao}, 2, 'Pessoa Dois', 'pessoa dois')`;
+    await momentoEm(DUDA);
+    await withUser(db, DUDA, (tx) =>
+      tx.execute(sql`select mentoria_concluir_momento(${inscricao}::uuid)`),
+    );
+    const err = await pgError(
+      withUser(db, OPERACAO, (tx) =>
+        tx.execute(sql`select mentoria_remover_pessoa_2(${inscricao}::uuid)`),
+      ),
+    );
+    expect(err.code).toBe('22023');
+  });
+
+  it('tipos gravados pelas funções não entram por INSERT direto', async () => {
+    const err = await pgError(
+      withUser(db, OPERACAO, (tx) =>
+        tx.execute(
+          sql`insert into mentoria_historico (inscricao_id, ator_id, tipo)
+              values (${inscricao}, ${OPERACAO}, 'momento.destravado')`,
+        ),
+      ),
+    );
+    expect(err.code).toBe('42501');
+  });
+
+  it('criado_por da mídia tem de ser quem está logado', async () => {
+    const err = await pgError(
+      withUser(db, OPERACAO, (tx) =>
+        tx.execute(
+          sql`insert into mentoria_midia (dono_tipo, dono_id, tipo, chave_objeto, criado_por)
+              values ('PESSOA_FOTO', ${pessoa}, 'FOTO', 'foto/x.jpg', ${DUDA})`,
+        ),
+      ),
+    );
+    expect(err.code).toBe('42501');
+  });
+
   it('mentoria_pode não existe mais', async () => {
     const r = await owner`select 1 from pg_proc where proname = 'mentoria_pode'`;
     expect(r.length).toBe(0);

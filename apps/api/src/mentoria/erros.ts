@@ -36,6 +36,7 @@ export function erroDoBanco(
       throw new BadRequestException(pg.message ?? 'Dados inválidos');
     case '23505':
       throw new ConflictException(nomeRepetido);
+    case '23503':
     case '23514':
       throw new BadRequestException('Dados inválidos');
     default:

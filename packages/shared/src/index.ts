@@ -13,6 +13,7 @@ export * from './mentoria/datas.js';
 export * from './mentoria/enums.js';
 export * from './mentoria/campos.js';
 export * from './mentoria/links.js';
+export * from './schemas/mentoria.js';
 export * from './mentoria/dedupe.js';
 export * from './mentoria/json-backup.js';
 export * from './mentoria/legado.js';

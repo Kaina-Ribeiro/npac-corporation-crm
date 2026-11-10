@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  Body,
   Delete,
   Get,
   HttpCode,
@@ -13,15 +12,21 @@ import {
   Res,
   StreamableFile,
 } from '@nestjs/common';
-import { mentoriaMidia, withUser, type Db } from '@npac/db';
-import { linkPermitido, type AuthUser } from '@npac/shared';
-import { eq, isNotNull, sql } from 'drizzle-orm';
+import {
+  mentoriaInscricoes,
+  mentoriaMidia,
+  mentoriaPessoas,
+  withUser,
+  type Db,
+  type Tx,
+} from '@npac/db';
+import type { AuthUser } from '@npac/shared';
+import { eq, sql } from 'drizzle-orm';
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import { z } from 'zod';
 import { AuditService } from '../audit/audit.service.js';
 import { CurrentUser, type SessionUser } from '../auth/current-user.decorator.js';
 import { DB } from '../common/db/db.module.js';
-import { entityId, validate } from '../common/validate.js';
+import { entityId } from '../common/validate.js';
 import { erroDoBanco } from './erros.js';
 import { farejar, semMetadados } from './media-sniff.js';
 import { MEDIA_STORE, type MediaStore } from './media-store.js';
@@ -32,17 +37,16 @@ export const LIMITE_ARQUIVO = 20 * 1024 * 1024;
 const FOLGA_MULTIPART = 64 * 1024;
 
 /** Dono da mídia na URL → tipo gravado e tabela onde o dono precisa existir (via RLS). */
-const DONOS: Record<string, { tipo: string; tabela: typeof mentoriaMidia }> = {};
+const DONOS = {
+  'pessoa-foto': { tipo: 'PESSOA_FOTO', tabela: mentoriaPessoas },
+  'foto-familia': { tipo: 'FOTO_FAMILIA', tabela: mentoriaInscricoes },
+} as const;
 type DonoUrl = keyof typeof DONOS;
 
 const dono = (d: string) => {
   if (!Object.hasOwn(DONOS, d)) throw new NotFoundException();
-  return DONOS[d]!;
+  return DONOS[d as DonoUrl];
 };
-
-const linkSchema = z
-  .object({ urlVideo: z.string().trim().max(2000).refine(linkPermitido, 'Link não permitido') })
-  .strict();
 
 /**
  * Mídia (regra 7, D2, D16, D17): o arquivo vai para o volume com nome UUID, o tipo vem da
@@ -58,11 +62,36 @@ export class MidiaController {
   ) {}
 
   private async donoExiste(u: AuthUser, d: DonoUrl, id: string) {
-    const { tabela } = DONOS[d]!;
+    const { tabela } = DONOS[d];
     const achou = await withUser(this.db, u.id, (tx) =>
       tx.select({ id: tabela.id }).from(tabela).where(eq(tabela.id, id)),
     );
     if (!achou.length) throw new NotFoundException();
+  }
+
+  /** A foto nova passa a ser a do dono; a anterior vai para a fila de exclusão. */
+  private async apontarFoto(tx: Tx, d: DonoUrl, donoId: string, midiaId: string) {
+    if (d === 'pessoa-foto') {
+      const [p] = await tx
+        .select({ foto: mentoriaPessoas.fotoMidiaId })
+        .from(mentoriaPessoas)
+        .where(eq(mentoriaPessoas.id, donoId));
+      if (p?.foto) await tx.execute(sql`select mentoria_excluir_midia(${p.foto})`);
+      await tx
+        .update(mentoriaPessoas)
+        .set({ fotoMidiaId: midiaId })
+        .where(eq(mentoriaPessoas.id, donoId));
+      return;
+    }
+    const [i] = await tx
+      .select({ foto: mentoriaInscricoes.fotoFamiliaMidiaId })
+      .from(mentoriaInscricoes)
+      .where(eq(mentoriaInscricoes.id, donoId));
+    if (i?.foto) await tx.execute(sql`select mentoria_excluir_midia(${i.foto})`);
+    await tx
+      .update(mentoriaInscricoes)
+      .set({ fotoFamiliaMidiaId: midiaId })
+      .where(eq(mentoriaInscricoes.id, donoId));
   }
 
   @Post(':dono/:donoId/midia')
@@ -88,8 +117,8 @@ export class MidiaController {
       throw new PayloadTooLargeException('Arquivo acima de 20 MB');
     }
     const f = farejar(dados);
-    if (!f)
-      throw new BadRequestException('Envie foto (JPEG, PNG ou WEBP), vídeo (MP4 ou MOV) ou PDF');
+    if (!f || f.tipo !== 'FOTO')
+      throw new BadRequestException('Envie uma foto (JPEG, PNG ou WEBP)');
     const limpo = semMetadados(dados, f.mime);
     const chave = await this.store.put(limpo);
     try {
@@ -110,6 +139,7 @@ export class MidiaController {
             tipo: mentoriaMidia.tipo,
             tamanhoBytes: mentoriaMidia.tamanhoBytes,
           });
+        await this.apontarFoto(tx, d as DonoUrl, donoId, row!.id);
         await this.audit.record(
           {
             actorId: u.id,
@@ -126,37 +156,6 @@ export class MidiaController {
       await this.store.delete(chave);
       return erroDoBanco(e);
     }
-  }
-
-  @Post(':dono/:donoId/midia/link')
-  @HttpCode(201)
-  async link(
-    @CurrentUser() u: SessionUser,
-    @Param('dono') d: string,
-    @Param('donoId') donoId: string,
-    @Body() body: unknown,
-  ) {
-    const { tipo: donoTipo } = dono(d);
-    entityId(donoId);
-    const { urlVideo } = validate(linkSchema, body);
-    await this.donoExiste(u, d as DonoUrl, donoId);
-    return withUser(this.db, u.id, async (tx) => {
-      const [row] = await tx
-        .insert(mentoriaMidia)
-        .values({ donoTipo, donoId, tipo: 'LINK_VIDEO', urlVideo, criadoPor: u.id })
-        .returning({ id: mentoriaMidia.id, tipo: mentoriaMidia.tipo });
-      await this.audit.record(
-        {
-          actorId: u.id,
-          action: 'mentoria.media.upload',
-          entityType: 'midia',
-          entityId: row!.id,
-          data: { donoTipo, tipo: 'LINK_VIDEO' },
-        },
-        tx,
-      );
-      return row!;
-    }).catch((e) => erroDoBanco(e));
   }
 
   @Get('midia/:id')
@@ -208,20 +207,5 @@ export class MidiaController {
         tx,
       );
     }).catch((e) => erroDoBanco(e));
-  }
-
-  /** Medidor de espaço (soma real, sem número fixo): bytes e arquivos guardados. */
-  @Get('backup/medidor')
-  medidor(@CurrentUser() u: SessionUser) {
-    return withUser(this.db, u.id, async (tx) => {
-      const [r] = await tx
-        .select({
-          bytes: sql<number>`coalesce(sum(${mentoriaMidia.tamanhoBytes}), 0)::bigint`,
-          arquivos: sql<number>`count(*)::int`,
-        })
-        .from(mentoriaMidia)
-        .where(isNotNull(mentoriaMidia.chaveObjeto));
-      return { bytes: Number(r?.bytes ?? 0), arquivos: r?.arquivos ?? 0 };
-    });
   }
 }

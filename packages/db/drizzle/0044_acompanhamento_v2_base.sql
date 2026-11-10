@@ -285,7 +285,7 @@ CREATE POLICY mentoria_midia_leitura ON mentoria_midia FOR SELECT
   USING (mentoria_midia_ve(dono_tipo, dono_id));
 --> statement-breakpoint
 CREATE POLICY mentoria_midia_escrita ON mentoria_midia FOR INSERT
-  WITH CHECK (mentoria_midia_edita(dono_tipo, dono_id));
+  WITH CHECK (criado_por = app_user_id() AND mentoria_midia_edita(dono_tipo, dono_id));
 --> statement-breakpoint
 CREATE OR REPLACE FUNCTION mentoria_exigir_acesso() RETURNS void
   LANGUAGE plpgsql STABLE SECURITY DEFINER
@@ -411,6 +411,12 @@ DECLARE segunda uuid; nova int;
 BEGIN
   IF NOT mentoria_edita('INSCRICAO', inscricao) THEN
     RAISE EXCEPTION 'Acesso negado' USING ERRCODE = '42501';
+  END IF;
+  -- A avaliação INICIAL da pessoa 2 cairia em cascata, e ela trava junto com o momento.
+  IF EXISTS (SELECT 1 FROM mentoria_momento_inicial m
+             WHERE m.inscricao_id = inscricao AND m.travado_em IS NOT NULL) THEN
+    RAISE EXCEPTION 'Destrave o momento inicial antes de remover a segunda pessoa'
+      USING ERRCODE = '22023';
   END IF;
   SELECT id INTO segunda FROM mentoria_pessoas WHERE inscricao_id = inscricao AND ordem = 2;
   IF NOT FOUND THEN
@@ -623,7 +629,8 @@ CREATE POLICY mentoria_historico_leitura ON mentoria_historico FOR SELECT
   USING (mentoria_ve(inscricao_id));
 --> statement-breakpoint
 CREATE POLICY mentoria_historico_criar ON mentoria_historico FOR INSERT
-  WITH CHECK (ator_id = app_user_id() AND mentoria_ve(inscricao_id));
+  WITH CHECK (ator_id = app_user_id() AND mentoria_ve(inscricao_id)
+    AND tipo NOT IN ('momento.concluido', 'momento.destravado', 'inscricao.virou_individual'));
 --> statement-breakpoint
 GRANT SELECT, INSERT ON mentoria_historico TO npac_app;
 --> statement-breakpoint
@@ -638,3 +645,23 @@ CREATE POLICY mentoria_legado_admin ON mentoria_legado FOR ALL
   USING (mentoria_admin()) WITH CHECK (mentoria_admin());
 --> statement-breakpoint
 GRANT SELECT, INSERT ON mentoria_legado TO npac_app;
+--> statement-breakpoint
+
+-- Mês da jornada: uma implementação só (T6). A pausa entra na Tarefa 3.2. Mês m começa em
+-- início + (m-1) meses, a mesma conta da data prevista (31/01 + 1 mês = 28/02).
+CREATE FUNCTION mentoria_mes_jornada(inscricao uuid, hoje date) RETURNS int
+  LANGUAGE sql STABLE
+  SET search_path = public, pg_temp
+AS $$
+  SELECT CASE WHEN i.inicio_jornada IS NULL OR hoje < i.inicio_jornada THEN NULL ELSE (
+    SELECT max(m)::int FROM generate_series(1, (
+      extract(year FROM age(hoje, i.inicio_jornada)) * 12
+      + extract(month FROM age(hoje, i.inicio_jornada)) + 2)::int) m
+    WHERE i.inicio_jornada + make_interval(months => m - 1) <= hoje
+  ) END
+  FROM mentoria_inscricoes i WHERE i.id = inscricao
+$$;
+--> statement-breakpoint
+ALTER FUNCTION mentoria_mes_jornada(uuid, date) OWNER TO npac_owner;
+--> statement-breakpoint
+GRANT EXECUTE ON FUNCTION mentoria_mes_jornada(uuid, date) TO npac_app;

@@ -120,7 +120,7 @@ it('SDR com linha em perfis não ganha acesso')        // exige cargo cru ACOMPA
 - [ ] **Step 5:** Commit `feat(NPAC-43): banco base e perfis do módulo`.
 
 ### Tarefa 1.4: API de perfis, inscrição, ficha, histórico e busca
-Status: ⏳
+Status: ✅
 
 **Files:** Create em `api/mentoria/`: `perfil.guard.ts`, `perfis.controller.ts`, `perfis.service.ts`, `inscricoes.controller.ts`, `inscricoes.service.ts`, `ficha.service.ts`, `historico.ts`; `sh/mentoria/dto.ts` (reescrito), `sh/schemas/mentoria.ts` (novo). Modify: `mentoria-crypto.ts`, `midia.controller.ts` (donos novos), `mentoria.module.ts`. Test: `apps/api/test/mentoria-v2-base.e2e.test.ts`.
 
