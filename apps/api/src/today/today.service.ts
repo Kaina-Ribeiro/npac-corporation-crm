@@ -88,7 +88,37 @@ export class TodayService {
         )
         .orderBy(asc(meetings.scheduledAt), asc(meetings.id))
         .limit(100);
-      const tasks = await tx
+      // Reunião que passou sem resultado fica pendente em qualquer etapa do lead, de qualquer data.
+      const lateCalls = await tx
+        .select({
+          id: meetings.id,
+          leadId: leads.id,
+          name: leads.name,
+          scheduledAt: meetings.scheduledAt,
+          version: meetings.version,
+          closerId: meetings.closerId,
+          closerName: user.name,
+        })
+        .from(meetings)
+        .innerJoin(leads, eq(leads.id, meetings.leadId))
+        .innerJoin(user, eq(user.id, meetings.closerId))
+        .where(
+          and(
+            ...scope,
+            isNull(meetings.canceledAt),
+            isNull(meetings.outcome),
+            lt(meetings.scheduledAt, now),
+            // O escopo aceita o lead com qualquer reunião do closer; aqui vale a reunião dele.
+            filters.closerId ? eq(meetings.closerId, filters.closerId) : undefined,
+          ),
+        )
+        .orderBy(asc(meetings.scheduledAt), asc(meetings.id))
+        .limit(100);
+      const overdueMeetings = lateCalls.map(({ closerId, closerName, ...m }) => ({
+        ...m,
+        closer: { id: closerId, name: closerName },
+      }));
+      const openTasks = await tx
         .select({
           id: leadTasks.id,
           leadId: leads.id,
@@ -116,14 +146,22 @@ export class TodayService {
         )
         .orderBy(sql`${leadTasks.dueAt} asc nulls last`, asc(leadTasks.id))
         .limit(100);
+      const isLate = (t: (typeof openTasks)[number]) => t.dueAt !== null && t.dueAt < now;
+      const overdueTasks = openTasks.filter(isLate);
+      const tasks = openTasks.filter((t) => !isLate(t));
       await tx.insert(auditLog).values({
         actorId: u.id,
         action: 'today.view',
         entityType: 'lead',
         data: {
-          ids: [...overdue, ...contacts, ...calls, ...tasks].map((r) =>
-            'leadId' in r ? r.leadId : r.id,
-          ),
+          ids: [
+            ...overdue,
+            ...contacts,
+            ...calls,
+            ...overdueMeetings,
+            ...overdueTasks,
+            ...tasks,
+          ].map((r) => ('leadId' in r ? r.leadId : r.id)),
         },
       });
       // Cobranças são de quem registra recebimento; o SDR não recebe (pedido do cliente, 04/11).
@@ -185,7 +223,15 @@ export class TodayService {
               }
             : null,
       }));
-      return { overdue, contacts, meetings: withReminders, tasks, charges };
+      return {
+        overdue,
+        overdueMeetings,
+        overdueTasks,
+        contacts,
+        meetings: withReminders,
+        tasks,
+        charges,
+      };
     });
   }
 }

@@ -193,7 +193,10 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   `source_other` (≤ 80, CHECK só com `OUTRO`; timeline grava como campo `source`; LGPD apaga).
   Instagram/WhatsApp são antigas: ficam nos leads existentes ("(antigo)"), filtros mostram, cadastro
   e troca recusam. Origem nova = valor no enum `lead_source` (migration) + rótulo.
-- Hoje: atrasado = próximo contato < **agora**; a tela move vencidos no navegador (sem polling, que
+- Hoje: Atrasados (Igor, 10/11/2026, "1A") = lista única por horário com contatos (próximo contato <
+  **agora**), reuniões passadas sem resultado (qualquer data e etapa, `overdueMeetings`) e tarefas
+  vencidas (`overdueTasks`, que saem do painel Tarefas); reunião de hoje vencida segue também na
+  agenda; cobranças têm bloco próprio. `moveDue` passa o que vence no navegador (sem polling, que
   gravaria auditoria). Ação rápida `POST /leads/:id/quick-action` (Chamado/Remarcado/Próxima ação).
 - Desativar usuário derruba sessões; leads dele vão por `POST /admin/users/:id/transfer-leads`.
 - Fuso `America/Sao_Paulo`; `datetime-local` = Brasília (`brasiliaInput`); intervalos [início, fim);

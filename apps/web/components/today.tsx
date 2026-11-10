@@ -33,17 +33,40 @@ const hourMinute = new Intl.DateTimeFormat('pt-BR', {
   minute: '2-digit',
 });
 
-/** Move para Atrasados os contatos vencidos pelo relógio do navegador (mesmo objeto se nada mudou). */
+const time = (at: string | null) => (at ? new Date(at).getTime() : 0);
+
+/**
+ * Passa para Atrasados, pelo relógio do navegador, contatos e tarefas vencidos e reuniões de hoje
+ * já iniciadas e sem resultado, que seguem também na agenda (mesmo objeto se nada mudou).
+ */
 function moveDue(d: TodayDTO): TodayDTO {
   const now = Date.now();
-  const at = (c: { nextContactAt: string | null }) =>
-    c.nextContactAt ? new Date(c.nextContactAt).getTime() : 0;
-  const due = d.contacts.filter((c) => c.nextContactAt && at(c) < now);
-  if (!due.length) return d;
+  const contacts = d.contacts.filter((c) => c.nextContactAt && time(c.nextContactAt) < now);
+  const tasks = d.tasks.filter((t) => t.dueAt && time(t.dueAt) < now);
+  const listed = new Set(d.overdueMeetings.map((m) => m.id));
+  const meetings = d.meetings.filter(
+    (m) => !m.outcome && !listed.has(m.id) && time(m.scheduledAt) < now,
+  );
+  if (!contacts.length && !tasks.length && !meetings.length) return d;
   return {
     ...d,
-    contacts: d.contacts.filter((c) => !due.includes(c)),
-    overdue: [...d.overdue, ...due].sort((a, b) => at(a) - at(b)),
+    contacts: d.contacts.filter((c) => !contacts.includes(c)),
+    overdue: [...d.overdue, ...contacts].sort(
+      (a, b) => time(a.nextContactAt) - time(b.nextContactAt),
+    ),
+    tasks: d.tasks.filter((t) => !tasks.includes(t)),
+    overdueTasks: [...d.overdueTasks, ...tasks].sort((a, b) => time(a.dueAt) - time(b.dueAt)),
+    overdueMeetings: [
+      ...d.overdueMeetings,
+      ...meetings.map(({ id, leadId, name, scheduledAt, version, closer }) => ({
+        id,
+        leadId,
+        name,
+        scheduledAt,
+        version,
+        closer,
+      })),
+    ].sort((a, b) => time(a.scheduledAt) - time(b.scheduledAt)),
   };
 }
 
@@ -54,6 +77,7 @@ function moveDue(d: TodayDTO): TodayDTO {
  */
 const row =
   'group/row relative flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl px-3 py-2.5 transition-colors hover:bg-black/[.035] dark:hover:bg-white/[.05] [&>.w-full]:relative [&>.w-full]:z-[1] [&>.w-full]:order-last [&>button]:relative [&>button]:z-[1]';
+const list = 'gap-x-3 3xl:columns-2 4xl:columns-3 [&>li]:break-inside-avoid';
 
 function OpenLead({ href, name }: { href: string; name: string }) {
   return (
@@ -187,14 +211,14 @@ export function Today({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   // Relógio do navegador para a marca "agora" da agenda: só depois de montar (sem divergir do
-  // HTML do servidor) e a cada 30 s, junto com a passagem de contatos vencidos.
+  // HTML do servidor) e a cada 30 s, junto com a passagem do que venceu para Atrasados.
   const [now, setNow] = useState<number | null>(null);
   async function load(selected = filters) {
     // A resposta passa pela mesma regra do relógio: um recarregamento (SSE) não devolve a
-    // "Contatos de hoje" o que já venceu no navegador.
+    // "Contatos de hoje" nem a Tarefas o que já venceu no navegador.
     setData(moveDue(await clientApi<TodayDTO>('/api/today/search', 'POST', selected)));
   }
-  // Contato que passa da hora vai sozinho para Atrasados, no navegador e sem chamar a API
+  // O que passa da hora vai sozinho para Atrasados, no navegador e sem chamar a API
   // (cada busca do Hoje grava auditoria). Mudanças de dados chegam pelo useCrmRefresh.
   useEffect(() => {
     setNow(Date.now());
@@ -244,32 +268,98 @@ export function Today({
     }
   }
 
-  const queue = (id: string, title: string, items: TodayDTO['contacts'], tone?: 'danger') => (
-    <section id={id} className="min-w-0 scroll-mt-6">
-      <Heading title={title} count={items.length} tone={tone} />
-      {items.length > 0 && (
-        <ul className="gap-x-3 3xl:columns-2 4xl:columns-3 [&>li]:break-inside-avoid">
-          {items.map((l) => (
-            <li key={l.id} data-lead-row className={row}>
-              <Dot className={tone === 'danger' ? 'bg-danger' : 'bg-[var(--viz-1)]'} />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold">{l.name}</p>
-                <p className="text-xs text-ink2">{when(l.nextContactAt)}</p>
-              </div>
-              {quick && (
-                <QuickAction
-                  version={l.version}
-                  busy={busy}
-                  run={(body) => action(`/api/leads/${l.id}/quick-action`, 'POST', body)}
-                />
-              )}
-              <OpenLead href={`/leads/${l.id}`} name={l.name} />
-            </li>
-          ))}
-        </ul>
+  const contactActions = (l: TodayDTO['contacts'][number]) => (
+    <>
+      {quick && (
+        <QuickAction
+          version={l.version}
+          busy={busy}
+          run={(body) => action(`/api/leads/${l.id}/quick-action`, 'POST', body)}
+        />
       )}
-    </section>
+      <OpenLead href={`/leads/${l.id}`} name={l.name} />
+    </>
   );
+  const meetingAction = (m: TodayDTO['overdueMeetings'][number]) => (
+    <MeetingAction
+      version={m.version}
+      scheduledAt={m.scheduledAt}
+      busy={busy}
+      outcome={(body) => action(`/api/meetings/${m.id}/outcome`, 'POST', body)}
+      reschedule={(body) => action(`/api/meetings/${m.id}`, 'PATCH', body)}
+    />
+  );
+  const completeTask = (t: TodayDTO['tasks'][number]) => (
+    <button
+      className="grid size-6 flex-none place-items-center rounded-full border border-line text-transparent transition-colors hover:border-ink hover:text-ink2 disabled:opacity-40"
+      disabled={busy}
+      aria-label={`Concluir ${t.title}`}
+      title="Concluir"
+      onClick={() =>
+        void action(
+          t.leadId ? `/api/leads/${t.leadId}/tasks/${t.id}` : `/api/tasks/${t.id}`,
+          'PATCH',
+          { version: t.version, completed: true },
+        )
+      }
+    >
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.4"
+        aria-hidden="true"
+        className="size-3.5"
+      >
+        <path d="m5 12.5 4.5 4.5L19 7.5" />
+      </svg>
+    </button>
+  );
+  const taskDetail = (t: TodayDTO['tasks'][number]) =>
+    t.leadId ? `${t.name} · ${when(t.dueAt)}` : `Pessoal · ${when(t.dueAt)}`;
+
+  // Atrasados: uma lista só, do mais antigo para o mais recente (resposta 1A do Igor, 10/11/2026).
+  const late = [
+    ...data.overdue.map((c) => ({
+      key: `contato-${c.id}`,
+      kind: 'Contato',
+      at: c.nextContactAt,
+      title: c.name,
+      detail: when(c.nextContactAt),
+      mark: null,
+      actions: contactActions(c),
+    })),
+    ...data.overdueMeetings.map((m) => ({
+      key: `reuniao-${m.id}`,
+      kind: 'Reunião',
+      at: m.scheduledAt,
+      title: m.name,
+      detail: when(m.scheduledAt),
+      mark: closerMarkFor ? (
+        <CloserMark closer={m.closer} mine={m.closer.id === closerMarkFor} />
+      ) : null,
+      actions: (
+        <>
+          {meetingAction(m)}
+          <OpenLead href={`/leads/${m.leadId}`} name={m.name} />
+        </>
+      ),
+    })),
+    ...data.overdueTasks.map((t) => ({
+      key: `tarefa-${t.id}`,
+      kind: 'Tarefa',
+      at: t.dueAt,
+      title: t.title,
+      detail: taskDetail(t),
+      mark: null,
+      actions: (
+        <>
+          {completeTask(t)}
+          {t.leadId && <OpenLead href={`/leads/${t.leadId}`} name={t.name ?? 'lead'} />}
+        </>
+      ),
+    })),
+  ].sort((a, b) => time(a.at) - time(b.at));
 
   const meetings = [...data.meetings].sort(
     (a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime(),
@@ -287,7 +377,7 @@ export function Today({
   );
 
   const stats = [
-    ['hoje-atrasados', 'atrasados', data.overdue.length, true],
+    ['hoje-atrasados', 'atrasados', late.length, true],
     ['hoje-contatos', 'contatos', data.contacts.length, false],
     ['hoje-reunioes', 'reuniões', data.meetings.length, false],
     ...(charges ? [['hoje-cobrancas', 'cobranças', data.charges.length, false] as const] : []),
@@ -375,8 +465,46 @@ export function Today({
           <p className="px-3 pt-2 text-[11px] font-semibold tracking-wide text-ink3 uppercase">
             Fazer agora
           </p>
-          {queue('hoje-atrasados', 'Atrasados', data.overdue, 'danger')}
-          {queue('hoje-contatos', 'Contatos de hoje', data.contacts)}
+          <section id="hoje-atrasados" className="min-w-0 scroll-mt-6">
+            <Heading title="Atrasados" count={late.length} tone="danger" />
+            {late.length > 0 && (
+              <ul className={list}>
+                {late.map((item) => (
+                  <li key={item.key} data-lead-row className={row}>
+                    <Dot className="bg-danger" />
+                    {item.mark}
+                    <div className="min-w-0 flex-1">
+                      <p className="line-clamp-2 text-sm font-semibold break-words">{item.title}</p>
+                      <p className="text-xs break-words text-ink2">
+                        <span className="mr-1.5 inline-block rounded-md bg-black/5 px-1.5 leading-[18px] font-semibold dark:bg-white/10">
+                          {item.kind}
+                        </span>
+                        {item.detail}
+                      </p>
+                    </div>
+                    {item.actions}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+          <section id="hoje-contatos" className="min-w-0 scroll-mt-6">
+            <Heading title="Contatos de hoje" count={data.contacts.length} />
+            {data.contacts.length > 0 && (
+              <ul className={list}>
+                {data.contacts.map((l) => (
+                  <li key={l.id} data-lead-row className={row}>
+                    <Dot className="bg-[var(--viz-1)]" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold">{l.name}</p>
+                      <p className="text-xs text-ink2">{when(l.nextContactAt)}</p>
+                    </div>
+                    {contactActions(l)}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
         </div>
 
         <div className="flex min-w-0 flex-col gap-5">
@@ -421,17 +549,7 @@ export function Today({
                             />
                           )}
                           {/* Com resultado a reunião está encerrada; correção só pela liderança, na ficha. */}
-                          {!m.outcome && (
-                            <MeetingAction
-                              version={m.version}
-                              scheduledAt={m.scheduledAt}
-                              busy={busy}
-                              outcome={(body) =>
-                                action(`/api/meetings/${m.id}/outcome`, 'POST', body)
-                              }
-                              reschedule={(body) => action(`/api/meetings/${m.id}`, 'PATCH', body)}
-                            />
-                          )}
+                          {!m.outcome && meetingAction(m)}
                           <OpenLead href={`/leads/${m.leadId}`} name={m.name} />
                         </article>
                       </li>
@@ -476,35 +594,10 @@ export function Today({
           <Panel id="hoje-tarefas" title="Tarefas" count={data.tasks.length}>
             {data.tasks.map((t) => (
               <div key={t.id} className={row}>
-                <button
-                  className="grid size-6 flex-none place-items-center rounded-full border border-line text-transparent transition-colors hover:border-ink hover:text-ink2 disabled:opacity-40"
-                  disabled={busy}
-                  aria-label={`Concluir ${t.title}`}
-                  title="Concluir"
-                  onClick={() =>
-                    void action(
-                      t.leadId ? `/api/leads/${t.leadId}/tasks/${t.id}` : `/api/tasks/${t.id}`,
-                      'PATCH',
-                      { version: t.version, completed: true },
-                    )
-                  }
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.4"
-                    aria-hidden="true"
-                    className="size-3.5"
-                  >
-                    <path d="m5 12.5 4.5 4.5L19 7.5" />
-                  </svg>
-                </button>
+                {completeTask(t)}
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold">{t.title}</p>
-                  <p className="text-xs text-ink2">
-                    {t.leadId ? `${t.name} · ${when(t.dueAt)}` : `Pessoal · ${when(t.dueAt)}`}
-                  </p>
+                  <p className="text-xs text-ink2">{taskDetail(t)}</p>
                 </div>
                 {t.leadId && <OpenLead href={`/leads/${t.leadId}`} name={t.name ?? 'lead'} />}
               </div>
