@@ -1,5 +1,5 @@
 'use client';
-import { isLeader, LOST_REASON_LABELS } from '@npac/shared/enums';
+import { isLeader, LOST_REASON_LABELS, TIER_LABELS } from '@npac/shared/enums';
 import { money } from '@npac/shared/money';
 import { REMINDER_MINUTES } from '@npac/shared/reminders';
 import { HandoffActions } from './handoff-actions';
@@ -187,7 +187,7 @@ export function LeadDetail({
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{lead.name}</h1>
           <p className="mt-1 text-sm text-ink2">
-            {stage} · {lead.tier} · SDR {lead.sdr.name}
+            {stage} · {TIER_LABELS[lead.tier]} · SDR {lead.sdr.name}
           </p>
           {lead.saleToRegister && (
             // Cadastrado como Venda Fechada sem a venda (NPAC-39): closer e liderança registram.
@@ -256,7 +256,11 @@ export function LeadDetail({
             }}
             disabled={busy}
           >
-            <StageOptions stages={catalog.stages} current={lead.stageKey} />
+            <StageOptions
+              stages={catalog.stages}
+              current={lead.stageKey}
+              incomeUnknown={lead.tier === 'DESCOBRINDO'}
+            />
           </select>
         </Field>
         {moveTo ? (
@@ -528,7 +532,14 @@ export function LeadDetail({
               )}
             </article>
           ))}
-          {me.role !== 'CLOSER' && (
+          {me.role !== 'CLOSER' && lead.tier === 'DESCOBRINDO' && (
+            // Só vai para a reunião quando a renda é descoberta (Igor, 10/11/2026).
+            <p className="rounded-xl border border-dashed border-ink3/50 p-3 text-sm text-ink2">
+              Lead em Descobrindo renda: informe a faixa de renda em “Editar dados do lead” para
+              agendar a reunião.
+            </p>
+          )}
+          {me.role !== 'CLOSER' && lead.tier !== 'DESCOBRINDO' && (
             <form
               className="flex flex-col gap-3"
               onSubmit={(e) => {

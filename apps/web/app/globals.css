@@ -49,6 +49,7 @@
   --viz-1: #a87818;
   --viz-2: #0a7af0;
   --viz-3: #d9467a;
+  --viz-4: #8e8e93;
   --wash:
     radial-gradient(80% 38% at 100% 0%, rgba(226, 187, 102, 0.38), transparent 70%),
     radial-gradient(70% 40% at 0% 100%, rgba(110, 145, 255, 0.22), transparent 70%),
@@ -88,6 +89,7 @@
   --viz-1: #b5862e;
   --viz-2: #3f8cf2;
   --viz-3: #db5f8c;
+  --viz-4: #98989d;
   --wash:
     radial-gradient(80% 38% at 100% 0%, rgba(226, 187, 102, 0.18), transparent 70%),
     radial-gradient(70% 40% at 0% 100%, rgba(110, 145, 255, 0.12), transparent 70%);
@@ -423,6 +425,7 @@ body {
     border-radius: 6px;
     font-size: 11px;
     font-weight: 700;
+    white-space: nowrap;
     flex: none;
   }
   .tier-P0 {
@@ -435,6 +438,14 @@ body {
   .tier-P2 {
     box-shadow: inset 0 0 0 1px #d1d1d6;
     color: var(--ink2);
+  }
+  /* Descobrindo renda: perfil ainda em aberto, borda tracejada e texto em tom secundário. */
+  .tier-DESCOBRINDO {
+    box-shadow: none;
+    outline: 1px dashed #8e8e93;
+    outline-offset: -1px;
+    color: var(--ink2);
+    font-weight: 600;
   }
   /* Venda a registrar (NPAC-39): lead em Venda sem venda ativa. Dourado = dinheiro pendente. */
   .sale-pending {

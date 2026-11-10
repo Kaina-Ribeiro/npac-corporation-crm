@@ -10,5 +10,5 @@ it('recusa frações de centavo, valores negativos e valores excessivos', () => 
 });
 
 it('valor por reunião realizada por perfil (pedido do cliente de 04/11)', () => {
-  expect(MEETING_VALUE_CENTS).toEqual({ P0: 900, P1: 700, P2: 500 });
+  expect(MEETING_VALUE_CENTS).toEqual({ P0: 900, P1: 700, P2: 500, DESCOBRINDO: 0 });
 });

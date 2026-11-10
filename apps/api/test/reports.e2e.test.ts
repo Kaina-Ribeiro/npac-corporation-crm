@@ -254,6 +254,13 @@ describe('comparecimento (pedido do cliente de 04/11)', () => {
     expect((await today(ale)).body.metrics.meetingValueCents).toBe(1200);
   });
 
+  it('lead em "Descobrindo renda" não soma valor da reunião', async () => {
+    await owner`update leads set income_band='DESCOBRINDO' where id=${ids.p0done!}`;
+    const m = (await today(ale)).body.metrics;
+    expect(m.meetingValueCents).toBe(700);
+    expect(m.descobrindo).toBe(1);
+  });
+
   it('liderança filtra o valor por SDR', async () => {
     expect((await today(head, { sdrId: muriloId })).body.metrics.meetingValueCents).toBe(0);
     expect((await today(head, { sdrId: aleId })).body.metrics.meetingValueCents).toBe(1600);

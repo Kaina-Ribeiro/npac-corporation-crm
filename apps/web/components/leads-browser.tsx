@@ -1,6 +1,6 @@
 'use client';
 import type { LeadCatalog, LeadDTO, Page, Role, SavedViewDTO } from '@npac/shared';
-import { INCOME_BAND_LABELS, isLeader } from '@npac/shared/enums';
+import { INCOME_BAND_LABELS, isLeader, TIER_LABELS } from '@npac/shared/enums';
 import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { clientApi } from '@/lib/client-api';
@@ -177,7 +177,11 @@ export function LeadsBrowser({
       }}
       className={className}
     >
-      <StageOptions stages={catalog.stages} current={l.stageKey} />
+      <StageOptions
+        stages={catalog.stages}
+        current={l.stageKey}
+        incomeUnknown={l.tier === 'DESCOBRINDO'}
+      />
     </select>
   );
   const checkbox = (l: LeadDTO) => (
@@ -405,7 +409,7 @@ export function LeadsBrowser({
                   <Link href={`/leads/${l.id}`} className="flex-1 truncate text-base font-semibold">
                     {l.name}
                   </Link>
-                  <span className={`tier tier-${l.tier}`}>{l.tier}</span>
+                  <span className={`tier tier-${l.tier}`}>{TIER_LABELS[l.tier]}</span>
                 </div>
                 <div className="flex flex-wrap gap-x-3 gap-y-1 text-[13px] text-ink2">
                   <span>{INCOME_BAND_LABELS[l.incomeBand]}</span>
@@ -472,7 +476,7 @@ export function LeadsBrowser({
                     <td className="border-b border-line px-2">{stageSelect(l, cell)}</td>
                     {/* Perfil vem da faixa de renda: muda trocando a faixa na ficha. */}
                     <td className="border-b border-line px-3.5">
-                      <span className={`tier tier-${l.tier}`}>{l.tier}</span>
+                      <span className={`tier tier-${l.tier}`}>{TIER_LABELS[l.tier]}</span>
                     </td>
                     <td className="border-b border-line px-3.5 whitespace-nowrap">
                       {INCOME_BAND_LABELS[l.incomeBand]}

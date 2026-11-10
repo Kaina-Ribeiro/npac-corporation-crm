@@ -1,6 +1,11 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
-import { meetings, products, type Tx } from '@npac/db';
-import { MEETING_ORIGIN_BY_STAGE, type LostReason } from '@npac/shared';
+import { leads, meetings, products, type Tx } from '@npac/db';
+import {
+  MEETING_ORIGIN_BY_STAGE,
+  stageAllowedForBand,
+  type IncomeBand,
+  type LostReason,
+} from '@npac/shared';
 import { and, eq, gt, isNull } from 'drizzle-orm';
 
 /**
@@ -23,6 +28,21 @@ export const reasonRequired = () =>
     code: 'REASON_REQUIRED',
     message: 'Para mover para Sem perfil, escolha o motivo (e escreva qual, se for Outro).',
   });
+
+/** "Descobrindo renda" (Igor, 10/11/2026): só em Criando Relacionamento e sem reunião nem venda. */
+export const incomeRequired = (action = 'mudar a etapa') =>
+  new ConflictException({
+    code: 'INCOME_REQUIRED',
+    message: `O lead está em Descobrindo renda. Informe a faixa de renda antes de ${action}.`,
+  });
+export function assertIncomeStage(band: IncomeBand, stageKey: string) {
+  if (!stageAllowedForBand(band, stageKey)) throw incomeRequired();
+}
+/** Reunião e venda só depois de descobrir a renda. */
+export async function assertIncomeKnown(tx: Tx, leadId: string, action: string) {
+  const [row] = await tx.select({ band: leads.incomeBand }).from(leads).where(eq(leads.id, leadId));
+  if (row?.band === 'DESCOBRINDO') throw incomeRequired(action);
+}
 
 /** O que o pedido traz para a etapa (cadastro ou PATCH). */
 export interface StageFieldsInput {
