@@ -155,7 +155,7 @@ export function presetFilters(p: Preset, now?: Date): Record<string, string>;
 - [ ] **Step 2:** `pnpm --filter @npac/web typecheck && pnpm --filter @npac/web lint` → sem erros (os testes chegam pelas telas, Tasks 3–7).
 - [ ] **Step 3:** Commit `feat(NPAC-46): cookie, memoria e gancho dos filtros lembrados`.
 
-### Task 3: Leads — Status: ⏳
+### Task 3: Leads — Status: ✅
 
 **Files:** Modify `apps/web/app/(app)/(comercial)/leads/page.tsx`, `apps/web/components/leads-browser.tsx`, `apps/web/components/lead-filters.tsx`; Test `apps/web/e2e/preferencias.spec.ts`.
 

@@ -13,13 +13,7 @@ export const PREFS = {
   chat: { prefix: 'npac_f_chat', path: '/chat' },
   /** Só memória (busca): sem cookie. */
   playbook: { prefix: 'npac_m_playbook', path: '' },
-  acFila: { prefix: 'npac_f_ac_fila', path: '/acompanhamento/fila' },
-  acMentorados: { prefix: 'npac_f_ac_ment', path: '/acompanhamento/mentorados' },
-  acReunioes: { prefix: 'npac_f_ac_reun', path: '/acompanhamento/reunioes' },
-  acPlano: { prefix: 'npac_f_ac_plano', path: '/acompanhamento/plano' },
-  acConfig: { prefix: 'npac_f_ac_config', path: '/acompanhamento/configuracoes' },
-  acOnboarding: { prefix: 'npac_f_ac_onb', path: '/acompanhamento/onboarding' },
-  acFicha: { prefix: 'npac_f_ac_ficha', path: '/acompanhamento/ficha' },
+  // Acompanhamento: PR 2 do NPAC-46.
 } as const;
 
 export type Screen = keyof typeof PREFS;
