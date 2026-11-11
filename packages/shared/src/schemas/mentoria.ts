@@ -15,6 +15,7 @@ import {
 import { STATUS_IMPORTACAO } from '../mentoria/importacao.js';
 import { linkPermitido } from '../mentoria/links.js';
 import { ENVIO_STATUS } from '../mentoria/onboarding.js';
+import { ACAO_STATUS, GATILHOS, PERFIS_ACAO, REUNIAO_TIPOS } from '../mentoria/plano.js';
 
 /** Vazio vira nulo: limpar um campo na tela apaga o valor. */
 const vazioNulo = (v: unknown) => (typeof v === 'string' && v.trim() === '' ? null : v);
@@ -235,6 +236,60 @@ export const importarCarteiraSchema = z
     'Envie ao menos um arquivo',
   );
 export type ImportarCarteira = z.output<typeof importarCarteiraSchema>;
+
+export const planoListaSchema = z
+  .object({
+    inscricaoId: z.uuid().optional(),
+    mes: z.number().int().min(1).max(120).optional(),
+    situacao: z.enum(['PENDENTE', 'FEITA', 'ATRASADA']).optional(),
+    cursor: z.string().max(400).optional(),
+  })
+  .strict();
+export type PlanoLista = z.output<typeof planoListaSchema>;
+
+const passo = z.string().trim().min(1).max(120);
+
+export const acaoPatchSchema = z
+  .object({
+    version,
+    status: z.enum(ACAO_STATUS).optional(),
+    itensFeitos: z.array(passo).max(20).optional(),
+    evidenciaLink: opc(
+      z
+        .string()
+        .trim()
+        .max(2000)
+        .refine((v) => v.startsWith('https://'), 'Use um link que comece com https://'),
+    ),
+    observacao: texto(20_000),
+  })
+  .strict();
+export type AcaoPatch = z.output<typeof acaoPatchSchema>;
+
+/** Sem `id` cria uma linha; com `id` e `version`, muda só os campos enviados. */
+export const planoModeloPutSchema = z
+  .object({
+    id: z.uuid().optional(),
+    version: z.number().int().min(1).optional(),
+    mentoria: z.enum(MENTORIAS).optional(),
+    mes: z.number().int().min(1).max(120).optional(),
+    reuniaoTipo: opc(z.enum(REUNIAO_TIPOS)),
+    foco: z.string().trim().min(1, 'Informe o foco').max(120).optional(),
+    acao: z.string().trim().min(1, 'Informe a ação').max(500).optional(),
+    itens: z.array(passo).max(20).optional(),
+    responsavelPerfil: z.enum(PERFIS_ACAO).optional(),
+    gatilho: z.enum(GATILHOS).optional(),
+    diasParaExecutar: z.number().int().min(0).max(60).optional(),
+    segueCalendario: z.boolean().optional(),
+    ativo: z.boolean().optional(),
+  })
+  .strict();
+export type PlanoModeloPut = z.output<typeof planoModeloPutSchema>;
+
+export const dataIdrSchema = z.object({ version, dataIdr: dataIso }).strict();
+export type DataIdrPut = z.output<typeof dataIdrSchema>;
+
+export const pausarSchema = z.object({ motivo: texto(2000) }).strict();
 
 export const anotacaoSchema = z
   .object({ texto: z.string().trim().min(1, 'Escreva a anotação').max(20_000) })

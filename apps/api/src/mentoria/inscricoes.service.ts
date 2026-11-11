@@ -29,6 +29,7 @@ import { FichaService } from './ficha.service.js';
 import { exigirEdicao, registrarHistorico } from './historico.js';
 import { aad, MentoriaCrypto } from './mentoria-crypto.js';
 import { criarEtapas } from './onboarding.service.js';
+import { PlanoService } from './plano.service.js';
 
 const PAGINA = 50;
 const LIMITE_BUSCA = 20;
@@ -47,6 +48,7 @@ type LinhaBruta = {
   responsavel: string | null;
   completar: boolean;
   pessoas: InscricaoItem['pessoas'];
+  plano: InscricaoItem['plano'];
 };
 
 const emItem = (r: LinhaBruta): InscricaoItem => ({
@@ -62,6 +64,7 @@ const emItem = (r: LinhaBruta): InscricaoItem => ({
   ultimoContato: null,
   completar: r.completar,
   pessoas: r.pessoas,
+  plano: r.plano,
 });
 
 const COMPLETAR = sql`(i.importada and ((i.mentoria = 'RDV' and i.data_idr is null)
@@ -76,6 +79,7 @@ export class InscricoesService {
     @Inject(ENV) env: Env,
     private readonly crypto: MentoriaCrypto,
     private readonly ficha: FichaService,
+    private readonly plano: PlanoService,
   ) {
     const key = hkdfSync('sha256', env.BETTER_AUTH_SECRET, '', 'npac:mentoria:cursor', 32);
     this.cursor = new CursorSigner(Buffer.from(key));
@@ -154,7 +158,12 @@ export class InscricoesService {
         ${COMPLETAR} as completar,
         (select json_agg(json_build_object('nome', p.nome, 'apelido', p.apelido,
            'fotoMidiaId', p.foto_midia_id) order by p.ordem)
-         from mentoria_pessoas p where p.inscricao_id = i.id) as pessoas
+         from mentoria_pessoas p where p.inscricao_id = i.id) as pessoas,
+        (select json_build_object('total', count(*),
+           'feitas', count(*) filter (where a.status = 'FEITA'),
+           'atrasadas', count(*) filter (where mentoria_acao_atrasada(a.status,
+             a.anterior_ao_sistema, a.data_limite, ${HOJE})))
+         from mentoria_acoes a where a.inscricao_id = i.id) as plano
       from mentoria_inscricoes i
       join mentoria_pessoas p1 on p1.inscricao_id = i.id and p1.ordem = 1
       left join "user" u on u.id = i.responsavel_id
@@ -226,10 +235,28 @@ export class InscricoesService {
       await exigirEdicao(tx, 'INSCRICAO', id);
       const { version, ...campos } = b;
       const [atual] = await tx
-        .select({ status: mentoriaInscricoes.status, mentoria: mentoriaInscricoes.mentoria })
+        .select({
+          status: mentoriaInscricoes.status,
+          mentoria: mentoriaInscricoes.mentoria,
+          inicio: mentoriaInscricoes.inicioJornada,
+          termino: mentoriaInscricoes.terminoPrevisto,
+        })
         .from(mentoriaInscricoes)
-        .where(eq(mentoriaInscricoes.id, id));
+        .where(eq(mentoriaInscricoes.id, id))
+        .for('update');
       if (!atual) throw new NotFoundException();
+      const mudaInicio =
+        campos.inicioJornada !== undefined && campos.inicioJornada !== atual.inicio;
+      const mudaMentoria = campos.mentoria !== undefined && campos.mentoria !== atual.mentoria;
+      if (mudaInicio && (campos.mentoria ?? atual.mentoria) === 'RDV')
+        throw new BadRequestException('No RDV o início é a data da IDR');
+      const comPlano = (mudaInicio || mudaMentoria) && (await this.plano.temAcoes(tx, id));
+      if (comPlano) {
+        if (!(await this.plano.editaPlano(tx, id)))
+          throw new BadRequestException('Só o Acompanhamento muda o início ou a mentoria do plano');
+        if (mudaInicio && !campos.inicioJornada)
+          throw new BadRequestException('O plano já começou: o início não pode ficar vazio');
+      }
       // No RDV não se dispensa etapa: trocar a mentoria não pode servir de atalho.
       if (campos.mentoria === 'RDV' && atual.mentoria !== 'RDV') {
         const [q] = await tx.execute<{ tem: boolean }>(sql`select exists (
@@ -270,6 +297,17 @@ export class InscricoesService {
         await tx.execute(sql`update mentoria_inscricoes
           set completar_campos = array_remove(completar_campos, 'inicioJornada')
           where id = ${id}::uuid`);
+      // Em onboarding as ações esperam o fechamento, que usa o início já gravado.
+      if (mudaInicio) {
+        const antes =
+          campos.terminoPrevisto === undefined
+            ? atual
+            : { inicio: atual.inicio, termino: campos.terminoPrevisto };
+        if (campos.inicioJornada && atual.status !== 'ONBOARDING')
+          await this.plano.aplicarInicio(tx, id, campos.inicioJornada, antes);
+        else await this.plano.ajustarTermino(tx, id, campos.inicioJornada ?? null, antes);
+      }
+      if (mudaMentoria && comPlano) await this.plano.trocarPlano(tx, id);
       await registrarHistorico(tx, id, 'inscricao.editada', Object.keys(campos));
       return r;
     }).catch((e) => erroDoBanco(e));

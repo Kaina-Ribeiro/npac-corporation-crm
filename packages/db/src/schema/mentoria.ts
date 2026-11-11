@@ -389,6 +389,137 @@ export const mentoriaEnviosFisicos = pgTable(
   ],
 );
 
+/** Plano-modelo por mentoria. Editar vale para as próximas gerações; as ações já criadas não mudam. */
+export const mentoriaPlanoModelo = pgTable(
+  'mentoria_plano_modelo',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    mentoria: text('mentoria').notNull(),
+    mes: smallint('mes').notNull(),
+    reuniaoTipo: text('reuniao_tipo'),
+    foco: text('foco').notNull(),
+    acao: text('acao').notNull(),
+    itens: text('itens')
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    responsavelPerfil: text('responsavel_perfil').notNull(),
+    gatilho: text('gatilho').notNull().default('INICIO_MES'),
+    diasParaExecutar: smallint('dias_para_executar').notNull().default(0),
+    segueCalendario: boolean('segue_calendario').notNull().default(true),
+    ativo: boolean('ativo').notNull().default(true),
+    version: integer('version').notNull().default(1),
+    // Sem FK para user: as linhas vêm da migration e não podem cair num `truncate "user" cascade`.
+    criadoPor: text('criado_por'),
+    criadoEm: autoria.criadoEm,
+    atualizadoEm: autoria.atualizadoEm,
+  },
+  (t) => [
+    index('mentoria_plano_modelo_mentoria').on(t.mentoria, t.mes),
+    check('mentoria_plano_mentoria', sql`${t.mentoria} in ('RDV', '2M', '6M')`),
+    check('mentoria_plano_mes', sql`${t.mes} between 1 and 120`),
+    check(
+      'mentoria_plano_reuniao',
+      sql`${t.reuniaoTipo} in ('IDR', 'ACOMP_2PME', 'POSICIONAMENTO', 'MENTORADO_EXPERIENTE', 'CARTOES_MILHAS', 'MENSAL_6M', 'TRIMESTRAL_2M', 'ACOMP_EMERGENCIA', 'RENOVACAO')`,
+    ),
+    check('mentoria_plano_foco', sql`char_length(${t.foco}) between 1 and 120`),
+    check('mentoria_plano_acao', sql`char_length(${t.acao}) between 1 and 500`),
+    check(
+      'mentoria_plano_responsavel',
+      sql`${t.responsavelPerfil} in ('ACOMPANHAMENTO', 'OPERACAO', 'ESPECIALISTA')`,
+    ),
+    check('mentoria_plano_gatilho', sql`${t.gatilho} in ('INICIO_MES', 'FIM_PME', 'FLEXIVEL')`),
+    check('mentoria_plano_dias', sql`${t.diasParaExecutar} between 0 and 60`),
+  ],
+);
+
+/**
+ * Ações do plano de cada inscrição. Foco, ação, passos e prazo são copiados do modelo ao nascer,
+ * para que editar o modelo não reescreva o que já existe. `data_limite` é o dia a partir do qual
+ * a ação atrasa: a própria data, ou o fim do mês no gatilho FLEXIVEL.
+ */
+export const mentoriaAcoes = pgTable(
+  'mentoria_acoes',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    inscricaoId: uuid('inscricao_id')
+      .notNull()
+      .references(() => mentoriaInscricoes.id, { onDelete: 'cascade' }),
+    planoModeloId: uuid('plano_modelo_id')
+      .notNull()
+      .references(() => mentoriaPlanoModelo.id),
+    mes: smallint('mes').notNull(),
+    reuniaoTipo: text('reuniao_tipo'),
+    foco: text('foco').notNull(),
+    acao: text('acao').notNull(),
+    itens: text('itens')
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    gatilho: text('gatilho').notNull(),
+    diasParaExecutar: smallint('dias_para_executar').notNull(),
+    dataPrevista: date('data_prevista').notNull(),
+    dataLimite: date('data_limite').notNull(),
+    responsavelPerfil: text('responsavel_perfil').notNull(),
+    responsavelId: text('responsavel_id').references(() => user.id),
+    status: text('status').notNull().default('PENDENTE'),
+    itensFeitos: text('itens_feitos')
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    anteriorAoSistema: boolean('anterior_ao_sistema').notNull().default(false),
+    feitaEm: timestamp('feita_em', { withTimezone: true }),
+    feitaPor: text('feita_por').references(() => user.id),
+    evidenciaLink: text('evidencia_link'),
+    evidenciaMidiaId: uuid('evidencia_midia_id'),
+    observacao: text('observacao'),
+    visivelAoMentorado: boolean('visivel_ao_mentorado').notNull().default(false),
+    version: integer('version').notNull().default(1),
+    criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
+    atualizadoEm: timestamp('atualizado_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique('mentoria_acoes_modelo_unica').on(t.inscricaoId, t.planoModeloId),
+    index('mentoria_acoes_inscricao').on(t.inscricaoId, t.mes),
+    index('mentoria_acoes_data').on(t.dataPrevista),
+    check('mentoria_acoes_status', sql`${t.status} in ('PENDENTE', 'FEITA')`),
+    check('mentoria_acoes_gatilho', sql`${t.gatilho} in ('INICIO_MES', 'FIM_PME', 'FLEXIVEL')`),
+    check(
+      'mentoria_acoes_responsavel',
+      sql`${t.responsavelPerfil} in ('ACOMPANHAMENTO', 'OPERACAO', 'ESPECIALISTA')`,
+    ),
+    check('mentoria_acoes_evidencia', sql`${t.evidenciaLink} ~ '^https://'`),
+    check('mentoria_acoes_observacao', cifradoCabe(t.observacao)),
+  ],
+);
+
+/** Pausas da inscrição. Uma aberta por vez; retomar repõe o prazo pelos dias parados (D15). */
+export const mentoriaPausas = pgTable(
+  'mentoria_pausas',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    inscricaoId: uuid('inscricao_id')
+      .notNull()
+      .references(() => mentoriaInscricoes.id, { onDelete: 'cascade' }),
+    inicio: date('inicio').notNull(),
+    fim: date('fim'),
+    statusAnterior: text('status_anterior').notNull(),
+    motivo: text('motivo'),
+    pausadaPor: text('pausada_por').references(() => user.id),
+    retomadaPor: text('retomada_por').references(() => user.id),
+    criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('mentoria_pausas_aberta')
+      .on(t.inscricaoId)
+      .where(sql`${t.fim} is null`),
+    index('mentoria_pausas_inscricao').on(t.inscricaoId, t.inicio),
+    check('mentoria_pausas_anterior', sql`${t.statusAnterior} in ('ONBOARDING', 'ATIVO')`),
+    check('mentoria_pausas_ordem', sql`${t.fim} >= ${t.inicio}`),
+    check('mentoria_pausas_motivo', cifradoCabe(t.motivo)),
+  ],
+);
+
 /**
  * Mídia: o registro guarda só o endereço; o arquivo fica fora do banco (MEDIA_DIR).
  * `dono_id` é polimórfico, sem FK: a exclusão do dono enfileira a mídia pela função.

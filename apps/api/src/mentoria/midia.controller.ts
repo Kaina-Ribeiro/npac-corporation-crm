@@ -13,6 +13,7 @@ import {
   StreamableFile,
 } from '@nestjs/common';
 import {
+  mentoriaAcoes,
   mentoriaInscricoes,
   mentoriaMidia,
   mentoriaPessoas,
@@ -40,6 +41,7 @@ const FOLGA_MULTIPART = 64 * 1024;
 const DONOS = {
   'pessoa-foto': { tipo: 'PESSOA_FOTO', tabela: mentoriaPessoas },
   'foto-familia': { tipo: 'FOTO_FAMILIA', tabela: mentoriaInscricoes },
+  'acao-evidencia': { tipo: 'ACAO_EVIDENCIA', tabela: mentoriaAcoes },
 } as const;
 type DonoUrl = keyof typeof DONOS;
 
@@ -71,6 +73,23 @@ export class MidiaController {
 
   /** A foto nova passa a ser a do dono; a anterior vai para a fila de exclusão. */
   private async apontarFoto(tx: Tx, d: DonoUrl, donoId: string, midiaId: string) {
+    if (d === 'acao-evidencia') {
+      const [a] = await tx
+        .select({ midia: mentoriaAcoes.evidenciaMidiaId })
+        .from(mentoriaAcoes)
+        .where(eq(mentoriaAcoes.id, donoId))
+        .for('update');
+      if (a?.midia) await tx.execute(sql`select mentoria_excluir_midia(${a.midia})`);
+      await tx
+        .update(mentoriaAcoes)
+        .set({
+          evidenciaMidiaId: midiaId,
+          version: sql`${mentoriaAcoes.version} + 1`,
+          atualizadoEm: sql`now()`,
+        })
+        .where(eq(mentoriaAcoes.id, donoId));
+      return;
+    }
     if (d === 'pessoa-foto') {
       const [p] = await tx
         .select({ foto: mentoriaPessoas.fotoMidiaId })

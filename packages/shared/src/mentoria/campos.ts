@@ -8,6 +8,8 @@ export const CAMPOS_SENSIVEIS = {
   mentoria_momento_inicial: ['dor', 'sonho', 'meta'],
   mentoria_anotacoes: ['texto'],
   mentoria_legado: ['dados'],
+  mentoria_acoes: ['observacao'],
+  mentoria_pausas: ['motivo'],
 } as const satisfies Record<string, readonly string[]>;
 
 /** Campos do diagnóstico do gerenciador antigo, lidos na importação. */

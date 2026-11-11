@@ -311,6 +311,24 @@ describe('importar', () => {
     ]);
   });
 
+  it('2M e 6M nascem com o plano, sem alertar o passado; RDV espera a IDR', async () => {
+    const s = await duda();
+    await importar(s, { planilhaBase64: await planilha(), gerenciador: GERENCIADOR });
+    const rows = await owner<{ nome: string; total: number; alertam: number }[]>`
+      select p.nome, count(a.id)::int as total,
+        (count(a.id) filter (where a.data_prevista < (now() at time zone 'America/Sao_Paulo')::date
+          and not a.anterior_ao_sistema))::int as alertam
+      from mentoria_inscricoes i
+      join mentoria_pessoas p on p.inscricao_id = i.id and p.ordem = 1
+      left join mentoria_acoes a on a.inscricao_id = i.id
+      where p.nome in ('Fictício Carlos', 'Fictício Eduardo')
+      group by p.nome order by p.nome`;
+    expect(rows).toEqual([
+      { nome: 'Fictício Carlos', total: 8, alertam: 0 },
+      { nome: 'Fictício Eduardo', total: 0, alertam: 0 },
+    ]);
+  });
+
   it('valor ambíguo fica nulo, vai para legado e marca "completar"', async () => {
     const s = await duda();
     await importar(s, { gerenciador: GERENCIADOR });
