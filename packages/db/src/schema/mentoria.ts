@@ -409,7 +409,10 @@ export const mentoriaPlanoModelo = pgTable(
     segueCalendario: boolean('segue_calendario').notNull().default(true),
     ativo: boolean('ativo').notNull().default(true),
     version: integer('version').notNull().default(1),
-    ...autoria,
+    // Sem FK para user: as linhas vêm da migration e não podem cair num `truncate "user" cascade`.
+    criadoPor: text('criado_por'),
+    criadoEm: autoria.criadoEm,
+    atualizadoEm: autoria.atualizadoEm,
   },
   (t) => [
     index('mentoria_plano_modelo_mentoria').on(t.mentoria, t.mes),

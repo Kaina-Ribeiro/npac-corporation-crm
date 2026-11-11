@@ -64,7 +64,6 @@ ALTER TABLE "mentoria_acoes" ADD CONSTRAINT "mentoria_acoes_inscricao_id_mentori
 ALTER TABLE "mentoria_acoes" ADD CONSTRAINT "mentoria_acoes_plano_modelo_id_mentoria_plano_modelo_id_fk" FOREIGN KEY ("plano_modelo_id") REFERENCES "public"."mentoria_plano_modelo"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "mentoria_acoes" ADD CONSTRAINT "mentoria_acoes_responsavel_id_user_id_fk" FOREIGN KEY ("responsavel_id") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "mentoria_acoes" ADD CONSTRAINT "mentoria_acoes_feita_por_user_id_fk" FOREIGN KEY ("feita_por") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "mentoria_plano_modelo" ADD CONSTRAINT "mentoria_plano_modelo_criado_por_user_id_fk" FOREIGN KEY ("criado_por") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "mentoria_acoes_inscricao" ON "mentoria_acoes" USING btree ("inscricao_id","mes");--> statement-breakpoint
 CREATE INDEX "mentoria_acoes_data" ON "mentoria_acoes" USING btree ("data_prevista");--> statement-breakpoint
 CREATE INDEX "mentoria_plano_modelo_mentoria" ON "mentoria_plano_modelo" USING btree ("mentoria","mes");
