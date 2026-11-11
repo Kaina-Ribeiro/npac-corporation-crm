@@ -243,7 +243,8 @@ export const anotacaoSchema = z
 export const perfilPutSchema = z
   .object({
     userId: z.string().min(1).max(100),
-    perfil: z.enum(PERFIS).nullable(),
+    // Sem null: a aba Perfis só troca o perfil (C7); quem sai é pelo cargo, no Admin do CRM.
+    perfil: z.enum(PERFIS),
     admin: z.boolean(),
   })
   .strict();
