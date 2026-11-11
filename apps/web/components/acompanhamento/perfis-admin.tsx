@@ -56,7 +56,7 @@ export function PerfisAdmin({ inicial }: { inicial: PerfilLinha[] }) {
               ))}
             </select>
             <div className="pf-admin">
-              {MODULO_ADMIN_LABEL}
+              <span className="pf-admin-rot">{MODULO_ADMIN_LABEL}</span>
               <button
                 type="button"
                 className={`sw ${u.admin ? 'on' : ''}`}
