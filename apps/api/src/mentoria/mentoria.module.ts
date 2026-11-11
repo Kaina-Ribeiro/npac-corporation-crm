@@ -15,6 +15,7 @@ import { MentoriaGuard } from './mentoria.guard.js';
 import { MidiaController } from './midia.controller.js';
 import { OnboardingController } from './onboarding.controller.js';
 import { OnboardingService } from './onboarding.service.js';
+import { PausaService } from './pausa.service.js';
 import { PerfilGuard } from './perfil.guard.js';
 import { PerfisController } from './perfis.controller.js';
 import { PerfisService } from './perfis.service.js';
@@ -36,6 +37,7 @@ import { PlanoService } from './plano.service.js';
     PerfilGuard,
     PerfisService,
     PlanoService,
+    PausaService,
     InscricoesService,
     FichaService,
     OnboardingService,

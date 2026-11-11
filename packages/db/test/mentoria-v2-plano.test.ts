@@ -353,6 +353,70 @@ describe('acesso', () => {
     expect(await tenta(DIRETOR)).toHaveLength(1);
   });
 
+  it('pausa e status PAUSADO só mudam pelas funções', async () => {
+    const id = await nova('RDV', '2026-01-01');
+    const tenta = (q: ReturnType<typeof sql>) =>
+      pgError(withUser(db, DIRETOR, (tx) => tx.execute(q)));
+    expect(
+      (
+        await tenta(
+          sql`insert into mentoria_pausas (inscricao_id, inicio, status_anterior)
+            values (${id}, '2026-02-01', 'ATIVO')`,
+        )
+      ).code,
+    ).toBe('42501');
+    expect(
+      (await tenta(sql`update mentoria_inscricoes set status = 'PAUSADO' where id = ${id}`)).code,
+    ).toBe('22023');
+    await owner`insert into mentoria_pausas (inscricao_id, inicio, status_anterior)
+      values (${id}, '2026-02-01', 'ATIVO')`;
+    await owner`update mentoria_inscricoes set status = 'PAUSADO' where id = ${id}`;
+    expect(
+      (await tenta(sql`update mentoria_inscricoes set status = 'ATIVO' where id = ${id}`)).code,
+    ).toBe('22023');
+    expect((await tenta(sql`update mentoria_pausas set fim = '2026-03-01'`)).code).toBe('42501');
+    expect((await tenta(sql`delete from mentoria_pausas`)).code).toBe('42501');
+  });
+
+  it('Operação não pausa nem retoma pela função', async () => {
+    const id = await nova('RDV', '2026-01-01');
+    const e = await pgError(
+      withUser(db, OPERACAO, (tx) =>
+        tx.execute(
+          sql`select mentoria_pausar(${id}::uuid, gen_random_uuid(), null, '2026-02-01'::date)`,
+        ),
+      ),
+    );
+    expect(e.code).toBe('42501');
+  });
+
+  it('histórico de pausa não pode ser forjado', async () => {
+    const id = await nova('RDV', '2026-01-01');
+    const e = await pgError(
+      withUser(db, DUDA, (tx) =>
+        tx.execute(sql`insert into mentoria_historico (inscricao_id, ator_id, tipo)
+          values (${id}, ${DUDA}, 'inscricao.pausada')`),
+      ),
+    );
+    expect(e.code).toBe('42501');
+  });
+
+  it('dias pausados: fechada conta inteira; aberta até a data pedida; só depois do início', async () => {
+    const id = await nova('RDV', '2026-03-01');
+    await owner`insert into mentoria_pausas (inscricao_id, inicio, fim, status_anterior) values
+      (${id}, '2026-01-01', '2026-02-01', 'ONBOARDING'),
+      (${id}, '2026-02-20', '2026-03-11', 'ATIVO'),
+      (${id}, '2026-04-01', null, 'ATIVO')`;
+    const dias = async (ate: string) => {
+      const [r] = await owner<{ d: number }[]>`
+        select mentoria_dias_pausados(${id}::uuid, ${ate}::date) as d`;
+      return r!.d;
+    };
+    expect(await dias('2026-03-05')).toBe(4);
+    expect(await dias('2026-03-20')).toBe(10);
+    expect(await dias('2026-04-11')).toBe(20);
+  });
+
   it('evidência da ação segue o dono', async () => {
     const id = await nova('RDV', '2026-01-01');
     await gerar(id);

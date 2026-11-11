@@ -247,6 +247,7 @@ export type PaginaAcoes = { itens: AcaoItem[]; cursor: string | null; total: num
 
 /** `POST mentoria/plano/semana`: de segunda a domingo, em Brasília. */
 export type PlanoSemana = {
+  hoje: string;
   inicio: string;
   fim: string;
   atrasadas: AcaoItem[];
@@ -303,6 +304,8 @@ export type FichaDTO = {
   completarCampos: string[];
   /** Ações do plano, em ordem de mês e data. */
   acoes: AcaoItem[];
+  /** A pausa em curso, se houver. `dias`: parados até hoje. */
+  pausa: { inicio: string; dias: number; motivo: string | null } | null;
   pode: {
     inscricao: boolean;
     momento: boolean;

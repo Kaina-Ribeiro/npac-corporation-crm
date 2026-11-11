@@ -351,6 +351,13 @@
       "when": 1794367895124,
       "tag": "0049_acompanhamento_v2_plano",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1794368730885,
+      "tag": "0050_acompanhamento_v2_pausas",
+      "breakpoints": true
     }
   ]
 }

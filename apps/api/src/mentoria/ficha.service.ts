@@ -9,6 +9,7 @@ import {
   mentoriaInscricoes,
   mentoriaMomentoInicial,
   mentoriaOnboardingEtapas,
+  mentoriaPausas,
   mentoriaPessoas,
   user,
   withUser,
@@ -31,7 +32,7 @@ import {
   type MomentoPut,
   type PessoaDTO,
 } from '@npac/shared';
-import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { DB } from '../common/db/db.module.js';
 import { conflitoDeVersao, erroDoBanco } from './erros.js';
 import { exigirEdicao, registrarHistorico } from './historico.js';
@@ -86,6 +87,10 @@ export class FichaService {
       .where(
         and(eq(mentoriaEnviosFisicos.inscricaoId, id), eq(mentoriaEnviosFisicos.tipo, 'CAIXA')),
       );
+    const [pausa] = await tx
+      .select()
+      .from(mentoriaPausas)
+      .where(and(eq(mentoriaPausas.inscricaoId, id), isNull(mentoriaPausas.fim)));
     const [extra] = await tx.execute<{
       mes: number | null;
       inscricao: boolean;
@@ -95,6 +100,7 @@ export class FichaService {
       plano: boolean;
       admin: boolean;
       travado_por: string | null;
+      pausa_dias: number | null;
     }>(sql`
       select mentoria_mes_jornada(${id}::uuid, (now() at time zone 'America/Sao_Paulo')::date) as mes,
         mentoria_edita('INSCRICAO', ${id}::uuid) as inscricao,
@@ -103,7 +109,9 @@ export class FichaService {
         mentoria_edita('ONBOARDING', ${id}::uuid) as onboarding,
         mentoria_edita('PLANO', ${id}::uuid) as plano,
         mentoria_admin() as admin,
-        (select name from "user" where id = ${momento?.travadoPor ?? null}) as travado_por`);
+        (select name from "user" where id = ${momento?.travadoPor ?? null}) as travado_por,
+        (select (now() at time zone 'America/Sao_Paulo')::date - p.inicio
+         from mentoria_pausas p where p.inscricao_id = ${id}::uuid and p.fim is null) as pausa_dias`);
 
     const pessoasDto: PessoaDTO[] = pessoas.map((p) => ({
       id: p.id,
@@ -226,6 +234,16 @@ export class FichaService {
         : null,
       completarCampos: i.completarCampos,
       acoes: await this.plano.daInscricao(tx, id),
+      pausa: pausa
+        ? {
+            inicio: pausa.inicio,
+            dias: extra?.pausa_dias ?? 0,
+            motivo: this.crypto.decifrarOpcional(
+              pausa.motivo,
+              aad('mentoria_pausas', 'motivo', pausa.id),
+            ),
+          }
+        : null,
       pode: {
         inscricao: extra?.inscricao === true,
         momento: extra?.momento === true,

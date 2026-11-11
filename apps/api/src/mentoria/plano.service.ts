@@ -227,8 +227,9 @@ export class PlanoService {
   /** Atrasadas e o que vence de segunda a domingo. Anterior ao sistema não alerta (§7). */
   semana(u: AuthUser): Promise<PlanoSemana> {
     return withUser(this.db, u.id, async (tx) => {
-      const [p] = await tx.execute<{ inicio: string; fim: string }>(sql`
-        select to_char(date_trunc('week', ${HOJE})::date, 'YYYY-MM-DD') as inicio,
+      const [p] = await tx.execute<{ hoje: string; inicio: string; fim: string }>(sql`
+        select to_char(${HOJE}, 'YYYY-MM-DD') as hoje,
+          to_char(date_trunc('week', ${HOJE})::date, 'YYYY-MM-DD') as inicio,
           to_char(date_trunc('week', ${HOJE})::date + 6, 'YYYY-MM-DD') as fim`);
       const atrasadas = await this.consultar(
         tx,
@@ -253,6 +254,7 @@ export class PlanoService {
         500,
       );
       return {
+        hoje: p!.hoje,
         inicio: p!.inicio,
         fim: p!.fim,
         atrasadas: [...atrasadas].map(emItem),

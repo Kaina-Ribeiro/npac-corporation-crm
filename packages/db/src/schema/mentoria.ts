@@ -490,6 +490,33 @@ export const mentoriaAcoes = pgTable(
   ],
 );
 
+/** Pausas da inscrição. Uma aberta por vez; retomar repõe o prazo pelos dias parados (D15). */
+export const mentoriaPausas = pgTable(
+  'mentoria_pausas',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    inscricaoId: uuid('inscricao_id')
+      .notNull()
+      .references(() => mentoriaInscricoes.id, { onDelete: 'cascade' }),
+    inicio: date('inicio').notNull(),
+    fim: date('fim'),
+    statusAnterior: text('status_anterior').notNull(),
+    motivo: text('motivo'),
+    pausadaPor: text('pausada_por').references(() => user.id),
+    retomadaPor: text('retomada_por').references(() => user.id),
+    criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('mentoria_pausas_aberta')
+      .on(t.inscricaoId)
+      .where(sql`${t.fim} is null`),
+    index('mentoria_pausas_inscricao').on(t.inscricaoId, t.inicio),
+    check('mentoria_pausas_anterior', sql`${t.statusAnterior} in ('ONBOARDING', 'ATIVO')`),
+    check('mentoria_pausas_ordem', sql`${t.fim} >= ${t.inicio}`),
+    check('mentoria_pausas_motivo', cifradoCabe(t.motivo)),
+  ],
+);
+
 /**
  * Mídia: o registro guarda só o endereço; o arquivo fica fora do banco (MEDIA_DIR).
  * `dono_id` é polimórfico, sem FK: a exclusão do dono enfileira a mídia pela função.

@@ -9,6 +9,7 @@ import {
   mentoriaInscricoes,
   mentoriaMomentoInicial,
   mentoriaOnboardingEtapas,
+  mentoriaPausas,
   mentoriaPerfis,
   mentoriaPessoas,
   user,
@@ -248,6 +249,13 @@ export async function seedMentoria(db: Db): Promise<void> {
             feita_por = ${duda}, itens_feitos = itens
           where inscricao_id = ${id}::uuid and mes < ${i.meses}`);
       }
+      if (i.status === 'PAUSADO')
+        await tx.insert(mentoriaPausas).values({
+          inscricaoId: id,
+          inicio: sql`(now() at time zone 'America/Sao_Paulo')::date - 10`,
+          statusAnterior: 'ATIVO',
+          pausadaPor: duda,
+        });
     }
   });
 }

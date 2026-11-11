@@ -289,6 +289,8 @@ export type PlanoModeloPut = z.output<typeof planoModeloPutSchema>;
 export const dataIdrSchema = z.object({ version, dataIdr: dataIso }).strict();
 export type DataIdrPut = z.output<typeof dataIdrSchema>;
 
+export const pausarSchema = z.object({ motivo: texto(2000) }).strict();
+
 export const anotacaoSchema = z
   .object({ texto: z.string().trim().min(1, 'Escreva a anotação').max(20_000) })
   .strict();

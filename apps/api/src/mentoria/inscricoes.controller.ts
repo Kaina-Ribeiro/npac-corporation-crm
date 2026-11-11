@@ -8,6 +8,7 @@ import {
   inscricaoPatchSchema,
   inscricoesListaSchema,
   momentoSchema,
+  pausarSchema,
   pessoaNovaSchema,
   pessoaPatchSchema,
 } from '@npac/shared';
@@ -17,6 +18,7 @@ import { validarComAviso } from './erros.js';
 import { FichaService } from './ficha.service.js';
 import { InscricoesService } from './inscricoes.service.js';
 import { MentoriaController } from './mentoria.guard.js';
+import { PausaService } from './pausa.service.js';
 import { Perfis, SoAdmin } from './perfil.guard.js';
 
 @MentoriaController('')
@@ -24,6 +26,7 @@ export class InscricoesController {
   constructor(
     private readonly inscricoes: InscricoesService,
     private readonly ficha: FichaService,
+    private readonly pausa: PausaService,
   ) {}
 
   @Post('inscricoes')
@@ -116,6 +119,20 @@ export class InscricoesController {
   @Post('inscricoes/:id/anotacoes')
   anotar(@CurrentUser() u: SessionUser, @Param('id') id: string, @Body() body: unknown) {
     return this.ficha.anotar(u, entityId(id), validate(anotacaoSchema, body).texto);
+  }
+
+  @Post('inscricoes/:id/pausar')
+  @HttpCode(200)
+  @Perfis('ACOMPANHAMENTO')
+  pausar(@CurrentUser() u: SessionUser, @Param('id') id: string, @Body() body: unknown) {
+    return this.pausa.pausar(u, entityId(id), validate(pausarSchema, body ?? {}).motivo);
+  }
+
+  @Post('inscricoes/:id/retomar')
+  @HttpCode(200)
+  @Perfis('ACOMPANHAMENTO')
+  retomar(@CurrentUser() u: SessionUser, @Param('id') id: string) {
+    return this.pausa.retomar(u, entityId(id));
   }
 
   @Get('inscricoes/:id/historico')

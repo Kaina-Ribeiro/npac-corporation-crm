@@ -402,9 +402,11 @@ export class OnboardingService {
    * (a equipe devendo o próximo passo), ou o cadastro no primeiro passo.
    */
   private base(l: LinhaPainel, e: LinhaPainel['etapas'][number]): Date | string {
-    if (e.base) return e.base;
+    if (e.status === 'ENVIADA' && e.base) return e.base;
     const i = ETAPAS.indexOf(e.etapa);
     const anterior = i > 0 ? l.etapas.find((x) => x.etapa === ETAPAS[i - 1]) : undefined;
-    return anterior?.concluida_em ?? anterior?.atualizado_em ?? l.criado_em;
+    const desde = anterior?.concluida_em ?? anterior?.atualizado_em ?? l.criado_em;
+    // Em etapa ainda não enviada, a base é só a última retomada, se houve.
+    return e.base && new Date(e.base) > new Date(desde) ? e.base : desde;
   }
 }
