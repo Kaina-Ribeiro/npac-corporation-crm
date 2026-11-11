@@ -33,7 +33,21 @@ export type InscricaoItem = {
 };
 
 /** Página da lista: 50 itens e cursor opaco (só o id do último, assinado). */
-export type PaginaInscricoes = { itens: InscricaoItem[]; cursor: string | null; total: number };
+export type PaginaInscricoes = {
+  itens: InscricaoItem[];
+  cursor: string | null;
+  total: number;
+  /** Contagens da carteira inteira que a pessoa vê, sem os filtros. */
+  resumo: ResumoCarteira;
+};
+
+export type ResumoCarteira = {
+  total: number;
+  ativos: number;
+  onboarding: number;
+  pausados: number;
+  completar: number;
+};
 
 export type AvaliacaoDTO = {
   id: string;

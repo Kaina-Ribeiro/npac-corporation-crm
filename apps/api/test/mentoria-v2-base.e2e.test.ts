@@ -170,6 +170,22 @@ describe('inscrições', () => {
     expect(casal!.nome).toBe('Mentorada Fictícia 02 e Mentorado Fictício 03');
   });
 
+  it('lista traz o resumo da carteira inteira, mesmo com filtro', async () => {
+    const s = await duda();
+    const a = await criar(s);
+    await criar(s, CASAL);
+    await owner`update mentoria_inscricoes set status = 'ATIVO', importada = true where id = ${a.id}`;
+    const r = await h.post('/api/mentoria/inscricoes/lista', { status: 'ONBOARDING' }, s);
+    expect(r.body.total).toBe(1);
+    expect(r.body.resumo).toEqual({
+      total: 2,
+      ativos: 1,
+      onboarding: 1,
+      pausados: 0,
+      completar: 1,
+    });
+  });
+
   it('individual recusa pessoa 2; casal → individual remove a pessoa 2 e registra histórico', async () => {
     const s = await duda();
     const r = await h.post(

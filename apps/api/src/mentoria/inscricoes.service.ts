@@ -18,6 +18,7 @@ import {
   type PaginaInscricoes,
   type PessoaNova,
   type PessoaPatch,
+  type ResumoCarteira,
 } from '@npac/shared';
 import { and, eq, sql, type SQL } from 'drizzle-orm';
 import { DB } from '../common/db/db.module.js';
@@ -179,10 +180,18 @@ export class InscricoesService {
       const [t] = await tx.execute<{ n: number }>(
         sql`select count(*)::int as n from mentoria_inscricoes i ${filtro}`,
       );
+      const [resumo] = await tx.execute<ResumoCarteira>(sql`
+        select count(*)::int as total,
+          (count(*) filter (where i.status = 'ATIVO'))::int as ativos,
+          (count(*) filter (where i.status = 'ONBOARDING'))::int as onboarding,
+          (count(*) filter (where i.status = 'PAUSADO'))::int as pausados,
+          (count(*) filter (where ${COMPLETAR}))::int as completar
+        from mentoria_inscricoes i`);
       return {
         itens: pagina.map(emItem),
         cursor: linhas.length > PAGINA ? this.cursor.sign(pagina.at(-1)!.id) : null,
         total: t?.n ?? 0,
+        resumo: resumo!,
       };
     });
   }

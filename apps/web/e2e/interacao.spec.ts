@@ -5,31 +5,33 @@ import { E2E_DB, E2E_PASSWORD } from './env.js';
 // Base de interação (NPAC-31): todo controle anima hover, pressionar e foco, só com CSS.
 const owner = ownerSql(E2E_DB);
 
-// Um mentorado na base: vazio, o Dashboard mostra só o convite (sem busca, Exportar nem tabela).
-const limparMentoria = () =>
-  owner`truncate mentoria_mentorados, mentoria_fichas, mentoria_rdv_pessoas, mentoria_midia cascade`;
 test.beforeEach(async () => {
   await owner`truncate rate_limit`;
   await owner`update "user" set two_factor_enabled = false`;
-  await limparMentoria();
-  await owner`insert into mentoria_mentorados (nome, nome_norm, status) values ('Mentorado Interação', 'mentorado interacao', 'ENGAJADO')`;
 });
 test.afterAll(async () => {
-  await limparMentoria();
   await closeTestConnections();
 });
 
-async function abrirDashboard(page: Page) {
+async function abrirMentorados(page: Page) {
   await page.goto('/login');
-  await page.getByLabel('Usuário', { exact: true }).fill('carla');
+  await page.getByLabel('Usuário', { exact: true }).fill('duda');
   await page.getByLabel('Senha').fill(E2E_PASSWORD);
   await page.getByRole('button', { name: 'Login', exact: true }).click();
-  await page.waitForURL(/\/acompanhamento\/dashboard/);
-  await expect(page.getByRole('heading', { name: 'Dashboard', exact: true })).toBeVisible();
+  await page.waitForURL(/\/acompanhamento\/mentorados/);
+  await expect(page.getByRole('heading', { name: 'Mentorados', exact: true })).toBeVisible();
 }
 
-const colarPlanilha = (page: Page) =>
-  page.getByRole('button', { name: 'Colar planilha', exact: true }).filter({ visible: true });
+const novaInscricao = (page: Page) =>
+  page.getByRole('link', { name: 'Nova inscrição', exact: true }).filter({ visible: true });
+
+/** Abre a primeira ficha da lista, onde ficam os botões discretos que não navegam. */
+async function abrirFicha(page: Page) {
+  await abrirMentorados(page);
+  await page.getByRole('link', { name: /Mentorado Fictício 01/ }).click();
+  await page.waitForURL(/\/acompanhamento\/ficha\//);
+}
+const maisAcoes = (page: Page) => page.getByRole('button', { name: 'Mais ações', exact: true });
 
 /** Aperta Tab até o foco chegar no elemento (no máximo 40 vezes). */
 async function tabAte(page: Page, alvo: Locator) {
@@ -44,8 +46,8 @@ const estilo = (alvo: Locator, prop: keyof CSSStyleDeclaration) =>
   alvo.evaluate((el, p) => String(getComputedStyle(el)[p as keyof CSSStyleDeclaration]), prop);
 
 test('botão tem transição de cor e de escala', async ({ page }) => {
-  await abrirDashboard(page);
-  const btn = colarPlanilha(page);
+  await abrirMentorados(page);
+  const btn = novaInscricao(page);
   const s = await btn.evaluate((el) => {
     const c = getComputedStyle(el);
     return { prop: c.transitionProperty, dur: c.transitionDuration };
@@ -56,8 +58,8 @@ test('botão tem transição de cor e de escala', async ({ page }) => {
 });
 
 test('foco por Tab: anel dourado com afastamento animado', async ({ page }) => {
-  await abrirDashboard(page);
-  const btn = colarPlanilha(page);
+  await abrirMentorados(page);
+  const btn = novaInscricao(page);
   await tabAte(page, btn);
   await expect.poll(() => estilo(btn, 'outlineColor')).toBe('rgb(194, 146, 46)');
   await expect.poll(() => estilo(btn, 'outlineOffset')).toBe('2px');
@@ -66,36 +68,24 @@ test('foco por Tab: anel dourado com afastamento animado', async ({ page }) => {
 });
 
 test('campo .field focado não ganha anel duplo', async ({ page }) => {
-  await abrirDashboard(page);
+  await abrirMentorados(page);
   const busca = page.getByRole('searchbox', { name: 'Buscar mentorados' });
   await tabAte(page, busca);
   expect(await estilo(busca, 'outlineStyle')).toBe('none');
   expect(await estilo(busca, 'boxShadow')).toContain('rgba(194, 146, 46');
 });
 
-test('campo editável da tabela mantém o anel dourado no foco', async ({ page }) => {
-  await abrirDashboard(page);
-  const nome = page.getByLabel('Nome de Mentorado Interação', { exact: true });
-  await nome.focus();
-  await expect.poll(() => estilo(nome, 'outlineColor')).toBe('rgb(194, 146, 46)');
-  expect(await estilo(nome, 'outlineStyle')).toBe('solid');
-});
-
 test('botão discreto muda de fundo no hover', async ({ page }) => {
-  await abrirDashboard(page);
-  const btn = page
-    .getByRole('button', { name: 'Importar .json', exact: true })
-    .filter({ visible: true });
+  await abrirFicha(page);
+  const btn = maisAcoes(page);
   const antes = await estilo(btn, 'backgroundColor');
   await btn.hover();
   await expect.poll(() => estilo(btn, 'backgroundColor')).not.toBe(antes);
 });
 
 test('pressionado encolhe para .97 e volta', async ({ page }) => {
-  await abrirDashboard(page);
-  // Fixa o botão do cabeçalho: ao soltar, a gaveta abre com outra aba "Colar planilha".
-  await colarPlanilha(page).evaluate((el) => el.setAttribute('data-teste', 'pressionar'));
-  const btn = page.locator('[data-teste="pressionar"]');
+  await abrirFicha(page);
+  const btn = maisAcoes(page);
   await btn.hover();
   await page.mouse.down();
   await expect.poll(() => estilo(btn, 'scale')).toBe('0.97');
@@ -115,11 +105,9 @@ test('botão escuro do login também encolhe ao pressionar', async ({ page }) =>
 test.describe('toque', () => {
   test.use({ hasTouch: true, isMobile: true, viewport: { width: 375, height: 812 } });
   test('sem hover grudado depois do toque', async ({ page }) => {
-    await abrirDashboard(page);
-    // Exportar não abre gaveta: o dedo continua "sobre" o botão depois do toque.
-    const btn = page
-      .getByRole('button', { name: 'Exportar .json', exact: true })
-      .filter({ visible: true });
+    await abrirFicha(page);
+    // O menu abre sem navegar: o dedo continua "sobre" o botão depois do toque.
+    const btn = maisAcoes(page);
     const antes = await estilo(btn, 'backgroundColor');
     await btn.tap();
     await page.waitForTimeout(400); // mais que a transição: o fundo não pode ter mudado
@@ -148,9 +136,8 @@ const semAnimacao = (page: Page) =>
   );
 
 test('quem encolhe ao pressionar anima a escala (Acompanhamento)', async ({ page }) => {
-  await owner`insert into mentoria_mentorados (nome, nome_norm, status, tipo_mentoria) values ('Mentorado Escala', 'mentorado escala', 'ENGAJADO', 'Mentoria Fictícia A')`;
-  await abrirDashboard(page);
-  await expect(page.getByLabel('Nome de Mentorado Escala', { exact: true })).toBeVisible();
+  await abrirMentorados(page);
+  await expect(page.getByRole('link', { name: /Mentorado Fictício 01/ })).toBeVisible();
   expect(await semAnimacao(page)).toEqual([]);
 });
 
@@ -171,8 +158,8 @@ test('quem encolhe ao pressionar anima a escala (Pipeline e Hoje)', async ({ pag
 test.describe('movimento reduzido', () => {
   test.use({ reducedMotion: 'reduce' });
   test('duração ~0', async ({ page }) => {
-    await abrirDashboard(page);
-    const dur = await estilo(colarPlanilha(page), 'transitionDuration');
+    await abrirMentorados(page);
+    const dur = await estilo(novaInscricao(page), 'transitionDuration');
     expect(parseFloat(dur)).toBeLessThan(0.01);
   });
 });

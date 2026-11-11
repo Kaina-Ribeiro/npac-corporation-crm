@@ -8,3 +8,5 @@ export * from './dedupe.js';
 export * from './dto.js';
 export * from './field-queue.js';
 export * from './legado.js';
+// Pura, sem zod: a ficha grava o telefone já no formato do servidor.
+export { normalizePhoneBR } from '../normalize.js';

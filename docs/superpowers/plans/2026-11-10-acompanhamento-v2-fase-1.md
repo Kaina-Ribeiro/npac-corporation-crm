@@ -19,7 +19,7 @@
 
 | Parte | Entrega | Status |
 |---|---|---|
-| 1 | Base: protótipo, limpeza, perfis, inscrição, ficha, Mentorados | ⏳ |
+| 1 | Base: protótipo, limpeza, perfis, inscrição, ficha, Mentorados | ✅ |
 | 2 | Onboarding + importação | ⏳ |
 | 3 | Plano por mentoria + pausa | ⏳ |
 | 4 | Reuniões + IDR inicia a jornada | ⏳ |
@@ -156,7 +156,7 @@ it('Operação recebe 404 ao editar momento inicial')
 - [ ] **Step 5:** Commit `feat(NPAC-43): api de perfis, inscrições e ficha`.
 
 ### Tarefa 1.5: Telas de Mentorados, Ficha e Perfis
-Status: ⏳
+Status: ✅
 
 **Files:** Create: `web/app/(app)/acompanhamento/{mentorados,mentorados/[id],configuracoes,em-breve/[aba]}/page.tsx`, `web/components/acompanhamento/{mentorados-lista,busca-modulo,ficha,ficha-pessoas,ficha-momento,historico-lista,perfis-admin,em-breve}.tsx`. Modify: `web/app/(app)/acompanhamento/page.tsx` (redirect `/acompanhamento/mentorados`; Parte 5 muda para `fila`), `web/components/shell/nav-menu.tsx`, `web/app/(app)/acompanhamento/layout.tsx` (busca em todas as abas), `web/components/acompanhamento/abas-mobile.tsx`, `web/lib/acompanhamento-saver.ts`, `sh/mentoria/field-queue.ts`, `web/e2e/{sidebar,interacao,acompanhamento-acesso}.spec.ts`, `db/src/seed-mentoria.ts`. Test: `web/e2e/acompanhamento-v2-base.spec.ts`, `packages/shared/test/mentoria-field-queue.test.ts`.
 
