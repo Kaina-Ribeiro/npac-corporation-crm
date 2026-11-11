@@ -1,12 +1,30 @@
 'use client';
 import type { Role } from '@npac/shared';
+import {
+  ATUA_COMO,
+  cargoDe,
+  CARGO_INFO,
+  MODULO_ADMIN_LABEL,
+  temCaixas,
+  type Cargo,
+} from '@npac/shared/cargos';
 import { isLeader } from '@npac/shared/enums';
+import type { Perfil } from '@npac/shared/mentoria';
 import { money, parseCents } from '@npac/shared/money';
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { clientApi } from '@/lib/client-api';
 import { AccessRequests, type AccessRequest } from './access-requests';
-import { ROLE_LABEL, RoleTag } from './role-tag';
+import {
+  CargoDica,
+  CargoExtras,
+  CargoSelect,
+  cargosQuePodeDar,
+  pedidoDoCargo,
+  SEM_EXTRAS,
+  type Extras,
+} from './cargo-field';
+import { CargoTag } from './role-tag';
 import { button, control, Field, FormError, quietButton } from './crm-ui';
 
 type User = {
@@ -17,6 +35,9 @@ type User = {
   role: Role;
   canProspect: boolean;
   canClose: boolean;
+  /** Perfil do Acompanhamento: só vem para a Diretoria (para o Head, `null`). */
+  perfil: Perfil | null;
+  moduloAdmin: boolean | null;
   active: boolean;
   twoFactorEnabled: boolean | null;
   mustChangePassword: boolean;
@@ -87,6 +108,14 @@ function Card({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
+/** Mensagem de sucesso das caixas: "Ana agora atua como SDR", "…não é mais Admin do Acompanhamento". */
+function avisoDaCaixa(nome: string, campo: keyof Extras, on: boolean) {
+  if (campo === 'moduloAdmin')
+    return `${nome} ${on ? 'agora é' : 'não é mais'} ${MODULO_ADMIN_LABEL}`;
+  const papel = ATUA_COMO[campo].label.replace('Atua como ', '');
+  return `${nome} ${on ? 'agora atua' : 'não atua mais'} como ${papel}`;
+}
+
 /** Administração da liderança; toda escrita é validada e auditada na API. */
 export function Admin({
   initial,
@@ -98,11 +127,13 @@ export function Admin({
   meRole: Role;
 }) {
   // Mesma regra da API: só a Diretoria dá cargo de liderança ou mexe em conta de Head/Diretoria.
-  const diretor = meRole === 'DIRETOR';
   // Acompanhamento lê dados sensíveis de mentorados: também só a Diretoria concede (D10).
-  const roles: Role[] = diretor
-    ? ['SDR', 'CLOSER', 'HEAD', 'DIRETOR', 'ACOMPANHAMENTO']
-    : ['SDR', 'CLOSER'];
+  const diretor = meRole === 'DIRETOR';
+  const cargos = cargosQuePodeDar(diretor);
+  const [convite, setConvite] = useState<{ cargo: Cargo; extras: Extras }>({
+    cargo: 'SDR',
+    extras: SEM_EXTRAS,
+  });
   const router = useRouter();
   const [tab, setTab] = useState<(typeof TABS)[number]>('Usuários');
   const [data, setData] = useState(initial);
@@ -143,6 +174,14 @@ export function Admin({
     }
   }
 
+  /** Head só altera SDR e Closer; liderança e Acompanhamento, só a Diretoria. */
+  const podeAlterar = (u: User) => diretor || (!isLeader(u.role) && u.role !== 'ACOMPANHAMENTO');
+  /** Regra 8 do spec: trocar não bloqueia, mas lembra de passar os leads. */
+  const confirmarLeads = (u: User) =>
+    u.leads === 0 ||
+    confirm(
+      `${u.name} tem ${u.leads} ${u.leads === 1 ? 'lead' : 'leads'}. Depois, passe em "Passar leads para…".`,
+    );
   const closers = data.users.filter((u) => u.active && u.canClose);
   const sdrs = data.users.filter((u) => u.active && u.canProspect);
 
@@ -151,11 +190,16 @@ export function Admin({
       <h1 className="mt-1.5 text-[34px] leading-tight font-bold tracking-[-0.04em]">Admin</h1>
       <AccessRequests
         requests={data.requests}
-        roles={roles}
-        onApprove={(r, approval) =>
+        cargos={cargos}
+        onApprove={(r, cargo, extras) =>
           void run(
-            () => clientApi(`/api/admin/access-requests/${r.id}/approve`, 'POST', approval),
-            `${r.name} aprovado como ${ROLE_LABEL[approval.role]}.`,
+            () =>
+              clientApi(
+                `/api/admin/access-requests/${r.id}/approve`,
+                'POST',
+                pedidoDoCargo(cargo, extras),
+              ),
+            `${r.name} aprovado como ${CARGO_INFO[cargo].label}.`,
           )
         }
         onReject={(r) =>
@@ -204,11 +248,10 @@ export function Admin({
                       name: String(f.get('name')),
                       email: String(f.get('email')),
                       username: String(f.get('username')).trim().toLowerCase(),
-                      role: String(f.get('role')),
-                      canProspect: f.get('canProspect') === 'on',
-                      canClose: f.get('canClose') === 'on',
+                      ...pedidoDoCargo(convite.cargo, convite.extras),
                     });
                     form.reset();
+                    setConvite({ cargo: 'SDR', extras: SEM_EXTRAS });
                     setTimeout(() => setNotice(temp(r)));
                   });
                 }}
@@ -234,22 +277,23 @@ export function Admin({
                     spellCheck={false}
                   />
                 </Field>
-                <Field label="Papel">
-                  <select name="role" className={control} defaultValue="SDR">
-                    {roles.map((r) => (
-                      <option key={r} value={r}>
-                        {ROLE_LABEL[r]}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <div className="flex items-end gap-4 text-sm font-semibold">
-                  <label className="flex items-center gap-2">
-                    <input type="checkbox" name="canProspect" /> Prospecta
-                  </label>
-                  <label className="flex items-center gap-2">
-                    <input type="checkbox" name="canClose" /> Fecha
-                  </label>
+                <div className="flex flex-col gap-2 @lg:col-span-2">
+                  <Field label="Cargo">
+                    <CargoSelect
+                      className={control}
+                      value={convite.cargo}
+                      permitidos={cargos}
+                      onChange={(cargo) => setConvite({ cargo, extras: SEM_EXTRAS })}
+                    />
+                  </Field>
+                  <CargoDica cargo={convite.cargo} />
+                  <CargoExtras
+                    cargo={convite.cargo}
+                    value={convite.extras}
+                    onChange={(campo, v) =>
+                      setConvite((c) => ({ ...c, extras: { ...c.extras, [campo]: v } }))
+                    }
+                  />
                 </div>
                 <button className={`${button} @lg:col-span-2 @lg:justify-self-start`}>
                   Convidar
@@ -263,7 +307,13 @@ export function Admin({
                 <li key={u.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
                   <div>
                     <p className="flex flex-wrap items-center gap-2 font-semibold">
-                      {u.name} <RoleTag role={u.role} />
+                      {u.name}{' '}
+                      <CargoTag
+                        role={u.role}
+                        perfil={u.perfil}
+                        moduloAdmin={u.moduloAdmin}
+                        faltaPerfil={diretor && u.role === 'ACOMPANHAMENTO' && !u.perfil}
+                      />
                       {!u.active && <span className="text-xs text-danger">inativo</span>}
                     </p>
                     <p className="text-xs text-ink2">
@@ -273,72 +323,79 @@ export function Admin({
                       {u.leads > 0 && ` · ${u.leads} ${u.leads === 1 ? 'lead' : 'leads'}`}
                     </p>
                   </div>
-                  {u.id !== meId && !diretor && isLeader(u.role) && (
+                  {u.id !== meId && !podeAlterar(u) && (
                     <p className="text-xs text-ink3">Só a Diretoria altera esta conta</p>
                   )}
-                  {u.id !== meId && (diretor || !isLeader(u.role)) && (
+                  {u.id !== meId && podeAlterar(u) && (
                     <div className="flex flex-wrap items-center gap-2">
-                      {/* Função é dado, não cargo: quem prospecta aparece como SDR dos leads, quem fecha como closer. */}
-                      {(
-                        [
-                          ['canProspect', 'prospecta', 'Prospecta'],
-                          ['canClose', 'fecha', 'Fecha'],
-                        ] as const
-                      ).map(([flag, verb, label]) => (
-                        <label key={flag} className="flex items-center gap-1 text-xs font-semibold">
-                          <input
-                            type="checkbox"
-                            aria-label={`${u.name} ${verb}`}
-                            checked={u[flag]}
-                            onChange={(e) => {
-                              const on = e.target.checked;
-                              // Otimista: a caixa responde na hora e volta se a API recusar.
-                              const show = (v: boolean) =>
-                                setData((d) => ({
-                                  ...d,
-                                  users: d.users.map((x) =>
-                                    x.id === u.id ? { ...x, [flag]: v } : x,
-                                  ),
-                                }));
-                              show(on);
-                              void run(
-                                () =>
-                                  clientApi(`/api/admin/users/${u.id}`, 'PATCH', {
-                                    [flag]: on,
-                                  }).catch((err: unknown) => {
-                                    show(!on);
-                                    throw err;
-                                  }),
-                                `${u.name} ${on ? 'agora' : 'não'} ${verb}${on ? '' : ' mais'}`,
-                              );
-                            }}
-                          />
-                          {label}
-                        </label>
-                      ))}
-                      <select
-                        aria-label={`Cargo de ${u.name}`}
-                        value={u.role}
-                        className={`${quietButton} bg-transparent`}
-                        onChange={(e) => {
-                          const role = e.target.value as Role;
-                          if (
-                            isLeader(role) &&
-                            !confirm(`Dar cargo de ${ROLE_LABEL[role]} para ${u.name}?`)
-                          )
-                            return;
+                      {/* SDR, Closer e Acompanhamento não têm caixa: o cargo define (C4). */}
+                      <CargoExtras
+                        compacto
+                        nome={u.name}
+                        cargo={cargoDe(u.role, u.perfil)}
+                        value={{
+                          canProspect: u.canProspect,
+                          canClose: u.canClose,
+                          moduloAdmin: u.moduloAdmin ?? false,
+                        }}
+                        onChange={(campo, on) => {
+                          if (campo === 'canProspect' && !on && !confirmarLeads(u)) return;
+                          // Otimista: a caixa responde na hora e volta se a API recusar.
+                          const show = (v: boolean) =>
+                            setData((d) => ({
+                              ...d,
+                              users: d.users.map((x) => (x.id === u.id ? { ...x, [campo]: v } : x)),
+                            }));
+                          show(on);
                           void run(
-                            () => clientApi(`/api/admin/users/${u.id}`, 'PATCH', { role }),
-                            `${u.name} agora é ${ROLE_LABEL[role]}`,
+                            () =>
+                              clientApi(`/api/admin/users/${u.id}`, 'PATCH', {
+                                [campo]: on,
+                              }).catch((err: unknown) => {
+                                show(!on);
+                                throw err;
+                              }),
+                            avisoDaCaixa(u.name, campo, on),
                           );
                         }}
-                      >
-                        {roles.map((r) => (
-                          <option key={r} value={r}>
-                            {ROLE_LABEL[r]}
-                          </option>
-                        ))}
-                      </select>
+                      />
+                      <CargoSelect
+                        ariaLabel={`Cargo de ${u.name}`}
+                        value={cargoDe(u.role, u.perfil)}
+                        permitidos={cargos}
+                        className={`${quietButton} bg-transparent`}
+                        onChange={(cargo) => {
+                          const info = CARGO_INFO[cargo];
+                          if (
+                            isLeader(info.role) &&
+                            !confirm(`Dar cargo de ${info.label} para ${u.name}?`)
+                          )
+                            return;
+                          if (
+                            info.perfil &&
+                            u.role !== 'ACOMPANHAMENTO' &&
+                            !confirm(
+                              `Dar o cargo ${info.label} para ${u.name}? Esse cargo lê dados sensíveis de mentorados.`,
+                            )
+                          )
+                            return;
+                          // Quem deixa de atuar como SDR fica com os leads (a liderança vê); avisa.
+                          const atuaSdr =
+                            info.role === 'SDR' || (temCaixas(info.role) && u.canProspect);
+                          if (!atuaSdr && !confirmarLeads(u)) return;
+                          void run(
+                            () =>
+                              clientApi(
+                                `/api/admin/users/${u.id}`,
+                                'PATCH',
+                                info.perfil
+                                  ? { role: info.role, perfil: info.perfil }
+                                  : { role: info.role },
+                              ),
+                            `${u.name} agora é ${info.label}`,
+                          );
+                        }}
+                      />
                       <button
                         type="button"
                         className={quietButton}

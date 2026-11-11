@@ -175,26 +175,29 @@ test('Configurações: só Admin vê e define o perfil', async ({ page, browser 
   await page.waitForURL(/\/acompanhamento\/mentorados/);
   await lateral(page).getByRole('link', { name: 'Configurações', exact: true }).click();
   await page.waitForURL(/\/acompanhamento\/configuracoes/);
+  // Conta antiga sem perfil: pede a escolha; depois a aba só troca, sem "sem perfil" (C7).
+  const perfilDaCarla = async () =>
+    (
+      await owner<{ perfil: string }[]>`select p.perfil from mentoria_perfis p
+       join "user" u on u.id = p.user_id where u.username = 'carla'`
+    )[0]?.perfil ?? null;
+  await expect(page.getByLabel('Perfil de Carla')).toHaveValue('');
   await page.getByLabel('Perfil de Carla').selectOption('OPERACAO');
-  await expect
-    .poll(
-      async () =>
-        (
-          await owner<{ n: number }[]>`select count(*)::int as n from mentoria_perfis p
-           join "user" u on u.id = p.user_id where u.username = 'carla'`
-        )[0]!.n,
-    )
-    .toBe(1);
-  await page.getByLabel('Perfil de Carla').selectOption('');
-  await expect
-    .poll(
-      async () =>
-        (
-          await owner<{ n: number }[]>`select count(*)::int as n from mentoria_perfis p
-           join "user" u on u.id = p.user_id where u.username = 'carla'`
-        )[0]!.n,
-    )
-    .toBe(0);
+  await expect.poll(perfilDaCarla).toBe('OPERACAO');
+  await expect(page.getByLabel('Perfil de Carla').locator('option')).toHaveText([
+    'Acompanhamento',
+    'Operação',
+    'Especialista',
+    'Mentor',
+  ]);
+  await page.getByLabel('Perfil de Carla').selectOption('ESPECIALISTA');
+  await expect.poll(perfilDaCarla).toBe('ESPECIALISTA');
+  await expect(
+    page.getByRole('switch', { name: 'Admin do Acompanhamento para Carla' }),
+  ).toBeVisible();
+  await page.screenshot({ path: 'test-results/acompanhamento-perfis.png', fullPage: true });
+  // Volta ao seed: Carla é a conta antiga sem perfil dos outros testes.
+  await owner`delete from mentoria_perfis where user_id = (select id from "user" where username = 'carla')`;
 
   const ctx = await browser.newContext();
   const outra = await ctx.newPage();
