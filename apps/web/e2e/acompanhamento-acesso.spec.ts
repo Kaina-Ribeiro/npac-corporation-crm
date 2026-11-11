@@ -89,9 +89,10 @@ test('Duda troca a senha no primeiro acesso e cai no Acompanhamento', async ({ p
 test('Diretoria convida e muda alguém para o cargo Acompanhamento pela tela', async ({ page }) => {
   await login(page, 'diretor@npac.com.br');
   await page.goto('/admin');
+  // Cargo em um passo: o grupo Acompanhamento já traz os perfis do módulo.
   await expect(
-    page.locator('select[name="role"]').first().locator('option', { hasText: 'Acompanhamento' }),
-  ).toHaveCount(1);
+    page.getByLabel('Cargo', { exact: true }).locator('optgroup[label="Acompanhamento"] option'),
+  ).toHaveText(['Acompanhamento', 'Operação', 'Especialista', 'Mentor']);
   await expect(
     page.getByLabel('Cargo de Ale', { exact: false }).first().locator('option', {
       hasText: 'Acompanhamento',
