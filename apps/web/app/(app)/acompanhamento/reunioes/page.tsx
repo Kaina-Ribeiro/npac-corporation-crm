@@ -1,9 +1,10 @@
 import type { AgendaSemana, Condutor, ControleMensal, SemReuniao } from '@npac/shared/mentoria';
 import Link from 'next/link';
 import { ControleMensalTela } from '@/components/acompanhamento/controle-mensal';
+import { ExportarBotao } from '@/components/acompanhamento/exportar-botao';
 import { ReunioesAgenda } from '@/components/acompanhamento/reunioes-agenda';
 import { SemReuniaoTela } from '@/components/acompanhamento/sem-reuniao';
-import { lerEu, sessaoDoModulo } from '@/lib/acompanhamento';
+import { lerEu, podeExportar, sessaoDoModulo } from '@/lib/acompanhamento';
 import { apiGet, apiPost } from '@/lib/api';
 
 export const metadata = { title: 'Reuniões' };
@@ -73,9 +74,16 @@ export default async function ReunioesPage({ searchParams }: { searchParams: Pro
   const aba = abas.some(([id]) => id === q.aba) ? q.aba! : 'agenda';
   return (
     <section className="view">
-      <div>
-        <h1 className="h1">Reuniões</h1>
-        <p className="sub">Agenda da semana, quem já teve a reunião do mês e quem está sem.</p>
+      <div className="hrow">
+        <div>
+          <h1 className="h1">Reuniões</h1>
+          <p className="sub">Agenda da semana, quem já teve a reunião do mês e quem está sem.</p>
+        </div>
+        {podeExportar(eu) && (
+          <div className="acts so-desk">
+            <ExportarBotao aba="REUNIOES" />
+          </div>
+        )}
       </div>
       <div className="tabs">
         {abas.map(([id, rotulo]) => (

@@ -93,7 +93,7 @@ const LONGO = 'Linha do tempo e conquistas';
 
 test('Duda navega pelos itens da sidebar', async ({ page }) => {
   await login(page, 'duda@npac.com.br');
-  await page.waitForURL(/\/acompanhamento\/mentorados/);
+  await page.waitForURL(/\/acompanhamento\/fila/);
   await expect(lateral(page).getByRole('heading', { name: 'Em breve' })).toBeVisible();
   await expect(lateral(page).getByRole('heading', { name: 'Admin' })).toBeVisible();
   for (const [nome, url] of [...MODULOS].reverse()) {
@@ -117,7 +117,7 @@ test('Diretoria: grupo abre dentro do módulo e fecha fora', async ({ page }) =>
   await expect(item).not.toBeFocused();
 
   await lateral(page).getByRole('link', { name: 'Acompanhamento', exact: true }).click();
-  await page.waitForURL(/\/acompanhamento\/mentorados/);
+  await page.waitForURL(/\/acompanhamento\/fila/);
   await expect(item).toBeVisible();
   await expect.poll(() => sub.evaluate((el) => getComputedStyle(el).visibility)).toBe('visible');
   await item.click();
@@ -135,7 +135,7 @@ test('tablet 768: sub-itens não estouram a sidebar', async ({ page }) => {
   await page.setViewportSize({ width: 768, height: 1024 });
   await login(page, 'diretor@npac.com.br');
   await lateral(page).getByRole('link', { name: 'Acompanhamento', exact: true }).click();
-  await page.waitForURL(/\/acompanhamento\/mentorados/);
+  await page.waitForURL(/\/acompanhamento\/fila/);
   const item = lateral(page).locator('a', { hasText: LONGO });
   await expect(item).toBeVisible();
   const m = await page.locator('.side-nav').evaluate((el) => ({
@@ -152,7 +152,7 @@ test('tablet 768: sub-itens não estouram a sidebar', async ({ page }) => {
 
 test('trilho recolhido: Duda vê os ícones com tooltip', async ({ page }) => {
   await login(page, 'duda@npac.com.br');
-  await page.waitForURL(/\/acompanhamento\/mentorados/);
+  await page.waitForURL(/\/acompanhamento\/fila/);
   await page.getByRole('button', { name: 'Recolher barra lateral' }).click();
   await expect.poll(() => sideWidth(page)).toBe(56);
   for (const [nome] of MODULOS)
@@ -172,7 +172,7 @@ test('trilho recolhido: Diretoria dentro do módulo vê só o ícone do Acompanh
 }) => {
   await login(page, 'diretor@npac.com.br');
   await lateral(page).getByRole('link', { name: 'Acompanhamento', exact: true }).click();
-  await page.waitForURL(/\/acompanhamento\/mentorados/);
+  await page.waitForURL(/\/acompanhamento\/fila/);
   const item = lateral(page).locator('a', { hasText: LONGO });
   await expect(item).toBeVisible();
   await page.getByRole('button', { name: 'Recolher barra lateral' }).click();

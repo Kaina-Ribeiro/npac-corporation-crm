@@ -54,7 +54,8 @@ async function xlsx() {
 
 test('Duda importa o gerenciador e a planilha pela prévia, sem duplicar', async ({ page }) => {
   await entrar(page, 'duda');
-  await page.waitForURL(/\/acompanhamento\/mentorados/);
+  await page.waitForURL(/\/acompanhamento\/fila/);
+  await page.goto('/acompanhamento/mentorados');
   await lateral(page).getByRole('link', { name: 'Configurações' }).click();
   await page.waitForURL(/\/acompanhamento\/configuracoes/);
   await page.getByRole('link', { name: 'Importação', exact: true }).click();
@@ -105,7 +106,8 @@ test('Duda importa o gerenciador e a planilha pela prévia, sem duplicar', async
 
 test('Operação não vê a importação', async ({ page }) => {
   await entrar(page, 'operacao');
-  await page.waitForURL(/\/acompanhamento\/mentorados/);
+  await page.waitForURL(/\/acompanhamento\/fila/);
+  await page.goto('/acompanhamento/mentorados');
   const res = await page.goto('/acompanhamento/configuracoes?aba=importacao');
   expect(res?.status()).toBe(404);
 });

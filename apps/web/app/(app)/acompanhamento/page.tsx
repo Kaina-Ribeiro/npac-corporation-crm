@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 
-/** Entrada do módulo. A Parte 5 troca o destino pela Fila do dia. */
+/** Entrada do módulo: a Fila do dia (§6). */
 export default function AcompanhamentoPage() {
-  redirect('/acompanhamento/mentorados');
+  redirect('/acompanhamento/fila');
 }

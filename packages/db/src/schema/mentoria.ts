@@ -332,6 +332,8 @@ export const mentoriaOnboardingEtapas = pgTable(
     concluidaEm: timestamp('concluida_em', { withTimezone: true }),
     grupoCriadoEm: date('grupo_criado_em'),
     formularioPreenchido: boolean('formulario_preenchido'),
+    /** Quando o formulário foi marcado como preenchido (gatilho): base do "Enviar a Caixa". */
+    formularioPreenchidoEm: timestamp('formulario_preenchido_em', { withTimezone: true }),
     grupoAvisos: boolean('grupo_avisos'),
     grupoClube: boolean('grupo_clube'),
     grupoNacao: boolean('grupo_nacao'),
@@ -665,4 +667,54 @@ export const mentoriaMidiaExclusao = pgTable('mentoria_midia_exclusao', {
   chaveObjeto: text('chave_objeto').notNull(),
   enfileiradoEm: timestamp('enfileirado_em', { withTimezone: true }).notNull().defaultNow(),
   removidoEm: timestamp('removido_em', { withTimezone: true }),
+});
+
+/**
+ * Itens da Fila do dia sem estado próprio (lembrete da IDR, arte da agenda, reuniões 6M do mês):
+ * a chave é tipo + alvo + data, sem dado pessoal. Só acréscimo, em nome de quem está logado.
+ */
+export const mentoriaFilaFeitos = pgTable(
+  'mentoria_fila_feitos',
+  {
+    chave: text('chave').primaryKey(),
+    feitoPor: text('feito_por')
+      .notNull()
+      .references(() => user.id),
+    feitoEm: timestamp('feito_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [check('mentoria_fila_feitos_chave', sql`${t.chave} ~ '^[a-z0-9-]+:[0-9a-f:-]{7,80}$'`)],
+);
+
+/**
+ * Mensagens-modelo (§4): um texto por momento, individual e casal, com `{nome}` e `{nomes}`. A
+ * Duda escreve; o seed traz só os nomes. Não é dado pessoal: texto puro, sem cifra.
+ */
+export const mentoriaMensagensModelo = pgTable(
+  'mentoria_mensagens_modelo',
+  {
+    momento: text('momento').primaryKey(),
+    nome: text('nome').notNull(),
+    textoIndividual: text('texto_individual').notNull().default(''),
+    textoCasal: text('texto_casal').notNull().default(''),
+    canal: text('canal').notNull().default('WHATSAPP'),
+    version: integer('version').notNull().default(1),
+    // Sem FK para user: as linhas vêm da migration e não podem cair num `truncate "user" cascade`.
+    atualizadoPor: text('atualizado_por'),
+    atualizadoEm: timestamp('atualizado_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    check(
+      'mentoria_mensagens_momento',
+      sql`${t.momento} in ('BOAS_VINDAS', 'PASSO_1', 'PASSO_2', 'PASSO_3', 'LEMBRETE_IDR', 'EVENTO', 'OUTRO')`,
+    ),
+    check('mentoria_mensagens_individual', sql`char_length(${t.textoIndividual}) <= 4000`),
+    check('mentoria_mensagens_casal', sql`char_length(${t.textoCasal}) <= 4000`),
+    check('mentoria_mensagens_canal', sql`${t.canal} in ('WHATSAPP')`),
+  ],
+);
+
+/** Push da Fila enviado (§5, D10): cada aviso uma vez só. Sem RLS de usuário: só as funções. */
+export const mentoriaAvisosEnviados = pgTable('mentoria_avisos_enviados', {
+  chave: text('chave').primaryKey(),
+  enviadoEm: timestamp('enviado_em', { withTimezone: true }).notNull().defaultNow(),
 });

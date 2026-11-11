@@ -14,6 +14,8 @@ import {
 } from '../mentoria/enums.js';
 import { STATUS_IMPORTACAO } from '../mentoria/importacao.js';
 import { linkPermitido } from '../mentoria/links.js';
+import { FILA_TIPOS } from '../mentoria/fila.js';
+import { MOMENTOS_MENSAGEM } from '../mentoria/mensagens.js';
 import { ENVIO_STATUS } from '../mentoria/onboarding.js';
 import { ACAO_STATUS, GATILHOS, PERFIS_ACAO, REUNIAO_TIPOS } from '../mentoria/plano.js';
 import {
@@ -392,3 +394,51 @@ export const contatoSchema = z
   })
   .strict();
 export type ContatoCriar = z.output<typeof contatoSchema>;
+
+export const filaSchema = z
+  .object({
+    escopo: z.enum(['MINHA', 'EQUIPE']).optional(),
+    tipos: z.array(z.enum(FILA_TIPOS)).max(FILA_TIPOS.length).optional(),
+  })
+  .strict();
+export type FilaFiltro = z.output<typeof filaSchema>;
+
+/** A chave é tipo + alvo + data (`agenda-mes:2026-12`), sem dado pessoal. */
+export const filaFeitoSchema = z
+  .object({ chave: z.string().regex(/^[a-z0-9-]+:[0-9a-f:-]{7,80}$/) })
+  .strict();
+
+export const pme1EnviadoSchema = z.object({ enviado: z.boolean() }).strict();
+
+export const mensagemPutSchema = z
+  .object({
+    momento: z.enum(MOMENTOS_MENSAGEM),
+    version,
+    textoIndividual: z.string().max(4000),
+    textoCasal: z.string().max(4000),
+  })
+  .strict();
+export type MensagemPut = z.output<typeof mensagemPutSchema>;
+
+/** Abas que exportam planilha (§6). Contato só para Admin; dor, sonho e anotações nunca saem. */
+export const ABAS_EXPORTACAO = ['MENTORADOS', 'FILA', 'PLANO', 'REUNIOES'] as const;
+export const exportarSchema = z
+  .object({
+    aba: z.enum(ABAS_EXPORTACAO),
+    filtros: z
+      .object({
+        status: z.enum(INSCRICAO_STATUS).optional(),
+        mentoria: z.enum(MENTORIAS).optional(),
+        responsavelId: z.string().min(1).max(100).optional(),
+        escopo: z.enum(['MINHA', 'EQUIPE']).optional(),
+      })
+      .strict()
+      .optional(),
+  })
+  .strict();
+export type Exportar = z.output<typeof exportarSchema>;
+
+export const transferirCarteiraSchema = z
+  .object({ de: z.string().min(1).max(100), para: z.string().min(1).max(100) })
+  .strict();
+export type TransferirCarteira = z.output<typeof transferirCarteiraSchema>;

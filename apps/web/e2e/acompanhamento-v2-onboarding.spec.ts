@@ -47,7 +47,8 @@ async function concluirPelaLinha(page: Page, etapa: string, nome: string) {
 
 test('Operação conduz da boas-vindas até a Caixa pelo funil', async ({ page }) => {
   await entrar(page, 'operacao');
-  await page.waitForURL(/\/acompanhamento\/mentorados/);
+  await page.waitForURL(/\/acompanhamento\/fila/);
+  await page.goto('/acompanhamento/mentorados');
   const nome = 'Mentorado Fictício 60';
   const { id } = await criar(page, nome);
   await abrirFunil(page);
@@ -92,7 +93,8 @@ test('Operação conduz da boas-vindas até a Caixa pelo funil', async ({ page }
 
 test('dias parado aparecem por pessoa', async ({ page }) => {
   await entrar(page, 'operacao');
-  await page.waitForURL(/\/acompanhamento\/mentorados/);
+  await page.waitForURL(/\/acompanhamento\/fila/);
+  await page.goto('/acompanhamento/mentorados');
   await abrirFunil(page);
   await coluna(page, 'Boas-vindas').click();
   await expect(linha(page, 'Mentorada Fictícia 11')).toContainText('Parado há 5 dias');
@@ -100,7 +102,8 @@ test('dias parado aparecem por pessoa', async ({ page }) => {
 
 test('botão Dispensar só existe em 2M e 6M', async ({ page }) => {
   await entrar(page, 'operacao');
-  await page.waitForURL(/\/acompanhamento\/mentorados/);
+  await page.waitForURL(/\/acompanhamento\/fila/);
+  await page.goto('/acompanhamento/mentorados');
   const m2 = 'Mentorado Fictício 61';
   const rdv = 'Mentorado Fictício 62';
   await criar(page, m2, '2M');
@@ -117,7 +120,8 @@ test('botão Dispensar só existe em 2M e 6M', async ({ page }) => {
 
 test('Manu não vê o funil', async ({ page }) => {
   await entrar(page, 'manu');
-  await page.waitForURL(/\/acompanhamento\/mentorados/);
+  await page.waitForURL(/\/acompanhamento\/fila/);
+  await page.goto('/acompanhamento/mentorados');
   await lateral(page).getByRole('link', { name: 'Onboarding', exact: true }).click();
   await page.waitForURL(/\/acompanhamento\/onboarding/);
   await expect(page.getByText('Esta aba é da Operação e do Acompanhamento')).toBeVisible();
@@ -128,7 +132,8 @@ test('Manu não vê o funil', async ({ page }) => {
 
 test('importado mostra as etapas como anteriores ao sistema', async ({ page }) => {
   await entrar(page, 'duda');
-  await page.waitForURL(/\/acompanhamento\/mentorados/);
+  await page.waitForURL(/\/acompanhamento\/fila/);
+  await page.goto('/acompanhamento/mentorados');
   await page.goto('/acompanhamento/ficha/00000000-0000-4000-8000-000000000003');
   await expect(page.getByText('Entrou antes do sistema')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Marcar enviada' })).toHaveCount(0);

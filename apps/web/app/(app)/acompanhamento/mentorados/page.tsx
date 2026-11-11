@@ -1,6 +1,6 @@
 import type { PaginaInscricoes } from '@npac/shared/mentoria';
 import { MentoradosLista } from '@/components/acompanhamento/mentorados-lista';
-import { lerEu, podeCadastrar, sessaoDoModulo } from '@/lib/acompanhamento';
+import { lerEu, podeCadastrar, podeExportar, sessaoDoModulo } from '@/lib/acompanhamento';
 import { apiGet, apiPost } from '@/lib/api';
 
 export const metadata = { title: 'Mentorados' };
@@ -13,6 +13,11 @@ export default async function MentoradosPage() {
     lerEu(),
   ]);
   return (
-    <MentoradosLista pagina={pagina} responsaveis={responsaveis} podeCriar={podeCadastrar(eu)} />
+    <MentoradosLista
+      pagina={pagina}
+      responsaveis={responsaveis}
+      podeCriar={podeCadastrar(eu)}
+      exportar={podeExportar(eu)}
+    />
   );
 }

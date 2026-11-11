@@ -8,6 +8,8 @@ import {
   STATUS_FINANCEIRO,
   STATUS_FINANCEIRO_LABEL,
   TIPO_INSCRICAO_LABEL,
+  linkGrupoValido,
+  linkWhatsApp,
   type FichaDTO,
 } from '@npac/shared/mentoria';
 import Link from 'next/link';
@@ -231,10 +233,12 @@ function MaisAcoes({
   ficha,
   pedirTipo,
   pedirPausa,
+  pedir,
 }: {
   ficha: FichaDTO;
   pedirTipo: () => void;
   pedirPausa: () => void;
+  pedir: (d: 'excluir' | 'anonimizar') => void;
 }) {
   const [aberto, setAberto] = useState(false);
   const raiz = useRef<HTMLDivElement>(null);
@@ -290,9 +294,31 @@ function MaisAcoes({
           >
             {ficha.tipo === 'CASAL' ? 'Mudar para individual' : 'Mudar para casal'}
           </button>
-          <button type="button" role="menuitem" disabled>
-            Excluir inscrição<span className="tag">Em breve</span>
-          </button>
+          {ficha.pode.admin && (
+            <>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setAberto(false);
+                  pedir('anonimizar');
+                }}
+              >
+                Anonimizar (LGPD)
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                className="perigo"
+                onClick={() => {
+                  setAberto(false);
+                  pedir('excluir');
+                }}
+              >
+                Excluir inscrição
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>
@@ -474,7 +500,9 @@ export function Ficha({
   const router = useRouter();
   const [aba, setAba] = useState<Aba>(abaInicial);
   const [mudarTipo, setMudarTipo] = useState(false);
-  const [dialogo, setDialogo] = useState<'pausar' | 'retomar' | 'idr' | null>(null);
+  const [dialogo, setDialogo] = useState<
+    'pausar' | 'retomar' | 'idr' | 'excluir' | 'anonimizar' | null
+  >(null);
   const atualizar = () =>
     void filaDeSalvamento()
       .idle()
@@ -543,10 +571,10 @@ export function Ficha({
           <Trilha mes={mes} />
         </div>
         <div className="fc-acts">
-          {ficha.linkGrupo && (
+          {linkGrupoValido(ficha.linkGrupo) && (
             <a
               className={`${sm} wa`}
-              href={ficha.linkGrupo}
+              href={linkGrupoValido(ficha.linkGrupo)!}
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -556,11 +584,11 @@ export function Ficha({
           )}
           {ficha.pessoas.map(
             (p) =>
-              p.whatsapp && (
+              linkWhatsApp(p.whatsapp) && (
                 <a
                   key={p.id}
                   className={`${sm} wa`}
-                  href={`https://wa.me/${p.whatsapp.replace(/\D/g, '')}`}
+                  href={linkWhatsApp(p.whatsapp)!}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -578,6 +606,7 @@ export function Ficha({
             ficha={ficha}
             pedirTipo={() => setMudarTipo(true)}
             pedirPausa={() => setDialogo('pausar')}
+            pedir={setDialogo}
           />
         </div>
       </header>
@@ -640,6 +669,34 @@ export function Ficha({
       )}
       {dialogo === 'retomar' && (
         <Retomar ficha={ficha} onFeito={() => router.refresh()} onFechar={() => setDialogo(null)} />
+      )}
+      {dialogo === 'excluir' && (
+        <Dialogo
+          titulo="Excluir inscrição"
+          texto={`${ficha.nome} sai do sistema com pessoas, onboarding, plano, reuniões, contatos, anotações e fotos. Esta ação não pode ser desfeita.`}
+          rotulo="Excluir inscrição"
+          perigo
+          onConfirmar={async () => {
+            await filaDeSalvamento().idle();
+            await clientApi(`/api/mentoria/inscricoes/${ficha.id}`, 'DELETE');
+            router.replace('/acompanhamento/mentorados');
+          }}
+          onFechar={() => setDialogo(null)}
+        />
+      )}
+      {dialogo === 'anonimizar' && (
+        <Dialogo
+          titulo="Anonimizar (LGPD)"
+          texto="Nome, contato, endereço, momento inicial, avaliações, anotações, textos das reuniões e fotos são apagados. A inscrição, as reuniões e as ações continuam, sem dado pessoal, para as contagens. Esta ação não pode ser desfeita."
+          rotulo="Anonimizar"
+          perigo
+          onConfirmar={async () => {
+            await filaDeSalvamento().idle();
+            await clientApi(`/api/mentoria/inscricoes/${ficha.id}/anonimizar`, 'POST');
+            router.refresh();
+          }}
+          onFechar={() => setDialogo(null)}
+        />
       )}
       {dialogo === 'idr' && (
         <CorrigirIdr

@@ -13,9 +13,9 @@ const item = (href: string, label: string, d: string, section?: NavItem['section
   section,
 });
 
-/** As 11 abas do módulo (D8). A Fila sai de `em-breve` na Parte 5. */
+/** As 11 abas do módulo (D8). */
 const ACOMPANHAMENTO_ABAS: NavItem[] = [
-  item('em-breve/fila', 'Fila do dia', 'M4 6h16M4 12h16M4 18h10'),
+  item('fila', 'Fila do dia', 'M4 6h16M4 12h16M4 18h10'),
   item(
     'mentorados',
     'Mentorados',

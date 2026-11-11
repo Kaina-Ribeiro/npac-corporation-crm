@@ -50,7 +50,8 @@ const naData = (id: string, mes: number, expressao: string) =>
 
 test('Duda marca os passos do mês 11 e a ação conclui', async ({ page }) => {
   await entrar(page, 'duda');
-  await page.waitForURL(/\/acompanhamento\/mentorados/);
+  await page.waitForURL(/\/acompanhamento\/fila/);
+  await page.goto('/acompanhamento/mentorados');
   const id = await comPlano('Mentorado Fictício 70');
   await page.goto(`/acompanhamento/ficha/${id}?aba=jornada`);
   await page.getByRole('button', { name: 'Mês 11', exact: true }).click();
@@ -75,7 +76,8 @@ test('Duda marca os passos do mês 11 e a ação conclui', async ({ page }) => {
 
 test('"vence esta semana" lista as ações certas', async ({ page }) => {
   await entrar(page, 'duda');
-  await page.waitForURL(/\/acompanhamento\/mentorados/);
+  await page.waitForURL(/\/acompanhamento\/fila/);
+  await page.goto('/acompanhamento/mentorados');
   const nome = 'Mentorado Fictício 71';
   const id = await comPlano(nome);
   await naData(id, 3, HOJE);
@@ -97,7 +99,8 @@ test('"vence esta semana" lista as ações certas', async ({ page }) => {
 
 test('Configurações edita o plano do 2M', async ({ page }) => {
   await entrar(page, 'duda');
-  await page.waitForURL(/\/acompanhamento\/mentorados/);
+  await page.waitForURL(/\/acompanhamento\/fila/);
+  await page.goto('/acompanhamento/mentorados');
   const [linha] = await owner<{ id: string; acao: string }[]>`
     select id, acao from mentoria_plano_modelo
     where mentoria = '2M' and mes = 4 and reuniao_tipo = 'TRIMESTRAL_2M'`;
@@ -133,7 +136,8 @@ test('Configurações edita o plano do 2M', async ({ page }) => {
 
 test('Pausar na ficha tira o mentorado do plano da semana', async ({ page }) => {
   await entrar(page, 'duda');
-  await page.waitForURL(/\/acompanhamento\/mentorados/);
+  await page.waitForURL(/\/acompanhamento\/fila/);
+  await page.goto('/acompanhamento/mentorados');
   const nome = 'Mentorado Fictício 72';
   const id = await comPlano(nome);
   await naData(id, 3, HOJE);
@@ -161,7 +165,8 @@ test('Pausar na ficha tira o mentorado do plano da semana', async ({ page }) => 
 
 test('Operação marca o que é dela e só acompanha o resto', async ({ page }) => {
   await entrar(page, 'operacao');
-  await page.waitForURL(/\/acompanhamento\/mentorados/);
+  await page.waitForURL(/\/acompanhamento\/fila/);
+  await page.goto('/acompanhamento/mentorados');
   const id = await comPlano('Mentorado Fictício 73');
   const [m2] = await owner<{ id: string }[]>`
     select id from mentoria_acoes where inscricao_id = ${id} and mes = 2`;
@@ -179,7 +184,8 @@ test('Operação marca o que é dela e só acompanha o resto', async ({ page }) 
 
 test('importado RDV: informar a IDR na ficha gera o plano', async ({ page }) => {
   await entrar(page, 'duda');
-  await page.waitForURL(/\/acompanhamento\/mentorados/);
+  await page.waitForURL(/\/acompanhamento\/fila/);
+  await page.goto('/acompanhamento/mentorados');
   const id = '00000000-0000-4000-8000-000000000003';
   await page.goto(`/acompanhamento/ficha/${id}?aba=inscricao`);
   await page.getByRole('button', { name: 'Informar' }).click();

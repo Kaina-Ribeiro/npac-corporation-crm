@@ -18,7 +18,9 @@ async function abrirMentorados(page: Page) {
   await page.getByLabel('Usuário', { exact: true }).fill('duda');
   await page.getByLabel('Senha').fill(E2E_PASSWORD);
   await page.getByRole('button', { name: 'Login', exact: true }).click();
-  await page.waitForURL(/\/acompanhamento\/mentorados/);
+  // O login cai na Fila do dia (entrada do módulo); as medidas são na lista de Mentorados.
+  await page.waitForURL(/\/acompanhamento\/fila/);
+  await page.goto('/acompanhamento/mentorados');
   await expect(page.getByRole('heading', { name: 'Mentorados', exact: true })).toBeVisible();
 }
 

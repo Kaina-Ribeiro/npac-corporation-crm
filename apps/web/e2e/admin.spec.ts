@@ -137,7 +137,7 @@ test('Diretoria convida Operação, que entra direto no módulo; caixas só na l
   await nova.getByLabel('Nova senha', { exact: true }).fill('operacao-nova-1');
   await nova.getByLabel('Confirme a nova senha').fill('operacao-nova-1');
   await nova.getByRole('button', { name: 'Salvar senha' }).click();
-  await nova.waitForURL(/\/acompanhamento\/mentorados/);
+  await nova.waitForURL(/\/acompanhamento\/fila/);
   await expect(
     nova.getByRole('heading', { name: 'Peça ao Admin para definir seu perfil' }),
   ).toHaveCount(0);

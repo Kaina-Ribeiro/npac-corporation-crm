@@ -40,8 +40,10 @@ const MODULOS = [
   'Renovações e gestão',
   'Configurações',
 ];
-const ENTRADA = /\/acompanhamento\/mentorados/;
-const titulo = (page: Page) => page.getByRole('heading', { name: 'Mentorados', exact: true });
+const ENTRADA = /\/acompanhamento\/fila/;
+const titulo = (page: Page) => page.getByRole('heading', { name: 'Fila do dia', exact: true });
+const tituloMentorados = (page: Page) =>
+  page.getByRole('heading', { name: 'Mentorados', exact: true });
 
 const sidebarLinks = (page: Page) =>
   page.getByRole('navigation', { name: 'Navegação lateral' }).getByRole('link').allInnerTexts();
@@ -65,7 +67,10 @@ test('Duda vê só o Acompanhamento na sidebar, na tela Mais e no Ctrl+K', async
   expect((await secoes.allInnerTexts()).map((t) => t.split('\n')[0]!.trim())).toEqual([
     'Acompanhamento',
   ]);
-  await expect(page.getByRole('link', { name: 'Avisos neste aparelho' })).toHaveCount(0);
+  // O push da Fila do dia vale para o cargo (D12): o link aparece, e a tela abre.
+  await page.getByRole('link', { name: 'Avisos neste aparelho' }).click();
+  await page.waitForURL(/\/conta\/avisos/);
+  await page.goto('/mais');
   await expect(page.getByRole('main').getByRole('button', { name: 'Sair' })).toBeVisible();
   // Celular: nada da barra comercial; as abas do módulo levam de volta.
   await expect(page.locator('nav[aria-label="Navegação inferior"]')).toHaveCount(0);
@@ -192,7 +197,7 @@ test('MFA desligado: Diretoria e Duda usam o módulo sem autenticador, sem aviso
   await login(page, 'diretor@npac.com.br', false);
   await page.goto('/acompanhamento/mentorados');
   await expect(page.getByText('Ative a verificação em duas etapas')).toHaveCount(0);
-  await expect(titulo(page)).toBeVisible();
+  await expect(tituloMentorados(page)).toBeVisible();
   await expect(page.getByRole('link', { name: 'Autenticador' })).toHaveCount(0);
   await page.goto('/mais');
   await expect(page.getByRole('link', { name: 'Autenticador' })).toHaveCount(0);
@@ -222,6 +227,8 @@ test('390 px: sem overflow horizontal em Mentorados', async ({ page }) => {
   await login(page, 'duda@npac.com.br');
   await page.waitForURL(ENTRADA);
   await expect(titulo(page)).toBeVisible();
+  await page.goto('/acompanhamento/mentorados');
+  await expect(tituloMentorados(page)).toBeVisible();
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
   );
@@ -239,7 +246,7 @@ test('390 px: do módulo, o avatar leva ao Mais, que tem Sair', async ({ page })
   const abas = page.getByRole('navigation', { name: 'Abas do acompanhamento' });
   await expect(abas.locator('[aria-current="page"]')).toHaveCount(0);
   await abas.getByRole('link', { name: 'Mentorados' }).click();
-  await page.waitForURL(ENTRADA);
+  await page.waitForURL(/\/acompanhamento\/mentorados/);
   await page.goto('/acompanhamento/mais');
   await page.getByRole('main').getByRole('button', { name: 'Sair' }).click();
   await page.waitForURL(/\/login/);
