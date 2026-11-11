@@ -85,7 +85,7 @@ test('telas largas: o conteúdo ocupa a largura útil, sem rolagem horizontal', 
 const lateral = (page: Page) => page.getByRole('navigation', { name: 'Navegação lateral' });
 const MODULOS = [
   ['Mentorados', /\/acompanhamento\/mentorados$/],
-  ['Reuniões', /\/acompanhamento\/em-breve\/reunioes$/],
+  ['Reuniões', /\/acompanhamento\/reunioes$/],
   ['Renovações e gestão', /\/acompanhamento\/em-breve\/renovacoes$/],
   ['Configurações', /\/acompanhamento\/configuracoes$/],
 ] as const;

@@ -38,6 +38,7 @@ import { conflitoDeVersao, erroDoBanco } from './erros.js';
 import { exigirEdicao, registrarHistorico } from './historico.js';
 import { aad, MentoriaCrypto } from './mentoria-crypto.js';
 import { PlanoService } from './plano.service.js';
+import { ReunioesService } from './reunioes.service.js';
 
 const LIMITE_HISTORICO = 200;
 
@@ -47,6 +48,7 @@ export class FichaService {
     @Inject(DB) private readonly db: Db,
     private readonly crypto: MentoriaCrypto,
     private readonly plano: PlanoService,
+    private readonly reunioes: ReunioesService,
   ) {}
 
   /** Monta a ficha dentro da transação; RLS decide: invisível = 404. */
@@ -98,6 +100,8 @@ export class FichaService {
       anotacao: boolean;
       onboarding: boolean;
       plano: boolean;
+      reuniao: boolean;
+      contato: boolean;
       admin: boolean;
       travado_por: string | null;
       pausa_dias: number | null;
@@ -108,6 +112,8 @@ export class FichaService {
         mentoria_edita('ANOTACAO', ${id}::uuid) as anotacao,
         mentoria_edita('ONBOARDING', ${id}::uuid) as onboarding,
         mentoria_edita('PLANO', ${id}::uuid) as plano,
+        mentoria_edita('REUNIAO', ${id}::uuid) as reuniao,
+        mentoria_edita('CONTATO', ${id}::uuid) as contato,
         mentoria_admin() as admin,
         (select name from "user" where id = ${momento?.travadoPor ?? null}) as travado_por,
         (select (now() at time zone 'America/Sao_Paulo')::date - p.inicio
@@ -234,6 +240,8 @@ export class FichaService {
         : null,
       completarCampos: i.completarCampos,
       acoes: await this.plano.daInscricao(tx, id),
+      reunioes: await this.reunioes.daInscricao(tx, id),
+      contatos: await this.reunioes.contatosDaInscricao(tx, id),
       pausa: pausa
         ? {
             inicio: pausa.inicio,
@@ -250,6 +258,8 @@ export class FichaService {
         anotacao: extra?.anotacao === true,
         onboarding: extra?.onboarding === true,
         plano: extra?.plano === true,
+        reuniao: extra?.reuniao === true,
+        contato: extra?.contato === true,
         admin: extra?.admin === true,
       },
     };

@@ -5,6 +5,7 @@ import {
   type AcaoDTO,
   type FichaDTO,
   type PlanoModeloLinha,
+  type ReuniaoDTO,
   type StatusFila,
 } from '@npac/shared/mentoria';
 import { useEffect, useState } from 'react';
@@ -13,7 +14,8 @@ import { useEffect, useState } from 'react';
  * Liga a fila de salvamento (T5 do SPEC) à API. Usa `fetch` direto (não o `clientApi`) para ler o
  * status do 409. Uma fila por aba; nada vai para storage. Chaves do registro:
  * `inscricao:<id>`, `pessoa:<inscricaoId>:<pessoaId>`, `etapa:<inscricaoId>:<etapaId>`,
- * `endereco:<id>`, `momento:<id>`, `acao:<inscricaoId>:<acaoId>`, `modelo:<id>` e
+ * `endereco:<id>`, `momento:<id>`, `acao:<inscricaoId>:<acaoId>`, `reuniao:<inscricaoId>:<id>`,
+ * `modelo:<id>` e
  * `avaliacao:<pessoaId>:<tipo>` (esta sem version: uma coluna por envio, não colide).
  */
 type Alvo = { url: string; method: 'PATCH' | 'PUT'; corpo: (v: number) => object };
@@ -37,6 +39,8 @@ function alvo(key: string): Alvo {
       return { url: `${base}/pessoas/${a}/avaliacoes`, method: 'PUT', corpo: () => ({ tipo: b }) };
     case 'acao':
       return { url: `${base}/acoes/${b}`, method: 'PATCH', corpo: comVersion };
+    case 'reuniao':
+      return { url: `${base}/reunioes/${b}`, method: 'PATCH', corpo: comVersion };
     case 'modelo':
       return {
         url: `${base}/plano-modelo`,
@@ -83,6 +87,12 @@ async function recarregar(key: string) {
       version: l?.version ?? 0,
       valores: { ...l, itens: JSON.stringify(l?.itens ?? []) } as Record<string, unknown>,
     };
+  }
+  if (tipo === 'reuniao') {
+    const res = await fetch(`/api/mentoria/reunioes/${b}`, { cache: 'no-store' });
+    if (!res.ok) throw new ErroDeEnvio('Não foi possível recarregar', res.status);
+    const x = (await res.json()) as ReuniaoDTO;
+    return { version: x.version, valores: x as unknown as Record<string, unknown> };
   }
   if (tipo === 'acao') {
     const res = await fetch(`/api/mentoria/acoes/${b}`, { cache: 'no-store' });

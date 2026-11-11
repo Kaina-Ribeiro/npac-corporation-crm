@@ -12,7 +12,7 @@ import { useEffect, useRef, useState } from 'react';
 import { button, control, quietButton } from '@/components/crm-ui';
 import { clientApi } from '@/lib/client-api';
 import { Dialogo } from './dialogo';
-import { ICONES, Icone, Rostos, rotuloMes, TagStatus, Trilha } from './ui';
+import { dataBR, ICONES, Icone, Rostos, rotuloMes, TagStatus, Trilha } from './ui';
 
 type Filtros = {
   mes?: number;
@@ -25,7 +25,7 @@ type Pessoa = { id: string; nome: string };
 const MESES = Array.from({ length: 12 }, (_, i) => i + 1);
 
 function Linha({ r, primeira }: { r: InscricaoItem; primeira: boolean }) {
-  const ultimo = r.ultimoContato ?? '—';
+  const ultimo = r.ultimoContato ? dataBR(r.ultimoContato) : '—';
   return (
     <Link className={`row ${primeira ? 'primeira' : ''}`} href={`/acompanhamento/ficha/${r.id}`}>
       <div className="cell-n">

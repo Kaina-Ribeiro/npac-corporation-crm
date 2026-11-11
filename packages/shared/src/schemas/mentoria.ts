@@ -16,6 +16,13 @@ import { STATUS_IMPORTACAO } from '../mentoria/importacao.js';
 import { linkPermitido } from '../mentoria/links.js';
 import { ENVIO_STATUS } from '../mentoria/onboarding.js';
 import { ACAO_STATUS, GATILHOS, PERFIS_ACAO, REUNIAO_TIPOS } from '../mentoria/plano.js';
+import {
+  CANAIS_CONTATO,
+  dataHoraValida,
+  mesValido,
+  PLATAFORMAS,
+  REUNIAO_STATUS,
+} from '../mentoria/reunioes.js';
 
 /** Vazio vira nulo: limpar um campo na tela apaga o valor. */
 const vazioNulo = (v: unknown) => (typeof v === 'string' && v.trim() === '' ? null : v);
@@ -303,3 +310,85 @@ export const perfilPutSchema = z
     admin: z.boolean(),
   })
   .strict();
+
+// Reuniões e contatos (Parte 4). Data e hora chegam como o `datetime-local` da tela, em Brasília.
+const dataHora = z.string().refine(dataHoraValida, 'Data e hora inválidas');
+const linkReuniao = opc(
+  z
+    .string()
+    .trim()
+    .max(2000)
+    .refine((v) => v.startsWith('https://'), 'Use um link que comece com https://'),
+);
+const usuarioId = z.string().min(1).max(100);
+const textoReuniao = texto(20_000);
+
+export const reuniaoCriarSchema = z
+  .object({
+    inscricaoId: z.uuid(),
+    tipo: z.enum(REUNIAO_TIPOS),
+    conduzidaPor: opc(usuarioId),
+    condutorInscricaoId: opc(z.uuid()),
+    inicio: dataHora,
+    duracaoMin: z.number().int().min(5).max(480).optional(),
+    plataforma: opc(z.enum(PLATAFORMAS)),
+    link: linkReuniao,
+  })
+  .strict();
+export type ReuniaoCriar = z.output<typeof reuniaoCriarSchema>;
+
+export const reuniaoPatchSchema = z
+  .object({
+    version,
+    status: z.enum(REUNIAO_STATUS).exclude(['REMARCADA']).optional(),
+    conduzidaPor: opc(usuarioId),
+    condutorInscricaoId: opc(z.uuid()),
+    duracaoMin: z.number().int().min(5).max(480).optional(),
+    plataforma: opc(z.enum(PLATAFORMAS)),
+    link: linkReuniao,
+    resumo: textoReuniao,
+    metas: textoReuniao,
+    combinado: textoReuniao,
+    cobrar: textoReuniao,
+    trava: textoReuniao,
+    anotacaoInterna: textoReuniao,
+    humor: opc(z.number().int().min(1).max(5)),
+    interesseRenovar: opc(z.boolean()),
+    /** "Próxima reunião" do registro: cria a próxima AGENDADA (mesmo tipo e condutor, se omitidos). */
+    proxima: z
+      .object({ inicio: dataHora, tipo: z.enum(REUNIAO_TIPOS).optional() })
+      .strict()
+      .optional(),
+  })
+  .strict();
+export type ReuniaoPatch = z.output<typeof reuniaoPatchSchema>;
+
+export const reuniaoRemarcarSchema = z.object({ version, inicio: dataHora }).strict();
+export type ReuniaoRemarcar = z.output<typeof reuniaoRemarcarSchema>;
+
+export const agendaSchema = z.object({ dia: data, condutorId: opc(usuarioId) }).strict();
+export type AgendaFiltro = z.output<typeof agendaSchema>;
+
+export const controleMensalSchema = z
+  .object({
+    mes: opc(z.string().refine(mesValido, 'Mês inválido')),
+    mentoria: opc(z.enum(MENTORIAS)),
+  })
+  .strict();
+export type ControleMensalFiltro = z.output<typeof controleMensalSchema>;
+
+export const semReuniaoSchema = z.object({ mentoria: opc(z.enum(MENTORIAS)) }).strict();
+export type SemReuniaoFiltro = z.output<typeof semReuniaoSchema>;
+
+export const contatoSchema = z
+  .object({
+    inscricaoId: z.uuid(),
+    quando: opc(dataHora),
+    canal: z.enum(CANAIS_CONTATO),
+    motivo: texto(200),
+    respondeu: opc(z.boolean()),
+    tempoRespostaMin: opc(z.number().int().min(0).max(100_000)),
+    observacao: texto(20_000),
+  })
+  .strict();
+export type ContatoCriar = z.output<typeof contatoSchema>;

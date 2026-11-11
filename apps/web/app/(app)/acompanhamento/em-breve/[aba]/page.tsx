@@ -3,11 +3,10 @@ import { EmBreve } from '@/components/acompanhamento/em-breve';
 
 export const metadata = { title: 'Em breve' };
 
-/** Fila, Plano e Reuniões saem daqui quando suas partes chegarem. */
+/** A Fila sai daqui quando a parte dela chegar. */
 const ABAS = new Set([
   'fila',
   'plano',
-  'reunioes',
   'pmes',
   'linha-do-tempo',
   'envios',

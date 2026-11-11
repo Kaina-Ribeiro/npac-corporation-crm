@@ -49,6 +49,7 @@ type LinhaBruta = {
   completar: boolean;
   pessoas: InscricaoItem['pessoas'];
   plano: InscricaoItem['plano'];
+  ultimo_contato: string | null;
 };
 
 const emItem = (r: LinhaBruta): InscricaoItem => ({
@@ -60,8 +61,7 @@ const emItem = (r: LinhaBruta): InscricaoItem => ({
   mesJornada: r.mes,
   responsavel:
     r.responsavel_id && r.responsavel ? { id: r.responsavel_id, nome: r.responsavel } : null,
-  // Reuniões e contatos chegam na Parte 4 (Tarefa 4.3).
-  ultimoContato: null,
+  ultimoContato: r.ultimo_contato,
   completar: r.completar,
   pessoas: r.pessoas,
   plano: r.plano,
@@ -163,7 +163,8 @@ export class InscricoesService {
            'feitas', count(*) filter (where a.status = 'FEITA'),
            'atrasadas', count(*) filter (where mentoria_acao_atrasada(a.status,
              a.anterior_ao_sistema, a.data_limite, ${HOJE})))
-         from mentoria_acoes a where a.inscricao_id = i.id) as plano
+         from mentoria_acoes a where a.inscricao_id = i.id) as plano,
+        to_char(mentoria_ultimo_contato(i.id), 'YYYY-MM-DD') as ultimo_contato
       from mentoria_inscricoes i
       join mentoria_pessoas p1 on p1.inscricao_id = i.id and p1.ordem = 1
       left join "user" u on u.id = i.responsavel_id

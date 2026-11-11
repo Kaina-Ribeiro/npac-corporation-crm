@@ -23,4 +23,5 @@ export * from './mentoria/field-queue.js';
 export * from './mentoria/onboarding.js';
 export * from './mentoria/importacao.js';
 export * from './mentoria/plano.js';
+export * from './mentoria/reunioes.js';
 export * from './reminders.js';
