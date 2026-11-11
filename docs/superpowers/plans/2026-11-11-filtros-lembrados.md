@@ -179,7 +179,7 @@ Tela: grava `view=<id>` ao abrir filtro salvo, os filtros (sem padrões) ao apli
 - [ ] **Step 4:** Rodar de novo → PASS; `pnpm --filter @npac/web e2e e2e/login.spec.ts -g "150 KB"` → PASS. Se passar de 150 KB: trocar `CsvExport` em `leads-browser.tsx` por `import()` sob demanda (só liderança usa), sem subir o limite.
 - [ ] **Step 5:** Commit `feat(NPAC-46): leads lembra filtros e aplica na hora`.
 
-### Task 4: Pipeline — Status: ⏳
+### Task 4: Pipeline — Status: ✅
 
 **Files:** Modify `apps/web/app/(app)/(comercial)/pipeline/page.tsx`, `apps/web/components/pipeline.tsx`; Test `e2e/preferencias.spec.ts`.
 

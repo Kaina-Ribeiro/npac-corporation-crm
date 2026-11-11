@@ -10,13 +10,28 @@ import type {
 } from '@npac/shared';
 import { INCOME_DISCOVERY_STAGE, TIER_LABELS } from '@npac/shared/enums';
 import { can } from '@npac/shared/permissions';
+import {
+  pipelineRules,
+  readLeadFilters,
+  readPipelinePrefs,
+  writePrefs,
+} from '@npac/shared/screen-prefs';
 import Link from 'next/link';
-import { useLayoutEffect, useRef, useState, type CSSProperties, type FormEvent } from 'react';
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type FormEvent,
+} from 'react';
 import { clientApi } from '@/lib/client-api';
 import { parseHidden, PIPE_COOKIE_PATH, serializeHidden } from '@/lib/pipeline-columns';
 import { stageNeedsFields, type StageFieldsBody } from '@/lib/stage-fields';
+import { keep, recall } from '@/lib/screen-memory';
+import { rememberPrefs } from '@/lib/screen-prefs';
 import { readPreference, savePreference } from '@/lib/user-cookie';
-import { button, control, FormError, quietButton, StageOptions } from './crm-ui';
+import { control, FormError, quietButton, StageOptions } from './crm-ui';
 import { LeadFilters, readFilters } from './lead-filters';
 import { PipelineColumnsEditor } from './pipeline-columns-editor';
 import { StageMoveDialog } from './stage-move-dialog';
@@ -30,6 +45,9 @@ export function Pipeline({
   role,
   cookie,
   initialHidden,
+  prefs,
+  initialFilters = {},
+  initialCol,
 }: {
   initial: PipelineDTO;
   catalog: LeadCatalog;
@@ -38,12 +56,17 @@ export function Pipeline({
   /** Cookie da pessoa com as colunas ocultas (pedido do Igor, 10/11/2026). */
   cookie: string;
   initialHidden: StageKey[];
+  /** Filtros lembrados (NPAC-46): cookie, valor que o servidor usou e se ele vence o cookie. */
+  prefs: { cookie: string; value: string; force: boolean };
+  initialFilters?: Record<string, string>;
+  /** Coluna aberta no celular. */
+  initialCol?: string;
   /** Liderança cria, renomeia, reordena e exclui colunas (pedido de 04/11/2026). */
   canEditColumns?: boolean;
 }) {
   const [columns, setColumns] = useState(initial);
   const canRegister = can({ role }, 'sale:register');
-  const [active, setActive] = useState<StageKey>('SONDAGEM');
+  const [active, setActive] = useState<StageKey>((initialCol as StageKey) ?? 'SONDAGEM');
   // Etapas vivas (o editor de colunas muda a lista) e as ocultas pela pessoa: coluna nova aparece.
   const [stages, setStages] = useState(catalog.stages);
   const [hidden, setHidden] = useState<StageKey[]>(initialHidden);
@@ -61,15 +84,30 @@ export function Pipeline({
     if (cookie) savePreference(cookie, serializeHidden(next), PIPE_COOKIE_PATH);
   }
   const [editing, setEditing] = useState(false);
-  const [filters, setFilters] = useState<Record<string, string>>({});
+  // Filtros aplicados; `search` é o texto buscado (só na memória, nunca no cookie).
+  const [filters, setFilters] = useState<Record<string, string>>(initialFilters);
+  const [formKey, setFormKey] = useState(0);
+  const qInput = useRef<HTMLInputElement>(null);
+  const seq = useRef(0);
+  const rules = pipelineRules(catalog);
+  /** Cookie: filtros sem padrões (intervalo só com as duas datas) + coluna aberta. */
+  function remember(f: Record<string, string>, col: string = active) {
+    const clean = readLeadFilters(writePrefs(f, rules), catalog);
+    rememberPrefs('pipeline', prefs.cookie, writePrefs({ ...clean, col }, rules));
+  }
+  const shownFilters = Object.fromEntries(Object.entries(filters).filter(([k]) => k !== 'search'));
+  const filtered = !!writePrefs(readLeadFilters(writePrefs(shownFilters, rules), catalog), rules);
   useCrmRefresh(() => load());
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   // Mudança que pede dados da etapa (NPAC-38): a janelinha pergunta antes de salvar.
   const [pending, setPending] = useState<{ lead: PipelineLead; target: string } | null>(null);
   async function load(selected = filters) {
+    const mine = ++seq.current;
     const fresh = await clientApi<PipelineDTO>('/api/leads/pipeline/search', 'POST', selected);
+    if (mine !== seq.current) return;
     setColumns(fresh);
+    if (prefs.cookie) keep(prefs.cookie, selected.search || undefined);
     setActive((old) =>
       fresh.some((c) => c.stage.key === old) ? old : (fresh[0]?.stage.key ?? old),
     );
@@ -105,10 +143,36 @@ export function Pipeline({
     });
     await load();
   }
-  async function submit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const f = new FormData(e.currentTarget);
-    const selected = { ...readFilters(f), search: String(f.get('q') ?? '') };
+  // Ao montar: voltar do navegador (cookie mais novo que a página) e texto buscado na memória.
+  const boot = useRef({ prefs, catalog, load, initialFilters });
+  useEffect(() => {
+    const { prefs, catalog, load, initialFilters } = boot.current;
+    if (!prefs.cookie) return;
+    const term = recall<string>(prefs.cookie);
+    let next: Record<string, string> = initialFilters;
+    let changed = false;
+    if (prefs.force) rememberPrefs('pipeline', prefs.cookie, prefs.value);
+    else {
+      const saved = readPreference(prefs.cookie) ?? '';
+      if (saved !== prefs.value) {
+        const { col, ...f } = readPipelinePrefs(saved, catalog);
+        const value = writePrefs({ ...f, col }, pipelineRules(catalog));
+        rememberPrefs('pipeline', prefs.cookie, value);
+        if (value !== prefs.value) {
+          next = f;
+          changed = true;
+          if (col) setActive(col as StageKey);
+          setFormKey((k) => k + 1);
+        }
+      }
+    }
+    if (term && qInput.current) qInput.current.value = term;
+    if (!changed && !term) return;
+    const selected = { ...next, ...(term ? { search: term } : {}) };
+    setFilters(selected);
+    void load(selected).catch((e: Error) => setError(e.message));
+  }, []);
+  async function run(selected: Record<string, string>) {
     setBusy(true);
     setError('');
     setFilters(selected);
@@ -119,6 +183,30 @@ export function Pipeline({
     } finally {
       setBusy(false);
     }
+  }
+  /** Texto da busca no Enter (telefone e e-mail só são achados inteiros). */
+  function submit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const f = new FormData(e.currentTarget);
+    const selected = readFilters(f);
+    if (selected.period === 'RANGE' && !(selected.from && selected.to)) return;
+    const search = String(f.get('q') ?? '').trim();
+    remember(selected);
+    void run({ ...selected, ...(search ? { search } : {}) });
+  }
+  /** Filtro vale ao escolher (NPAC-46), com o texto já buscado. */
+  function applyFilters() {
+    const el = document.getElementById('pipeline-search');
+    if (!(el instanceof HTMLFormElement)) return;
+    const selected = readFilters(new FormData(el));
+    if (selected.period === 'RANGE' && !(selected.from && selected.to)) return;
+    remember(selected);
+    void run({ ...selected, ...(filters.search ? { search: filters.search } : {}) });
+  }
+  function clearFilters() {
+    remember({});
+    setFormKey((k) => k + 1);
+    void run(filters.search ? { search: filters.search } : {});
   }
   async function more(stage: StageKey, page: number) {
     setBusy(true);
@@ -184,18 +272,25 @@ export function Pipeline({
           }}
         />
       )}
-      <form id="pipeline-search" onSubmit={submit} className="flex gap-2">
+      <form id="pipeline-search" role="search" onSubmit={submit} className="flex gap-2">
         <input
+          ref={qInput}
           name="q"
+          type="search"
+          enterKeyHint="search"
           className={control}
           aria-label="Buscar no Pipeline"
           placeholder="Nome, WhatsApp, @instagram ou e-mail"
         />
-        <button className={button} disabled={busy}>
-          Buscar
-        </button>
       </form>
-      <LeadFilters catalog={catalog} form="pipeline-search" />
+      <LeadFilters
+        key={formKey}
+        catalog={catalog}
+        form="pipeline-search"
+        values={shownFilters}
+        onApply={applyFilters}
+        onClear={filtered ? clearFilters : undefined}
+      />
       <details className="text-sm">
         <summary className="cursor-pointer font-semibold">Colunas visíveis</summary>
         <div className="mt-3 flex flex-wrap gap-3">
@@ -231,7 +326,10 @@ export function Pipeline({
           .map((c) => (
             <button
               key={c.stage.id}
-              onClick={() => setActive(c.stage.key)}
+              onClick={() => {
+                setActive(c.stage.key);
+                remember(shownFilters, c.stage.key);
+              }}
               aria-pressed={current === c.stage.key}
               className={`${quietButton} shrink-0 ${current === c.stage.key ? 'bg-[var(--on)]' : ''}`}
             >

@@ -92,6 +92,15 @@ export function readLeadFilters(raw: string | undefined, c: Catalog): Record<str
   return from && to ? { ...rest, period, from, to } : rest;
 }
 
+/** Pipeline: os filtros de Leads + a coluna aberta no celular. */
+export function pipelineRules(c: Catalog): PrefRules {
+  return { ...leadFilterRules(c), col: oneOf(c.stages.map((s) => s.key)) };
+}
+
+export function readPipelinePrefs(raw: string | undefined, c: Catalog): Record<string, string> {
+  return { ...readLeadFilters(raw, c), ...readPrefs(raw, { col: pipelineRules(c).col! }) };
+}
+
 /** Relatórios: os mesmos campos que o formulário mostra; mês até hoje é o padrão. */
 export function reportRules(c: Catalog, productIds: readonly string[]): PrefRules {
   return {

@@ -5,6 +5,7 @@ import {
   isoDate,
   oneOf,
   readLeadFilters,
+  readPipelinePrefs,
   readPrefs,
   readTabUrls,
   reportRules,
@@ -59,6 +60,14 @@ describe('screen-prefs', () => {
       sort: 'name',
       direction: 'asc',
     });
+  });
+
+  it('pipeline lembra a coluna do celular junto dos filtros', () => {
+    expect(readPipelinePrefs('col=SONDAGEM&tier=P0&period=RANGE', catalog)).toEqual({
+      tier: 'P0',
+      col: 'SONDAGEM',
+    });
+    expect(readPipelinePrefs('col=EXCLUIDA', catalog)).toEqual({});
   });
 
   it('relatório descarta mês (padrão), quem saiu e produto excluído', () => {
