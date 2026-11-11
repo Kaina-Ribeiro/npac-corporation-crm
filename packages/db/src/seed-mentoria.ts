@@ -5,8 +5,10 @@ import { eq, sql } from 'drizzle-orm';
 import type { Db } from './client.js';
 import {
   account,
+  mentoriaEnviosFisicos,
   mentoriaInscricoes,
   mentoriaMomentoInicial,
+  mentoriaOnboardingEtapas,
   mentoriaPerfis,
   mentoriaPessoas,
   user,
@@ -48,7 +50,56 @@ const INSCRICOES = [
     pessoas: ['Mentorada Fictícia 08', 'Mentorado Fictício 09'],
   },
   { n: 8, mentoria: 'RDV', status: 'CANCELADO', meses: null, pessoas: ['Mentorada Fictícia 10'] },
+  {
+    n: 9,
+    mentoria: 'RDV',
+    status: 'ONBOARDING',
+    meses: null,
+    pessoas: ['Mentorada Fictícia 11', 'Mentorado Fictício 12'],
+  },
+  { n: 10, mentoria: 'RDV', status: 'ONBOARDING', meses: null, pessoas: ['Mentorado Fictício 13'] },
+  { n: 11, mentoria: '6M', status: 'ONBOARDING', meses: null, pessoas: ['Mentorada Fictícia 14'] },
+  { n: 12, mentoria: 'RDV', status: 'ONBOARDING', meses: null, pessoas: ['Mentorado Fictício 15'] },
+  {
+    n: 13,
+    mentoria: 'RDV',
+    status: 'ONBOARDING',
+    meses: null,
+    pessoas: ['Mentorada Fictícia 16', 'Mentorado Fictício 17'],
+  },
+  { n: 14, mentoria: 'RDV', status: 'ONBOARDING', meses: null, pessoas: ['Mentorado Fictício 18'] },
 ] as const;
+
+const ETAPAS_SEED = [
+  'BOAS_VINDAS',
+  'GRUPOS',
+  'AQUECIMENTO',
+  'PME_AQUECIMENTO',
+  'CAIXA',
+  'IDR',
+] as const;
+
+/**
+ * Onde cada inscrição em onboarding está: `feitas` passos de mensagem concluídos, o seguinte
+ * enviado há `enviadaHa` dias (se houver), formulário preenchido e situação da Caixa.
+ */
+const ONBOARDING: Record<
+  number,
+  {
+    feitas: number;
+    enviadaHa?: number;
+    formulario?: boolean;
+    caixa?: { status: 'ENVIADO' | 'ENTREGUE'; enviadaHa: number };
+  }
+> = {
+  4: { feitas: 0 },
+  9: { feitas: 0, enviadaHa: 5 },
+  10: { feitas: 1, formulario: true },
+  11: { feitas: 2, enviadaHa: 1, formulario: true },
+  12: { feitas: 3, enviadaHa: 6, formulario: true, caixa: { status: 'ENVIADO', enviadaHa: 25 } },
+  13: { feitas: 4, formulario: true },
+  14: { feitas: 4, formulario: true, caixa: { status: 'ENTREGUE', enviadaHa: 12 } },
+};
 
 /** Ids fixos: repetir o seed não duplica, e o e2e abre a ficha direto. */
 export const seedInscricaoId = (n: number) =>
@@ -151,6 +202,41 @@ export async function seedMentoria(db: Db): Promise<void> {
           guardadoCentavos: 420_000,
           travadoEm: sql`now()`,
           travadoPor: duda,
+          criadoPor: duda,
+        });
+
+      const o = i.status === 'ONBOARDING' ? ONBOARDING[i.n] : undefined;
+      const haDias = (d: number) => sql`now() - make_interval(days => ${d})`;
+      await tx.insert(mentoriaOnboardingEtapas).values(
+        ETAPAS_SEED.map((etapa, k) => {
+          const base = { inscricaoId: id, etapa, criadoPor: duda };
+          if (!o) return { ...base, status: 'ANTERIOR_AO_SISTEMA' };
+          const formulario = k === 0 && o.formulario ? { formularioPreenchido: true } : {};
+          if (k >= 4) return { ...base, status: 'PENDENTE' };
+          if (k < o.feitas)
+            return {
+              ...base,
+              ...formulario,
+              status: 'CONCLUIDA',
+              enviadaEm: haDias(4),
+              concluidaEm: haDias(2),
+            };
+          if (k === o.feitas && o.enviadaHa !== undefined)
+            return { ...base, ...formulario, status: 'ENVIADA', enviadaEm: haDias(o.enviadaHa) };
+          return { ...base, ...formulario, status: 'PENDENTE' };
+        }),
+      );
+      if (o?.caixa)
+        await tx.insert(mentoriaEnviosFisicos).values({
+          inscricaoId: id,
+          tipo: 'CAIXA',
+          status: o.caixa.status,
+          enviadoEm: sql`(now() at time zone 'America/Sao_Paulo')::date - ${o.caixa.enviadaHa}::int`,
+          entregueEm:
+            o.caixa.status === 'ENTREGUE'
+              ? sql`(now() at time zone 'America/Sao_Paulo')::date - 1`
+              : null,
+          rastreio: 'BR000000000FI',
           criadoPor: duda,
         });
     }

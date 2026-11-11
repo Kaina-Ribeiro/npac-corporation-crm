@@ -19,4 +19,6 @@ export * from './mentoria/json-backup.js';
 export * from './mentoria/legado.js';
 export * from './mentoria/dto.js';
 export * from './mentoria/field-queue.js';
+export * from './mentoria/onboarding.js';
+export * from './mentoria/importacao.js';
 export * from './reminders.js';

@@ -381,3 +381,177 @@ describe('demais tabelas', () => {
     expect(r.length).toBe(0);
   });
 });
+
+describe('onboarding e envios', () => {
+  const etapa = async (nome: string) => {
+    const [e] = await owner<{ id: string }[]>`
+      insert into mentoria_onboarding_etapas (inscricao_id, etapa)
+      values (${inscricao}, ${nome}) returning id`;
+    return e!.id;
+  };
+  const statusDe = async (id: string) =>
+    (
+      await owner<{ status: string }[]>`
+      select status from mentoria_onboarding_etapas where id = ${id}`
+    )[0]!.status;
+  const atualizar = (usuario: string, id: string, status: string) =>
+    withUser(db, usuario, (tx) =>
+      tx.execute(
+        sql`update mentoria_onboarding_etapas set status = ${status} where id = ${id}::uuid`,
+      ),
+    );
+  const novoEnvio = (usuario: string, status = 'PREPARANDO', enviado: string | null = null) =>
+    withUser(db, usuario, (tx) =>
+      tx.execute(sql`insert into mentoria_envios_fisicos
+        (inscricao_id, tipo, status, enviado_em, criado_por)
+        values (${inscricao}, 'CAIXA', ${status}, ${enviado}, ${usuario})`),
+    );
+
+  it('Operação edita a etapa de mensagem', async () => {
+    const id = await etapa('GRUPOS');
+    await atualizar(OPERACAO, id, 'ENVIADA');
+    expect(await statusDe(id)).toBe('ENVIADA');
+  });
+
+  it('Especialista, Mentor e sem perfil não veem nem editam', async () => {
+    const id = await etapa('GRUPOS');
+    for (const u of [MANU, LEO, SEM_PERFIL, SDR]) {
+      const r = await um<{ n: number }>(
+        u,
+        sql`select count(*)::int as n from mentoria_onboarding_etapas`,
+      );
+      expect(r.n).toBe(0);
+      await atualizar(u, id, 'ENVIADA');
+      expect(await statusDe(id)).toBe('PENDENTE');
+    }
+  });
+
+  it('Especialista não cria etapa nem envio', async () => {
+    const err = await pgError(
+      withUser(db, MANU, (tx) =>
+        tx.execute(sql`insert into mentoria_onboarding_etapas (inscricao_id, etapa)
+          values (${inscricao}, 'GRUPOS')`),
+      ),
+    );
+    expect(err.code).toBe('42501');
+    expect((await pgError(novoEnvio(MANU))).code).toBe('42501');
+  });
+
+  it('npac_app não apaga etapa nem envio', async () => {
+    await etapa('GRUPOS');
+    for (const t of ['mentoria_onboarding_etapas', 'mentoria_envios_fisicos']) {
+      const err = await pgError(
+        withUser(db, DUDA, (tx) => tx.execute(sql.raw(`delete from ${t}`))),
+      );
+      expect(err.code).toBe('42501');
+    }
+  });
+
+  it('npac_app não troca a etapa nem a inscrição da linha', async () => {
+    const id = await etapa('GRUPOS');
+    const err = await pgError(
+      withUser(db, DUDA, (tx) =>
+        tx.execute(
+          sql`update mentoria_onboarding_etapas set etapa = 'CAIXA' where id = ${id}::uuid`,
+        ),
+      ),
+    );
+    expect(err.code).toBe('42501');
+  });
+
+  it('CAIXA e IDR só aceitam DISPENSADA à mão, nem Admin passa', async () => {
+    await owner`update mentoria_inscricoes set mentoria = '2M' where id = ${inscricao}`;
+    for (const nome of ['CAIXA', 'IDR']) {
+      const id = await etapa(nome);
+      expect((await pgError(atualizar(DUDA, id, 'CONCLUIDA'))).code).toBe('22023');
+      await atualizar(DUDA, id, 'DISPENSADA');
+      expect(await statusDe(id)).toBe('DISPENSADA');
+    }
+  });
+
+  it('datas de CAIXA e IDR não mudam à mão', async () => {
+    const id = await etapa('CAIXA');
+    const err = await pgError(
+      withUser(db, DUDA, (tx) =>
+        tx.execute(
+          sql`update mentoria_onboarding_etapas set enviada_em = now() where id = ${id}::uuid`,
+        ),
+      ),
+    );
+    expect(err.code).toBe('22023');
+  });
+
+  it('RDV recusa dispensar no banco', async () => {
+    const id = await etapa('GRUPOS');
+    expect((await pgError(atualizar(DUDA, id, 'DISPENSADA'))).code).toBe('22023');
+  });
+
+  it('CAIXA não nasce concluída por INSERT direto', async () => {
+    const err = await pgError(
+      withUser(db, DUDA, (tx) =>
+        tx.execute(sql`insert into mentoria_onboarding_etapas (inscricao_id, etapa, status)
+          values (${inscricao}, 'CAIXA', 'CONCLUIDA')`),
+      ),
+    );
+    expect(err.code).toBe('22023');
+  });
+
+  it('o envio move a etapa CAIXA, mesmo com o npac_app sem poder fazer isso à mão', async () => {
+    const id = await etapa('CAIXA');
+    await novoEnvio(OPERACAO, 'ENVIADO', '2026-11-01');
+    expect(await statusDe(id)).toBe('ENVIADA');
+  });
+
+  it('o envio não ressuscita etapa dispensada', async () => {
+    await owner`update mentoria_inscricoes set mentoria = '2M' where id = ${inscricao}`;
+    const id = await etapa('CAIXA');
+    await atualizar(DUDA, id, 'DISPENSADA');
+    await novoEnvio(DUDA, 'ENVIADO', '2026-11-01');
+    expect(await statusDe(id)).toBe('DISPENSADA');
+  });
+
+  it('uma Caixa por inscrição', async () => {
+    await novoEnvio(DUDA);
+    expect((await pgError(novoEnvio(DUDA))).code).toBe('23505');
+  });
+
+  it('envio ENTREGUE exige as datas', async () => {
+    const err = await pgError(
+      withUser(db, DUDA, (tx) =>
+        tx.execute(sql`insert into mentoria_envios_fisicos (inscricao_id, tipo, status, enviado_em)
+          values (${inscricao}, 'CAIXA', 'ENTREGUE', '2026-11-01')`),
+      ),
+    );
+    expect(err.code).toBe('23514');
+  });
+
+  it('dias parado contam da base; etapa sem envio não tem base', async () => {
+    const id = await etapa('GRUPOS');
+    const vazia = await um<{ b: string | null }>(
+      DUDA,
+      sql`select mentoria_onboarding_base(${id}::uuid) as b`,
+    );
+    expect(vazia.b).toBeNull();
+    await owner`update mentoria_onboarding_etapas set enviada_em = '2026-11-01T12:00:00Z'
+      where id = ${id}`;
+    const r = await um<{ igual: boolean }>(
+      DUDA,
+      sql`select mentoria_onboarding_base(${id}::uuid) = '2026-11-01T12:00:00Z'::timestamptz as igual`,
+    );
+    expect(r.igual).toBe(true);
+  });
+
+  it('completar_campos é editável; importacao_chave não muda depois de gravada', async () => {
+    await withUser(db, DUDA, (tx) =>
+      tx.execute(sql`update mentoria_inscricoes set completar_campos = '{}'
+        where id = ${inscricao}::uuid`),
+    );
+    const err = await pgError(
+      withUser(db, DUDA, (tx) =>
+        tx.execute(sql`update mentoria_inscricoes set importacao_chave = 'x'
+          where id = ${inscricao}::uuid`),
+      ),
+    );
+    expect(err.code).toBe('42501');
+  });
+});

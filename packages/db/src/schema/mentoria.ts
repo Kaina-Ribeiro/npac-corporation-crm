@@ -17,6 +17,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
   type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
@@ -76,10 +77,25 @@ export const mentoriaInscricoes = pgTable(
     errosPme1ConcluidosEm: timestamp('erros_pme1_concluidos_em', { withTimezone: true }),
     fotoFamiliaMidiaId: uuid('foto_familia_midia_id'),
     importada: boolean('importada').notNull().default(false),
+    /** Nome normalizado de quando foi importada: reimportar não duplica, mesmo se a equipe renomear. */
+    importacaoChave: text('importacao_chave'),
+    /** Todas as formas do nome nas fontes, para reimportar sem a decisão de juntar não duplicar. */
+    importacaoApelidos: text('importacao_apelidos')
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    /** Campos do momento inicial que vieram ilegíveis da importação; só nomes, nunca valores. */
+    completarCampos: text('completar_campos')
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
     version: integer('version').notNull().default(1),
     ...autoria,
   },
   (t) => [
+    uniqueIndex('mentoria_inscricoes_importacao_chave')
+      .on(t.importacaoChave)
+      .where(sql`${t.importacaoChave} is not null`),
     check('mentoria_inscricoes_tipo', sql`${t.tipo} in ('INDIVIDUAL', 'CASAL')`),
     check('mentoria_inscricoes_mentoria', sql`${t.mentoria} in ('RDV', '2M', '6M')`),
     check('mentoria_inscricoes_variante', sql`char_length(${t.mentoriaVariante}) <= 80`),
@@ -297,6 +313,80 @@ export const mentoriaLegado = pgTable(
     importadoEm: timestamp('importado_em', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [check('mentoria_legado_dados', sql`octet_length(${t.dados}) <= 2000000`)],
+);
+
+/**
+ * Etapas do onboarding, seis por inscrição. CAIXA e IDR são derivadas: a CAIXA segue o envio
+ * físico (gatilho) e a IDR, a reunião; a única escrita manual nelas é DISPENSADA.
+ */
+export const mentoriaOnboardingEtapas = pgTable(
+  'mentoria_onboarding_etapas',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    inscricaoId: uuid('inscricao_id')
+      .notNull()
+      .references(() => mentoriaInscricoes.id, { onDelete: 'cascade' }),
+    etapa: text('etapa').notNull(),
+    status: text('status').notNull().default('PENDENTE'),
+    enviadaEm: timestamp('enviada_em', { withTimezone: true }),
+    concluidaEm: timestamp('concluida_em', { withTimezone: true }),
+    grupoCriadoEm: date('grupo_criado_em'),
+    formularioPreenchido: boolean('formulario_preenchido'),
+    grupoAvisos: boolean('grupo_avisos'),
+    grupoClube: boolean('grupo_clube'),
+    grupoNacao: boolean('grupo_nacao'),
+    aulasConcluidas: boolean('aulas_concluidas'),
+    aulasConcluidasEm: date('aulas_concluidas_em'),
+    version: integer('version').notNull().default(1),
+    ...autoria,
+  },
+  (t) => [
+    unique('mentoria_onboarding_etapa_unica').on(t.inscricaoId, t.etapa),
+    check(
+      'mentoria_onboarding_etapa',
+      sql`${t.etapa} in ('BOAS_VINDAS', 'GRUPOS', 'AQUECIMENTO', 'PME_AQUECIMENTO', 'CAIXA', 'IDR')`,
+    ),
+    check(
+      'mentoria_onboarding_status',
+      sql`${t.status} in ('PENDENTE', 'ENVIADA', 'CONCLUIDA', 'DISPENSADA', 'ANTERIOR_AO_SISTEMA')`,
+    ),
+  ],
+);
+
+/** Envios físicos. A Fase 1 usa só a CAIXA, uma por inscrição. */
+export const mentoriaEnviosFisicos = pgTable(
+  'mentoria_envios_fisicos',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    inscricaoId: uuid('inscricao_id')
+      .notNull()
+      .references(() => mentoriaInscricoes.id, { onDelete: 'cascade' }),
+    tipo: text('tipo').notNull(),
+    status: text('status').notNull().default('PREPARANDO'),
+    enviadoEm: date('enviado_em'),
+    rastreio: text('rastreio'),
+    entregueEm: date('entregue_em'),
+    version: integer('version').notNull().default(1),
+    ...autoria,
+  },
+  (t) => [
+    uniqueIndex('mentoria_envios_caixa_unica')
+      .on(t.inscricaoId)
+      .where(sql`${t.tipo} = 'CAIXA'`),
+    index('mentoria_envios_inscricao').on(t.inscricaoId),
+    check(
+      'mentoria_envios_tipo',
+      sql`${t.tipo} in ('CAIXA', 'PRESENTE_FAMILIA', 'KIT', 'CERTIFICADO')`,
+    ),
+    check('mentoria_envios_status', sql`${t.status} in ('PREPARANDO', 'ENVIADO', 'ENTREGUE')`),
+    check('mentoria_envios_rastreio', sql`char_length(${t.rastreio}) <= 120`),
+    check('mentoria_envios_enviado', sql`${t.status} = 'PREPARANDO' or ${t.enviadoEm} is not null`),
+    check(
+      'mentoria_envios_entregue',
+      sql`${t.status} <> 'ENTREGUE' or ${t.entregueEm} is not null`,
+    ),
+    check('mentoria_envios_ordem', sql`${t.entregueEm} >= ${t.enviadoEm}`),
+  ],
 );
 
 /**

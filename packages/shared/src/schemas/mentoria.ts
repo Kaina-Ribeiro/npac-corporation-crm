@@ -12,7 +12,9 @@ import {
   TIPOS_AVALIACAO,
   TIPOS_INSCRICAO,
 } from '../mentoria/enums.js';
+import { STATUS_IMPORTACAO } from '../mentoria/importacao.js';
 import { linkPermitido } from '../mentoria/links.js';
+import { ENVIO_STATUS } from '../mentoria/onboarding.js';
 
 /** Vazio vira nulo: limpar um campo na tela apaga o valor. */
 const vazioNulo = (v: unknown) => (typeof v === 'string' && v.trim() === '' ? null : v);
@@ -160,6 +162,79 @@ export const avaliacaoSchema = z
   })
   .strict();
 export type AvaliacaoPut = z.output<typeof avaliacaoSchema>;
+
+export const etapaPatchSchema = z
+  .object({
+    version,
+    status: z.enum(['ENVIADA', 'CONCLUIDA']).optional(),
+    grupoCriadoEm: data,
+    formularioPreenchido: opc(z.boolean()),
+    grupoAvisos: opc(z.boolean()),
+    grupoClube: opc(z.boolean()),
+    grupoNacao: opc(z.boolean()),
+    aulasConcluidas: opc(z.boolean()),
+    aulasConcluidasEm: data,
+  })
+  .strict();
+export type EtapaPatch = z.output<typeof etapaPatchSchema>;
+
+export const etapaDispensarSchema = z.object({ version }).strict();
+
+export const caixaSchema = z
+  .object({
+    version: versionPut,
+    status: z.enum(ENVIO_STATUS),
+    enviadoEm: data,
+    rastreio: texto(120),
+    entregueEm: data,
+  })
+  .strict();
+export type CaixaPut = z.output<typeof caixaSchema>;
+
+const registrosImportados = z.array(z.unknown()).max(25_000).optional();
+
+const decisoesSchema = z
+  .object({
+    rotulos: z.record(z.string().max(500), z.enum(MENTORIAS)).optional(),
+    casais: z
+      .record(
+        z.string().max(500),
+        z
+          .object({
+            pessoa1: nomePessoa,
+            pessoa2: z.preprocess(vazioNulo, z.string().trim().max(200).nullable()),
+          })
+          .strict(),
+      )
+      .optional(),
+    parecidos: z.record(z.string().max(1100), z.enum(['JUNTAR', 'SEPARAR'])).optional(),
+    status: z.record(z.string().max(500), z.enum(STATUS_IMPORTACAO)).optional(),
+  })
+  .strict();
+
+export const importarCarteiraSchema = z
+  .object({
+    gerenciador: z
+      .object({
+        dashboard: registrosImportados,
+        linhaDoTempo: registrosImportados,
+        rdv: registrosImportados,
+      })
+      .strict()
+      .optional(),
+    planilhaBase64: z.string().max(27_000_000).optional(),
+    decisoes: decisoesSchema.optional(),
+  })
+  .strict()
+  .refine(
+    (b) =>
+      !!b.planilhaBase64 ||
+      !!b.gerenciador?.dashboard?.length ||
+      !!b.gerenciador?.linhaDoTempo?.length ||
+      !!b.gerenciador?.rdv?.length,
+    'Envie ao menos um arquivo',
+  );
+export type ImportarCarteira = z.output<typeof importarCarteiraSchema>;
 
 export const anotacaoSchema = z
   .object({ texto: z.string().trim().min(1, 'Escreva a anotação').max(20_000) })

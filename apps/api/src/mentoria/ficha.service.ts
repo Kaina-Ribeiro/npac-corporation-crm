@@ -4,26 +4,32 @@ import {
   mentoriaAnotacoes,
   mentoriaAvaliacoes,
   mentoriaEnderecos,
+  mentoriaEnviosFisicos,
   mentoriaHistorico,
   mentoriaInscricoes,
   mentoriaMomentoInicial,
+  mentoriaOnboardingEtapas,
   mentoriaPessoas,
   user,
   withUser,
   type Db,
   type Tx,
 } from '@npac/db';
-import type {
-  AuthUser,
-  AvaliacaoDTO,
-  AvaliacaoPut,
-  EnderecoDTO,
-  EnderecoPut,
-  FichaDTO,
-  HistoricoItem,
-  MomentoDTO,
-  MomentoPut,
-  PessoaDTO,
+import {
+  ETAPAS,
+  type AuthUser,
+  type AvaliacaoDTO,
+  type AvaliacaoPut,
+  type CaixaDTO,
+  type EnderecoDTO,
+  type EnderecoPut,
+  type Etapa,
+  type EtapaDTO,
+  type FichaDTO,
+  type HistoricoItem,
+  type MomentoDTO,
+  type MomentoPut,
+  type PessoaDTO,
 } from '@npac/shared';
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import { DB } from '../common/db/db.module.js';
@@ -68,11 +74,22 @@ export class FichaService {
       .select()
       .from(mentoriaMomentoInicial)
       .where(eq(mentoriaMomentoInicial.inscricaoId, id));
+    const etapas = await tx
+      .select()
+      .from(mentoriaOnboardingEtapas)
+      .where(eq(mentoriaOnboardingEtapas.inscricaoId, id));
+    const [caixa] = await tx
+      .select()
+      .from(mentoriaEnviosFisicos)
+      .where(
+        and(eq(mentoriaEnviosFisicos.inscricaoId, id), eq(mentoriaEnviosFisicos.tipo, 'CAIXA')),
+      );
     const [extra] = await tx.execute<{
       mes: number | null;
       inscricao: boolean;
       momento: boolean;
       anotacao: boolean;
+      onboarding: boolean;
       admin: boolean;
       travado_por: string | null;
     }>(sql`
@@ -80,6 +97,7 @@ export class FichaService {
         mentoria_edita('INSCRICAO', ${id}::uuid) as inscricao,
         mentoria_edita('MOMENTO', ${id}::uuid) as momento,
         mentoria_edita('ANOTACAO', ${id}::uuid) as anotacao,
+        mentoria_edita('ONBOARDING', ${id}::uuid) as onboarding,
         mentoria_admin() as admin,
         (select name from "user" where id = ${momento?.travadoPor ?? null}) as travado_por`);
 
@@ -176,10 +194,38 @@ export class FichaService {
       pessoas: pessoasDto,
       endereco: enderecoDto,
       momento: momentoDto,
+      onboarding: etapas
+        .sort((a, b) => ETAPAS.indexOf(a.etapa as Etapa) - ETAPAS.indexOf(b.etapa as Etapa))
+        .map((e): EtapaDTO => ({
+          id: e.id,
+          etapa: e.etapa as Etapa,
+          status: e.status as EtapaDTO['status'],
+          version: e.version,
+          enviadaEm: e.enviadaEm?.toISOString() ?? null,
+          concluidaEm: e.concluidaEm?.toISOString() ?? null,
+          grupoCriadoEm: e.grupoCriadoEm,
+          formularioPreenchido: e.formularioPreenchido,
+          grupoAvisos: e.grupoAvisos,
+          grupoClube: e.grupoClube,
+          grupoNacao: e.grupoNacao,
+          aulasConcluidas: e.aulasConcluidas,
+          aulasConcluidasEm: e.aulasConcluidasEm,
+        })),
+      caixa: caixa
+        ? {
+            version: caixa.version,
+            status: caixa.status as CaixaDTO['status'],
+            enviadoEm: caixa.enviadoEm,
+            rastreio: caixa.rastreio,
+            entregueEm: caixa.entregueEm,
+          }
+        : null,
+      completarCampos: i.completarCampos,
       pode: {
         inscricao: extra?.inscricao === true,
         momento: extra?.momento === true,
         anotacao: extra?.anotacao === true,
+        onboarding: extra?.onboarding === true,
         admin: extra?.admin === true,
       },
     };
@@ -263,6 +309,15 @@ export class FichaService {
               )
               .returning({ version: mentoriaMomentoInicial.version });
       if (!r) throw conflitoDeVersao();
+      // Campo preenchido sai da lista "completar a ficha". Sem version: não briga com outro PATCH.
+      const preenchidos = Object.entries(numeros)
+        .filter(([, v]) => v !== null && v !== undefined)
+        .map(([k]) => k);
+      if (preenchidos.length)
+        await tx.execute(sql`update mentoria_inscricoes set completar_campos = array(
+            select unnest(completar_campos)
+            except select unnest(${sql.param(preenchidos)}::text[]))
+          where id = ${id}::uuid and cardinality(completar_campos) > 0`);
       await registrarHistorico(tx, id, 'momento.editado', Object.keys(campos));
       return r;
     }).catch((e) => erroDoBanco(e));

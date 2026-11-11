@@ -5,7 +5,8 @@ import { useEffect, useState } from 'react';
 /**
  * Liga a fila de salvamento (T5 do SPEC) à API. Usa `fetch` direto (não o `clientApi`) para ler o
  * status do 409. Uma fila por aba; nada vai para storage. Chaves do registro:
- * `inscricao:<id>`, `pessoa:<inscricaoId>:<pessoaId>`, `endereco:<id>`, `momento:<id>` e
+ * `inscricao:<id>`, `pessoa:<inscricaoId>:<pessoaId>`, `etapa:<inscricaoId>:<etapaId>`,
+ * `endereco:<id>`, `momento:<id>` e
  * `avaliacao:<pessoaId>:<tipo>` (esta sem version: uma coluna por envio, não colide).
  */
 type Alvo = { url: string; method: 'PATCH' | 'PUT'; corpo: (v: number) => object };
@@ -23,6 +24,8 @@ function alvo(key: string): Alvo {
       return { url: `${base}/inscricoes/${a}/endereco`, method: 'PUT', corpo: comVersion };
     case 'momento':
       return { url: `${base}/inscricoes/${a}/momento`, method: 'PUT', corpo: comVersion };
+    case 'etapa':
+      return { url: `${base}/onboarding/${b}`, method: 'PATCH', corpo: comVersion };
     case 'avaliacao':
       return { url: `${base}/pessoas/${a}/avaliacoes`, method: 'PUT', corpo: () => ({ tipo: b }) };
     default:
@@ -62,11 +65,13 @@ async function recarregar(key: string) {
   const linha =
     tipo === 'pessoa'
       ? ficha.pessoas.find((p) => p.id === b)
-      : tipo === 'endereco'
-        ? ficha.endereco
-        : tipo === 'momento'
-          ? ficha.momento
-          : ficha;
+      : tipo === 'etapa'
+        ? ficha.onboarding.find((e) => e.id === b)
+        : tipo === 'endereco'
+          ? ficha.endereco
+          : tipo === 'momento'
+            ? ficha.momento
+            : ficha;
   return {
     version: linha?.version ?? 0,
     valores: (linha ?? {}) as unknown as Record<string, unknown>,

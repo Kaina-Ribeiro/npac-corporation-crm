@@ -3,7 +3,7 @@ import { PERFIL_LABEL } from '@npac/shared/mentoria';
 import Link from 'next/link';
 import { SignOutButton } from '@/components/shell/sign-out-button';
 import { ICONES, Icone } from '@/components/acompanhamento/ui';
-import { lerEu, sessaoDoModulo, ultimaFicha } from '@/lib/acompanhamento';
+import { lerEu, podeCadastrar, sessaoDoModulo, ultimaFicha } from '@/lib/acompanhamento';
 
 export const metadata = { title: 'Mais' };
 
@@ -92,11 +92,15 @@ export default async function MaisPage() {
             href: '/acompanhamento/ficha',
             sub: ultima ? `Última aberta: ${ultima.nome}` : undefined,
           },
-          {
-            rotulo: 'Onboarding',
-            icone: ICONES.onboarding,
-            href: '/acompanhamento/em-breve/onboarding',
-          },
+          ...(podeCadastrar(eu)
+            ? [
+                {
+                  rotulo: 'Onboarding',
+                  icone: ICONES.onboarding,
+                  href: '/acompanhamento/onboarding',
+                },
+              ]
+            : []),
           {
             rotulo: 'Plano dos 12 meses',
             icone: ICONES.plano,
