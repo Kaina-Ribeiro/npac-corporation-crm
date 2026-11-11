@@ -1,6 +1,9 @@
 import type { IncomeBand, LeadSource, LostReason, StageKey, Tier } from './enums.js';
 
-/** Lead como a API devolve (telefone já decifrado; só para quem pode ver o lead). */
+/**
+ * Lead como a API devolve (telefone já decifrado; só para quem pode ver o lead). Para o SDR,
+ * `paymentAmountCents` e `paymentEntryCents` vêm sempre nulos: SDR não vê R$ de venda.
+ */
 export type LeadDTO = {
   id: string;
   name: string;
@@ -21,6 +24,10 @@ export type LeadDTO = {
   paymentAmountCents: number | null;
   /** Pagamento parcial (NPAC-41): entrada já paga; o restante vence em `nextContactAt`. */
   paymentEntryCents: number | null;
+  /** "Já pagou uma entrada" (item 13): o SDR marca sim/não; `paymentEntryCents` é do closer. */
+  paymentEntryPaid: boolean;
+  /** Em Agendou Pagamento com produto e sem valor: o closer ainda completa (item 13, 3A). */
+  paymentToComplete: boolean;
   /** Sem Perfil: motivo e o texto de "Outro". */
   lostReason: LostReason | null;
   lostReasonOther: string | null;
@@ -71,7 +78,14 @@ export type MeetingDTO = {
 };
 export type PipelineLead = Pick<
   LeadDTO,
-  'id' | 'name' | 'tier' | 'stageKey' | 'version' | 'nextContactAt' | 'saleToRegister'
+  | 'id'
+  | 'name'
+  | 'tier'
+  | 'stageKey'
+  | 'version'
+  | 'nextContactAt'
+  | 'saleToRegister'
+  | 'paymentToComplete'
 >;
 export type PipelineDTO = {
   stage: LeadCatalog['stages'][number];

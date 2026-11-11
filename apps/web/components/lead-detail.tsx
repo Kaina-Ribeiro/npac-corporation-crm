@@ -25,6 +25,7 @@ import {
 } from '@/lib/stage-fields';
 import { button, control, Field, FormError, quietButton, StageOptions } from './crm-ui';
 import { LeadForm } from './lead-form';
+import { PaymentComplete } from './payment-complete';
 import { StageFields } from './stage-fields';
 import { FinancePanel } from './finance-panel';
 import { useCrmRefresh } from './shell/live-updates';
@@ -56,6 +57,7 @@ const EVENT_LABEL: Record<string, string> = {
   'sale.registered': 'Venda registrada',
   'sale.pending': 'Venda a registrar (aviso ao closer)',
   'sale.reversed': 'Venda estornada',
+  'payment.pending': 'Pagamento a completar (aviso ao closer)',
   'payment.received': 'Pagamento recebido',
 };
 
@@ -112,12 +114,17 @@ export function LeadDetail({
   useCrmRefresh(() => router.refresh());
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  async function mutate(path: string, method: string, body: object) {
+  async function mutate(
+    path: string,
+    method: string,
+    body: object,
+    after: () => void = () => router.refresh(),
+  ) {
     setBusy(true);
     setError('');
     try {
       await clientApi(path, method, body);
-      router.refresh();
+      after();
       return true;
     } catch (e) {
       setError((e as Error).message);
@@ -161,6 +168,14 @@ export function LeadDetail({
   const soldProduct = products.find((p) => p.id === lead.soldProductId);
   // Pagamento parcial (NPAC-41): entrada já paga; o restante vence na data combinada.
   const entry = lead.paymentAmountCents ? lead.paymentEntryCents : null;
+  // Item 13: quem completa é o closer escolhido pelo SDR, ou a liderança.
+  const canComplete = lead.paymentToComplete && (isLeader(me.role) || lead.closer?.id === me.id);
+  // Closer que só vê o lead pelo Agendou Pagamento o perde ao tirá-lo da etapa: volta ao Pipeline.
+  const keepsLead =
+    me.role !== 'CLOSER' ||
+    meetings.some((m) => m.closerId === me.id && !m.canceledAt) ||
+    Boolean(deals?.some((d) => !d.reversedAt));
+  const afterMove = () => (keepsLead ? router.refresh() : router.push('/pipeline'));
   function move(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     let body;
@@ -168,16 +183,18 @@ export function LeadDetail({
       body = readStageFields(moveTo, new FormData(e.currentTarget), {
         changed: true,
         withMeeting: !openMeeting,
+        role: me.role,
       });
     } catch (err) {
       setError((err as Error).message);
       return;
     }
-    void mutate(`/api/leads/${lead.id}`, 'PATCH', {
-      version: lead.version,
-      stageKey: moveTo,
-      ...body,
-    }).then((ok) => {
+    void mutate(
+      `/api/leads/${lead.id}`,
+      'PATCH',
+      { version: lead.version, stageKey: moveTo, ...body },
+      afterMove,
+    ).then((ok) => {
       if (ok) setMoveTo('');
     });
   }
@@ -204,6 +221,25 @@ export function LeadDetail({
                 </a>
               ) : (
                 <span className="text-xs text-ink2">O closer da reunião registra a venda.</span>
+              )}
+            </div>
+          )}
+          {lead.paymentToComplete && (
+            // O SDR informou produto e closer (item 13, 3A): falta o closer pôr valor e data.
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <span className="sale-pending">Pagamento a completar</span>
+              {payment && (
+                <span className="text-sm">
+                  Produto: <strong>{payment.name}</strong>
+                </span>
+              )}
+              {lead.closer && (
+                <span className="text-sm">
+                  Closer: <strong>{lead.closer.name}</strong>
+                </span>
+              )}
+              {lead.paymentEntryPaid && (
+                <span className="text-xs text-ink2">Já pagou uma entrada</span>
               )}
             </div>
           )}
@@ -235,6 +271,14 @@ export function LeadDetail({
         </div>
       </div>
       <FormError message={error} />
+      {canComplete && (
+        <PaymentComplete
+          key={lead.version}
+          lead={lead}
+          product={payment}
+          onDone={() => router.refresh()}
+        />
+      )}
       {/* Primeiro bloco da ficha (pedido do Igor, 10/11/2026): os dados à mão, sem rolar a página. */}
       {me.role !== 'CLOSER' && (
         <details className="glass-card p-5">
@@ -263,10 +307,12 @@ export function LeadDetail({
               else if (stageNeedsFields(target)) setMoveTo(target);
               else {
                 setMoveTo('');
-                void mutate(`/api/leads/${lead.id}`, 'PATCH', {
-                  version: lead.version,
-                  stageKey: target,
-                });
+                void mutate(
+                  `/api/leads/${lead.id}`,
+                  'PATCH',
+                  { version: lead.version, stageKey: target },
+                  afterMove,
+                );
               }
             }}
             disabled={busy}
@@ -319,6 +365,19 @@ export function LeadDetail({
                   : lead.lostReason
                     ? LOST_REASON_LABELS[lead.lostReason]
                     : 'não informado'}
+              </>
+            ) : lead.paymentToComplete ? (
+              <>
+                {canComplete
+                  ? 'Falta informar o valor e a data.'
+                  : 'Aguardando o closer informar o valor e a data.'}
+              </>
+            ) : lead.stageKey === 'AGENDOU_PAGAMENTO' && me.role === 'SDR' ? (
+              // SDR não vê R$ nem a data combinada (item 13).
+              <>
+                {payment ? `Produto: ${payment.name}` : 'Produto não informado'}
+                {lead.closer && ` · Closer: ${lead.closer.name}`}
+                {lead.paymentEntryPaid && ' · já pagou uma entrada'}
               </>
             ) : (
               <>

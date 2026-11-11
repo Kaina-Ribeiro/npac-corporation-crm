@@ -20,6 +20,7 @@ const VERB: Record<string, string> = {
   'sale.registered': 'registrou a venda de',
   'sale.pending': 'pediu o registro da venda de',
   'sale.reversed': 'estornou a venda de',
+  'payment.pending': 'pediu para completar o pagamento de',
   'payment.received': 'recebeu um pagamento de',
 };
 

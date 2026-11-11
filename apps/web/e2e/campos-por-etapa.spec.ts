@@ -40,22 +40,11 @@ test('cadastro em Agendado Direto pede a reunião e a cria junto com o lead', as
   // No-Show: só muda o rótulo.
   await stage.selectOption('NO_SHOW');
   await expect(page.getByLabel('Tentar remarcar em (Brasília)', { exact: true })).toBeVisible();
-  // Agendou Pagamento: data + produto + valor, que começa com o preço do produto.
+  // Agendou Pagamento, pelo SDR: caixa, produto e closer; valor e data ficam com o closer.
   await stage.selectOption('AGENDOU_PAGAMENTO');
-  const product = page.getByLabel('Produto', { exact: true });
-  await product.selectOption({ index: 1 });
-  const products = (await (await page.request.get('/api/finance/products')).json()) as {
-    id: string;
-    priceCents: number;
-  }[];
-  const productId = await product.inputValue();
-  const chosen = products.find((p) => p.id === productId);
-  await expect(page.getByLabel('Valor combinado (R$)', { exact: true })).toHaveValue(
-    (chosen!.priceCents / 100).toFixed(2).replace('.', ','),
-  );
-  await expect(
-    page.getByLabel('Data combinada do pagamento (Brasília)', { exact: true }),
-  ).toBeVisible();
+  await expect(page.getByLabel('Produto', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Closer', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Valor combinado (R$)', { exact: true })).toHaveCount(0);
   // Sem Perfil: motivo, com a caixa de texto só no Outro.
   await stage.selectOption('PERDIDO');
   await expect(page.getByLabel('Motivo', { exact: true })).toBeVisible();
@@ -97,7 +86,7 @@ test('cadastro em Agendado Direto pede a reunião e a cria junto com o lead', as
   expect(m?.origin).toBe('DIRETO');
 });
 
-test('ficha: Sem Perfil + Outro exige o texto; Agendou Pagamento pede data, produto e valor', async ({
+test('ficha: Sem Perfil + Outro exige o texto; Agendou Pagamento do SDR pede produto e closer', async ({
   page,
 }) => {
   await login(page, 'ale@npac.com.br');
@@ -106,7 +95,8 @@ test('ficha: Sem Perfil + Outro exige o texto; Agendou Pagamento pede data, prod
   const move = page.getByLabel('Mover para', { exact: true });
   await move.selectOption('AGENDOU_PAGAMENTO');
   await expect(page.getByLabel('Produto', { exact: true })).toBeVisible();
-  await expect(page.getByLabel('Valor combinado (R$)', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Closer', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Valor combinado (R$)', { exact: true })).toHaveCount(0);
   await page.getByLabel('Produto', { exact: true }).selectOption({ index: 1 });
   for (const w of WIDTHS) {
     await page.setViewportSize({ width: w, height: 900 });
@@ -149,7 +139,9 @@ test('pipeline e lista: mudar para etapa com dados abre a janelinha; cancelar de
   const dialog = page.getByRole('dialog', { name: `Mover ${name} para Agendou Pagamento 💳` });
   await expect(dialog).toBeVisible();
   await dialog.getByLabel('Produto', { exact: true }).selectOption({ index: 1 });
-  await expect(dialog.getByLabel('Valor combinado (R$)', { exact: true })).not.toHaveValue('');
+  // O closer vem do produto; o SDR não vê valor.
+  await expect(dialog.getByLabel('Closer', { exact: true })).not.toHaveValue('');
+  await expect(dialog.getByLabel('Valor combinado (R$)', { exact: true })).toHaveCount(0);
   await dialog.getByRole('button', { name: 'Cancelar', exact: true }).click();
   await expect(dialog).toHaveCount(0);
   // O card continua na etapa antiga.
@@ -174,23 +166,29 @@ test('pipeline e lista: mudar para etapa com dados abre a janelinha; cancelar de
     });
     await meeting.getByRole('button', { name: 'Cancelar', exact: true }).click();
     await expect(select).toHaveValue('SONDAGEM');
+    // Agendou Pagamento pelo SDR: caixa, produto e closer.
+    await select.selectOption('AGENDOU_PAGAMENTO');
+    await expect(dialog.getByLabel('Closer', { exact: true })).toBeVisible();
+    await page.screenshot({
+      path: `test-results/pagamento-sdr-janelinha-${w}.png`,
+      animations: 'disabled',
+    });
+    await dialog.getByRole('button', { name: 'Cancelar', exact: true }).click();
+    await expect(select).toHaveValue('SONDAGEM');
   }
   await page.setViewportSize({ width: 1440, height: 900 });
 
   await select.selectOption('AGENDOU_PAGAMENTO');
-  await dialog
-    .getByLabel('Data combinada do pagamento (Brasília)', { exact: true })
-    .fill('2030-04-01T10:00');
   await dialog.getByLabel('Produto', { exact: true }).selectOption({ index: 1 });
-  await dialog.getByLabel('Valor combinado (R$)', { exact: true }).fill('1234,50');
   await dialog.getByRole('button', { name: 'Mover', exact: true }).click();
   await expect(dialog).toHaveCount(0);
-  await expect(
-    page.getByRole('region', { name: 'Agendou Pagamento 💳' }).getByText(name, { exact: true }),
-  ).toBeVisible();
-  const [row] = await owner<{ cents: number }[]>`
-    select payment_amount_cents as cents from leads where name = ${name}`;
-  expect(row?.cents).toBe(123450);
+  const paymentColumn = page.getByRole('region', { name: 'Agendou Pagamento 💳' });
+  await expect(paymentColumn.getByText(name, { exact: true })).toBeVisible();
+  await expect(paymentColumn.getByText('Pagamento a completar', { exact: true })).toBeVisible();
+  const [row] = await owner<{ cents: number | null; closer: string | null }[]>`
+    select payment_amount_cents as cents, closer_id as closer from leads where name = ${name}`;
+  expect(row?.cents).toBeNull();
+  expect(row?.closer).toBeTruthy();
 
   // Lista: a célula também abre a janelinha; a ação em massa não oferece Agendados nem Pagamento.
   await page.goto('/leads');
@@ -232,8 +230,9 @@ test('Agendou Pagamento parcial (NPAC-41): entrada e data do restante até o reg
   page,
   browser,
 }) => {
-  await login(page, 'ale@npac.com.br');
+  await login(page, 'ronaldo@npac.com.br');
   await page.goto('/leads/new');
+  await page.getByLabel('SDR responsável', { exact: true }).selectOption({ label: 'Ale' });
   await page.getByLabel('Nome', { exact: true }).fill('Lead com entrada');
   await page.getByLabel('Instagram', { exact: true }).fill('@lead.entrada');
   await page.getByLabel('Faixa de renda', { exact: true }).selectOption('R8_15K');
@@ -312,4 +311,121 @@ test('Agendou Pagamento parcial (NPAC-41): entrada e data do restante até o reg
     animations: 'disabled',
   });
   await ctx.close();
+});
+
+test('item 13: SDR informa produto e closer; o closer completa na ficha e registra', async ({
+  page,
+  browser,
+}) => {
+  await login(page, 'ale@npac.com.br');
+  await page.goto('/leads/new');
+  await page.getByLabel('Nome', { exact: true }).fill('Lead pagamento do SDR');
+  await page.getByLabel('Instagram', { exact: true }).fill('@lead.pagamento.sdr');
+  await page.getByLabel('Faixa de renda', { exact: true }).selectOption('R8_15K');
+  await page.getByLabel('Origem', { exact: true }).selectOption('BIO');
+  await page.getByLabel('Etapa', { exact: true }).selectOption('AGENDOU_PAGAMENTO');
+  // Só caixa, produto (sem R$) e closer.
+  await expect(page.getByLabel('Valor combinado (R$)', { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel('Entrada já paga (R$)', { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel(/Data combinada/)).toHaveCount(0);
+  await page.getByLabel('Já pagou uma entrada').check();
+  await expect(page.getByLabel('Entrada já paga (R$)', { exact: true })).toHaveCount(0);
+  const product = page.getByLabel('Produto', { exact: true });
+  const options = await product.locator('option').allTextContents();
+  expect(options.join(' ')).not.toContain('R$');
+  const sonias = options.find((t) => t.includes('Sônia'))!;
+  await product.selectOption({ label: sonias.trim() });
+  const closer = page.getByLabel('Closer', { exact: true });
+  await expect(closer.locator('option:checked')).toHaveText('Sônia');
+  for (const w of WIDTHS) {
+    await page.setViewportSize({ width: w, height: 900 });
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    ).toBe(true);
+    await page.screenshot({
+      path: `test-results/pagamento-sdr-cadastro-${w}.png`,
+      fullPage: true,
+      animations: 'disabled',
+    });
+  }
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.getByRole('button', { name: 'Cadastrar lead', exact: true }).click();
+  await page.waitForURL(/\/leads\/[0-9a-f-]{36}$/);
+  const id = page.url().split('/').pop()!;
+  await expect(page.getByText('Pagamento a completar', { exact: true })).toBeVisible();
+  await expect(page.getByText(/Closer: Sônia/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Completar pagamento', exact: true })).toHaveCount(
+    0,
+  );
+  expect(await page.locator('main').innerText()).not.toContain('R$');
+  for (const w of WIDTHS) {
+    await page.setViewportSize({ width: w, height: 900 });
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    ).toBe(true);
+    await page.screenshot({
+      path: `test-results/pagamento-sdr-ficha-${w}.png`,
+      animations: 'disabled',
+    });
+  }
+
+  // O closer não tem reunião com o lead: vê pelo closer escolhido, com aviso e formulário.
+  const ctx = await browser.newContext();
+  const closerPage = await ctx.newPage();
+  await login(closerPage, 'sonia@npac.com.br');
+  await closerPage.goto('/pipeline');
+  const column = closerPage.getByRole('region', { name: 'Agendou Pagamento 💳' });
+  await expect(column.getByText('Lead pagamento do SDR', { exact: true })).toBeVisible();
+  await expect(column.getByText('Pagamento a completar', { exact: true })).toBeVisible();
+  for (const w of WIDTHS) {
+    await closerPage.setViewportSize({ width: w, height: 900 });
+    if (w < 768) await closerPage.getByRole('button', { name: /^Agendou Pagamento/ }).click();
+    await expect(column.getByText('Pagamento a completar', { exact: true })).toBeVisible();
+    expect(
+      await closerPage.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    ).toBe(true);
+    await closerPage.screenshot({
+      path: `test-results/pagamento-closer-pipeline-${w}.png`,
+      animations: 'disabled',
+    });
+  }
+  await closerPage.setViewportSize({ width: 1280, height: 900 });
+  await closerPage.goto(`/leads/${id}`);
+  const form = closerPage.getByRole('form', { name: 'Completar pagamento' });
+  await expect(form.getByLabel('Já pagou uma entrada')).toBeChecked();
+  await expect(form.getByLabel('Valor combinado (R$)', { exact: true })).not.toHaveValue('');
+  const due = spInput(new Date(Date.now() + 12 * 86_400_000));
+  await form.getByLabel('Data combinada para o restante (Brasília)', { exact: true }).fill(due);
+  await form.getByLabel('Valor combinado (R$)', { exact: true }).fill('3000');
+  await form.getByLabel('Entrada já paga (R$)', { exact: true }).fill('1000');
+  for (const w of WIDTHS) {
+    await closerPage.setViewportSize({ width: w, height: 900 });
+    expect(
+      await closerPage.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    ).toBe(true);
+    await closerPage.screenshot({
+      path: `test-results/pagamento-closer-ficha-${w}.png`,
+      animations: 'disabled',
+    });
+  }
+  await closerPage.setViewportSize({ width: 1280, height: 900 });
+  await form.getByRole('button', { name: 'Completar pagamento', exact: true }).click();
+  await expect(closerPage.getByText('Pagamento a completar', { exact: true })).toHaveCount(0);
+  await expect(
+    closerPage.getByText(/entrada de R\$\s1\.000,00 paga, faltam R\$\s2\.000,00/),
+  ).toBeVisible();
+
+  // A venda parte do que foi informado.
+  await closerPage.getByRole('button', { name: 'Registrar venda', exact: true }).click();
+  const sale = closerPage.getByRole('form', { name: 'Registrar venda' });
+  await sale.getByRole('button', { name: 'Continuar venda', exact: true }).click();
+  await expect(sale.getByLabel('Forma de pagamento', { exact: true })).toHaveValue('PARTIAL');
+  await expect(sale.getByLabel('Entrada recebida (R$)', { exact: true })).toHaveValue('1000.00');
+  await expect(sale.getByLabel('Parcela 1 (R$)', { exact: true })).toHaveValue('2000.00');
+  await ctx.close();
+
+  // Para o SDR, o selo some e os R$ continuam fora.
+  await page.reload();
+  await expect(page.getByText('Pagamento a completar', { exact: true })).toHaveCount(0);
+  expect(await page.locator('main').innerText()).not.toContain('R$');
 });

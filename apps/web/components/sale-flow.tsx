@@ -25,8 +25,13 @@ export function SaleFlow({
     products.find((p) => p.id === id && (me.role !== 'CLOSER' || p.closerId === me.id));
   const agreed = mine(lead.paymentProductId);
   const sold = agreed ? undefined : mine(lead.soldProductId);
+  // O combinado vale mesmo se o produto for de outro closer (o SDR pode trocar o closer: item 13).
+  const agreedCents = lead.paymentAmountCents;
   // Pagamento parcial (NPAC-41): entrada já paga + o restante na data combinada, se ainda futura.
-  const entryCents = agreed && lead.paymentAmountCents ? lead.paymentEntryCents : null;
+  const entryCents = agreedCents ? lead.paymentEntryCents : null;
+  // O SDR marcou "já pagou" e o closer ainda não informou quanto: abre em Parcial, sem o valor.
+  const partial = Boolean(entryCents) || lead.paymentEntryPaid;
+  const start = agreed ?? sold;
   const restDue =
     lead.nextContactAt && new Date(lead.nextContactAt).getTime() > Date.now()
       ? toBrasiliaInput(lead.nextContactAt)
@@ -34,17 +39,17 @@ export function SaleFlow({
   const [step, setStep] = useState(0),
     [productId, setProductId] = useState(agreed?.id ?? sold?.id ?? ''),
     [total, setTotal] = useState(
-      agreed && lead.paymentAmountCents
-        ? (lead.paymentAmountCents / 100).toFixed(2)
-        : sold
-          ? (sold.priceCents / 100).toFixed(2)
+      agreedCents
+        ? (agreedCents / 100).toFixed(2)
+        : start
+          ? ((start.priceCents ?? 0) / 100).toFixed(2)
           : '',
     ),
-    [method, setMethod] = useState(entryCents ? 'PARTIAL' : 'PIX'),
-    [entry, setEntry] = useState(entryCents ? (entryCents / 100).toFixed(2) : '0');
+    [method, setMethod] = useState(partial ? 'PARTIAL' : 'PIX'),
+    [entry, setEntry] = useState(entryCents ? (entryCents / 100).toFixed(2) : partial ? '' : '0');
   const [parts, setParts] = useState([
-      entryCents && lead.paymentAmountCents
-        ? { amount: ((lead.paymentAmountCents - entryCents) / 100).toFixed(2), due: restDue }
+      entryCents && agreedCents
+        ? { amount: ((agreedCents - entryCents) / 100).toFixed(2), due: restDue }
         : { amount: '', due: '' },
     ]),
     [busy, setBusy] = useState(false),
@@ -117,7 +122,8 @@ export function SaleFlow({
               onChange={(e) => {
                 setProductId(e.target.value);
                 const p = products.find((p) => p.id === e.target.value);
-                if (p) setTotal((p.priceCents / 100).toFixed(2));
+                // Com o valor combinado, trocar o produto não apaga o que foi acertado.
+                if (p && !agreedCents) setTotal(((p.priceCents ?? 0) / 100).toFixed(2));
               }}
             >
               <option value="">Escolha</option>
@@ -125,7 +131,7 @@ export function SaleFlow({
                 .filter((p) => me.role !== 'CLOSER' || p.closerId === me.id)
                 .map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.name} — {p.closerName} — {money(p.priceCents)}
+                    {p.name} — {p.closerName} — {money(p.priceCents ?? 0)}
                   </option>
                 ))}
             </select>

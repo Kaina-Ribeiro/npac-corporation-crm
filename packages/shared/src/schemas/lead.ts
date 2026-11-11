@@ -92,6 +92,9 @@ export const stageFieldsShape = {
    * combinada. `null` apaga (deixou de ser parcial).
    */
   paymentEntryCents: z.number().int().positive().nullable().optional(),
+  /** Só o SDR (item 13): closer que completa o pagamento e "já pagou uma entrada" (sim/não). */
+  paymentCloserId: z.string().min(1).optional(),
+  paymentEntryPaid: z.boolean().optional(),
   /** Sem Perfil: motivo; "Outro" pede o texto. */
   lostReason: z.enum(LOST_REASONS).optional(),
   lostReasonOther: z.preprocess(

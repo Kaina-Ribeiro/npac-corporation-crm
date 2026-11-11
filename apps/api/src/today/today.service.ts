@@ -52,7 +52,11 @@ export class TodayService {
           })
           .from(leads)
           .innerJoin(pipelineStages, eq(pipelineStages.id, leads.stageId));
-      const open = notInArray(pipelineStages.key, ['VENDA', 'PERDIDO']);
+      // O pagamento combinado é do closer (item 13): não entra no Hoje do SDR.
+      const open = notInArray(
+        pipelineStages.key,
+        u.role === 'SDR' ? ['VENDA', 'PERDIDO', 'AGENDOU_PAGAMENTO'] : ['VENDA', 'PERDIDO'],
+      );
       // Atrasado = já passou da hora (não só de ontem): o contato de hoje vencido sobe sozinho.
       const now = new Date();
       const overdue = await base()

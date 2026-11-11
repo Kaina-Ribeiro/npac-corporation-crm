@@ -87,6 +87,7 @@ export function StageMoveDialog({
       body = readStageFields(stage, new FormData(e.currentTarget), {
         changed: true,
         withMeeting: !meeting,
+        role,
       });
     } catch (err) {
       setError((err as Error).message);
