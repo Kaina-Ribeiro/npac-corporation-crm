@@ -302,6 +302,13 @@
       "when": 1794349353826,
       "tag": "0042_mentorias_m",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1794355963178,
+      "tag": "0043_pagamento_sdr",
+      "breakpoints": true
     }
   ]
 }

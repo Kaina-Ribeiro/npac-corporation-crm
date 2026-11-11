@@ -295,6 +295,11 @@ export function Pipeline({
                       )}
                     </div>
                   )}
+                  {l.paymentToComplete && (
+                    <div className="mt-2">
+                      <span className="sale-pending">Pagamento a completar</span>
+                    </div>
+                  )}
                   <p className="my-2 text-xs text-ink2">
                     {l.nextContactAt
                       ? new Date(l.nextContactAt).toLocaleDateString('pt-BR', {

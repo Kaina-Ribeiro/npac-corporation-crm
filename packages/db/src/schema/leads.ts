@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import {
   type AnyPgColumn,
+  boolean,
   check,
   customType,
   date,
@@ -53,6 +54,8 @@ export const leads = pgTable(
     paymentAmountCents: integer('payment_amount_cents'),
     /** Agendou Pagamento parcial (NPAC-41): entrada já paga; o restante vence em `next_contact_at`. */
     paymentEntryCents: integer('payment_entry_cents'),
+    /** "Já pagou uma entrada": o SDR só marca sim/não; o valor quem informa é o closer (item 13). */
+    paymentEntryPaid: boolean('payment_entry_paid').notNull().default(false),
     /**
      * Venda a registrar (NPAC-41): produto vendido informado no cadastro em Venda Fechada, sem
      * valores (o closer registra). Apagado quando a venda é registrada ou o lead sai da Venda.
@@ -85,10 +88,11 @@ export const leads = pgTable(
       'leads_source_other_check',
       sql`${t.sourceOther} is null or (${t.source} = 'OUTRO' and char_length(${t.sourceOther}) between 1 and 80)`,
     ),
-    // Produto e valor andam juntos; a etapa (FK) o CHECK não enxerga: essa regra fica na API.
+    // O valor exige produto; produto sem valor é o pagamento a completar (o SDR informa só o
+    // produto). A etapa (FK) o CHECK não enxerga: essa regra fica na API.
     check(
       'leads_payment_check',
-      sql`(${t.paymentProductId} is null) = (${t.paymentAmountCents} is null) and (${t.paymentAmountCents} is null or ${t.paymentAmountCents} > 0)`,
+      sql`${t.paymentAmountCents} is null or (${t.paymentProductId} is not null and ${t.paymentAmountCents} > 0)`,
     ),
     // A entrada só existe com o valor combinado, e fica abaixo dele.
     check(

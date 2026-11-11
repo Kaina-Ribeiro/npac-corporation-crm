@@ -33,6 +33,7 @@ import { LeadsRepository } from './leads.repository.js';
 import type { RequestMeta } from './leads.service.js';
 import {
   assertIncomeStage,
+  PAYMENT_COMPLETION_FIELDS,
   resolveStageFields,
   STAGE_DATA_FIELDS,
   timelineField,
@@ -109,9 +110,19 @@ export class LeadMutationsService {
       if (stageChanged || input.incomeBand)
         assertIncomeStage(input.incomeBand ?? old.incomeBand, target);
       // Closer move a etapa e, junto com a troca, grava os dados dela (pagamento, motivo, data).
-      // Reunião nova ele não agenda (RLS e permissão `meeting:schedule`).
+      // Reunião nova ele não agenda (RLS e permissão `meeting:schedule`). Sem trocar a etapa, só
+      // o closer do lead completa o pagamento que o SDR informou (item 13).
+      const completing =
+        !stageChanged &&
+        target === 'AGENDOU_PAGAMENTO' &&
+        old.closerId === u.id &&
+        old.paymentProductId !== null &&
+        old.paymentAmountCents === null &&
+        input.paymentAmountCents !== undefined &&
+        keys.every((k) => (PAYMENT_COMPLETION_FIELDS as readonly string[]).includes(k));
       if (
         u.role === 'CLOSER' &&
+        !completing &&
         keys.some(
           (k) =>
             k !== 'stageKey' &&
@@ -172,12 +183,16 @@ export class LeadMutationsService {
         changed: stageChanged,
         input,
         old: old as StageState,
+        role: u.role,
+        closerId: old.closerId,
+        leavingPayment: stageChanged && current!.key === 'AGENDOU_PAGAMENTO',
       });
       for (const [key, value] of Object.entries(stage.values) as [keyof StageState, unknown][]) {
         if (sameValue(value, old[key])) continue;
         Object.assign(patch, { [key]: value });
         if (!fields.includes(timelineField(key))) fields.push(timelineField(key));
       }
+      if (stage.closerId && stage.closerId !== old.closerId) patch.closerId = stage.closerId;
       if (input.phone !== undefined) {
         patch.phoneBidx = phoneBidx;
         patch.phoneEnc = input.phone ? this.crypto.encrypt(input.phone) : null;
@@ -189,14 +204,19 @@ export class LeadMutationsService {
         patch.tier = TIER_BY_INCOME_BAND[input.incomeBand];
         fields.push('tier');
       }
-      await tx.update(leads).set(patch).where(eq(leads.id, id));
       const kind =
         fields.includes('sdrId') || fields.includes('closerId')
           ? 'lead.reassigned'
           : fields.includes('stageKey') && fields.every((f) => MOVE_FIELDS.has(f))
             ? 'lead.moved'
             : 'lead.updated';
-      await recordActivity(tx, u, id, kind, fields, undefined, meta);
+      // Closer sem reunião perde o lead ao tirá-lo de Agendou Pagamento, e a timeline só aceita
+      // lead visível: ele registra antes. Os demais depois, para o aviso ir ao dono novo.
+      if (u.role === 'CLOSER') await recordActivity(tx, u, id, kind, fields, undefined, meta);
+      await tx.update(leads).set(patch).where(eq(leads.id, id));
+      if (u.role !== 'CLOSER') await recordActivity(tx, u, id, kind, fields, undefined, meta);
+      if (stage.notifyCloser)
+        await recordActivity(tx, u, id, 'payment.pending', [], undefined, meta);
       // Mesma transação: se a reunião falhar, a etapa não muda.
       if (stage.meeting) await scheduleMeeting(tx, u, { leadId: id, ...stage.meeting });
       return { id, version: old.version + 1, scheduled: Boolean(stage.meeting) };
@@ -216,6 +236,15 @@ export class LeadMutationsService {
       throw new BadRequestException('Informe a próxima ação');
     return withUser(this.db, u.id, async (tx) => {
       const old = await lockLead(tx, id, input.version);
+      // A data do pagamento combinado é do closer e da liderança (item 13).
+      if (u.role === 'SDR') {
+        const [stage] = await tx
+          .select({ key: pipelineStages.key })
+          .from(pipelineStages)
+          .where(eq(pipelineStages.id, old.stageId));
+        if (stage?.key === 'AGENDOU_PAGAMENTO')
+          throw new ForbiddenException('A data do pagamento fica com o closer.');
+      }
       const nextContactAt = input.action === 'RESCHEDULED' ? input.at! : null;
       await tx
         .update(leads)

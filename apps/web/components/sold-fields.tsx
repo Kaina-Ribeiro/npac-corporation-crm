@@ -88,7 +88,7 @@ export function SoldFields({
             setProductId(e.target.value);
             const p = products.find((x) => x.id === e.target.value);
             // O valor da venda começa com o preço do produto e pode ser editado.
-            if (p && canRegister) setTotal(centsInput(p.priceCents));
+            if (p && canRegister) setTotal(centsInput(p.priceCents ?? 0));
           }}
         >
           <option value="" disabled>
@@ -101,7 +101,7 @@ export function SoldFields({
           {closerProducts.map((p) => (
             <option key={p.id} value={p.id}>
               {/* SDR vê só o nome (NPAC-41): os valores o closer põe ao registrar a venda. */}
-              {canRegister ? `${p.name} — ${money(p.priceCents)}` : p.name}
+              {canRegister ? `${p.name} — ${money(p.priceCents ?? 0)}` : p.name}
             </option>
           ))}
         </select>
@@ -123,7 +123,7 @@ export function SoldFields({
               onChange={(e) => {
                 setRegister(e.target.checked);
                 const p = products.find((x) => x.id === productId);
-                if (e.target.checked && p && !total) setTotal(centsInput(p.priceCents));
+                if (e.target.checked && p && !total) setTotal(centsInput(p.priceCents ?? 0));
               }}
             />
             <span className="flex flex-col">

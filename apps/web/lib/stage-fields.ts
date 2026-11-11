@@ -1,4 +1,4 @@
-import type { LostReason } from '@npac/shared/enums';
+import type { LostReason, Role } from '@npac/shared/enums';
 import { parseCents } from '@npac/shared/money';
 import { brasiliaInput } from './client-api';
 import { stageFieldsKind } from './stage-kind';
@@ -7,7 +7,8 @@ export { stageFieldsKind, stageNeedsFields, type StageFieldsKind } from './stage
 
 /**
  * Campos por etapa (NPAC-38): Agendados pedem a reunião, Agendou Pagamento pede data + produto +
- * valor, Sem Perfil pede o motivo. A API cobra só na troca de etapa (409 com mensagem).
+ * valor (o SDR, só produto e closer: item 13), Sem Perfil pede o motivo. A API cobra só na troca
+ * de etapa (409 com mensagem).
  * Sem 'use client': só funções, usadas pelo componente `StageFields` e pelas janelinhas.
  */
 /** Rótulo do próximo contato conforme a etapa. */
@@ -27,6 +28,9 @@ export type StageFieldsBody = {
   paymentAmountCents?: number;
   /** Pagamento parcial (NPAC-41): entrada já paga; `null` = não é parcial (no PATCH, apaga). */
   paymentEntryCents?: number | null;
+  /** Só o SDR (item 13): closer que completa e "já pagou uma entrada". */
+  paymentCloserId?: string;
+  paymentEntryPaid?: boolean;
   lostReason?: LostReason;
   lostReasonOther?: string;
 };
@@ -37,6 +41,7 @@ export const SF = {
   meetingAt: 'sf_meeting_at',
   meetingCloser: 'sf_meeting_closer',
   product: 'sf_product',
+  closer: 'sf_closer',
   amount: 'sf_amount',
   partial: 'sf_partial',
   entry: 'sf_entry',
@@ -47,12 +52,13 @@ export const SF = {
 /**
  * Lê os campos da etapa do formulário. `changed`: a etapa vai mudar (ou é o cadastro); só então os
  * dados são obrigatórios (lead antigo na etapa sem os dados continua editável, 3A). `withMeeting`:
- * a troca é para um Agendado sem reunião marcada. Lança `Error` com a mensagem para o usuário.
+ * a troca é para um Agendado sem reunião marcada. `role`: o SDR só informa produto e closer.
+ * Lança `Error` com a mensagem para o usuário.
  */
 export function readStageFields(
   stage: string,
   form: FormData,
-  { changed, withMeeting }: { changed: boolean; withMeeting: boolean },
+  { changed, withMeeting, role }: { changed: boolean; withMeeting: boolean; role: Role },
 ): StageFieldsBody {
   const get = (name: string) => String(form.get(name) ?? '').trim();
   const kind = stageFieldsKind(stage);
@@ -66,19 +72,31 @@ export function readStageFields(
       throw new Error('Escolha um horário futuro para a reunião.');
     return { meeting: { scheduledAt, closerId } };
   }
+  if (kind === 'PAYMENT' && role === 'SDR') {
+    const product = get(SF.product);
+    const closer = get(SF.closer);
+    // Depois que o closer completou o SDR não vê os campos: nada a enviar.
+    if (!changed && !product && !closer) return {};
+    if (!product || !closer) throw new Error('Informe o produto e o closer.');
+    return {
+      paymentProductId: product,
+      paymentCloserId: closer,
+      paymentEntryPaid: form.get(SF.partial) === 'on',
+    };
+  }
   if (kind === 'PAYMENT') {
     const next = get(SF.next);
     const product = get(SF.product);
     const amount = get(SF.amount);
     if (changed && (!next || !product || !amount))
       throw new Error('Informe a data combinada, o produto e o valor.');
-    if (Boolean(product) !== Boolean(amount))
-      throw new Error('Informe o produto e o valor combinados.');
+    if (amount && !product) throw new Error('Informe o produto e o valor combinados.');
     const body: StageFieldsBody = { nextContactAt: brasiliaInput(next) ?? null };
-    if (product) {
+    if (product) body.paymentProductId = product;
+    // Sem valor é o pagamento a completar do SDR: quem edita outro campo não apaga a marca dele.
+    if (amount) {
       const cents = parseCents(amount);
       if (cents <= 0) throw new Error('Informe um valor maior que zero.');
-      body.paymentProductId = product;
       body.paymentAmountCents = cents;
       // Pagamento parcial (NPAC-41): a entrada já paga fica entre zero e o valor combinado.
       if (form.get(SF.partial) === 'on') {
