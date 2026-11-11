@@ -18,6 +18,7 @@ import { useEffect, useRef, useState } from 'react';
 import { button, control, quietButton } from '@/components/crm-ui';
 import { clientApi } from '@/lib/client-api';
 import { filaDeSalvamento, registrarVersion } from '@/lib/acompanhamento-saver';
+import { EVENTO_ULTIMA_FICHA } from '@/lib/ultima-ficha';
 import { CampoPr, DINHEIRO } from './campo';
 import { Dialogo } from './dialogo';
 import { OnboardingFicha } from './etapa-card';
@@ -510,7 +511,8 @@ export function Ficha({
 
   useEffect(() => {
     document.cookie = `${COOKIE_ULTIMA_FICHA}=${ficha.id}; Path=/acompanhamento; Max-Age=2592000; SameSite=Lax`;
-  }, [ficha.id]);
+    window.dispatchEvent(new CustomEvent(EVENTO_ULTIMA_FICHA, { detail: ficha.nome }));
+  }, [ficha.id, ficha.nome]);
 
   useEffect(() => {
     registrarVersion(`inscricao:${ficha.id}`, ficha.version);

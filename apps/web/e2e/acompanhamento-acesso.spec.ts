@@ -40,6 +40,8 @@ const MODULOS = [
   'Renovações e gestão',
   'Configurações',
 ];
+/** Na barra lateral, "Ficha do mentorado" ganha uma 2ª linha: para onde o item leva. */
+const NA_LATERAL = MODULOS.map((m) => (m === 'Ficha do mentorado' ? /^Ficha do mentorado/ : m));
 const ENTRADA = /\/acompanhamento\/fila/;
 const titulo = (page: Page) => page.getByRole('heading', { name: 'Fila do dia', exact: true });
 const tituloMentorados = (page: Page) =>
@@ -53,7 +55,7 @@ test('Duda vê só o Acompanhamento na sidebar, na tela Mais e no Ctrl+K', async
   await page.waitForURL(ENTRADA);
   await expect(
     page.getByRole('navigation', { name: 'Navegação lateral' }).getByRole('link'),
-  ).toHaveText(MODULOS);
+  ).toHaveText(NA_LATERAL);
   await page.keyboard.press('Control+k');
   const opcoes = page.getByRole('option');
   await expect(opcoes.filter({ hasText: 'Acompanhamento · Plano dos 12 meses' })).toHaveCount(1);
@@ -146,7 +148,7 @@ test('Duda navega no módulo e nunca chega numa tela comercial (Link, URL ou 404
   await expect(page.getByText('Esta tela não faz parte do seu acesso.')).toBeVisible();
   await expect(
     page.getByRole('navigation', { name: 'Navegação lateral' }).getByRole('link'),
-  ).toHaveText(MODULOS);
+  ).toHaveText(NA_LATERAL);
   await page.getByRole('link', { name: 'Ir para o Acompanhamento' }).click();
   await expect(page).toHaveURL(ENTRADA);
   await expect(titulo(page)).toBeVisible();

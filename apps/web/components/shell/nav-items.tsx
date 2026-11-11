@@ -9,6 +9,11 @@ export type NavItem = {
   section?: 'Em breve' | 'Admin';
   /** Sub-itens (módulo do Acompanhamento para a Diretoria): abrem dentro de `match`. */
   children?: NavItem[];
+  /**
+   * Destino decidido a cada clique (redirect do servidor, ex.: "Ficha do mentorado" → última
+   * ficha). Pré-carregado, o Next guardaria o destino velho.
+   */
+  semPrefetch?: boolean;
 };
 
 export const svg = (d: React.ReactNode) => (

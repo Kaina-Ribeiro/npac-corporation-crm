@@ -22,7 +22,7 @@ export function NavLink({
   return (
     <Link
       href={item.href}
-      prefetch={item.ready}
+      prefetch={item.ready && !item.semPrefetch}
       aria-current={active ? (item.match ? 'true' : 'page') : undefined}
       className={`${className} ${active ? activeClassName : ''}`}
     >

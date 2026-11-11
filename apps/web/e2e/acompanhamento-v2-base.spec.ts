@@ -320,6 +320,23 @@ test('Manu: menu sem Configurações, só quem é dela e sem cadastro', async ({
   expect((await page.goto('/acompanhamento/mentorados/nova'))?.status()).toBe(404);
 });
 
+test('menu "Ficha do mentorado" mostra para onde leva', async ({ page }) => {
+  await entrar(page, 'duda');
+  const item = lateral(page).getByRole('link', { name: /^Ficha do mentorado/ });
+  await page.goto('/acompanhamento/mentorados');
+  await expect(item).toContainText('Escolha em Mentorados');
+  await page.getByRole('link', { name: /Mentorado Fictício 01/ }).click();
+  await page.waitForURL(/\/acompanhamento\/ficha\//);
+  // Sem recarregar: o menu acompanha a ficha que acabou de abrir.
+  await expect(item).toContainText('Última: Mentorado Fictício 01');
+  await lateral(page).getByRole('link', { name: 'Mentorados', exact: true }).click();
+  await page.waitForURL(/\/acompanhamento\/mentorados/);
+  await item.click();
+  await page.waitForURL(new RegExp(`/acompanhamento/ficha/${FICHA_01}`));
+  await page.reload();
+  await expect(item).toContainText('Última: Mentorado Fictício 01');
+});
+
 test('Diretoria: menu do módulo abre Mentorados, ficha e Configurações', async ({ page }) => {
   await entrar(page, 'diretor');
   await page.waitForURL(/\/dashboard/);
@@ -331,6 +348,9 @@ test('Diretoria: menu do módulo abre Mentorados, ficha e Configurações', asyn
   await page.waitForURL(/\/acompanhamento\/ficha\//);
   await page.getByRole('tab', { name: 'Momento inicial', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Destravar' })).toBeVisible();
+  await expect(lateral(page).getByRole('link', { name: /^Ficha do mentorado/ })).toContainText(
+    'Última: Mentorado Fictício 01',
+  );
   await lateral(page).getByRole('link', { name: 'Configurações', exact: true }).click();
   await page.waitForURL(/\/acompanhamento\/configuracoes/);
   await expect(page.getByLabel('Perfil de Duda')).toHaveValue('ACOMPANHAMENTO');
