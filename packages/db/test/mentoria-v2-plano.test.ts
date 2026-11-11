@@ -382,12 +382,31 @@ describe('acesso', () => {
     const id = await nova('RDV', '2026-01-01');
     const e = await pgError(
       withUser(db, OPERACAO, (tx) =>
-        tx.execute(
-          sql`select mentoria_pausar(${id}::uuid, gen_random_uuid(), null, '2026-02-01'::date)`,
-        ),
+        tx.execute(sql`select mentoria_pausar(${id}::uuid, gen_random_uuid(), null)`),
       ),
     );
     expect(e.code).toBe('42501');
+  });
+
+  it('quem fez e quando vêm do banco, não de quem grava', async () => {
+    const id = await nova('RDV', '2026-01-01');
+    await gerar(id);
+    const [a] = await acoes(id);
+    await withUser(db, DUDA, (tx) =>
+      tx.execute(sql`update mentoria_acoes set status = 'FEITA', feita_por = ${DIRETOR},
+        feita_em = '2020-01-01' where id = ${a!.id}`),
+    );
+    const [r] = await owner<{ por: string; ano: number }[]>`
+      select feita_por as por, extract(year from feita_em)::int as ano
+      from mentoria_acoes where id = ${a!.id}`;
+    expect(r!.por).toBe(DUDA);
+    expect(r!.ano).toBeGreaterThan(2020);
+    await withUser(db, DUDA, (tx) =>
+      tx.execute(sql`update mentoria_acoes set feita_por = ${DIRETOR} where id = ${a!.id}`),
+    );
+    const [s] = await owner<{ por: string }[]>`
+      select feita_por as por from mentoria_acoes where id = ${a!.id}`;
+    expect(s!.por).toBe(DUDA);
   });
 
   it('histórico de pausa não pode ser forjado', async () => {

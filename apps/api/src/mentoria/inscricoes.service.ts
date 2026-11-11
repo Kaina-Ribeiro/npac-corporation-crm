@@ -298,15 +298,15 @@ export class InscricoesService {
           set completar_campos = array_remove(completar_campos, 'inicioJornada')
           where id = ${id}::uuid`);
       // Em onboarding as ações esperam o fechamento, que usa o início já gravado.
-      if (mudaInicio && campos.inicioJornada && atual.status !== 'ONBOARDING')
-        await this.plano.aplicarInicio(
-          tx,
-          id,
-          campos.inicioJornada,
+      if (mudaInicio) {
+        const antes =
           campos.terminoPrevisto === undefined
             ? atual
-            : { inicio: atual.inicio, termino: campos.terminoPrevisto },
-        );
+            : { inicio: atual.inicio, termino: campos.terminoPrevisto };
+        if (campos.inicioJornada && atual.status !== 'ONBOARDING')
+          await this.plano.aplicarInicio(tx, id, campos.inicioJornada, antes);
+        else await this.plano.ajustarTermino(tx, id, campos.inicioJornada ?? null, antes);
+      }
       if (mudaMentoria && comPlano) await this.plano.trocarPlano(tx, id);
       await registrarHistorico(tx, id, 'inscricao.editada', Object.keys(campos));
       return r;

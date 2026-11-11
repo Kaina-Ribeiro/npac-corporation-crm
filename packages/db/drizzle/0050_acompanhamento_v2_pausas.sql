@@ -22,8 +22,11 @@ CREATE INDEX "mentoria_pausas_inscricao" ON "mentoria_pausas" USING btree ("insc
 
 -- Quem já estava PAUSADO antes desta tabela ganha a pausa aberta: sem ela, não teria como retomar.
 INSERT INTO mentoria_pausas (inscricao_id, inicio, status_anterior)
-SELECT id, (now() AT TIME ZONE 'America/Sao_Paulo')::date, 'ATIVO'
-FROM mentoria_inscricoes WHERE status = 'PAUSADO';
+SELECT i.id, (now() AT TIME ZONE 'America/Sao_Paulo')::date,
+  CASE WHEN EXISTS (SELECT 1 FROM mentoria_onboarding_etapas e
+    WHERE e.inscricao_id = i.id AND e.status IN ('PENDENTE', 'ENVIADA'))
+    THEN 'ONBOARDING' ELSE 'ATIVO' END
+FROM mentoria_inscricoes i WHERE i.status = 'PAUSADO';
 --> statement-breakpoint
 
 -- Dias parados da jornada até `ate`. Só conta o que passou depois do início da jornada.
@@ -75,6 +78,18 @@ BEGIN
 END $$;
 --> statement-breakpoint
 
+-- Término que o sistema calcularia: 12 meses mais todo dia parado depois do início. Retomar soma
+-- os dias sempre; é com esta conta que a correção do início sabe se o término foi editado à mão.
+CREATE FUNCTION mentoria_termino_calculado(inscricao uuid, comeco date) RETURNS date
+  LANGUAGE sql STABLE
+  SET search_path = public, pg_temp
+AS $$
+  SELECT (comeco + interval '12 months')::date + coalesce((
+    SELECT sum(greatest(p.fim - greatest(p.inicio, comeco), 0))::int
+    FROM mentoria_pausas p WHERE p.inscricao_id = inscricao AND p.fim IS NOT NULL), 0)
+$$;
+--> statement-breakpoint
+
 -- De quando contam os dias parado: o mais recente entre o envio e a última retomada. Em etapa
 -- ainda não enviada devolve só a retomada; a API compara com a conclusão da anterior.
 CREATE OR REPLACE FUNCTION mentoria_onboarding_base(etapa_id uuid) RETURNS timestamptz
@@ -107,11 +122,12 @@ CREATE TRIGGER mentoria_status_guarda BEFORE INSERT OR UPDATE OF status ON mento
 --> statement-breakpoint
 
 -- Pausar e retomar: ADMIN e ACOMPANHAMENTO (§5). `motivo` já chega cifrado pela API.
-CREATE FUNCTION mentoria_pausar(inscricao uuid, pausa uuid, motivo_cifrado text, hoje date) RETURNS int
+CREATE FUNCTION mentoria_pausar(inscricao uuid, pausa uuid, motivo_cifrado text) RETURNS int
   LANGUAGE plpgsql VOLATILE SECURITY DEFINER
   SET search_path = public, pg_temp
 AS $$
 DECLARE atual text; nova int;
+  hoje date := (now() AT TIME ZONE 'America/Sao_Paulo')::date;
 BEGIN
   IF NOT (mentoria_admin() OR coalesce(mentoria_perfil() = 'ACOMPANHAMENTO', false)) THEN
     RAISE EXCEPTION 'Acesso negado' USING ERRCODE = '42501';
@@ -139,11 +155,12 @@ END $$;
 -- Retomar: fecha a pausa, volta ao status anterior e repõe os dias parados no término e nas
 -- pendentes. Feitas, atrasadas antes da pausa e anteriores ao sistema ficam como estão. A data e o
 -- limite andam cada um por si: no FLEXIVEL, o mês já começado continua com a data e ganha prazo.
-CREATE FUNCTION mentoria_retomar(inscricao uuid, hoje date) RETURNS int
+CREATE FUNCTION mentoria_retomar(inscricao uuid) RETURNS int
   LANGUAGE plpgsql VOLATILE SECURITY DEFINER
   SET search_path = public, pg_temp
 AS $$
 DECLARE i record; p record; dias int; de date; nova int;
+  hoje date := (now() AT TIME ZONE 'America/Sao_Paulo')::date;
 BEGIN
   IF NOT (mentoria_admin() OR coalesce(mentoria_perfil() = 'ACOMPANHAMENTO', false)) THEN
     RAISE EXCEPTION 'Acesso negado' USING ERRCODE = '42501';
@@ -186,14 +203,16 @@ ALTER FUNCTION mentoria_dias_pausados(uuid, date) OWNER TO npac_owner;
 --> statement-breakpoint
 ALTER FUNCTION mentoria_status_guarda() OWNER TO npac_owner;
 --> statement-breakpoint
-ALTER FUNCTION mentoria_pausar(uuid, uuid, text, date) OWNER TO npac_owner;
+ALTER FUNCTION mentoria_pausar(uuid, uuid, text) OWNER TO npac_owner;
 --> statement-breakpoint
-ALTER FUNCTION mentoria_retomar(uuid, date) OWNER TO npac_owner;
+ALTER FUNCTION mentoria_retomar(uuid) OWNER TO npac_owner;
 --> statement-breakpoint
-REVOKE ALL ON FUNCTION mentoria_pausar(uuid, uuid, text, date), mentoria_retomar(uuid, date) FROM PUBLIC;
+ALTER FUNCTION mentoria_termino_calculado(uuid, date) OWNER TO npac_owner;
 --> statement-breakpoint
-GRANT EXECUTE ON FUNCTION mentoria_dias_pausados(uuid, date), mentoria_pausar(uuid, uuid, text, date),
-  mentoria_retomar(uuid, date) TO npac_app;
+REVOKE ALL ON FUNCTION mentoria_pausar(uuid, uuid, text), mentoria_retomar(uuid) FROM PUBLIC;
+--> statement-breakpoint
+GRANT EXECUTE ON FUNCTION mentoria_dias_pausados(uuid, date), mentoria_pausar(uuid, uuid, text),
+  mentoria_retomar(uuid), mentoria_termino_calculado(uuid, date) TO npac_app;
 --> statement-breakpoint
 
 -- Sem INSERT ou UPDATE: pausa só muda pelas funções.

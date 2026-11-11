@@ -307,6 +307,50 @@ describe('corrigir a IDR', () => {
     expect(r.status).toBe(400);
   });
 
+  it('em onboarding, mudar o início leva o término junto', async () => {
+    const s = await duda();
+    const r = await h.post(
+      '/api/mentoria/inscricoes',
+      {
+        tipo: 'INDIVIDUAL',
+        mentoria: '2M',
+        inicioJornada: '2026-01-01',
+        pessoas: [{ nome: 'Mentorado Fictício 35' }],
+      },
+      s,
+    );
+    const b = r.body as Ficha;
+    expect(b.terminoPrevisto).toBe('2027-01-01');
+    const p = await http(
+      'patch',
+      `/api/mentoria/inscricoes/${b.id}`,
+      { version: b.version, inicioJornada: '2026-02-01' },
+      s,
+    );
+    expect(p.status, p.text).toBe(200);
+    const d = await abrir(s, b.id);
+    expect(d.terminoPrevisto).toBe('2027-02-01');
+    expect(d.acoes).toHaveLength(0);
+  });
+
+  it('término editado à mão sobrevive a informar a IDR do importado', async () => {
+    const s = await duda();
+    const [i] = await owner<{ id: string }[]>`
+      insert into mentoria_inscricoes (tipo, mentoria, status, importada, termino_previsto)
+      values ('INDIVIDUAL', 'RDV', 'ATIVO', true, '2027-12-31') returning id`;
+    await owner`insert into mentoria_pessoas (inscricao_id, ordem, nome, nome_norm)
+      values (${i!.id}, 1, 'Mentorado Fictício 36', 'mentorado ficticio 36')`;
+    const f = await abrir(s, i!.id);
+    const r = await http(
+      'put',
+      `/api/mentoria/inscricoes/${i!.id}/data-idr`,
+      { version: f.version, dataIdr: '2026-02-01' },
+      s,
+    );
+    expect(r.status, r.text).toBe(200);
+    expect((await abrir(s, i!.id)).terminoPrevisto).toBe('2027-12-31');
+  });
+
   it('Operação recebe 404', async () => {
     const id = await comPlano('RDV', '2026-01-10');
     const s = await operacao();

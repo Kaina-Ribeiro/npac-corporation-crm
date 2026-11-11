@@ -141,17 +141,25 @@ export class PlanoService {
     inicio: string,
     antes: { inicio: string | null; termino: string | null },
   ): Promise<void> {
-    await tx.execute(sql`update mentoria_inscricoes set termino_previsto =
-        case when ${antes.termino}::date is null or ${antes.inicio}::date is null
-            or ${antes.termino}::date = mentoria_data_ajustada(id, ${antes.inicio}::date,
-              (${antes.inicio}::date + interval '12 months')::date)
-          then mentoria_data_ajustada(id, ${inicio}::date,
-              (${inicio}::date + interval '12 months')::date)
-          else termino_previsto end
-      where id = ${inscricaoId}::uuid`);
+    await this.ajustarTermino(tx, inscricaoId, inicio, antes);
     if (await this.temAcoes(tx, inscricaoId))
       await tx.execute(sql`select mentoria_recalcular_acoes(${inscricaoId}::uuid, ${HOJE})`);
     await this.gerar(tx, inscricaoId);
+  }
+
+  /** O término acompanha o início enquanto for o calculado. Vazio ou editado à mão, não mexe. */
+  async ajustarTermino(
+    tx: Tx,
+    inscricaoId: string,
+    inicio: string | null,
+    antes: { inicio: string | null; termino: string | null },
+  ): Promise<void> {
+    await tx.execute(sql`update mentoria_inscricoes set termino_previsto =
+        case when ${antes.termino}::date is null
+            or ${antes.termino}::date = mentoria_termino_calculado(id, ${antes.inicio}::date)
+          then mentoria_termino_calculado(id, ${inicio}::date)
+          else termino_previsto end
+      where id = ${inscricaoId}::uuid`);
   }
 
   async trocarPlano(tx: Tx, inscricaoId: string): Promise<void> {

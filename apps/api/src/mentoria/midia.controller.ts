@@ -77,7 +77,8 @@ export class MidiaController {
       const [a] = await tx
         .select({ midia: mentoriaAcoes.evidenciaMidiaId })
         .from(mentoriaAcoes)
-        .where(eq(mentoriaAcoes.id, donoId));
+        .where(eq(mentoriaAcoes.id, donoId))
+        .for('update');
       if (a?.midia) await tx.execute(sql`select mentoria_excluir_midia(${a.midia})`);
       await tx
         .update(mentoriaAcoes)

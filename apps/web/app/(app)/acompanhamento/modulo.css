@@ -2048,6 +2048,11 @@
     .pl-link {
       min-height: 44px;
     }
+    .pl-p .tag {
+      grid-row: 3;
+      grid-column: 1/-1;
+      justify-self: start;
+    }
     /* Quem veio de antes do sistema: os seis passos iguais só alongariam a tela. */
     .jg-anterior {
       display: none;

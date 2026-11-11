@@ -270,6 +270,22 @@ describe('pausar e retomar', () => {
     expect(d.acoes.find((a) => a.mes === 3)!.dataPrevista).toBe('2026-03-22');
   });
 
+  it('pausa depois do término: corrigir a IDR continua movendo o término', async () => {
+    const s = await duda();
+    const id = await comPlano('2026-01-10');
+    await owner`insert into mentoria_pausas (inscricao_id, inicio, fim, status_anterior)
+      values (${id}, '2027-02-01', '2027-03-01', 'ATIVO')`;
+    await owner`update mentoria_inscricoes set termino_previsto = '2027-02-07' where id = ${id}`;
+    const f = await abrir(s, id);
+    const r = await request(app.getHttpServer())
+      .put(`/api/mentoria/inscricoes/${id}/data-idr`)
+      .set('Origin', ORIGIN)
+      .set('Cookie', s)
+      .send({ version: f.version, dataIdr: '2026-01-12' });
+    expect(r.status, r.text).toBe(200);
+    expect((await abrir(s, id)).terminoPrevisto).toBe('2027-02-09');
+  });
+
   it('pausa antes do início da jornada não empurra as datas', async () => {
     const s = await duda();
     const id = await comPlano('2026-03-01');

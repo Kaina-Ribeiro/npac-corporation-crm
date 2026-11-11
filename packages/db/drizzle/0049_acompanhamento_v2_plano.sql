@@ -267,6 +267,29 @@ CREATE TRIGGER mentoria_acoes_seguem_responsavel AFTER UPDATE OF responsavel_id 
   EXECUTE FUNCTION mentoria_acoes_seguem_responsavel();
 --> statement-breakpoint
 
+-- Quem concluiu e quando são do banco: a API não escolhe, e npac_app não forja.
+CREATE FUNCTION mentoria_acao_guarda() RETURNS trigger
+  LANGUAGE plpgsql
+  SET search_path = public, pg_temp
+AS $$
+BEGIN
+  IF current_user = 'npac_owner' THEN RETURN NEW; END IF;
+  IF NEW.status IS DISTINCT FROM OLD.status THEN
+    NEW.feita_em := CASE WHEN NEW.status = 'FEITA' THEN now() END;
+    NEW.feita_por := CASE WHEN NEW.status = 'FEITA' THEN app_user_id() END;
+  ELSE
+    NEW.feita_em := OLD.feita_em;
+    NEW.feita_por := OLD.feita_por;
+  END IF;
+  RETURN NEW;
+END $$;
+--> statement-breakpoint
+CREATE TRIGGER mentoria_acao_guarda BEFORE UPDATE ON mentoria_acoes
+  FOR EACH ROW EXECUTE FUNCTION mentoria_acao_guarda();
+--> statement-breakpoint
+ALTER FUNCTION mentoria_acao_guarda() OWNER TO npac_owner;
+--> statement-breakpoint
+
 -- Evidência segue a ação.
 CREATE OR REPLACE FUNCTION mentoria_midia_ve(tipo text, dono uuid) RETURNS boolean
   LANGUAGE sql STABLE SECURITY DEFINER
