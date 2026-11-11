@@ -40,8 +40,10 @@ const MODULOS = [
   'Renovações e gestão',
   'Configurações',
 ];
-const ENTRADA = /\/acompanhamento\/mentorados/;
-const titulo = (page: Page) => page.getByRole('heading', { name: 'Mentorados', exact: true });
+const ENTRADA = /\/acompanhamento\/fila/;
+const titulo = (page: Page) => page.getByRole('heading', { name: 'Fila do dia', exact: true });
+const tituloMentorados = (page: Page) =>
+  page.getByRole('heading', { name: 'Mentorados', exact: true });
 
 const sidebarLinks = (page: Page) =>
   page.getByRole('navigation', { name: 'Navegação lateral' }).getByRole('link').allInnerTexts();
@@ -192,7 +194,7 @@ test('MFA desligado: Diretoria e Duda usam o módulo sem autenticador, sem aviso
   await login(page, 'diretor@npac.com.br', false);
   await page.goto('/acompanhamento/mentorados');
   await expect(page.getByText('Ative a verificação em duas etapas')).toHaveCount(0);
-  await expect(titulo(page)).toBeVisible();
+  await expect(tituloMentorados(page)).toBeVisible();
   await expect(page.getByRole('link', { name: 'Autenticador' })).toHaveCount(0);
   await page.goto('/mais');
   await expect(page.getByRole('link', { name: 'Autenticador' })).toHaveCount(0);
@@ -222,6 +224,8 @@ test('390 px: sem overflow horizontal em Mentorados', async ({ page }) => {
   await login(page, 'duda@npac.com.br');
   await page.waitForURL(ENTRADA);
   await expect(titulo(page)).toBeVisible();
+  await page.goto('/acompanhamento/mentorados');
+  await expect(tituloMentorados(page)).toBeVisible();
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
   );
@@ -239,7 +243,7 @@ test('390 px: do módulo, o avatar leva ao Mais, que tem Sair', async ({ page })
   const abas = page.getByRole('navigation', { name: 'Abas do acompanhamento' });
   await expect(abas.locator('[aria-current="page"]')).toHaveCount(0);
   await abas.getByRole('link', { name: 'Mentorados' }).click();
-  await page.waitForURL(ENTRADA);
+  await page.waitForURL(/\/acompanhamento\/mentorados/);
   await page.goto('/acompanhamento/mais');
   await page.getByRole('main').getByRole('button', { name: 'Sair' }).click();
   await page.waitForURL(/\/login/);

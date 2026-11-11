@@ -1,6 +1,6 @@
 /** Fila do dia (SPEC §5, D18). O banco calcula os itens (`mentoria_fila`); aqui, quem vê o quê. */
 import type { Perfil, TipoInscricao, Mentoria } from './enums.js';
-import type { Etapa } from './onboarding.js';
+import type { Etapa, EtapaStatus } from './onboarding.js';
 import type { ReuniaoTipo } from './plano.js';
 import type { ReuniaoStatus } from './reunioes.js';
 
@@ -39,6 +39,27 @@ export const FILA_TIPO_LABEL: Record<FilaTipo, string> = {
   REUNIOES_6M: 'Reuniões 6M',
   REUNIAO_HOJE: 'Reunião de hoje',
 };
+
+/** Filtro por tipo na tela (D18), em grupos como no protótipo. */
+export const FILA_GRUPOS = [
+  { chave: 'REUNIOES', label: 'Reuniões', tipos: ['REUNIAO_HOJE', 'LINK_IDR', 'LEMBRETE_IDR'] },
+  {
+    chave: 'ONBOARDING',
+    label: 'Onboarding',
+    tipos: [
+      'BOAS_VINDAS',
+      'PASSO_DEVIDO',
+      'PARADO',
+      'ENVIAR_CAIXA',
+      'CAIXA_ATRASADA',
+      'AGENDAR_IDR',
+      'ENVIAR_PME1',
+    ],
+  },
+  { chave: 'PLANO', label: 'Plano', tipos: ['ACAO', 'FOTO_FAMILIA'] },
+  { chave: 'MES', label: 'Do mês', tipos: ['AGENDA_MES', 'REUNIOES_6M'] },
+] as const satisfies readonly { chave: string; label: string; tipos: readonly FilaTipo[] }[];
+export type FilaGrupo = (typeof FILA_GRUPOS)[number]['chave'];
 
 /** Itens sem estado próprio: saem quando alguém marca feito (`mentoria_fila_feitos`). */
 export const FILA_FEITO_MANUAL: readonly FilaTipo[] = ['LEMBRETE_IDR', 'AGENDA_MES', 'REUNIOES_6M'];
@@ -87,6 +108,8 @@ export type FilaPessoa = { nome: string; apelido: string | null; whatsapp: strin
 
 /** O item pronto para a tela: o mentorado, a reunião ou a ação a que se refere. */
 export type FilaItemDTO = FilaItemBase & {
+  /** Nome de quem responde pelo item; nulo = o perfil. */
+  responsavelNome: string | null;
   mentorado: {
     nome: string;
     tipo: TipoInscricao;
@@ -94,7 +117,7 @@ export type FilaItemDTO = FilaItemBase & {
     linkGrupo: string | null;
     pessoas: FilaPessoa[];
   } | null;
-  etapa: Etapa | null;
+  etapa: { nome: Etapa; status: EtapaStatus; version: number } | null;
   reuniao: {
     tipo: ReuniaoTipo;
     inicio: string;
@@ -113,7 +136,7 @@ export type FilaDTO = {
 };
 
 /** O que fazer, em uma linha, para a lista e o painel do item. */
-export function filaTitulo(item: Pick<FilaItemDTO, 'tipo' | 'etapa' | 'acao'>): string {
+export function filaTitulo(item: Pick<FilaItemDTO, 'tipo' | 'acao'>): string {
   switch (item.tipo) {
     case 'BOAS_VINDAS':
       return 'Criar o grupo e enviar as boas-vindas';

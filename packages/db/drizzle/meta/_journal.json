@@ -379,6 +379,13 @@
       "when": 1794412772168,
       "tag": "0053_acompanhamento_v2_fila",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1794413335740,
+      "tag": "0054_acompanhamento_v2_mensagens",
+      "breakpoints": true
     }
   ]
 }

@@ -15,6 +15,7 @@ import {
 import { STATUS_IMPORTACAO } from '../mentoria/importacao.js';
 import { linkPermitido } from '../mentoria/links.js';
 import { FILA_TIPOS } from '../mentoria/fila.js';
+import { MOMENTOS_MENSAGEM } from '../mentoria/mensagens.js';
 import { ENVIO_STATUS } from '../mentoria/onboarding.js';
 import { ACAO_STATUS, GATILHOS, PERFIS_ACAO, REUNIAO_TIPOS } from '../mentoria/plano.js';
 import {
@@ -408,3 +409,13 @@ export const filaFeitoSchema = z
   .strict();
 
 export const pme1EnviadoSchema = z.object({ enviado: z.boolean() }).strict();
+
+export const mensagemPutSchema = z
+  .object({
+    momento: z.enum(MOMENTOS_MENSAGEM),
+    version,
+    textoIndividual: z.string().max(4000),
+    textoCasal: z.string().max(4000),
+  })
+  .strict();
+export type MensagemPut = z.output<typeof mensagemPutSchema>;

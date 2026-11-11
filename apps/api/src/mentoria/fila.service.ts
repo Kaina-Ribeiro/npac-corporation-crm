@@ -6,6 +6,7 @@ import {
   itemVisivel,
   type AuthUser,
   type Etapa,
+  type EtapaStatus,
   type FilaDTO,
   type FilaEu,
   type FilaFiltro,
@@ -186,17 +187,31 @@ export class FilaService {
         porAcao.set(l.id, { mes: l.mes, foco: l.foco, acao: l.acao, version: l.version });
     }
 
-    const porEtapa = new Map<string, Etapa>();
+    const porEtapa = new Map<string, FilaItemDTO['etapa']>();
     if (etapas.length) {
-      const linhas = await tx.execute<{ id: string; etapa: Etapa }>(
-        sql`select id, etapa from mentoria_onboarding_etapas
-          where id = any(${sql.param(etapas)}::uuid[])`,
+      const linhas = await tx.execute<{
+        id: string;
+        etapa: Etapa;
+        status: EtapaStatus;
+        version: number;
+      }>(sql`select id, etapa, status, version from mentoria_onboarding_etapas
+          where id = any(${sql.param(etapas)}::uuid[])`);
+      for (const l of linhas)
+        porEtapa.set(l.id, { nome: l.etapa, status: l.status, version: l.version });
+    }
+
+    const pessoasIds = ids((i) => i.responsavelId);
+    const nomes = new Map<string, string>();
+    if (pessoasIds.length) {
+      const linhas = await tx.execute<{ id: string; name: string }>(
+        sql`select id, name from "user" where id = any(${sql.param(pessoasIds)}::text[])`,
       );
-      for (const l of linhas) porEtapa.set(l.id, l.etapa);
+      for (const l of linhas) nomes.set(l.id, l.name);
     }
 
     return base.map((i) => ({
       ...i,
+      responsavelNome: i.responsavelId ? (nomes.get(i.responsavelId) ?? null) : null,
       mentorado: i.inscricaoId ? (mentorados.get(i.inscricaoId) ?? null) : null,
       etapa: i.referenciaId ? (porEtapa.get(i.referenciaId) ?? null) : null,
       reuniao: i.referenciaId ? (porReuniao.get(i.referenciaId) ?? null) : null,

@@ -684,3 +684,31 @@ export const mentoriaFilaFeitos = pgTable(
   },
   (t) => [check('mentoria_fila_feitos_chave', sql`${t.chave} ~ '^[a-z0-9-]+:[0-9a-f:-]{7,80}$'`)],
 );
+
+/**
+ * Mensagens-modelo (§4): um texto por momento, individual e casal, com `{nome}` e `{nomes}`. A
+ * Duda escreve; o seed traz só os nomes. Não é dado pessoal: texto puro, sem cifra.
+ */
+export const mentoriaMensagensModelo = pgTable(
+  'mentoria_mensagens_modelo',
+  {
+    momento: text('momento').primaryKey(),
+    nome: text('nome').notNull(),
+    textoIndividual: text('texto_individual').notNull().default(''),
+    textoCasal: text('texto_casal').notNull().default(''),
+    canal: text('canal').notNull().default('WHATSAPP'),
+    version: integer('version').notNull().default(1),
+    // Sem FK para user: as linhas vêm da migration e não podem cair num `truncate "user" cascade`.
+    atualizadoPor: text('atualizado_por'),
+    atualizadoEm: timestamp('atualizado_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    check(
+      'mentoria_mensagens_momento',
+      sql`${t.momento} in ('BOAS_VINDAS', 'PASSO_1', 'PASSO_2', 'PASSO_3', 'LEMBRETE_IDR', 'EVENTO', 'OUTRO')`,
+    ),
+    check('mentoria_mensagens_individual', sql`char_length(${t.textoIndividual}) <= 4000`),
+    check('mentoria_mensagens_casal', sql`char_length(${t.textoCasal}) <= 4000`),
+    check('mentoria_mensagens_canal', sql`${t.canal} in ('WHATSAPP')`),
+  ],
+);

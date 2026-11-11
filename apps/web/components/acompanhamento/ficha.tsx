@@ -8,6 +8,8 @@ import {
   STATUS_FINANCEIRO,
   STATUS_FINANCEIRO_LABEL,
   TIPO_INSCRICAO_LABEL,
+  linkGrupoValido,
+  linkWhatsApp,
   type FichaDTO,
 } from '@npac/shared/mentoria';
 import Link from 'next/link';
@@ -543,10 +545,10 @@ export function Ficha({
           <Trilha mes={mes} />
         </div>
         <div className="fc-acts">
-          {ficha.linkGrupo && (
+          {linkGrupoValido(ficha.linkGrupo) && (
             <a
               className={`${sm} wa`}
-              href={ficha.linkGrupo}
+              href={linkGrupoValido(ficha.linkGrupo)!}
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -556,11 +558,11 @@ export function Ficha({
           )}
           {ficha.pessoas.map(
             (p) =>
-              p.whatsapp && (
+              linkWhatsApp(p.whatsapp) && (
                 <a
                   key={p.id}
                   className={`${sm} wa`}
-                  href={`https://wa.me/${p.whatsapp.replace(/\D/g, '')}`}
+                  href={linkWhatsApp(p.whatsapp)!}
                   target="_blank"
                   rel="noopener noreferrer"
                 >

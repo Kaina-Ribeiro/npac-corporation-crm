@@ -457,3 +457,30 @@ describe('quem vê', () => {
     expect(alheio.status).toBe(404);
   });
 });
+
+describe('mensagens-modelo', () => {
+  it('todos que operam leem; só Admin escreve, com version', async () => {
+    const op = await operacao();
+    const lista = await h.get('/api/mentoria/mensagens', op);
+    expect(lista.status, lista.text).toBe(200);
+    const boas = (lista.body as { momento: string; version: number }[]).find(
+      (m) => m.momento === 'BOAS_VINDAS',
+    )!;
+    const corpo = {
+      momento: 'BOAS_VINDAS',
+      version: boas.version,
+      textoIndividual: 'Oi {nome}!',
+      textoCasal: 'Oi {nomes}!',
+    };
+    expect((await h.put('/api/mentoria/mensagens', corpo, op)).status).toBe(404);
+    const duda = await comoPerfil('ACOMPANHAMENTO', true);
+    const ok = await h.put('/api/mentoria/mensagens', corpo, duda);
+    expect(ok.status, ok.text).toBe(200);
+    expect((await h.put('/api/mentoria/mensagens', corpo, duda)).status).toBe(409);
+    const depois = await h.get('/api/mentoria/mensagens', op);
+    expect(depois.body.find((m: { momento: string }) => m.momento === 'BOAS_VINDAS')).toMatchObject(
+      { textoIndividual: 'Oi {nome}!', textoCasal: 'Oi {nomes}!' },
+    );
+    await owner`update mentoria_mensagens_modelo set texto_individual = '', texto_casal = ''`;
+  });
+});

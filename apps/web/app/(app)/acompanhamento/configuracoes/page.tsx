@@ -1,5 +1,6 @@
 import {
   MENTORIAS,
+  type MensagemModelo,
   type Mentoria,
   type PerfilLinha,
   type PlanoModeloLinha,
@@ -7,6 +8,7 @@ import {
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ImportarCarteira } from '@/components/acompanhamento/importar-carteira';
+import { MensagensAdmin } from '@/components/acompanhamento/mensagens-admin';
 import { PerfisAdmin } from '@/components/acompanhamento/perfis-admin';
 import { PlanoModeloAdmin } from '@/components/acompanhamento/plano-modelo-admin';
 import { ICONES, Icone } from '@/components/acompanhamento/ui';
@@ -19,7 +21,10 @@ const SUB = {
   perfis: 'Quem usa o Acompanhamento e o que cada pessoa pode fazer.',
   plano: 'A ação de cada mês, por mentoria.',
   importacao: 'Traga a carteira atual do gerenciador e da planilha, sem redigitar.',
+  mensagens: 'O texto que os botões de WhatsApp copiam, por momento.',
 };
+const ABAS = ['perfis', 'plano', 'mensagens', 'importacao'] as const;
+type AbaConfig = (typeof ABAS)[number];
 
 export default async function ConfiguracoesPage({
   searchParams,
@@ -29,11 +34,13 @@ export default async function ConfiguracoesPage({
   if (!(await sessaoDoModulo())) return null;
   if (!(await lerEu())?.admin) notFound();
   const q = await searchParams;
-  const aba = q.aba === 'importacao' || q.aba === 'plano' ? q.aba : 'perfis';
+  const aba: AbaConfig = ABAS.includes(q.aba as AbaConfig) ? (q.aba as AbaConfig) : 'perfis';
   const mentoria = MENTORIAS.includes(q.mentoria as Mentoria) ? (q.mentoria as Mentoria) : 'RDV';
   const perfis = aba === 'perfis' ? await apiGet<PerfilLinha[]>('/api/mentoria/perfis') : [];
   const modelo =
     aba === 'plano' ? await apiGet<PlanoModeloLinha[]>('/api/mentoria/plano-modelo') : [];
+  const mensagens =
+    aba === 'mensagens' ? await apiGet<MensagemModelo[]>('/api/mentoria/mensagens') : [];
   return (
     <section className="view">
       <Link className="back so-cel" href="/acompanhamento/mais">
@@ -54,7 +61,12 @@ export default async function ConfiguracoesPage({
         >
           Plano-modelo
         </Link>
-        <span className="off">Mensagens-modelo</span>
+        <Link
+          className={aba === 'mensagens' ? 'on' : ''}
+          href="/acompanhamento/configuracoes?aba=mensagens"
+        >
+          Mensagens-modelo
+        </Link>
         <Link
           className={aba === 'importacao' ? 'on' : ''}
           href="/acompanhamento/configuracoes?aba=importacao"
@@ -64,6 +76,7 @@ export default async function ConfiguracoesPage({
         <span className="off">Transferir carteira</span>
       </div>
       {aba === 'importacao' && <ImportarCarteira />}
+      {aba === 'mensagens' && <MensagensAdmin mensagens={mensagens} />}
       {aba === 'plano' && <PlanoModeloAdmin linhas={modelo} mentoria={mentoria} />}
       {aba === 'perfis' && (
         <>

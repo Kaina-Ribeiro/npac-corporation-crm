@@ -121,7 +121,8 @@ test('controle mensal filtra por mentoria', async ({ page }) => {
   await inscricao('Mentorado Fictício 83', '2M');
   await inscricao('Mentorado Fictício 84', '6M');
   await entrar(page, 'duda');
-  await page.waitForURL(/\/acompanhamento\/mentorados/);
+  await page.waitForURL(/\/acompanhamento\/fila/);
+  await page.goto('/acompanhamento/mentorados');
   await abrirReunioes(page);
   await page.getByRole('link', { name: 'Controle mensal', exact: true }).click();
   await page.waitForURL(/aba=controle/);
@@ -139,7 +140,8 @@ test('campos internos ficam marcados como internos', async ({ page }) => {
   const id = await inscricao('Mentorado Fictício 85');
   const r = await reuniaoHoje(id, await idDe('duda'), 'RENOVACAO');
   await entrar(page, 'duda');
-  await page.waitForURL(/\/acompanhamento\/mentorados/);
+  await page.waitForURL(/\/acompanhamento\/fila/);
+  await page.goto('/acompanhamento/mentorados');
   await page.goto(`/acompanhamento/reunioes/${r}`);
   await expect(page.getByRole('heading', { name: 'Renovação', level: 1 })).toBeVisible();
 
