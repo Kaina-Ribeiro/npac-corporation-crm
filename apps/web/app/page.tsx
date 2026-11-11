@@ -6,5 +6,5 @@ import { getSession } from '@/lib/session';
 export default async function Home() {
   const me = await getSession();
   if (!me) redirect('/login');
-  redirect(hasCommercialAccess(me.role) ? '/dashboard' : '/acompanhamento/dashboard');
+  redirect(hasCommercialAccess(me.role) ? '/dashboard' : '/acompanhamento');
 }

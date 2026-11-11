@@ -6,7 +6,7 @@ export type NavItem = {
   /** Prefixo que deixa o item ativo, quando difere do href (ex.: todas as telas do módulo). */
   match?: string;
   /** Título de grupo mostrado na sidebar antes do primeiro item da seção. */
-  section?: 'Acompanhamento' | 'Dados';
+  section?: 'Em breve' | 'Admin';
   /** Sub-itens (módulo do Acompanhamento para a Diretoria): abrem dentro de `match`. */
   children?: NavItem[];
 };
@@ -89,7 +89,7 @@ export const ADMIN_ITEM: NavItem = {
 
 /** Módulo de mentorados: só para quem tem `modules.mentoria` (Diretoria e Acompanhamento). */
 export const ACOMPANHAMENTO_ITEM: NavItem = {
-  href: '/acompanhamento/dashboard',
+  href: '/acompanhamento',
   match: '/acompanhamento',
   label: 'Acompanhamento',
   ready: true,

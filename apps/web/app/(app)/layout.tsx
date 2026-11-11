@@ -16,6 +16,8 @@ import { SignOutButton } from '@/components/shell/sign-out-button';
 import { RoleTag } from '@/components/role-tag';
 import { pendingAccessRequests } from '@/lib/access-requests';
 import { getSession, pendingStep } from '@/lib/session';
+import { lerEu, precisaMfa } from '@/lib/acompanhamento';
+import { SemAcesso } from '@/components/acompanhamento/sem-acesso';
 import { SIDEBAR_COOKIE } from '@/lib/sidebar';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -26,6 +28,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // Cargo Acompanhamento: shell reduzido (só o módulo). O bloqueio das telas comerciais fica no
   // layout de (comercial), que roda de novo na navegação do navegador; este não roda.
   const commercial = hasCommercialAccess(me.role);
+  // Só quem tem o módulo consulta o perfil: nada muda para o comercial.
+  const eu = me.modules.mentoria && !precisaMfa(me) ? await lerEu() : null;
+  if (eu && !commercial && !eu.admin && (!eu.perfil || eu.perfil === 'MENTOR'))
+    return <SemAcesso mentor={eu.perfil === 'MENTOR'} />;
   const requests = await pendingAccessRequests(me.role);
 
   const avatar = (
@@ -64,13 +70,19 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <LiveUpdates />
       {commercial && <TabTitle />}
       <CommandPalette
-        nav={paletteItems({ head: isLeader(me.role), mentoria: me.modules.mentoria, commercial })}
+        nav={paletteItems({
+          head: isLeader(me.role),
+          mentoria: me.modules.mentoria,
+          commercial,
+          mentoriaAdmin: eu?.admin,
+        })}
         commercial={commercial}
       />
       <Sidebar
         head={isLeader(me.role)}
         mentoria={me.modules.mentoria}
         commercial={commercial}
+        mentoriaAdmin={eu?.admin}
         adminBadge={requests}
         footer={
           <div className="flex flex-col">

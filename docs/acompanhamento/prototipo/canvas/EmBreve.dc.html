@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Em breve</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="prototipo.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="app raiz">
+  <aside class="side glass">
+    <div class="brand"><span class="mark">N</span><b>NPAC Corporation</b></div>
+    <nav aria-label="Navegação lateral">
+      <sc-for list="{{menu}}" as="m" hint-placeholder-count="12">
+        <sc-if value="{{m.sec}}" hint-placeholder-val="{{no}}"><div class="nsec">{{m.label}}</div></sc-if>
+        <sc-if value="{{m.link}}" hint-placeholder-val="{{yes}}">
+          <a class="nl {{m.on}}" href="{{m.href}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{m.d}}"></path></svg><span>{{m.label}}</span><sc-if value="{{m.cnt}}" hint-placeholder-val="{{no}}"><span class="cnt">{{m.cnt}}</span></sc-if></a>
+        </sc-if>
+      </sc-for>
+    </nav>
+    <div class="foot"><span class="ava me">D</span><div><b>Duda</b><span>Acompanhamento e Admin</span></div></div>
+  </aside>
+  <main><div class="wrap">
+    <section class="card vazio">
+      <span class="i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9M12 7v5l3 2"></path></svg></span>
+      <h1>Esta aba chega em breve</h1>
+      <p>Ela entra numa próxima etapa do sistema. Por enquanto, siga pela Fila do dia e pelas fichas.</p>
+      <a class="btn p" href="{{fila}}">Ir para a Fila do dia</a>
+    </section>
+  </div></main>
+  <nav class="bnav glass" aria-label="Abas do acompanhamento">
+    <a href="FilaCelular.dc.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"></path></svg>Fila</a>
+    <a href="MentoradosCelular.dc.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7M22 19v-1a4 4 0 0 0-3-3.8M16 3.2a3.5 3.5 0 0 1 0 6.6"></path></svg>Mentorados</a>
+    <a class="plus" href="NovaInscricaoCelular.dc.html" aria-label="Nova inscrição"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" width="22" height="22"><path d="M12 5v14M5 12h14"></path></svg></a>
+    <a href="EmBreveCelular.dc.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M3 7h13v10H3zM16 11l5-3v8l-5-3"></path></svg>Reuniões</a>
+    <a href="Mais.dc.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M5 12h.01M12 12h.01M19 12h.01"></path></svg>Mais</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"celular":{"editor":null},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const ic = { fila:'M4 6h16M4 12h16M4 18h10', ment:'M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7M22 19v-1a4 4 0 0 0-3-3.8M16 3.2a3.5 3.5 0 0 1 0 6.6', ficha:'M6 3h9l4 4v14H6zM9 12h7M9 16h7', onb:'M4 5h16l-6 7v6l-4 2v-8z', plano:'M4 6h16v15H4zM4 10h16M9 3v4M15 3v4', reun:'M3 7h13v10H3zM16 11l5-3v8l-5-3', pme:'M12 3a9 9 0 1 0 9 9M12 7v5l3 2', linha:'M4 6h16M4 12h10M4 18h7', env:'M3 8l9-5 9 5v8l-9 5-9-5zM3 8l9 5 9-5M12 13v8', ev:'M5 4h14v17H5zM5 9h14', ren:'M4 12a8 8 0 0 1 14-5l2 2M20 12a8 8 0 0 1-14 5l-2-2M20 4v5h-5M4 20v-5h5', conf:'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6M12 3v3M12 18v3M3 12h3M18 12h3' };
+    const L = (label, d, href, on, cnt) => ({ link: true, label, d, href: href || 'EmBreve.dc.html', on: on ? 'on' : '', cnt: cnt || 0 });
+    const S = (label) => ({ sec: true, label });
+    const menu = [L('Fila do dia', ic.fila, 'Main.dc.html', false, 12), L('Mentorados', ic.ment, 'Mentorados.dc.html'), L('Ficha do mentorado', ic.ficha, 'Ficha.dc.html'), L('Onboarding', ic.onb), L('Plano dos 12 meses', ic.plano), L('Reuniões', ic.reun), S('Em breve'), L('PMEs e ciclos', ic.pme, '', true), L('Linha do tempo e conquistas', ic.linha), L('Envios físicos', ic.env), L('Eventos e agenda', ic.ev), L('Renovações e gestão', ic.ren), S('Admin'), L('Configurações', ic.conf, 'Configuracoes.dc.html')];
+    return { menu, yes: true, no: false, fila: this.props.celular ? 'FilaCelular.dc.html' : 'Main.dc.html' };
+  }
+}
+</script>
+</body>
+</html>

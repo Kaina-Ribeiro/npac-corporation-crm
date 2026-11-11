@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Mais, celular</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="prototipo.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="app raiz">
+  <main><div class="wrap">
+    <section class="view">
+      <h1 class="h1">Mais</h1>
+      <a class="card ml-conta" href="#conta"><span class="ava me">D</span><div><b>Duda</b><span class="d">Acompanhamento e Admin</span></div><svg class="seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></a>
+      <sc-for list="{{grupos}}" as="g" hint-placeholder-count="4">
+        <div class="ml-g">
+          <h2>{{g.t}}</h2>
+          <div class="card">
+            <sc-for list="{{g.itens}}" as="x" hint-placeholder-count="3">
+              <a class="ml {{x.cls}}" href="{{x.href}}">
+                <span class="i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{x.d}}"></path></svg></span>
+                <div class="t"><b>{{x.l}}</b><sc-if value="{{x.s}}" hint-placeholder-val="{{no}}"><span>{{x.s}}</span></sc-if></div>
+                <sc-if value="{{x.breve}}" hint-placeholder-val="{{no}}"><span class="tag">Em breve</span></sc-if>
+                <sc-if value="{{x.seta}}" hint-placeholder-val="{{yes}}"><svg class="seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></sc-if>
+              </a>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+      <p class="selo-cel">Protótipo com dados inventados</p>
+    </section>
+  </div></main>
+  <nav class="bnav glass" aria-label="Abas do acompanhamento">
+    <a href="FilaCelular.dc.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"></path></svg>Fila</a>
+    <a href="MentoradosCelular.dc.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7M22 19v-1a4 4 0 0 0-3-3.8M16 3.2a3.5 3.5 0 0 1 0 6.6"></path></svg>Mentorados</a>
+    <a class="plus" href="NovaInscricaoCelular.dc.html" aria-label="Nova inscrição"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" width="22" height="22"><path d="M12 5v14M5 12h14"></path></svg></a>
+    <a href="EmBreveCelular.dc.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M3 7h13v10H3zM16 11l5-3v8l-5-3"></path></svg>Reuniões</a>
+    <a class="on" href="Mais.dc.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M5 12h.01M12 12h.01M19 12h.01"></path></svg>Mais</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":375,"height":1240}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const ic = { ficha:'M6 3h9l4 4v14H6zM9 12h7M9 16h7', onb:'M4 5h16l-6 7v6l-4 2v-8z', plano:'M4 6h16v15H4zM4 10h16M9 3v4M15 3v4', pme:'M12 3a9 9 0 1 0 9 9M12 7v5l3 2', linha:'M4 6h16M4 12h10M4 18h7', env:'M3 8l9-5 9 5v8l-9 5-9-5zM3 8l9 5 9-5M12 13v8', ev:'M5 4h14v17H5zM5 9h14', ren:'M4 12a8 8 0 0 1 14-5l2 2M20 12a8 8 0 0 1-14 5l-2-2M20 4v5h-5M4 20v-5h5', conf:'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6M12 3v3M12 18v3M3 12h3M18 12h3', sino:'M6 9a6 6 0 0 1 12 0c0 6 2 7 2 7H4s2-1 2-7M10 20a2 2 0 0 0 4 0', sair:'M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10' };
+    const breve = 'EmBreveCelular.dc.html';
+    const I = (l, d, href, s, extra) => ({ l, d, href, s: s || '', seta: true, breve: false, cls: '', ...(extra || {}) });
+    const B = (l, d) => I(l, d, breve, '', { seta: false, breve: true, cls: 'off' });
+    const primeiro = (itens) => itens.map((x, i) => ({ ...x, cls: (x.cls + (i ? '' : ' p1')).trim() }));
+    const grupos = [
+      { t: 'Acompanhamento', itens: [I('Ficha do mentorado', ic.ficha, 'FichaCelular.dc.html', 'Última aberta: Marina Alves'), I('Onboarding', ic.onb, breve, '6 em andamento'), I('Plano dos 12 meses', ic.plano, breve, '3 ações esta semana')] },
+      { t: 'Em breve', itens: [B('PMEs e ciclos', ic.pme), B('Linha do tempo e conquistas', ic.linha), B('Envios físicos', ic.env), B('Eventos e agenda', ic.ev), B('Renovações e gestão', ic.ren)] },
+      { t: 'Admin', itens: [I('Configurações', ic.conf, 'ConfiguracoesCelular.dc.html', 'Perfis, plano, mensagens, importação')] },
+      { t: 'Conta', itens: [I('Avisos neste aparelho', ic.sino, '#avisos'), I('Sair', ic.sair, '#sair', '', { seta: false, cls: 'sair' })] },
+    ].map((g) => ({ ...g, itens: primeiro(g.itens) }));
+    return { grupos, yes: true, no: false };
+  }
+}
+</script>
+</body>
+</html>

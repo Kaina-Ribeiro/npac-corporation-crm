@@ -34,25 +34,24 @@ describe('cifra de texto da mentoria', () => {
     ).toThrow();
   });
 
-  it('AAD de mentoria_ficha_campos usa ficha_id e chave', () => {
-    const ficha = randomUUID();
-    expect(aad('mentoria_ficha_campos', 'antes', ficha, 'FE')).toBe(
-      `mentoria_ficha_campos.antes.${ficha}.FE`,
-    );
-  });
-
   it('nulo e vazio passam como nulo (nada cifrado)', () => {
     expect(mc.cifrarOpcional(null, 'x')).toBeNull();
     expect(mc.decifrarOpcional(null, 'x')).toBeNull();
   });
 
   it('CAMPOS_SENSIVEIS cobre os textos sensíveis e deixa nome, datas e status em claro', () => {
-    expect(CAMPOS_SENSIVEIS.mentoria_fichas).toEqual(
-      expect.arrayContaining(['notas_momento_inicial', 'notas_momento_atual']),
-    );
-    expect(CAMPOS_SENSIVEIS.mentoria_rdv_diagnostico).toHaveLength(9);
+    expect(CAMPOS_SENSIVEIS.mentoria_pessoas).toEqual(['whatsapp', 'email']);
+    expect(CAMPOS_SENSIVEIS.mentoria_momento_inicial).toEqual(['dor', 'sonho', 'meta']);
     for (const cols of Object.values(CAMPOS_SENSIVEIS)) {
-      for (const c of cols) expect(['nome', 'status', 'data', 'pasta_url']).not.toContain(c);
+      for (const c of cols) expect(['nome', 'status', 'data', 'link_pasta']).not.toContain(c);
     }
+  });
+
+  it('índice cego é determinístico, não revela o valor e depende da chave', () => {
+    const a = mc.indiceCego('+5511999990001');
+    expect(a).toBe(mc.indiceCego('+5511999990001'));
+    expect(a).not.toContain('999');
+    expect(a).not.toBe(mc.indiceCego('+5511999990002'));
+    expect(a).not.toBe(new MentoriaCrypto(Buffer.alloc(32, 6)).indiceCego('+5511999990001'));
   });
 });

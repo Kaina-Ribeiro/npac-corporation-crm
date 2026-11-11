@@ -3,6 +3,7 @@ import { hasCommercialAccess, isLeader } from '@npac/shared/enums';
 import { Sidebar } from '@/components/shell/sidebar';
 import { SignOutButton } from '@/components/shell/sign-out-button';
 import { RoleTag } from '@/components/role-tag';
+import { lerEu } from '@/lib/acompanhamento';
 import { getSession } from '@/lib/session';
 
 export const metadata = { title: 'Página não encontrada' };
@@ -28,7 +29,7 @@ export default async function NotFound() {
       <div className="flex flex-wrap gap-2">
         {me?.modules.mentoria ? (
           <Link
-            href="/acompanhamento/dashboard"
+            href="/acompanhamento"
             className="rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-[var(--bg)]"
           >
             Ir para o Acompanhamento
@@ -45,12 +46,15 @@ export default async function NotFound() {
     </section>
   );
   if (!me) return <main className="px-4 py-8">{aviso}</main>;
+  const eu = me.modules.mentoria ? await lerEu() : null;
+  const usaModulo = !!eu && (eu.admin || (!!eu.perfil && eu.perfil !== 'MENTOR'));
   return (
     <div className="flex min-h-dvh">
       <Sidebar
         head={isLeader(me.role)}
-        mentoria={me.modules.mentoria}
+        mentoria={usaModulo}
         commercial={hasCommercialAccess(me.role)}
+        mentoriaAdmin={eu?.admin}
         footer={
           <div className="flex flex-col gap-2 px-1">
             <b className="truncate text-sm font-semibold">{me.name}</b>

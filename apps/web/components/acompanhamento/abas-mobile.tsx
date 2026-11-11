@@ -1,74 +1,33 @@
 'use client';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { baixarBackup } from '@/lib/acompanhamento-download';
+import { usePathname } from 'next/navigation';
+import { ICONES, Icone } from './ui';
 
-/** Evento do "+" do rodapé: cada tela abre o próprio cadastro. */
-export const EVENTO_MAIS = 'acompanhamento:mais';
-
-const svg = (d: string) => (
-  <svg
-    viewBox="0 0 24 24"
-    className="size-[22px]"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.8"
-    aria-hidden="true"
-  >
-    <path d={d} />
-  </svg>
-);
 const ABAS = [
-  {
-    href: '/acompanhamento/dashboard',
-    label: 'Dashboard',
-    icone: 'M3 3h7v9H3zM14 3h7v5h-7zM14 12h7v9h-7zM3 16h7v5H3z',
-  },
-  {
-    href: '/acompanhamento/linha-do-tempo',
-    label: 'Linha',
-    icone: 'M4 6h16M4 12h10M4 18h7M18 14a3 3 0 1 0 0 6 3 3 0 0 0 0-6z',
-  },
-  { href: '/acompanhamento/rdv', label: 'RDV', icone: 'M4 19h16M6 15l4-5 3 3 5-7' },
-  {
-    href: '/acompanhamento/backup',
-    label: 'Backup',
-    icone: 'M12 3v12M7 10l5 5 5-5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2',
-  },
+  { href: '/acompanhamento/em-breve/fila', label: 'Fila', icone: ICONES.fila },
+  { href: '/acompanhamento/mentorados', label: 'Mentorados', icone: ICONES.mentorados },
+  { href: '/acompanhamento/em-breve/reunioes', label: 'Reuniões', icone: ICONES.reunioes },
+  { href: '/acompanhamento/mais', label: 'Mais', icone: 'M5 12h.01M12 12h.01M19 12h.01' },
 ];
 
-/**
- * Celular (abaixo de 768 px): abas Dashboard · Linha · + · RDV · Backup no rodapé, no lugar da
- * barra do CRM. O "+" abre o cadastro da aba atual (Colar planilha, Nova ficha, Novo mentorado)
- * e, no Backup, exporta o .json do Dashboard.
- */
-export function AbasMobile() {
-  const path = usePathname();
-  const router = useRouter();
-  // Fora do módulo (o "Mais", que o cargo Acompanhamento abre pelo avatar) nenhuma aba fica marcada.
-  const fora = !path.startsWith('/acompanhamento');
-  const aba = fora
-    ? null
-    : (ABAS.find((a) => path === a.href || path.startsWith(`${a.href}/`))?.label ?? 'Dashboard');
-  const rotuloMais =
-    aba === 'Linha'
-      ? 'Nova ficha'
-      : aba === 'RDV'
-        ? 'Novo mentorado'
-        : aba === 'Backup'
-          ? 'Exportar .json'
-          : 'Colar planilha';
+/** Qual aba do rodapé fica marcada: a ficha é da lista; o resto do módulo vive no Mais. */
+function abaAtual(path: string): string | null {
+  if (!path.startsWith('/acompanhamento')) return null;
+  if (path.startsWith('/acompanhamento/em-breve/fila')) return 'Fila';
+  if (path.startsWith('/acompanhamento/em-breve/reunioes')) return 'Reuniões';
+  if (path.startsWith('/acompanhamento/mentorados') || path.startsWith('/acompanhamento/ficha'))
+    return 'Mentorados';
+  return 'Mais';
+}
 
-  function mais() {
-    if (aba === 'Backup') return void baixarBackup('dashboard').catch(() => {});
-    if (fora) return router.push('/acompanhamento/dashboard?colar=1');
-    // Dentro da ficha, a lista é que tem o cadastro: volta para ela já com o cadastro aberto.
-    if (aba === 'Linha' && path !== '/acompanhamento/linha-do-tempo')
-      return router.push('/acompanhamento/linha-do-tempo?nova=1');
-    if (aba === 'RDV' && path !== '/acompanhamento/rdv')
-      return router.push('/acompanhamento/rdv?novo=1');
-    window.dispatchEvent(new CustomEvent(EVENTO_MAIS, { detail: aba }));
-  }
+/**
+ * Celular (abaixo de 768 px): Fila · Mentorados · + · Reuniões · Mais. O "+" abre a Nova inscrição
+ * e não aparece para quem não cadastra; a própria tela de cadastro esconde o rodapé.
+ */
+export function AbasMobile({ podeCriar = false }: { podeCriar?: boolean }) {
+  const path = usePathname();
+  if (path === '/acompanhamento/mentorados/nova') return null;
+  const aba = abaAtual(path);
 
   const item = (a: (typeof ABAS)[number]) => {
     const on = a.label === aba;
@@ -83,7 +42,7 @@ export function AbasMobile() {
             : 'text-ink2'
         }`}
       >
-        {svg(a.icone)}
+        <Icone d={a.icone} className="size-[22px]" />
         {a.label}
       </Link>
     );
@@ -92,18 +51,21 @@ export function AbasMobile() {
   return (
     <nav
       aria-label="Abas do acompanhamento"
-      className="glass fixed right-3.5 bottom-[max(16px,env(safe-area-inset-bottom))] left-3.5 z-20 grid h-[68px] grid-cols-5 rounded-[34px] p-1.5 md:hidden"
+      className={`glass fixed right-3.5 bottom-[max(16px,env(safe-area-inset-bottom))] left-3.5 z-20 grid h-[68px] rounded-[34px] p-1.5 md:hidden ${
+        podeCriar ? 'grid-cols-5' : 'grid-cols-4'
+      }`}
     >
       {item(ABAS[0]!)}
       {item(ABAS[1]!)}
-      <button
-        type="button"
-        onClick={mais}
-        aria-label={rotuloMais}
-        className="mx-auto flex size-14 items-center justify-center self-center rounded-full bg-ink text-[var(--bg)] shadow-[0_8px_20px_-8px_rgba(0,0,0,.5)] active:scale-90"
-      >
-        {svg('M12 5v14M5 12h14')}
-      </button>
+      {podeCriar && (
+        <Link
+          href="/acompanhamento/mentorados/nova"
+          aria-label="Nova inscrição"
+          className="mx-auto flex size-14 items-center justify-center self-center rounded-full bg-ink text-[var(--bg)] shadow-[0_8px_20px_-8px_rgba(0,0,0,.5)] active:scale-90"
+        >
+          <Icone d={ICONES.mais} className="size-[22px]" largura={2} />
+        </Link>
+      )}
       {item(ABAS[2]!)}
       {item(ABAS[3]!)}
     </nav>

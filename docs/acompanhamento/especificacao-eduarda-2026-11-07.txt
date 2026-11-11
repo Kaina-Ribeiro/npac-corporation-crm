@@ -1,0 +1,763 @@
+Texto extraído do PDF "Sistema de Gestão dos Mentorados — Especificação" (Eduarda, 07/11/2026, 19 páginas). Tabelas saem achatadas: em dúvida, abrir o PDF original.
+
+===== PAGE 1 =====
+Sistema de Gestão dos Mentorados —
+Especificação
+ Nov 7, 2026  ·  @Ana
+Visão geral, equipe e acessos
+O sistema registra toda a jornada do mentorado RDV, da mensagem de boas-vindas até a
+reunião de renovação no 12º mês. Ele segue o roteiro que já existe no Miro: onboarding
+pré-mentoria, um PME por mês, uma ação especial por mês e marcos de linha do tempo
+nos meses 4, 8, 10 e 12. A equipe alimenta; o mentorado visualiza a própria jornada e
+responde aos check-ins.
+Quem faz o quê hoje
+Pessoa ou função Responsabilidades (lista de demandas do Miro)
+Duda (acompanhamento) Garantir que todos estão bem acompanhados;
+reuniões e ligações diárias; priorizar mentorados
+antigos; reuniões de IDR; renovações; atualizar a
+linha do tempo; montar a agenda do mês; desafio
+da Nação Milionária
+Operação (segunda pessoa) Responder o WhatsApp em até 1 hora; onboarding
+completo do RDV até a IDR e o envio do 1º PME;
+agendar, confirmar e enviar link das reuniões;
+reuniões mensais dos mentorados de 6 meses;
+enviar a arte da agenda todo dia 1º; montar e enviar
+os PMEs; dúvidas na plataforma; comunicação dos
+grupos da Nação e da mentoria
+Manu (posicionamento) Reunião individual no 5º mês e posicionamento
+personalizado
+Leo Reunião de IDR (quando for com ele), encontros ao
+vivo, Encontro de Mentorados
+Mentorados experientes Conversa de inspiração com novos mentorados no
+6º mês
+Sistema de Gestão dos Mentorados — Especiﬁcação
+Page 1 of 19
+
+===== PAGE 2 =====
+Perfis de acesso
+Regra de ouro: cada registro tem um campo interno ou visível ao mentorado.
+Observações sobre comportamento, risco de cancelamento e renovação nunca aparecem
+para ele.
+Onboarding pré-mentoria
+A mentoria começa oficialmente na reunião de IDR (Introdução à Riqueza), depois que o
+mentorado recebe a Caixa da Verdadeira Riqueza. Até lá ele passa por seis etapas, e o
+sistema deve mostrar em qual delas cada pessoa está parada.
+Perfil Vê Pode editar
+Admin (gestão) Tudo Tudo, inclusive usuários, modelos
+de PME, plano dos 12 meses e
+mensagens-modelo
+Acompanhamento
+(Duda)
+Todos os mentorados Ficha, metas, reuniões, linha do
+tempo, conquistas, renovações
+Operação Todos os mentorados Onboarding, agenda de reuniões,
+envios de PME, envios físicos,
+contatos
+Especialista (Manu) Só os mentorados com
+reunião agendada com ela
+Registro das próprias reuniões e
+o posicionamento entregue
+Mentor (Leo) Painel geral, destaques e
+casos em vermelho
+Comentários e mensagens de
+reconhecimento
+Mentorado Só a própria área Check-in semanal, tarefas e
+comprovantes
+Etapa O que acontece Quem
+conduz
+O que o sistema registra
+1. Boas-vindas Criação do grupo
+individual e mensagem de
+boas-vindas, em versão
+para solteiro ou para
+casal, com o formulário de
+envio da caixa
+Operação Data do grupo, tipo de
+inscrição (individual ou
+casal), formulário
+preenchido (sim ou não)
+Sistema de Gestão dos Mentorados — Especiﬁcação
+Page 2 of 19
+
+===== PAGE 3 =====
+Regras do onboarding:
+Cada etapa só é enviada depois que o mentorado avisa que concluiu a anterior. O
+sistema mostra há quantos dias ele está parado em cada etapa.
+Mais de 3 dias parado numa etapa gera alerta para a Operação.
+A caixa recebida dispara o agendamento da IDR.
+A IDR concluída dispara o envio do 1º PME e marca o início oficial dos 12 meses (data
+que define todo o calendário da jornada).
+Jornada dos 12 meses
+Cada mês tem um foco e uma ação obrigatória da equipe. No sistema, isso vira um plano-
+modelo: ao iniciar a jornada, cada mentorado recebe automaticamente as 12 ações com
+data prevista, e a equipe marca cada uma como feita.
+Etapa O que acontece Quem
+conduz
+O que o sistema registra
+2. Grupos de
+WhatsApp
+Entrada nos grupos
+Avisos, Clube da Riqueza
+(áudio diário às 8h) e
+Nação Milionária
+Operação Entrou em cada grupo
+(sim ou não)
+3. Aquecimento da
+Riqueza
+Primeiro módulo da
+plataforma, com login
+enviado por e-mail
+Operação Aulas concluídas (sim ou
+não), data
+4. PME de
+Aquecimento
+Feito com calma
+enquanto a caixa não
+chega, em média 10 dias
+úteis
+Operação Enviado, concluído
+5. Caixa da
+Verdadeira Riqueza
+Envio físico das
+ferramentas da mentoria
+Operação Endereço, data de envio,
+código de rastreio, data de
+recebimento
+6. Reunião de IDR Às 21h, com o Leo (Zoom)
+ou com a Duda (Meet),
+com lembrete no dia
+Leo ou
+Duda
+Data, quem conduziu,
+presença; ao concluir,
+libera o 1º PME
+Sistema de Gestão dos Mentorados — Especiﬁcação
+Page 3 of 19
+
+===== PAGE 4 =====
+Mês Foco Ação da equipe Responsável Registro no sistema
+1 Adaptação Garantir 100% do
+PME; respostas
+rápidas e contato
+semanal
+Operação e
+Duda
+Check-ins semanais,
+% do PME, tempo de
+resposta
+2 Conexão com a
+equipe
+Convites individuais
+para as aulas ao vivo;
+reunião com a Duda
+ao fechar o 2º PME
+Duda Convites enviados,
+presença nas aulas,
+reunião registrada
+3 Momento mágico Fim dos avisos
+individuais de aula;
+vídeo do office;
+experiência
+personalizada com o
+mentorado como
+protagonista
+Duda Vídeo enviado,
+experiência
+entregue, conquista
+"Marco 3 meses"
+4 Reconhecimento
+da evolução
+Antes do 5º PME,
+enviar a 1ª parte da
+linha do tempo
+(imagem ou PDF)
+Duda Linha do tempo parte
+1 gerada e enviada
+5 Comunicação e
+posicionamento
+Reunião individual
+com a Manu ao
+fechar o PME e
+posicionamento
+personalizado
+Manu Reunião registrada,
+posicionamento
+entregue
+6 Conexão e
+inspiração
+Conversa com um
+mentorado
+experiente; revisão
+de pendências
+Duda Padrinho escolhido,
+conversa realizada,
+pendências
+revisadas
+7 Cartões de crédito
+e milhas
+Reunião de
+orientação com a
+Duda; acompanhar os
+aportes diários do
+PME
+Duda Reunião registrada,
+aportes
+acompanhados
+8 Evolução
+financeira
+Imagem com o
+cálculo da evolução
+patrimonial com
+dados reais
+Duda Indicadores
+financeiros
+atualizados, imagem
+gerada
+Sistema de Gestão dos Mentorados — Especiﬁcação
+Page 4 of 19
+
+===== PAGE 5 =====
+Atividades extras de cada PME
+Além das tarefas do PME, cada ciclo tem atividades extras, que também entram como
+tarefas no sistema, com comprovante:
+1º PME: listar no Millionaire Book os 10 maiores erros da vida (financeiros e pessoais);
+para cada erro, 3 possíveis soluções; livro extra: Comece pelo Porquê.
+2º PME: praticar um esporte diferente; comer uma fruta nunca provada e enviar a foto
+no grupo; EAP extra sobre saúde mental; se terminar tudo, enviar um vídeo de no
+mínimo 5 minutos com o resumo do mês.
+Encerramento de cada PME
+O fechamento do 1º PME já tem um ritual: arrancar as folhas dos erros e queimá-las como
+símbolo de encerramento da etapa. O sistema trata todo fechamento de PME da mesma
+forma: uma última tarefa simbólica com comprovante, que marca o ciclo como concluído e
+libera o próximo PME.
+Mês Foco Ação da equipe Responsável Registro no sistema
+9 Desejo pela Villa
+NPAC
+Vídeo institucional
+da Villa
+Operação Vídeo enviado
+10 Reconhecimento
+da jornada
+2ª parte da linha do
+tempo em PDF, na
+mesma identidade
+visual
+Duda Linha do tempo parte
+2 gerada e enviada
+11 Família e
+Verdadeira
+Riqueza
+Presente
+personalizado com
+foto da família e a
+frase "Nós somos
+ricos de verdade"
+Operação Foto recebida,
+presente produzido,
+enviado, entregue
+12 Celebração e
+renovação
+Após o último PME,
+reunião com a linha
+do tempo completa
+(antes e depois) e
+conversa de
+renovação
+Duda Reunião registrada,
+resultado da
+renovação
+Sistema de Gestão dos Mentorados — Especiﬁcação
+Page 5 of 19
+
+===== PAGE 6 =====
+Eventos
+O Encontro de Mentorados (três dias presenciais) entra como evento no sistema, com
+convite, confirmação e presença. A mensagem de chamada com o vídeo do último
+encontro é enviada junto com o 2º PME.
+Abas da empresa
+São onze abas. As três primeiras são o dia a dia; as demais organizam cada frente que hoje
+está espalhada entre Miro, WhatsApp e planilhas.
+Aba Para que serve O que mostra
+1. Fila do dia Saber o que fazer hoje Mentorados em amarelo e
+vermelho, reuniões do dia (com
+status de confirmação e link
+enviado), cobranças vencidas,
+ações do plano de 12 meses que
+vencem hoje, mensagens sem
+resposta há mais de 1 hora
+2. Mentorados Visão da carteira Lista com foto, nome, individual ou
+casal, mês da jornada, PME atual,
+semáforo, % do PME, último
+contato; filtros por mês, status e
+responsável
+3. Ficha do mentorado Tudo sobre uma pessoa Ver seção "Ficha do mentorado"
+4. Onboarding Acompanhar quem ainda
+não começou
+Funil das seis etapas, dias parado
+em cada etapa, caixas em trânsito,
+IDRs a agendar
+5. Plano dos 12 meses Garantir a ação de cada
+mês
+Por mentorado e por mês: ação
+prevista, data, responsável, feita ou
+não; visão geral do que vence na
+semana
+6. Reuniões Agenda e registro Ver seção "Controle de reuniões";
+inclui o controle mensal de quem já
+fez a reunião do mês e quem falta
+7. PMEs e ciclos Gerir os ciclos Quem está em qual PME, data de
+envio, % concluído, atividades
+extras, encerramento feito,
+próximo PME a enviar
+Sistema de Gestão dos Mentorados — Especiﬁcação
+Page 6 of 19
+
+===== PAGE 7 =====
+Funcionalidades em todas as abas:
+Busca por nome, telefone ou e-mail
+Botão de WhatsApp direto do registro, com mensagens-modelo (versão individual e
+versão casal)
+Histórico de alterações
+Exportação para planilha
+Notificações quando alguém muda para vermelho ou uma ação do plano vence
+Ficha do mentorado
+Cada inscrição tem uma ficha única. Quando a inscrição é de um casal, ela conta como um
+mentorado só: check-in, tarefas, PME e linha do tempo são do casal. A ficha guarda os
+dados das duas pessoas, as mensagens saem no plural, e as metas podem ser do casal ou
+individuais.
+Inscrição
+Tipo: individual ou casal
+Data de compra, data da IDR (início oficial) e data prevista de término (12 meses após
+a IDR)
+Plano, valor, forma de pagamento, status financeiro
+Aba Para que serve O que mostra
+8. Linha do tempo e
+conquistas
+Alimentar o que o
+mentorado vê
+Lançamento de conquistas,
+geração das partes 1 e 2 e da linha
+do tempo completa (meses 4, 10 e
+12)
+9. Envios físicos Controlar tudo que vai pelo
+correio
+Caixa da Verdadeira Riqueza,
+presente da família (mês 11), kits e
+certificados: status, rastreio,
+entrega
+10. Eventos e agenda Encontros e aulas ao vivo Agenda do mês (arte enviada todo
+dia 1º), Encontro de Mentorados,
+Villa NPAC, convites e presença
+11. Renovações e
+gestão
+Visão da liderança Mentorados que chegam ao 12º
+mês nos próximos 60 dias, status
+da conversa de renovação,
+indicadores gerais
+Sistema de Gestão dos Mentorados — Especiﬁcação
+Page 7 of 19
+
+===== PAGE 8 =====
+Status: em onboarding, ativo, pausado, cancelado, concluído, renovado
+Responsável pelo acompanhamento
+Origem (Nação Milionária, Clube da Riqueza, Instagram, indicação)
+Dados pessoais (de cada pessoa da inscrição)
+Nome completo, como prefere ser chamado, foto
+Data de nascimento, cidade e estado
+WhatsApp, e-mail, Instagram
+Profissão e tipo de ocupação (empregado, autônomo, empresário)
+Filhos (quantos e idades)
+Endereço de entrega (vem do formulário da caixa)
+Foto da família (pedida até o mês 10, para o presente do mês 11)
+Momento inicial (o "antes")
+Preenchido no onboarding ou na IDR e congelado: é a base do antes e depois do mês 12.
+Dados financeiros: quanto recebe por mês, custo mensal, se tem dívidas (e quanto),
+valor guardado
+Principal dor e principal sonho, nas palavras dele
+Meta de 12 meses
+Resultado da Prova das 10 Habilidades
+Nota inicial nos 4 pilares do NPAC: fé, saúde, dinheiro, relacionamentos (0 a 10)
+Os 10 maiores erros e as soluções do 1º PME (registrados como concluídos, sem o
+conteúdo, que é pessoal)
+Familiaridade com tecnologia, melhor horário e canal de contato
+Jornada
+Etapa do onboarding ou mês atual (1 a 12) e PME atual
+Ações do plano de 12 meses: feitas, pendentes, atrasadas
+Semáforo atual e histórico semana a semana
+Sequência de semanas com check-in
+Nível, selos e conquistas
+Presença em aulas ao vivo e no Encontro de Mentorados
+Participação nos desafios mensais
+Notas de NPS
+Sistema de Gestão dos Mentorados — Especiﬁcação
+Page 8 of 19
+
+===== PAGE 9 =====
+Histórico
+Todas as reuniões (IDR, acompanhamento, Manu, mentorado experiente, cartões,
+renovação)
+Todos os contatos, com data, canal e se ele respondeu
+Envios físicos e entregas
+Anotações internas da equipe
+Linha do tempo (a mesma que o mentorado vê)
+Controle de reuniões
+Cada reunião passa por quatro estados (agendada, confirmada, link enviado, realizada) e
+termina com um registro que responde: o que foi combinado, o que ele precisa fazer e o
+que será cobrado na próxima semana.
+Tipos de reunião
+Tipo Quando Quem conduz
+IDR (Introdução à Riqueza) Após receber a caixa,
+às 21h
+Leo (Zoom) ou Duda (Meet)
+Acompanhamento do 2º PME Ao fechar o 2º PME Duda
+Posicionamento Ao fechar o 5º PME Manu
+Conversa com mentorado
+experiente
+6º mês Mentorado experiente, agendada
+pela Duda
+Cartões de crédito e milhas 7º mês Duda
+Reunião mensal dos
+mentorados 6M
+Todo início de mês Duda, agendada pela Operação
+Acompanhamento ou
+emergência
+Quando o semáforo
+pede
+Duda
+Linha do tempo e renovação 12º mês, após o
+último PME
+Duda
+Sistema de Gestão dos Mentorados — Especiﬁcação
+Page 9 of 19
+
+===== PAGE 10 =====
+Campos de cada reunião
+Ciclo semanal de cobrança
+1. Na reunião, o responsável registra metas e até 3 tarefas, cada uma com prazo.
+2. O sistema cria uma cobrança para cada tarefa, na data do prazo.
+3. As tarefas aparecem na área do mentorado, com botão "fiz" e envio de comprovante.
+4. Na data, a cobrança entra na Fila do dia, já mostrando se ele marcou ou não.
+5. A reunião seguinte começa revisando essas cobranças.
+6. Duas tarefas seguidas não feitas mudam o semáforo e geram alerta.
+Controle mensal
+Quem já fez a reunião do mês e quem falta (demanda da lista do Miro)
+Campo Visível ao mentorado?
+Data, horário, duração, plataforma (Zoom ou Meet),
+link
+Sim
+Tipo e quem conduziu Sim
+Status: agendada, confirmada no dia, link enviado,
+realizada, faltou, remarcada
+Não
+Cobrança da reunião anterior: cada tarefa marcada
+como feita, parcial ou não feita
+Sim
+Resumo do que foi conversado Sim
+Metas definidas ou ajustadas Sim
+Tarefas da semana (no máximo 3, cada uma com
+prazo)
+Sim
+O que cobrar na próxima semana (gerado a partir
+das tarefas)
+Sim
+Trava ou dificuldade relatada Não
+Humor e engajamento percebidos (1 a 5) Não
+Interesse em renovar (só na reunião do 12º mês) Não
+Anotação interna Não
+Próxima reunião Sim
+Sistema de Gestão dos Mentorados — Especiﬁcação
+Page 10 of 19
+
+===== PAGE 11 =====
+Agenda da semana por responsável
+Mentorados sem reunião há mais de 30 dias
+Taxa de comparecimento e % de tarefas cumpridas entre reuniões
+Área do mentorado
+A área do mentorado é um sistema à parte da plataforma Verdadeira Riqueza, com login
+próprio (o link fica fixado no grupo individual e na plataforma). Ele vê só a própria jornada.
+A tela principal é a linha do tempo dos 12 meses.
+As partes da linha do tempo que hoje são montadas à mão (imagem no mês 4, cálculo
+financeiro no mês 8, PDF no mês 10 e linha completa no mês 12) passam a ser geradas pelo
+sistema a partir do que a equipe registrou. A Duda revisa e libera.
+O que ele vê
+linha do tempo do mentorado · 12 meses, 4 entregas visuais
+Tela Conteúdo
+Início Saudação pelo nome (ou pelos nomes, no caso de
+casal), mês da jornada, PME atual, sequência de
+semanas, próxima reunião
+Primeiros passos Durante o onboarding: as seis etapas com o que já
+foi feito, status da caixa e data da IDR
+Meu PME Metas do PME atual com barra de progresso,
+atividades extras e a tarefa de encerramento
+Minhas tarefas Tarefas combinadas na reunião, com botão "fiz" e
+envio de comprovante
+Sistema de Gestão dos Mentorados — Especiﬁcação
+Page 11 of 19
+
+===== PAGE 12 =====
+Conquistas que a equipe lança
+Onboarding concluído: automático após a IDR
+PME concluído: automático após a tarefa de encerramento (no 1º PME, a queima das
+folhas)
+Ação do mês: cada uma das 12 ações do plano, por exemplo o momento mágico, a
+reunião com a Manu ou o presente da família
+Meta financeira: primeira reserva, dívida quitada, primeiro aporte, primeiro
+investimento
+Constância: 4, 8 e 12 semanas seguidas de check-in
+Presença: Encontro de Mentorados, aulas ao vivo
+Destaque: reconhecimento manual da equipe ou do Leo
+Cada conquista tem data, título, descrição curta, ícone e, quando houver, foto ou vídeo do
+momento.
+Banco de dados
+O banco tem 26 tabelas em seis grupos. A tabela inscricoes é o centro: ela representa o
+mentorado individual ou o casal, e quase tudo se liga a ela pelo campo inscricao_id .
+Tela Conteúdo
+Check-in semanal As 3 perguntas da semana
+Linha do tempo Os 12 meses, com cada ação e conquista no mês em
+que aconteceu
+Meu antes e depois Momento inicial comparado ao atual: valor
+guardado, dívidas, quanto recebe, custo mensal,
+notas dos 4 pilares, Prova das 10 Habilidades
+Agenda Aulas ao vivo do mês, Encontro de Mentorados,
+reuniões
+Materiais PMEs, gravações, desafio do mês
+Sistema de Gestão dos Mentorados — Especiﬁcação
+Page 12 of 19
+
+===== PAGE 13 =====
+Pessoas e acesso
+Onboarding e plano dos 12 meses
+Tabela Campos principais
+usuarios id, nome, e-mail, telefone, perfil (admin,
+acompanhamento, operação, especialista, mentor,
+mentorado), senha, ativo, último acesso
+inscricoes id, tipo (individual, casal), data de compra, data da
+IDR, data prevista de término, plano, valor, forma de
+pagamento, status financeiro, status (onboarding,
+ativo, pausado, cancelado, concluído, renovado),
+responsavel_id, origem, mês atual, PME atual,
+semáforo atual, sequência de semanas, nível atual
+pessoas id, inscricao_id, usuario_id, nome, apelido, foto,
+nascimento, cidade, UF, WhatsApp, e-mail,
+Instagram, profissão, tipo de ocupação, filhos,
+familiaridade com tecnologia, melhor horário, canal
+preferido
+enderecos id, inscricao_id, endereço completo, CEP, origem
+(formulário da caixa), atualizado em
+Tabela Campos principais
+onboarding_etapas id, inscricao_id, etapa (boas-vindas, grupos,
+aquecimento, PME de aquecimento, caixa, IDR),
+status, data de envio, data de conclusão
+plano_modelo id, mês (1 a 12), foco, ação, responsável padrão,
+gatilho (início do mês, fim do PME), dias para
+executar
+acoes_mentorado id, inscricao_id, plano_modelo_id, data prevista,
+responsavel_id, status (pendente, feita, atrasada),
+data de execução, evidência (link, foto, vídeo),
+observação
+mensagens_modelo id, nome, momento (boas-vindas, passo 1, passo 2,
+passo 3, lembrete IDR, evento), versão individual,
+versão casal, canal
+Sistema de Gestão dos Mentorados — Especiﬁcação
+Page 13 of 19
+
+===== PAGE 14 =====
+Momento inicial e evolução
+Tabela Campos principais
+momento_inicial id, inscricao_id, data, quanto recebe por mês, custo
+mensal, tem dívidas (sim ou não), valor das dívidas,
+valor guardado, principal dor, principal sonho, meta
+de 12 meses, nota fé, nota saúde, nota dinheiro,
+nota relacionamentos (registro bloqueado para
+edição)
+avaliacoes id, pessoa_id, tipo (Prova das 10 Habilidades,
+pilares), momento (inicial, mês 4, mês 8, final), data,
+respostas, notas
+indicadores_financeiros id, inscricao_id, data, quanto recebe, custo mensal,
+tem dívidas, valor das dívidas, valor guardado (uma
+linha a cada fechamento de PME; base do cálculo
+do mês 8)
+Sistema de Gestão dos Mentorados — Especiﬁcação
+Page 14 of 19
+
+===== PAGE 15 =====
+PMEs, metas e tarefas
+Acompanhamento
+Tabela Campos principais
+pmes id, número (0 = aquecimento, 1 a 12), título, foco,
+link do material (pasta dos PMEs no Drive),
+atividades extras padrão, tarefa de encerramento
+padrão
+ciclos id, inscricao_id, pme_id, data de envio, data de
+início, data de fim, status (em andamento,
+concluído, segunda chance, não concluído), %
+geral, encerramento feito
+metas id, ciclo_id, inscricao_id, pessoa_id (vazio = meta
+do casal ou do individual; preenchido = meta
+individual de uma pessoa do casal), pilar, descrição,
+valor-alvo, valor atual, unidade, prazo, status, visível
+ao mentorado
+tarefas id, inscricao_id, origem (reunião, PME, atividade
+extra, encerramento), reuniao_id, ciclo_id, meta_id,
+descrição, prazo, status (pendente, feita, parcial,
+não feita), comprovante, data de cobrança,
+cobrada em, motivo se não feita
+Tabela Campos principais
+reunioes id, inscricao_id, tipo (IDR, acompanhamento,
+posicionamento, mentorado experiente, cartões e
+milhas, mensal 6M, renovação), conduzida_por,
+data, horário, plataforma, link, status (agendada,
+confirmada, link enviado, realizada, faltou,
+remarcada), resumo, trava relatada, humor,
+interesse em renovar, anotação interna, próxima
+reunião
+checkins id, inscricao_id, semana, data de envio, data de
+resposta, avanço por meta, o que travou, próximo
+passo, respondeu
+contatos id, inscricao_id, feito_por, data, canal, motivo,
+tempo de resposta, respondeu, observação
+Sistema de Gestão dos Mentorados — Especiﬁcação
+Page 15 of 19
+
+===== PAGE 16 =====
+Experiências, envios e conquistas
+Campos comuns às tabelas de acompanhamento: visivel_ao_mentorado , criado_por ,
+criado_em , atualizado_em .
+Regras automáticas, indicadores e implantação
+As regras automáticas transformam o roteiro do Miro em tarefas que aparecem sozinhas
+na Fila do dia, sem depender de alguém lembrar.
+Tabela Campos principais
+semaforo_historico id, inscricao_id, semana, cor, motivo
+padrinhos id, inscricao_id do mentorado experiente,
+disponível, conversas realizadas, data da última
+conversa, limite por mês (a equipe escolhe o
+padrinho de cada mentorado)
+Tabela Campos principais
+envios_fisicos id, inscricao_id, tipo (Caixa da Verdadeira Riqueza,
+presente da família, kit, certificado), data de envio,
+rastreio, data de entrega, status
+eventos id, nome (Encontro de Mentorados, Villa NPAC,
+aula ao vivo), data, local, link
+eventos_participacao id, evento_id, inscricao_id, convite enviado,
+confirmou, compareceu
+linha_do_tempo_entregas id, inscricao_id, parte (1 no mês 4, financeira no
+mês 8, 2 no mês 10, completa no mês 12), arquivo
+gerado, revisado por, enviado em
+conquistas id, inscricao_id, tipo, título, descrição, data, ícone,
+mídia, lançada por, visível ao mentorado
+renovacoes id, inscricao_id, data da reunião, interesse,
+proposta enviada, resultado, nova data de término
+Sistema de Gestão dos Mentorados — Especiﬁcação
+Page 16 of 19
+
+===== PAGE 17 =====
+Regras automáticas
+Gatilho O que o sistema faz
+Compra confirmada Cria a inscrição, gera a tarefa de criar o
+grupo e enviar a boas-vindas (versão
+individual ou casal)
+Etapa do onboarding parada há mais de 3
+dias
+Alerta para a Operação
+Caixa marcada como recebida Gera a tarefa de agendar a IDR
+Dia da IDR Lembrete de manhã para o mentorado e
+tarefa de enviar o link minutos antes
+IDR realizada Marca o início dos 12 meses, cria as 12 ações
+do plano com datas e libera o 1º PME
+Mensagem do mentorado sem resposta há 1
+hora
+Alerta para a Operação
+Início de cada mês da jornada Cria a ação do mês na Fila do dia do
+responsável
+Meses 1 e 2 Convite individual para cada aula ao vivo
+A partir do mês 3 Para de gerar os avisos individuais de aula
+Fim do 2º, 5º e 7º PME Gera a tarefa de agendar a reunião do mês
+(Duda, Manu, Duda)
+Meses 4, 8, 10 e 12 Gera a entrega da linha do tempo para a
+Duda revisar e enviar antes do próximo PME
+Mês 10 Pede a foto da família para o presente do
+mês 11
+Tarefa de encerramento do PME feita Marca o ciclo como concluído, lança a
+conquista e libera o próximo PME
+PME não fechado no prazo Abre a segunda chance de 7 dias
+1 semana sem check-in ou tarefa não feita Semáforo amarelo
+2 semanas sem resposta ou 2 tarefas
+seguidas não feitas
+Semáforo vermelho, alerta para a Duda e
+para o painel do Leo
+Todo dia 1º Lembrete para a Operação enviar a arte da
+agenda do mês e agendar as reuniões
+mensais dos mentorados 6M
+Sistema de Gestão dos Mentorados — Especiﬁcação
+Page 17 of 19
+
+===== PAGE 18 =====
+Indicadores do painel de gestão
+Dias médios da compra até a IDR, e onde o onboarding mais trava
+Tempo médio de resposta no WhatsApp
+% de ações do plano de 12 meses feitas no prazo, por mês
+Semáforo da base por semana e taxa de resposta ao check-in
+% de PMEs concluídos no prazo e % de encerramentos feitos
+Engajamento por mês da jornada, para ver a queda entre os meses 2 e 5
+Presença em aulas ao vivo e no Encontro de Mentorados
+Evolução média do valor guardado e das dívidas desde o momento inicial
+Reuniões do mês feitas e pendentes, por tipo
+NPS, cancelamentos e taxa de renovação
+Implantação em fases
+1. Fase 1, base (4 a 6 semanas): inscrições, fichas, onboarding, controle de reuniões,
+plano dos 12 meses e Fila do dia. É o que tira o Miro e as planilhas do dia a dia.
+2. Fase 2, cobrança: metas, tarefas, check-in semanal pelo BotConversa e semáforo.
+3. Fase 3, área do mentorado: sistema à parte com login próprio, linha do tempo, tarefas
+e antes e depois.
+4. Fase 4, automação das entregas: geração das linhas do tempo, do cálculo financeiro
+do mês 8 e do painel de gestão completo.
+Quando o mentorado atrasa o PME
+As ações do plano se dividem em dois tipos. As de relacionamento seguem o calendário,
+porque são justamente o que traz o mentorado de volta. As que dependem do conteúdo
+do PME esperam ele fechar o ciclo.
+Gatilho O que o sistema faz
+60 dias antes do fim dos 12 meses Entra na lista de renovações da Duda
+Ação do plano Se o PME atrasar
+Mês 3, momento mágico Segue o calendário
+Mês 6, conversa com mentorado
+experiente
+Segue o calendário; o padrinho ajuda a destravar
+Mês 9, vídeo da Villa NPAC Segue o calendário
+Sistema de Gestão dos Mentorados — Especiﬁcação
+Page 18 of 19
+
+===== PAGE 19 =====
+Ações para o mentorado atrasado, em ordem crescente:
+1. 3 dias de atraso: mensagem leve no grupo individual, perguntando onde travou e
+oferecendo ajuda com uma única tarefa.
+2. 7 dias de atraso (amarelo): áudio ou vídeo personalizado da Duda, com a tarefa mais
+simples do PME para retomar.
+3. 10 dias de atraso: segunda chance de 7 dias, com uma versão reduzida do PME (só as
+tarefas essenciais) para fechar o ciclo.
+4. 15 dias de atraso (vermelho): ligação e reunião de destravamento de 20 minutos,
+revisando o que impede a execução e combinando no máximo 3 tarefas.
+5. 2 PMEs seguidos em atraso: o caso entra no painel do Leo, que pode gravar uma
+mensagem pessoal, e o padrinho é acionado antes do mês 6.
+O sistema registra cada uma dessas ações como contato, para que a equipe saiba o que já
+foi tentado.
+Decisões tomadas
+A área do mentorado será um sistema à parte da plataforma Verdadeira Riqueza, com
+login próprio.
+O casal conta como um mentorado só; as metas podem ser individuais.
+Dados financeiros coletados: quanto recebe, custo mensal, dívidas e valor guardado.
+Proposta: atualizar a cada fechamento de PME, para alimentar o cálculo do mês 8 e o
+antes e depois.
+A equipe escolhe o mentorado experiente do mês 6, respeitando um limite de
+conversas por padrinho.
+Ação do plano Se o PME atrasar
+Mês 11, presente da família Segue o calendário
+Aulas ao vivo e Encontro de Mentorados Seguem o calendário
+Mês 2, reunião com a Duda Espera o fim do 2º PME, com prazo máximo de
+15 dias de atraso; depois disso, vira reunião de
+destravamento
+Mês 5, reunião com a Manu Espera o fim do 5º PME
+Mês 7, reunião de cartões e milhas Acontece no início do 7º PME, para orientar os
+aportes
+Linha do tempo (meses 4, 8, 10 e 12) Espera o fechamento do PME correspondente
+Sistema de Gestão dos Mentorados — Especiﬁcação
+Page 19 of 19
