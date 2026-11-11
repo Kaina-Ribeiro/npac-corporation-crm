@@ -29,7 +29,7 @@ let perdido: string;
 let product: string;
 
 beforeEach(async () => {
-  await owner`truncate chat_reads, chat_messages, chat_members, lgpd_requests, lead_notes, lead_tasks, lead_timeline, payments, deals, meetings, leads, pipeline_stages, audit_log, products, "user" restart identity cascade`;
+  await owner`truncate chat_reads, chat_messages, chat_members, lgpd_requests, lead_notes, lead_tasks, lead_timeline, payments, deals, meetings, form_responses, leads, pipeline_stages, audit_log, products, "user" restart identity cascade`;
   await owner`
     insert into "user" (id, name, email, role, can_prospect, can_close) values
       ('u-ana', 'Ana', 'ana@npac.test', 'HEAD', true, false),
@@ -82,10 +82,11 @@ describe('motivo do Sem Perfil', () => {
 });
 
 describe('pagamento combinado', () => {
-  it('produto e valor andam juntos e o valor é positivo', async () => {
+  it('valor exige produto e é positivo; produto sem valor é o pagamento a completar', async () => {
     expect(
-      await pgError(owner`update leads set payment_product_id = ${product} where id = ${lead}`),
+      await pgError(owner`update leads set payment_amount_cents = 450000 where id = ${lead}`),
     ).toMatch(/leads_payment_check/);
+    await owner`update leads set payment_product_id = ${product} where id = ${lead}`;
     expect(
       await pgError(
         owner`update leads set payment_product_id = ${product}, payment_amount_cents = 0 where id = ${lead}`,
@@ -137,6 +138,174 @@ describe('closer marca a etapa com os dados dela', () => {
         ),
       ),
     ).toMatch(/closer só pode mover a etapa/);
+  });
+});
+
+// Item 13 do Igor (10/11/2026, "2A", "3A"): o SDR informa produto, closer e se já pagou entrada; o
+// closer do lead enxerga o lead nessa etapa mesmo sem reunião e completa valor, entrada e data.
+describe('pagamento do SDR', () => {
+  const visible = (userId: string) =>
+    as(userId, sql`select id from leads`).then((rows) => rows.map((r) => r.id));
+  const toPayment = () =>
+    owner`update leads set stage_id = ${pagamento}, payment_product_id = ${product},
+      closer_id = 'u-sonia' where id = ${lead}`;
+
+  beforeEach(async () => {
+    await owner`insert into "user" (id, name, email, role, can_prospect, can_close) values
+      ('u-carla', 'Carla', 'carla@npac.test', 'CLOSER', false, true),
+      ('u-fora', 'Fora', 'fora@npac.test', 'SDR', true, false)`;
+    await owner`delete from meetings`;
+  });
+
+  it('o campo nasce falso', async () => {
+    const [l] = await owner<
+      { payment_entry_paid: boolean }[]
+    >`select payment_entry_paid from leads where id = ${lead}`;
+    expect(l!.payment_entry_paid).toBe(false);
+  });
+
+  it('closer do lead enxerga sem reunião só em Agendou Pagamento', async () => {
+    expect(await visible('u-sonia')).toEqual([]);
+    await owner`update leads set closer_id = 'u-sonia' where id = ${lead}`;
+    expect(await visible('u-sonia')).toEqual([]);
+    await toPayment();
+    expect(await visible('u-sonia')).toEqual([lead]);
+    expect(await visible('u-carla')).toEqual([]);
+    await owner`update leads set stage_id = ${perdido}, payment_product_id = null where id = ${lead}`;
+    expect(await visible('u-sonia')).toEqual([]);
+  });
+
+  it('closer do lead que registrou a venda continua vendo o lead fora da etapa', async () => {
+    await owner.begin(async (t) => {
+      const [{ id: deal }] = (await t`insert into deals
+        (lead_id, product_id, product_name, catalog_price_cents, closer_id, sdr_id, total_cents,
+         method, request_key, request_hash, created_by)
+        values (${lead}, ${product}, 'Rico de Verdade', 500000, 'u-sonia', 'u-ale', 500000, 'PIX',
+          gen_random_uuid(), 'h', 'u-sonia') returning id`) as unknown as [{ id: string }];
+      await t`insert into payments (deal_id, amount_cents, due_at, paid_at, paid_by, receipt_key)
+        values (${deal}, 500000, now(), now(), 'u-sonia', gen_random_uuid())`;
+    });
+    // Só a venda não abre o lead: sem ser o closer dele e sem reunião, continua invisível.
+    expect(await visible('u-sonia')).toEqual([]);
+    await owner`update leads set closer_id = 'u-sonia' where id = ${lead}`;
+    expect(await visible('u-sonia')).toEqual([lead]);
+    expect(await visible('u-carla')).toEqual([]);
+    await owner`update deals set reversed_at = now(), reversed_by = 'u-ana'`;
+    expect(await visible('u-sonia')).toEqual([]);
+  });
+
+  it('closer do lead completa valor, entrada, data e a marca sem trocar a etapa', async () => {
+    await toPayment();
+    await as(
+      'u-sonia',
+      sql`update leads set payment_amount_cents = 450000, payment_entry_cents = 100000,
+        payment_entry_paid = true, next_contact_at = now() + interval '2 days' where id = ${lead}`,
+    );
+    const [l] = await owner<
+      { payment_amount_cents: number; payment_entry_paid: boolean }[]
+    >`select payment_amount_cents, payment_entry_paid from leads where id = ${lead}`;
+    expect(l).toEqual({ payment_amount_cents: 450000, payment_entry_paid: true });
+  });
+
+  it('depois de completado, o closer não mexe mais no valor', async () => {
+    await toPayment();
+    await owner`update leads set payment_amount_cents = 450000 where id = ${lead}`;
+    expect(
+      await pgError(
+        as('u-sonia', sql`update leads set payment_amount_cents = 1 where id = ${lead}`),
+      ),
+    ).toMatch(/closer só pode mover a etapa/);
+  });
+
+  it('só o closer do lead completa, e só o pagamento', async () => {
+    await toPayment();
+    await owner`insert into meetings (lead_id, closer_id, scheduled_at, origin, created_by)
+      values (${lead}, 'u-carla', now() - interval '1 hour', 'DIRETO', 'u-ale')`;
+    expect(
+      await pgError(
+        as('u-carla', sql`update leads set payment_amount_cents = 1 where id = ${lead}`),
+      ),
+    ).toMatch(/closer só pode mover a etapa/);
+    expect(
+      await pgError(
+        as(
+          'u-sonia',
+          sql`update leads set payment_amount_cents = 1, name = 'Outra' where id = ${lead}`,
+        ),
+      ),
+    ).toMatch(/closer só pode mover a etapa/);
+    expect(
+      await pgError(
+        as('u-sonia', sql`update leads set payment_product_id = null where id = ${lead}`),
+      ),
+    ).toMatch(/closer só pode mover a etapa/);
+  });
+
+  it('fora de Agendou Pagamento o closer continua sem completar nada', async () => {
+    await owner`update leads set closer_id = 'u-sonia' where id = ${lead}`;
+    await owner`insert into meetings (lead_id, closer_id, scheduled_at, origin, created_by)
+      values (${lead}, 'u-sonia', now() - interval '1 hour', 'DIRETO', 'u-ale')`;
+    expect(
+      await pgError(
+        as(
+          'u-sonia',
+          sql`update leads set next_contact_at = now() + interval '1 day' where id = ${lead}`,
+        ),
+      ),
+    ).toMatch(/closer só pode mover a etapa/);
+  });
+
+  it('closer sem reunião tira o lead da etapa e o perde', async () => {
+    await toPayment();
+    await as(
+      'u-sonia',
+      sql`update leads set stage_id = ${perdido}, payment_product_id = null,
+        lost_reason = 'SEM_INTERESSE' where id = ${lead}`,
+    );
+    const [l] = await owner<{ stage_id: string }[]>`select stage_id from leads where id = ${lead}`;
+    expect(l!.stage_id).toBe(perdido);
+    expect(await visible('u-sonia')).toEqual([]);
+  });
+
+  it('SDR escolhe o closer só com o pagamento a completar', async () => {
+    await as(
+      'u-ale',
+      sql`update leads set stage_id = ${pagamento}, payment_product_id = ${product},
+        closer_id = 'u-sonia' where id = ${lead}`,
+    );
+    await as('u-ale', sql`update leads set closer_id = 'u-carla' where id = ${lead}`);
+    const [l] = await owner<
+      { closer_id: string }[]
+    >`select closer_id from leads where id = ${lead}`;
+    expect(l!.closer_id).toBe('u-carla');
+    // Quem não fecha venda não vira closer do lead.
+    expect(
+      await pgError(as('u-ale', sql`update leads set closer_id = 'u-fora' where id = ${lead}`)),
+    ).toMatch(/só HEAD altera/);
+    await owner`update leads set payment_amount_cents = 450000 where id = ${lead}`;
+    expect(
+      await pgError(as('u-ale', sql`update leads set closer_id = 'u-sonia' where id = ${lead}`)),
+    ).toMatch(/só HEAD altera/);
+  });
+
+  it('SDR não escolhe closer fora da etapa, e o closer não troca o dele', async () => {
+    expect(
+      await pgError(as('u-ale', sql`update leads set closer_id = 'u-sonia' where id = ${lead}`)),
+    ).toMatch(/só HEAD altera/);
+    await toPayment();
+    expect(
+      await pgError(as('u-sonia', sql`update leads set closer_id = 'u-carla' where id = ${lead}`)),
+    ).toMatch(/closer só pode mover a etapa/);
+  });
+
+  it('payment.pending entra na timeline e avisa o closer do lead', async () => {
+    await toPayment();
+    await as(
+      'u-ale',
+      sql`insert into lead_timeline (lead_id, actor_id, kind) values (${lead}, 'u-ale', 'payment.pending')`,
+    );
+    const rows = await owner<{ user_id: string }[]>`select user_id from notifications`;
+    expect(rows.map((r) => r.user_id)).toEqual(['u-sonia']);
   });
 });
 

@@ -16,7 +16,7 @@ beforeAll(async () => {
   const url = new URL(process.env.TEST_DATABASE_URL ?? '');
   url.pathname = `/${DB}`;
   client = createDb(url.toString(), { max: 2 });
-  await owner`truncate meetings, leads, pipeline_stages, audit_log, "user" restart identity cascade`;
+  await owner`truncate meetings, form_responses, leads, pipeline_stages, audit_log, "user" restart identity cascade`;
   await seed(client.db, opts);
   await seed(client.db, opts);
 });
@@ -35,6 +35,12 @@ describe('seed', () => {
       250000, 300000, 350000, 1800000, 3000000, 8000000,
     ]);
     expect(rows.every((r) => r.can_close)).toBe(true);
+  });
+  it('mentorias usam M no nome, não Meses', async () => {
+    const rows = await owner<
+      { name: string }[]
+    >`select name from products where code in ('MENTORIA_2M','MENTORIA_6M') order by code`;
+    expect(rows.map((r) => r.name)).toEqual(['Mentoria 2M', 'Mentoria 6M']);
   });
   it('playbook inicial por tema, sem duplicar no segundo seed', async () => {
     const [p] = await owner<

@@ -1,3 +1,5 @@
+import { userCookieName } from './user-cookie';
+
 /**
  * Ordem dos cards do dashboard. Fica num cookie por pessoa e aparelho (o servidor já renderiza
  * na ordem certa, sem "pulo" ao carregar) e guarda só IDs de cards: nada pessoal.
@@ -24,12 +26,7 @@ export type DashCardId = (typeof DASH_CARDS)[number];
 /** Só no /dashboard: o cookie não viaja nas outras rotas. */
 export const DASH_COOKIE_PATH = '/dashboard';
 
-/** Nome do cookie da pessoa: hash curto do ID (FNV-1a), para não misturar contas no aparelho. */
-export function dashCookieName(userId: string) {
-  let h = 0x811c9dc5;
-  for (let i = 0; i < userId.length; i++) h = Math.imul(h ^ userId.charCodeAt(i), 0x01000193);
-  return `npac_dash_${(h >>> 0).toString(36)}`;
-}
+export const dashCookieName = (userId: string) => userCookieName('npac_dash', userId);
 
 export const serializeOrder = (order: readonly string[]) => order.join('.');
 

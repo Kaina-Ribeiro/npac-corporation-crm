@@ -131,11 +131,20 @@ export function Inbox({ initial }: { initial: NotificationsDTO }) {
                     className={`mt-1.5 size-2 flex-none rounded-full ${i.read ? '' : 'bg-[var(--viz-2)]'}`}
                   />
                   <span className="min-w-0 flex-1">
-                    <span className={i.read ? 'text-ink2' : ''}>
-                      <b className="font-semibold">{i.actorName.split(' ')[0]}</b>{' '}
-                      {activityVerb(i.kind)}{' '}
-                      <b className="font-semibold">{i.leadName ?? 'um lead fora do seu acesso'}</b>
-                    </span>
+                    {i.kind === 'form.received' ? (
+                      // Quem age é o lead: o autor registrado é só o dono dele.
+                      <span className={i.read ? 'text-ink2' : ''}>
+                        {`${i.leadName ?? 'Um lead fora do seu acesso'} preencheu o formulário`}
+                      </span>
+                    ) : (
+                      <span className={i.read ? 'text-ink2' : ''}>
+                        <b className="font-semibold">{i.actorName.split(' ')[0]}</b>{' '}
+                        {activityVerb(i.kind)}{' '}
+                        <b className="font-semibold">
+                          {i.leadName ?? 'um lead fora do seu acesso'}
+                        </b>
+                      </span>
+                    )}
                     <small className="block text-xs text-ink3">{activityWhen(i.at)}</small>
                   </span>
                 </Link>

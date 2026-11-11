@@ -33,7 +33,7 @@ import { LeadMutationsService } from './lead-mutations.service.js';
 const MAX_PAGE_SIZE = 100;
 
 const listQuerySchema = z.object({
-  search: z.string().max(200).optional(),
+  search: z.string().max(254).optional(),
   stage: stageKeySchema.optional(),
   tier: z.enum(TIERS).optional(),
   sdrId: z.string().optional(),

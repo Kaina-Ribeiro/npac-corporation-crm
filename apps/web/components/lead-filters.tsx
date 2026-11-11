@@ -3,6 +3,7 @@ import {
   LEAD_SOURCE_LABELS,
   LEAD_SOURCE_OPTIONS,
   LEGACY_LEAD_SOURCES,
+  FORM_LEAD_SOURCE,
   TIER_LABELS,
   TIERS,
 } from '@npac/shared/enums';
@@ -46,7 +47,7 @@ export function LeadFilters({
         <Field label="Origem do lead">
           <select name="source" form={form} defaultValue={values.source ?? ''} className={control}>
             <option value="">Todas</option>
-            {[...LEAD_SOURCE_OPTIONS, ...LEGACY_LEAD_SOURCES].map((s) => (
+            {[...LEAD_SOURCE_OPTIONS, ...LEGACY_LEAD_SOURCES, FORM_LEAD_SOURCE].map((s) => (
               <option key={s} value={s}>
                 {LEAD_SOURCE_LABELS[s]}
               </option>

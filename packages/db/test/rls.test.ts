@@ -42,7 +42,7 @@ async function pgError<T>(p: Promise<T>): Promise<T> {
 }
 
 async function seedFixtures(): Promise<void> {
-  await owner`truncate meetings, leads, pipeline_stages, audit_log, "user" restart identity cascade`;
+  await owner`truncate meetings, form_responses, leads, pipeline_stages, audit_log, "user" restart identity cascade`;
   await owner`
     insert into "user" (id, name, email, role, can_prospect, can_close) values
       ('u-ana', 'Ana', 'ana@npac.test', 'HEAD', false, false),
@@ -310,6 +310,41 @@ describe('row-level security', () => {
     expect(await withUser(db, ale.id, (tx) => leadContactTaken(tx, null, 'lead_a'))).toBe(true);
   });
 
+  it('lead_contact_taken acha o e-mail de leads de outros SDRs', async () => {
+    await owner`update leads set email_bidx = 'bidx-email' where id = ${M}`;
+    const taken = (email: string) =>
+      withUser(db, ale.id, (tx) => leadContactTaken(tx, null, null, email));
+    expect(await taken('bidx-email')).toBe(true);
+    expect(await taken('bidx-outro')).toBe(false);
+  });
+
+  it('lead_contact_taken ignora e-mail de lead excluído e do próprio lead', async () => {
+    await owner`update leads set email_bidx = 'bidx-email' where id = ${M}`;
+    const taken = (excludeId?: string) =>
+      withUser(db, ale.id, (tx) => leadContactTaken(tx, null, null, 'bidx-email', excludeId));
+    expect(await taken(M)).toBe(false);
+    expect(await taken(A)).toBe(true);
+    await owner`update leads set deleted_at = now() where id = ${M}`;
+    expect(await taken()).toBe(false);
+  });
+
+  it('lead_contact_taken: as duas assinaturas são do owner e fechadas ao PUBLIC', async () => {
+    const rows = await owner<
+      { args: string; owner: string; definer: boolean; app: boolean; acl: string }[]
+    >`select pg_get_function_identity_arguments(p.oid) as args,
+        pg_get_userbyid(p.proowner) as owner, p.prosecdef as definer,
+        has_function_privilege('npac_app', p.oid, 'execute') as app, p.proacl::text as acl
+      from pg_proc p where p.proname = 'lead_contact_taken' order by p.pronargs`;
+    expect(rows.map((r) => r.args)).toEqual([
+      'bidx text, insta text, ebidx text',
+      'bidx text, insta text, exclude_id uuid, ebidx text',
+    ]);
+    for (const r of rows) {
+      expect(r).toMatchObject({ owner: 'npac_owner', definer: true, app: true });
+      expect(r.acl).not.toMatch(/[{,]=X/);
+    }
+  });
+
   it('audit_log é só-inserção', async () => {
     await app`insert into audit_log (action, entity_type) values ('login', 'user')`;
     await expect(app`update audit_log set action='x'`).rejects.toThrow(/permission denied/);
@@ -437,6 +472,14 @@ describe('escritas que não podem ampliar visibilidade', () => {
     const [r] = await app<
       { taken: boolean }[]
     >`select lead_contact_taken(${bidxOfM}, null) as taken`;
+    expect(r?.taken).toBe(false);
+  });
+
+  it('lead_contact_taken não responde sobre e-mail sem usuário', async () => {
+    await owner`update leads set email_bidx = 'bidx-email' where id = ${M}`;
+    const [r] = await app<
+      { taken: boolean }[]
+    >`select lead_contact_taken(null::text, null::text, 'bidx-email'::text) as taken`;
     expect(r?.taken).toBe(false);
   });
 

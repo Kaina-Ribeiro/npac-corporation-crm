@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ErroDeEnvio, FieldQueue, type StatusFila } from '../src/mentoria/field-queue.js';
+import {
+  ErroDeEnvio,
+  FieldQueue,
+  resolverConflito,
+  type StatusFila,
+} from '../src/mentoria/field-queue.js';
 
 /** Servidor falso: guarda a version de cada registro e responde como o PATCH da API. */
 function servidor() {
@@ -199,6 +204,65 @@ describe('FieldQueue', () => {
     expect(q.pending()).toBe(0);
     expect(erros).toEqual(['Dados inválidos']);
     expect(q.status()).toBe('error');
+  });
+
+  describe('conflito por campo (duas pessoas na mesma ficha)', () => {
+    /** Servidor com os valores do registro: outra pessoa muda um campo e sobe a version. */
+    function comValores(valores: Record<string, unknown>) {
+      const s = servidor();
+      const q = new FieldQueue({
+        send: s.send,
+        reloadVersion: s.reloadVersion,
+        reload: async (key) => ({ version: s.versions.get(key) ?? 1, valores }),
+        retryMs: 1,
+      });
+      q.setVersion('m1', 1);
+      return { s, q };
+    }
+
+    it('409 em campo que o outro não mudou: recarrega version e reaplica', async () => {
+      const { s, q } = comValores({ nome: 'Antigo', cidade: 'Mudada pelo outro' });
+      const avisos: unknown[] = [];
+      q.onCampoMudou((_k, campo, v) => avisos.push([campo, v]));
+      s.versions.set('m1', 2);
+      q.enqueue('m1', 'nome', 'Novo', 'Antigo');
+      await q.idle();
+      expect(s.gravados).toEqual([{ key: 'm1', patch: { nome: 'Novo' }, version: 2 }]);
+      expect(avisos).toEqual([]);
+      expect(q.status()).toBe('saved');
+    });
+
+    it('409 em campo que o outro mudou: avisa e não sobrescreve', async () => {
+      const { s, q } = comValores({ nome: 'Do outro' });
+      const avisos: unknown[] = [];
+      q.onCampoMudou((_k, campo, v) => avisos.push([campo, v]));
+      s.versions.set('m1', 2);
+      q.enqueue('m1', 'nome', 'Meu', 'Antigo');
+      await q.idle();
+      expect(s.gravados).toEqual([]);
+      expect(avisos).toEqual([['nome', 'Do outro']]);
+      expect(q.pending()).toBe(0);
+    });
+
+    it('segunda edição antes do envio guarda o valor visto da primeira', async () => {
+      const { s, q } = comValores({ nome: 'Antigo' });
+      s.segurar(true);
+      q.enqueue('m1', 'tipo', 'x', null);
+      q.enqueue('m1', 'nome', 'Primeiro', 'Antigo');
+      q.enqueue('m1', 'nome', 'Segundo', 'Primeiro');
+      s.versions.set('m1', 2);
+      s.segurar(false);
+      s.soltar();
+      await q.idle();
+      expect(s.gravados.at(-1)?.patch).toEqual({ nome: 'Segundo' });
+    });
+
+    it('campo vazio e nulo contam como o mesmo valor', () => {
+      expect(resolverConflito('', null)).toBe('REAPLICAR');
+      expect(resolverConflito(undefined, null)).toBe('REAPLICAR');
+      expect(resolverConflito('a', 'a')).toBe('REAPLICAR');
+      expect(resolverConflito(10, 20)).toBe('AVISAR');
+    });
   });
 
   it('nota de 200 KB com aba fechada: fica "não salvo" até confirmar', async () => {

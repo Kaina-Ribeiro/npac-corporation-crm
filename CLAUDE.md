@@ -55,16 +55,22 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   admin `admin.tsx`, `access-requests.tsx` · Ctrl+K `shell/command-palette.tsx` · avisos `inbox.tsx` ·
   textos de atividade `lib/activity-text.ts` · campos por etapa `stage-fields.tsx` (+ `lib/stage-fields.ts`,
   `lib/stage-kind.ts`) e janelinha `stage-move-dialog.tsx` (Pipeline, lista, massa) · editor de colunas `pipeline-columns-editor.tsx` · ação
-  rápida do Hoje `today-quick-action.tsx` · menu de CSV `csv-export.tsx` (API: `api/common/csv.ts`) ·
+  rápida do Hoje `today-quick-action.tsx` · closer completa o pagamento `payment-complete.tsx` · menu de CSV `csv-export.tsx` (API: `api/common/csv.ts`) ·
   avisos compartilhados (selo do chat, `(N)` na aba, lembretes) `lib/alerts.ts`, `meeting-reminder.tsx` ·
   push no aparelho `lib/push.ts`, `public/sw.js`, `/conta/avisos`
-- **Acompanhamento (mentorados):** API `api/mentoria/*` (guarda 404 + MFA: `MentoriaController` em
-  `mentoria.guard.ts`; leitura `mentoria.service.ts`, `fichas.service.ts`; RDV `rdv.service.ts`/`rdv.controller.ts`; escrita `escrita.service.ts`;
-  import/export `.json` `import.service.ts`; mídia `midia.controller.ts`, `media-store.ts`, `media-sniff.ts`,
-  `media-worker.ts`; cifra v2 `mentoria-crypto.ts`) · banco `db/src/schema/mentoria.ts` + 0029–0034
-  (`mentoria_pode()`, funções `mentoria_*`) · lógica pura `sh/mentoria/*` (cliente: `@npac/shared/mentoria`,
-  sem zod) · telas `web/app/(app)/acompanhamento/*`, `web/components/acompanhamento/*`, fila
-  `web/lib/acompanhamento-saver.ts` · backup cifrado `infra/backup/*` (age)
+- **Acompanhamento (mentorados), v2 em 5 partes** (plano `docs/superpowers/plans/2026-11-10-acompanhamento-v2-fase-1.md`, protótipo `docs/acompanhamento/prototipo/canvas/`):
+  API `api/mentoria/*` (guarda 404 + MFA: `MentoriaController` em `mentoria.guard.ts`; perfil `perfil.guard.ts`,
+  `perfis.*`; inscrição e ficha `inscricoes.*`, `ficha.service.ts`, `historico.ts`; mídia `midia.controller.ts`,
+  `media-store.ts`, `media-sniff.ts`, `media-worker.ts`; cifra `mentoria-crypto.ts`; onboarding e Caixa `onboarding.*`
+  (regras puras `sh/mentoria/onboarding.ts`; CAIXA e IDR são derivadas, gatilhos da 0048); importação `importacao/*`, junção das
+  fontes `sh/mentoria/importacao.ts`, planilha lida por título em `ler-planilha.ts`, CPF descartado ali; `importacao_chave` impede
+  reimportar quem foi renomeado) · banco `db/src/schema/mentoria.ts`
+  - 0044–0045 (`mentoria_perfil()`, `mentoria_admin()`, `mentoria_ve()`, `mentoria_edita()`, funções `mentoria_*`) ·
+    seed `db/src/seed-mentoria.ts` · lógica pura `sh/mentoria/*` (cliente: `@npac/shared/mentoria`, sem zod) ·
+    telas `web/app/(app)/acompanhamento/*` (`mentorados`, `mentorados/nova`, `ficha/[id]`, `configuracoes`, `mais`,
+    `em-breve/[aba]`), `web/components/acompanhamento/*`, CSS só do módulo sob `.ac` em `acompanhamento/modulo.css`,
+    fila de salvamento `sh/mentoria/field-queue.ts` + `web/lib/acompanhamento-saver.ts`, perfil no servidor
+    `web/lib/acompanhamento.ts` (`lerEu`) · backup cifrado `infra/backup/*` (age)
 - **Docs:** `docs/spec.md`; deploy `docs/deploy.md` (Oracle), `docs/deploy-cubeship.md`; planos `docs/superpowers/plans/`; releases `RELEASING.md`
 
 Next 16 tem APIs incompatíveis: em dúvida, `web/node_modules/next/dist/docs/`. Valor exportado de
@@ -76,10 +82,12 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
 - **DIRETOR** ("Diretoria") > **HEAD** > SDR / CLOSER. `isLeader(role)` (`LEADER_ROLES` = DIRETOR+HEAD), nunca `role === 'HEAD'`.
 - Só a Diretoria dá/tira liderança e administra contas de Head/Diretoria (`guardLeadership` em
   `admin/users.ts`); Head gerencia SDR/closer. Na RLS, `app_role()` devolve `'HEAD'` para DIRETOR (0021).
-- Liderança vê tudo; SDR, os próprios leads; CLOSER, leads com reunião não cancelada dele.
+- Liderança vê tudo; SDR, os próprios leads; CLOSER, leads com reunião não cancelada dele ou
+  que o SDR lhe passou em Agendou Pagamento (`leads.closer_id`).
   Invisível e inexistente → **404**, nunca 403. `canProspect`/`canClose` são dados; nada depende de nomes.
 - **SDR não recebe R$ de venda** (pedido do cliente, 04/11/2026): `/reports/search`, `/reports/summary`
-  e `/team` cortam no servidor (`dropSales`); o Dashboard do SDR mostra comparecimento. Closer igual a
+  e `/team` cortam no servidor (`dropSales`), o lead vem sem valor e entrada (`toDTO`) e
+  `/finance/products` sem preço; o Dashboard do SDR mostra comparecimento. Closer igual a
   antes; liderança vê venda + comparecimento, com filtro por SDR. Vendas e pagamentos (ficha,
   cobranças do Hoje, `sale:register`) são do closer e da liderança; o SDR só marca o resultado da reunião.
 - Login por **usuário** (`/sign-in/username`, `[a-z0-9_.]{3,30}`, minúsculo); login por e-mail e
@@ -99,23 +107,27 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   guardados e os testes de MFA ligado são pulados. Religar depois: `true` e rodar as suítes.
 - MFA (TOTP) **opcional** (28/10/2026, vale com `MFA_LIGADO`): cada um liga/desliga em `/conta/mfa`; quem ligou confirma o
   login, código enviado sozinho aos 6 dígitos (`lib/otp-input.ts`). Primeiro acesso só obriga trocar a senha.
-- **Acompanhamento** (`ACOMPANHAMENTO`, 04/11/2026): só o módulo de mentorados; RLS por
-  `mentoria_pode()` (papel cru, nunca `app_role()`), MFA obrigatório nas rotas `mentoria/*` para
-  Diretoria e Acompanhamento, 404 para os demais. O cargo Acompanhamento não vê nada do comercial
+- **Acompanhamento** (`ACOMPANHAMENTO`, 04/11/2026): só o módulo de mentorados; dentro dele, o **perfil**
+  (`mentoria_perfis`: Acompanhamento, Operação, Especialista, Mentor) e o selo de Admin decidem o resto, por RLS
+  (`mentoria_ve`, `mentoria_edita`; Diretoria é Admin sem linha). Cargo sem perfil vê "Peça ao Admin" e Mentor vê
+  "Seu painel chega em breve", sem menu (`components/acompanhamento/sem-acesso.tsx`, no layout de `(app)`); API 404 em tudo menos
+  `mentoria/eu`. MFA obrigatório nas rotas `mentoria/*` para Diretoria e Acompanhamento, 404 para os demais. O cargo não vê nada do comercial
   (05/11/2026): `PermissionsGuard` dá 404 em toda rota sem `@AllRoles()` (`api/auth/all-roles.decorator.ts`;
-  hoje `me`, `events` e o módulo), e o web mostra só o item Acompanhamento (`hasCommercialAccess`,
+  hoje `me`, `events` e o módulo), e o web mostra só as abas do módulo (`hasCommercialAccess`,
   sidebar/Ctrl+K/Mais/rodapé). Telas comerciais ficam em `web/app/(app)/(comercial)/`, cujo layout
   manda o cargo ao módulo com carga completa (o layout de `(app)` não roda na navegação do
   navegador; redirect do servidor ali deixava o módulo em branco). Entrada única: login, troca de
   senha e MFA vão para `/`, que escolhe o destino pelo cargo. Rota nova que o cargo use leva
   `@AllRoles()`; o teste `acompanhamento-sem-comercial` varre todas. Texto sensível cifrado com AAD
   (`MENTORADO_ENCRYPTION_KEY`); mídia fora do banco em `MEDIA_DIR`; sem DELETE para `npac_app`
-  (exclusão só pelas funções, que enfileiram a mídia). Filhos usam a `version` do pai (D5).
+  (exclusão só pelas funções, que enfileiram a mídia). Salvar ao sair do campo: em 409 a fila reaplica se o outro não mexeu naquele campo; se mexeu, avisa e mantém o dele (`resolverConflito`).
 - **Siglas das mentorias** (Gabriel, 04/11/2026): RDV = Rico de Verdade · IDR = Introdução da
   Riqueza · PME = Plano Mensal de Enriquecimento · 2M = Marco e Mudança · 6M = sem definição ainda.
   Nas telas vale o texto literal do PDF, exceto IDR: "Introdução da Riqueza" (o PDF diz "à"; corrigido).
 - Cookies em vez de localStorage: último usuário `npac_last_user` (`Path=/login`); ordem dos cards
-  `npac_dash_<hash do id>` (`Path=/dashboard`, só IDs, o servidor já renderiza na ordem).
+  `npac_dash_<hash do id>` (`Path=/dashboard`, só IDs, o servidor já renderiza na ordem); colunas
+  ocultas `npac_pipe_<hash>` (`Path=/pipeline`) e filtro do Hoje `npac_hoje_<hash>` (`Path=/hoje`),
+  helpers em `lib/user-cookie.ts`.
 
 ## Segurança e privacidade (não negociável)
 
@@ -127,8 +139,12 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
 - Contato, termo de busca e conteúdo pessoal nunca em URL, logs, analytics ou localStorage (há e2e
   que barra `@` e dígitos longos). Buscas/relatórios por POST. Exceção pedida pelo cliente (04/11):
   o link do Google Agenda leva nome do lead, perfil, sigla de quem agendou e o handoff; nunca
-  telefone nem Instagram.
+  telefone, Instagram ou e-mail.
 - Telefone E.164 BR, AES-256-GCM + blind index HMAC. Renda só em faixas ≥ R$ 5 mil ou "Descobrindo renda".
+- E-mail do lead (NPAC-42, opcional, não conta para "informe telefone ou Instagram"): igual ao telefone,
+  `email_enc` + `email_bidx` (0044) sobre `normalizeEmail` (`trim` + minúsculas, `sh/normalize.ts`). Busca só
+  pelo endereço inteiro: `parseSearch` trata como e-mail texto com `@` no meio, sem espaço nem `/`.
+  Na ficha é texto, sem `mailto:`.
 - Timeline append-only: tipo, IDs e nomes de campos, **nunca valores**. Auditoria sem e-mail nem nome.
 - API com `Cache-Control: no-store`. SSE só manda `{ type }`.
 - Chat: DM privada por RLS mesmo para liderança; mensagens append-only.
@@ -138,7 +154,8 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
 ## Regras de escrita e negócio
 
 - PATCH exige `version` (409 `VERSION_CONFLICT`); campos permitidos explícitos.
-- Duplicidade de contato: advisory locks em ordem determinística; resposta não revela o dono.
+- Duplicidade de contato (telefone, Instagram e e-mail, `lead_contact_taken`): advisory locks em ordem
+  determinística; resposta não revela o dono.
 - Mudança + `recordActivity` na **mesma transação**.
 - Dinheiro em centavos inteiros (`sh/money.ts`), nunca `parseFloat * 100`.
 - Venda: uma ativa por lead; `requestKey` idempotente + hash do payload; entrada + parcelas = total,
@@ -169,6 +186,16 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   **Pagamento parcial** (NPAC-41, "1A"): caixa "Já pagou uma entrada" → `payment_entry_cents`
   (0 < entrada < valor, CHECK + 400); a data vira a do restante. Não cria venda nem entra nos
   relatórios até o closer registrar; o registro abre em Parcial com entrada + restante na data.
+  **Pagamento do SDR** (item 13, Igor 10/11/2026, "2A, 3A", 0043): o papel SDR informa só produto,
+  closer (`paymentCloserId` → `leads.closer_id`, ativo e `canClose`) e "já pagou" (`payment_entry_paid`);
+  valor, entrada ou data dele dão 403 e `next_contact_at` fica nulo (a ação rápida também recusa, o
+  lead sai do Hoje e do sino do SDR, e a data nessa etapa não vai no DTO dele). Sair da etapa ou
+  registrar a venda apaga também a data combinada. **Pagamento a completar** = etapa + produto + sem valor (`paymentToComplete`):
+  selo na ficha e no Pipeline, aviso `payment.pending` ao closer. O closer do lead (ou a liderança)
+  completa na ficha (`payment-complete.tsx`), sem trocar a etapa, só enquanto não há valor; depois
+  disso o SDR não mexe mais. `closer_has_lead` vale também para `leads.closer_id` nessa etapa e, com
+  venda ativa dele, depois dela. Closer sem reunião que tira o lead da etapa o perde: a timeline
+  grava antes do UPDATE (`lead-mutations.service.ts`).
 - Ficha: botões WhatsApp (`wa.me`, conversa) e Instagram (perfil, `instagram.com/<usuario>/`, NPAC-41 "3B").
 - Resultado de reunião só depois do horário (400 "A reunião ainda não aconteceu"). Resultados:
   `DONE`, `NO_SHOW`, `RESCHEDULED`. Valor por reunião realizada = `MEETING_VALUE_CENTS`
@@ -191,12 +218,16 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   `source_other` (≤ 80, CHECK só com `OUTRO`; timeline grava como campo `source`; LGPD apaga).
   Instagram/WhatsApp são antigas: ficam nos leads existentes ("(antigo)"), filtros mostram, cadastro
   e troca recusam. Origem nova = valor no enum `lead_source` (migration) + rótulo.
-- Hoje: atrasado = próximo contato < **agora**; a tela move vencidos no navegador (sem polling, que
+- Hoje: Atrasados (Igor, 10/11/2026, "1A") = lista única por horário com contatos (próximo contato <
+  **agora**), reuniões passadas sem resultado (qualquer data e etapa, `overdueMeetings`) e tarefas
+  vencidas (`overdueTasks`, que saem do painel Tarefas); reunião de hoje vencida segue também na
+  agenda; cobranças têm bloco próprio. `moveDue` passa o que vence no navegador (sem polling, que
   gravaria auditoria). Ação rápida `POST /leads/:id/quick-action` (Chamado/Remarcado/Próxima ação).
 - Desativar usuário derruba sessões; leads dele vão por `POST /admin/users/:id/transfer-leads`.
 - Fuso `America/Sao_Paulo`; `datetime-local` = Brasília (`brasiliaInput`); intervalos [início, fim);
   em `sql` cru, datas como ISO string.
 - Métricas em SQL com CTEs que não multiplicam linhas; vendas contam por `deals`, não por etapa.
+  Relatório por produto usa o nome atual do catálogo (`deals.product_name` guarda o da época).
 - Paginação no servidor; CSV recusa > 10 mil linhas; cabeçalhos do CSV com `csvHeaders` depois de
   gerar o arquivo (com `@Header` fixo, erro de validação virava 500). Leads e Relatórios exportam por
   período, filtro atual ou tudo (`period: 'ALL'` só no CSV). `POST /reports/export` = relatório do
@@ -220,6 +251,17 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
 - Push: VAPID opcional no env (sem chaves = desligado). Inscrição por `push_subscribe` (o aparelho
   vai para quem logou por último); sair e desativar usuário apagam; 404/410 apaga.
 
+## Google Forms (NPAC-42, 10/11/2026)
+
+- `POST /webhooks/forms` (`api/forms/*`, `@Public`, cabeçalho `x-forms-token`): sem
+  `FORMS_WEBHOOK_TOKEN` ou com token errado, 404. Apps Script e passo a passo em `docs/integracao-forms/`.
+- Acha o lead por telefone, Instagram e e-mail (`form_find_lead`); não altera o lead nem troca o dono.
+  Sem lead: cria só com faixa do CRM (acima de 5 mil) e telefone ou Instagram, dono =
+  `FORMS_OWNER_USERNAME`, origem `FORMULARIO`, etapa Criando Relacionamento; senão descarta, sem guardar.
+- `form_responses`: respostas cifradas, gravação só por `form_response_record` (timeline
+  `form.received` + auditoria), LGPD zera. Aviso ao dono e à liderança, sem excluir o autor; bloco
+  "Formulários novos" no Hoje e card na ficha. `truncate leads` nos testes inclui `form_responses`.
+
 ## Banco
 
 - Migration nova: `pnpm --filter @npac/db generate` (ou SQL manual) → `00NN_nome.sql` + snapshot +
@@ -236,7 +278,7 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
 - Valor novo de enum não vale na mesma transação da migration (compare como texto).
 - Aplicar no dev: `pnpm --filter @npac/db build && pnpm --filter @npac/db migrate`.
   psql: `docker exec npac-corporation-postgres-1 psql -U npac_owner -d npac`.
-- Apagar lead/usuário à mão: FKs em `chat_reads`, `chat_*`, `payments`, `deals`, `lead_notes`,
+- Apagar lead/usuário à mão: FKs em `form_responses`, `chat_reads`, `chat_*`, `payments`, `deals`, `lead_notes`,
   `lead_tasks`, `notifications`, `lead_timeline`, `meetings` (`meeting_confirmations` e
   `meeting_reminders_sent` em cascata), `lgpd_requests` (usuário: também `session`, `account`,
   `push_subscriptions`). `truncate` de `meetings` nos testes lista as duas tabelas de lembretes.
@@ -258,11 +300,11 @@ pnpm exec prettier --write <arquivos>
   segundo plano (porta 3000). e2e e dev disputam portas e `.next`: antes do e2e, `preview_stop` e
   libere 3000/4000; depois, `rm -rf apps/web/.next` e `preview_start`. e2e usa API 4100, web 3100
   (`E2E_WEB_PORT=3200` se outro projeto ocupar) e banco `npac_e2e`.
-- Testes só recriam `npac_test*`/`npac_e2e*`; nunca aponte para outro banco.
+- Testes só recriam `npac_test*`/`npac_e2e*`; nunca aponte para outro banco. `npac_test_api` é um só para todas as worktrees: duas suítes da API ao mesmo tempo dão 401 falso. O e2e isola com `E2E_DB`, `E2E_API_PORT` e `E2E_WEB_PORT`.
 - API e e2e compartilham usuários: teste que mexe em MFA/senha/papel restaura no fim; `truncate leads`
   inclui as tabelas com FK.
 - e2e loga com `email.split('@')[0]`. Seeds: diretor (DIRETOR), ana/ronaldo (HEAD), ale/murilo/igor
-  (SDR), sonia (CLOSER), `@npac.com.br`; teste que troca papel: `update "user" set role = …` e restaurar.
+  (SDR), sonia (CLOSER), carla (Acompanhamento sem perfil), duda (Acompanhamento + Admin), operacao, manu, leo, `@npac.com.br`; teste que troca papel: `update "user" set role = …` e restaurar.
 - Playwright: `filter({ visible: true })`/`exact: true` (layout mobile oculto duplica controles);
   `role=alert` também pega o anunciador de rotas do Next; nada de `networkidle` (SSE).
 - JS de `/leads` < 150 KB gzip (teste; hoje ~149,4). Sem libs pesadas no cliente, nem zod; prefira server components.

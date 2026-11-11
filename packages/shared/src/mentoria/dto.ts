@@ -1,27 +1,258 @@
-import type { MentoradoStatus } from './enums.js';
+import type {
+  InscricaoStatus,
+  Mentoria,
+  Ocupacao,
+  Origem,
+  OrigemEndereco,
+  Perfil,
+  StatusFinanceiro,
+  Tecnologia,
+  TipoAvaliacao,
+  TipoInscricao,
+} from './enums.js';
+import type { EnvioStatus, Etapa, EtapaStatus } from './onboarding.js';
 
-/** Linha do Dashboard (Módulo 1), como a API devolve. */
-export type MentoradoItem = {
+/** `GET mentoria/eu`: o perfil operacional e o selo de Admin de quem está logado. */
+export type EuMentoria = { perfil: Perfil | null; admin: boolean };
+
+export type PerfilLinha = { id: string; nome: string; perfil: Perfil | null; admin: boolean };
+
+export type PessoaResumo = { nome: string; apelido: string | null; fotoMidiaId: string | null };
+
+/** Linha da lista de Mentorados. `mesJornada` nulo = antes do início. */
+export type InscricaoItem = {
   id: string;
   nome: string;
-  tipoCadastro: string | null;
-  tipoMentoria: string | null;
-  dataEntradaTexto: string | null;
-  dataEntrada: string | null;
-  status: MentoradoStatus;
-  version: number;
-  pessoaRef: string | null;
+  tipo: TipoInscricao;
+  mentoria: Mentoria;
+  status: InscricaoStatus;
+  mesJornada: number | null;
+  responsavel: { id: string; nome: string } | null;
+  ultimoContato: string | null;
+  completar: boolean;
+  pessoas: PessoaResumo[];
 };
 
 /** Página da lista: 50 itens e cursor opaco (só o id do último, assinado). */
-export type PaginaMentorados = { itens: MentoradoItem[]; cursor: string | null };
-
-/** Primeira página do Dashboard: também os números dos cards e das etiquetas. */
-export type ResumoDashboard = PaginaMentorados & {
+export type PaginaInscricoes = {
+  itens: InscricaoItem[];
+  cursor: string | null;
   total: number;
-  contagemPorStatus: Record<MentoradoStatus, number>;
-  contagemPorMentoria: { nome: string; n: number }[];
-  nomesPorStatus: Record<MentoradoStatus, { id: string; nome: string }[]>;
+  /** Contagens da carteira inteira que a pessoa vê, sem os filtros. */
+  resumo: ResumoCarteira;
+};
+
+export type ResumoCarteira = {
+  total: number;
+  ativos: number;
+  onboarding: number;
+  pausados: number;
+  completar: number;
+};
+
+export type AvaliacaoDTO = {
+  id: string;
+  tipo: TipoAvaliacao;
+  version: number;
+  data: string | null;
+  notaFe: number | null;
+  notaSaude: number | null;
+  notaDinheiro: number | null;
+  notaRelacionamentos: number | null;
+  resultadoProva: string | null;
+};
+
+export type PessoaDTO = {
+  id: string;
+  ordem: number;
+  version: number;
+  nome: string;
+  apelido: string | null;
+  fotoMidiaId: string | null;
+  nascimento: string | null;
+  cidade: string | null;
+  uf: string | null;
+  whatsapp: string | null;
+  email: string | null;
+  instagram: string | null;
+  profissao: string | null;
+  ocupacao: Ocupacao | null;
+  filhosQuantidade: number | null;
+  filhosIdades: string | null;
+  tecnologia: Tecnologia | null;
+  melhorHorario: string | null;
+  canalPreferido: string | null;
+  pulseira: string | null;
+  avaliacoes: AvaliacaoDTO[];
+};
+
+export type EnderecoDTO = {
+  version: number;
+  endereco: string | null;
+  cep: string | null;
+  origem: OrigemEndereco;
+};
+
+export type MomentoDTO = {
+  version: number;
+  data: string | null;
+  recebeCentavos: number | null;
+  custoCentavos: number | null;
+  temDividas: boolean | null;
+  dividasCentavos: number | null;
+  guardadoCentavos: number | null;
+  dor: string | null;
+  sonho: string | null;
+  meta: string | null;
+  travadoEm: string | null;
+  travadoPor: string | null;
+};
+
+export type EtapaDTO = {
+  id: string;
+  etapa: Etapa;
+  status: EtapaStatus;
+  version: number;
+  enviadaEm: string | null;
+  concluidaEm: string | null;
+  grupoCriadoEm: string | null;
+  formularioPreenchido: boolean | null;
+  grupoAvisos: boolean | null;
+  grupoClube: boolean | null;
+  grupoNacao: boolean | null;
+  aulasConcluidas: boolean | null;
+  aulasConcluidasEm: string | null;
+};
+
+export type CaixaDTO = {
+  version: number;
+  status: EnvioStatus;
+  enviadoEm: string | null;
+  rastreio: string | null;
+  entregueEm: string | null;
+};
+
+/** Pessoa parada numa etapa do funil. `etapaId` e `version` servem para andar sem abrir a ficha. */
+export type PessoaFunil = {
+  inscricaoId: string;
+  nome: string;
+  tipo: TipoInscricao;
+  mentoria: Mentoria;
+  pessoas: PessoaResumo[];
+  etapaId: string;
+  version: number;
+  etapa: Etapa;
+  status: EtapaStatus;
+  /** Dias de calendário de Brasília nesta situação. */
+  dias: number;
+  alerta: boolean;
+};
+
+export type CaixaPainel = {
+  inscricaoId: string;
+  nome: string;
+  pessoas: PessoaResumo[];
+  enviadoEm: string;
+  rastreio: string | null;
+  dias: number;
+  alerta: boolean;
+};
+
+export type IdrPainel = {
+  inscricaoId: string;
+  nome: string;
+  pessoas: PessoaResumo[];
+  /** Nulo quando a Caixa foi dispensada. */
+  entregueEm: string | null;
+};
+
+/** `POST mentoria/onboarding/painel`: a aba Onboarding inteira. */
+export type PainelOnboarding = {
+  total: number;
+  funil: { etapa: Etapa; total: number; alertas: number; pessoas: PessoaFunil[] }[];
+  caixasEmTransito: CaixaPainel[];
+  idrsAAgendar: IdrPainel[];
+};
+
+/** Linha da prévia da importação: sem contato nem diagnóstico, que ficam no servidor. */
+export type ItemPrevia = {
+  chave: string;
+  nome: string;
+  tipo: TipoInscricao;
+  mentoria: Mentoria | null;
+  rotulo: string;
+  status: 'ATIVO' | 'CANCELADO' | 'CONCLUIDO';
+  pessoa1: string;
+  pessoa2: string | null;
+  completar: number;
+};
+
+/** `POST mentoria/carteira/importar/previa`. */
+export type PreviaImportacao = {
+  totais: {
+    novos: number;
+    individuais: number;
+    casais: number;
+    cancelados: number;
+    completar: number;
+    ignorados: number;
+  };
+  novos: ItemPrevia[];
+  naoCasados: string[];
+  parecidos: [string, string][];
+  rotulosSemMentoria: { rotulo: string; total: number }[];
+  ignorados: string[];
+};
+
+export type ResultadoImportacao = { importados: number; ignorados: number };
+
+/** Ficha aberta: textos decifrados e o que a pessoa logada pode editar. */
+export type FichaDTO = {
+  id: string;
+  version: number;
+  nome: string;
+  tipo: TipoInscricao;
+  mentoria: Mentoria;
+  mentoriaVariante: string | null;
+  dataCompra: string | null;
+  dataCompraAproximada: boolean;
+  dataIdr: string | null;
+  inicioJornada: string | null;
+  terminoPrevisto: string | null;
+  mesJornada: number | null;
+  valorCentavos: number | null;
+  formaPagamento: string | null;
+  statusFinanceiro: StatusFinanceiro | null;
+  status: InscricaoStatus;
+  responsavelId: string | null;
+  origem: Origem | null;
+  linkPasta: string | null;
+  linkGrupo: string | null;
+  fotoFamiliaMidiaId: string | null;
+  importada: boolean;
+  pessoas: PessoaDTO[];
+  endereco: EnderecoDTO | null;
+  momento: MomentoDTO | null;
+  onboarding: EtapaDTO[];
+  caixa: CaixaDTO | null;
+  /** Campos que vieram ilegíveis da importação e a equipe precisa completar. */
+  completarCampos: string[];
+  pode: {
+    inscricao: boolean;
+    momento: boolean;
+    anotacao: boolean;
+    onboarding: boolean;
+    admin: boolean;
+  };
+};
+
+export type HistoricoItem = {
+  id: string;
+  tipo: string;
+  quando: string;
+  ator: string;
+  campos: string[];
+  texto: string | null;
 };
 
 export type MidiaDTO = {
@@ -32,66 +263,4 @@ export type MidiaDTO = {
   urlVideo: string | null;
   mime: string | null;
   tamanhoBytes: number | null;
-};
-
-/** Linha da lista de fichas (Módulo 2). */
-export type FichaItem = {
-  id: string;
-  nome: string;
-  dataInicioTexto: string | null;
-  tempoMentoria: string | null;
-  conquistas: number;
-};
-export type PaginaFichas = { itens: FichaItem[]; cursor: string | null; total?: number };
-
-export type CampoFicha = {
-  chave: string;
-  rotulo: string;
-  antes: string | null;
-  depois: string | null;
-};
-
-/** Ficha aberta: textos decifrados, 4 pilares e 5 evoluções sempre nas linhas fixas. */
-export type FichaDetalhe = {
-  id: string;
-  nome: string;
-  dataInicioTexto: string | null;
-  notasMomentoInicial: string | null;
-  notasMomentoAtual: string | null;
-  tempoMentoria: string | null;
-  version: number;
-  pessoaRef: string | null;
-  pilares: CampoFicha[];
-  evolucao: CampoFicha[];
-  conquistas: { id: string; data: string | null; descricao: string | null }[];
-  midias: MidiaDTO[];
-};
-
-/** Linha da lista do RDV (Módulo 3). */
-export type RdvItem = { id: string; nome: string; eventos: number };
-export type PaginaRdv = { itens: RdvItem[]; cursor: string | null; total?: number };
-
-/** Campo do diagnóstico colado (só leitura na tela). */
-export type DiagnosticoCampo = { chave: string; rotulo: string; valor: string | null };
-
-/** Prévia de "Colar dados do diagnóstico": nada é gravado (D30). */
-export type DiagnosticoPrevia = {
-  campos: { chave: string; rotulo: string; atual: string | null; novo: string }[];
-  faltam: string[];
-  desconhecidos: number;
-};
-
-/** Pessoa do RDV aberta: cabeçalho, diagnóstico, pasta e mídias (foto de perfil). */
-export type RdvDetalhe = {
-  id: string;
-  nome: string;
-  version: number;
-  pessoaRef: string | null;
-  pastaUrl: string | null;
-  diagnostico: DiagnosticoCampo[];
-  /** Em ordem cronológica (data, id), calculada na leitura (regra 4). */
-  eventos: { id: string; data: string; descricao: string | null }[];
-  /** Itens dos 4 quadros, em ordem (data, id); sem data no fim (D34). */
-  quadros: { id: string; quadro: string; data: string | null; descricao: string | null }[];
-  midias: MidiaDTO[];
 };

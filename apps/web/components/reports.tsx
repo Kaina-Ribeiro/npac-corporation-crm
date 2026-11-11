@@ -11,6 +11,7 @@ import {
   LEAD_SOURCE_LABELS,
   LEAD_SOURCE_OPTIONS,
   LEGACY_LEAD_SOURCES,
+  FORM_LEAD_SOURCE,
   TIER_LABELS,
   TIERS,
   type Tier,
@@ -598,7 +599,7 @@ export function Reports({
                 <Field label="Origem do relatório">
                   <select name="source" className={control}>
                     <option value="">Todas</option>
-                    {[...LEAD_SOURCE_OPTIONS, ...LEGACY_LEAD_SOURCES].map((s) => (
+                    {[...LEAD_SOURCE_OPTIONS, ...LEGACY_LEAD_SOURCES, FORM_LEAD_SOURCE].map((s) => (
                       <option key={s} value={s}>
                         {LEAD_SOURCE_LABELS[s]}
                       </option>

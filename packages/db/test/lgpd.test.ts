@@ -26,7 +26,7 @@ let lead: string;
 let stage: string;
 
 beforeEach(async () => {
-  await owner`truncate chat_reads, chat_messages, chat_members, lgpd_requests, lead_notes, lead_tasks, lead_timeline, payments, deals, meetings, leads, pipeline_stages, audit_log, products, "user" restart identity cascade`;
+  await owner`truncate chat_reads, chat_messages, chat_members, lgpd_requests, lead_notes, lead_tasks, lead_timeline, payments, deals, meetings, form_responses, leads, pipeline_stages, audit_log, products, "user" restart identity cascade`;
   await owner`
     insert into "user" (id, name, email, role, can_prospect, can_close) values
       ('u-ana', 'Ana', 'ana@npac.test', 'HEAD', true, false),
@@ -37,8 +37,8 @@ beforeEach(async () => {
     { id: string },
   ];
   [{ id: lead }] = (await owner<{ id: string }[]>`
-    insert into leads (name, income_band, source, tier, stage_id, sdr_id, created_by, instagram, phone_bidx, phone_enc, summary)
-    values ('Maria Titular', 'R8_15K', 'INSTAGRAM', 'P1', ${stage}, 'u-ale', 'u-ale', 'maria', 'bidx', '\\x01', 'conversa')
+    insert into leads (name, income_band, source, tier, stage_id, sdr_id, created_by, instagram, phone_bidx, phone_enc, email_bidx, email_enc, summary)
+    values ('Maria Titular', 'R8_15K', 'INSTAGRAM', 'P1', ${stage}, 'u-ale', 'u-ale', 'maria', 'bidx', '\\x01', 'bidx-email', '\\x02', 'conversa')
     returning id`) as unknown as [{ id: string }];
   await owner`insert into lead_notes (lead_id, body, created_by) values (${lead}, 'telefone pessoal 11999', 'u-ale')`;
 });
@@ -102,12 +102,14 @@ describe('anonimização', () => {
     expect(r!.ok).toBe(true);
     const [l] = await owner<
       Record<string, unknown>[]
-    >`select name, instagram, phone_bidx, phone_enc, summary, deleted_at, anonymized_at from leads where id = ${lead}`;
+    >`select name, instagram, phone_bidx, phone_enc, email_bidx, email_enc, summary, deleted_at, anonymized_at from leads where id = ${lead}`;
     expect(l).toMatchObject({
       name: 'Titular anonimizado',
       instagram: null,
       phone_bidx: null,
       phone_enc: null,
+      email_bidx: null,
+      email_enc: null,
       summary: null,
     });
     expect(l!.deleted_at).not.toBeNull();

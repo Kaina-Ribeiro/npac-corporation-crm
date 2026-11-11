@@ -6,7 +6,7 @@ const owner = ownerSql('npac_test_db');
 let stage: string;
 
 beforeEach(async () => {
-  await owner`truncate chat_reads, chat_messages, chat_members, lgpd_requests, lead_notes, lead_tasks, lead_timeline, payments, deals, meetings, leads, pipeline_stages, "user" restart identity cascade`;
+  await owner`truncate chat_reads, chat_messages, chat_members, lgpd_requests, lead_notes, lead_tasks, lead_timeline, payments, deals, meetings, form_responses, leads, pipeline_stages, "user" restart identity cascade`;
   await owner`insert into "user" (id, name, email, role, can_prospect) values ('u-ale', 'Ale', 'ale@npac.test', 'SDR', true)`;
   [{ id: stage }] = (await owner<{ id: string }[]>`
     insert into pipeline_stages (key, label, position) values ('SONDAGEM', 'Sondagem', 1) returning id`) as unknown as [

@@ -29,6 +29,7 @@ export class NotificationsService {
         select (select count(*)::int from notifications where user_id = ${u.id} and read_at is null) as unread,
           (select count(*)::int from leads l join pipeline_stages s on s.id = l.stage_id
             where l.sdr_id = ${u.id} and l.deleted_at is null and s.key not in ('VENDA','PERDIDO')
+            and (${u.role} <> 'SDR' or s.key <> 'AGENDOU_PAGAMENTO')
             and l.next_contact_at < ${start.toISOString()}) as overdue`);
       const soon = await tx.execute<Record<string, unknown>>(sql`
         select m.id, m.scheduled_at as at, m.lead_id as "leadId", l.name as "leadName"
@@ -65,7 +66,7 @@ export class NotificationsService {
     await withUser(this.db, u.id, (tx) =>
       tx.execute(sql`update notifications set read_at = now()
         where user_id = ${u.id} and read_at is null
-        ${ids ? sql`and id = any(${ids}::uuid[])` : sql``}`),
+        ${ids ? sql`and id = any(string_to_array(${ids.join(',')}, ',')::uuid[])` : sql``}`),
     );
     return { ok: true };
   }

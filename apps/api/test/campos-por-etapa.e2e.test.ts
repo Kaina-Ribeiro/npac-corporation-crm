@@ -35,7 +35,7 @@ beforeAll(async () => {
 afterAll(async () => closeTestApp(app));
 beforeEach(async () => {
   await resetAuthState();
-  await owner`truncate lgpd_requests, chat_reads, chat_messages, chat_members, payments, deals, lead_notes, lead_tasks, notifications, lead_timeline, meeting_reminders_sent, meeting_confirmations, meetings, leads`;
+  await owner`truncate lgpd_requests, chat_reads, chat_messages, chat_members, payments, deals, lead_notes, lead_tasks, notifications, lead_timeline, meeting_reminders_sent, meeting_confirmations, meetings, form_responses, leads`;
   ale = await h.signIn('ale@npac.com.br');
   sonia = await h.signIn('sonia@npac.com.br');
   ronaldo = await h.signIn('ronaldo@npac.com.br');
@@ -47,6 +47,8 @@ async function create(body: object, cookie: Cookie = ale): Promise<string> {
   if (res.status !== 201) throw new Error(`criação falhou (${res.status}): ${res.text}`);
   return res.body.id;
 }
+const createAsHead = (body: Record<string, unknown>) =>
+  create({ sdrId: ids.ale, ...body }, ronaldo);
 const get = async (id: string, cookie: Cookie = ale) =>
   (await h.get(`/api/leads/${id}`, cookie)).body;
 const meetingsOf = (id: string) =>
@@ -155,9 +157,10 @@ describe('Agendados pedem a reunião', () => {
   });
 });
 
+// Closer e liderança: o SDR informa só produto e closer (`pagamento-sdr.e2e.test.ts`).
 describe('Agendou Pagamento pede data, produto e valor', () => {
   it('sem os três → 409 PAYMENT_REQUIRED; com eles grava no lead', async () => {
-    const id = await create(lead());
+    const id = await createAsHead(lead());
     for (const partial of [
       {},
       { nextContactAt: inDays(5), paymentProductId: productId },
@@ -166,7 +169,7 @@ describe('Agendou Pagamento pede data, produto e valor', () => {
       const res = await h.patch(
         `/api/leads/${id}`,
         { version: 1, stageKey: 'AGENDOU_PAGAMENTO', ...partial },
-        ale,
+        ronaldo,
       );
       expect(res.status).toBe(409);
       expect(res.body.code).toBe('PAYMENT_REQUIRED');
@@ -181,10 +184,10 @@ describe('Agendou Pagamento pede data, produto e valor', () => {
         paymentProductId: productId,
         paymentAmountCents: 450000,
       },
-      ale,
+      ronaldo,
     );
     expect(ok.status).toBe(200);
-    expect(await get(id)).toMatchObject({
+    expect(await get(id, ronaldo)).toMatchObject({
       stageKey: 'AGENDOU_PAGAMENTO',
       nextContactAt: at,
       paymentProductId: productId,
@@ -200,18 +203,19 @@ describe('Agendou Pagamento pede data, produto e valor', () => {
     const res = await h.post(
       '/api/leads',
       lead({
+        sdrId: ids.ale,
         stageKey: 'AGENDOU_PAGAMENTO',
         nextContactAt: inDays(5),
         paymentProductId: randomUUID(),
         paymentAmountCents: 1000,
       }),
-      ale,
+      ronaldo,
     );
     expect(res.status).toBe(400);
   });
 
   it('cadastro já em Agendou Pagamento', async () => {
-    const id = await create(
+    const id = await createAsHead(
       lead({
         stageKey: 'AGENDOU_PAGAMENTO',
         nextContactAt: inDays(5),
@@ -219,7 +223,7 @@ describe('Agendou Pagamento pede data, produto e valor', () => {
         paymentAmountCents: 300000,
       }),
     );
-    expect((await get(id)).paymentAmountCents).toBe(300000);
+    expect((await get(id, ronaldo)).paymentAmountCents).toBe(300000);
   });
 });
 
@@ -266,7 +270,7 @@ describe('Sem Perfil pede o motivo', () => {
 
 describe('estado atual da etapa', () => {
   it('sair da etapa apaga pagamento e motivo', async () => {
-    const id = await create(
+    const id = await createAsHead(
       lead({
         stageKey: 'AGENDOU_PAGAMENTO',
         nextContactAt: inDays(5),
@@ -277,15 +281,15 @@ describe('estado atual da etapa', () => {
     await h.patch(
       `/api/leads/${id}`,
       { version: 1, stageKey: 'PERDIDO', lostReason: 'SEM_INTERESSE' },
-      ale,
+      ronaldo,
     );
-    expect(await get(id)).toMatchObject({
+    expect(await get(id, ronaldo)).toMatchObject({
       paymentProductId: null,
       paymentAmountCents: null,
       lostReason: 'SEM_INTERESSE',
     });
-    await h.patch(`/api/leads/${id}`, { version: 2, stageKey: 'EM_FOLLOW' }, ale);
-    expect(await get(id)).toMatchObject({ lostReason: null, lostReasonOther: null });
+    await h.patch(`/api/leads/${id}`, { version: 2, stageKey: 'EM_FOLLOW' }, ronaldo);
+    expect(await get(id, ronaldo)).toMatchObject({ lostReason: null, lostReasonOther: null });
   });
 
   it('dados de outra etapa são ignorados', async () => {
@@ -312,7 +316,7 @@ describe('estado atual da etapa', () => {
   });
 
   it('na mesma etapa dá para corrigir o pagamento', async () => {
-    const id = await create(
+    const id = await createAsHead(
       lead({
         stageKey: 'AGENDOU_PAGAMENTO',
         nextContactAt: inDays(5),
@@ -321,16 +325,17 @@ describe('estado atual da etapa', () => {
       }),
     );
     expect(
-      (await h.patch(`/api/leads/${id}`, { version: 1, paymentAmountCents: 280000 }, ale)).status,
+      (await h.patch(`/api/leads/${id}`, { version: 1, paymentAmountCents: 280000 }, ronaldo))
+        .status,
     ).toBe(200);
-    expect((await get(id)).paymentAmountCents).toBe(280000);
+    expect((await get(id, ronaldo)).paymentAmountCents).toBe(280000);
   });
 
   it('registrar a venda tira o pagamento combinado', async () => {
     const [p] = await owner<
       { closer_id: string }[]
     >`select closer_id from products where id = ${productId}`;
-    const id = await create(
+    const id = await createAsHead(
       lead({
         stageKey: 'AGENDOU_PAGAMENTO',
         nextContactAt: inDays(5),
@@ -424,6 +429,7 @@ describe('closer marca a etapa depois da reunião', () => {
 describe('Agendou Pagamento parcial', () => {
   const partial = (over: Record<string, unknown> = {}) =>
     lead({
+      sdrId: ids.ale,
       stageKey: 'AGENDOU_PAGAMENTO',
       nextContactAt: inDays(10),
       paymentProductId: productId,
@@ -433,8 +439,8 @@ describe('Agendou Pagamento parcial', () => {
     });
 
   it('grava a entrada no cadastro e devolve no lead; nada vira venda', async () => {
-    const id = await create(partial());
-    expect(await get(id)).toMatchObject({
+    const id = await createAsHead(partial());
+    expect(await get(id, ronaldo)).toMatchObject({
       stageKey: 'AGENDOU_PAGAMENTO',
       paymentAmountCents: 1_800_000,
       paymentEntryCents: 600_000,
@@ -445,7 +451,7 @@ describe('Agendou Pagamento parcial', () => {
 
   it('entrada igual ou maior que o valor → 400 e nada gravado', async () => {
     for (const entry of [1_800_000, 2_000_000]) {
-      const res = await h.post('/api/leads', partial({ paymentEntryCents: entry }), ale);
+      const res = await h.post('/api/leads', partial({ paymentEntryCents: entry }), ronaldo);
       expect(res.status).toBe(400);
       expect(res.body.message).toMatch(/entrada/i);
     }
@@ -453,10 +459,14 @@ describe('Agendou Pagamento parcial', () => {
   });
 
   it('na mesma etapa dá para tirar a entrada; sair da etapa apaga', async () => {
-    const id = await create(partial());
-    const clear = await h.patch(`/api/leads/${id}`, { version: 1, paymentEntryCents: null }, ale);
+    const id = await createAsHead(partial());
+    const clear = await h.patch(
+      `/api/leads/${id}`,
+      { version: 1, paymentEntryCents: null },
+      ronaldo,
+    );
     expect(clear.status).toBe(200);
-    expect((await get(id)).paymentEntryCents).toBeNull();
+    expect((await get(id, ronaldo)).paymentEntryCents).toBeNull();
     // A timeline só leva o nome do campo, nunca o valor.
     expect((await timeline(id)).at(-1)).toMatchObject({
       kind: 'lead.updated',
@@ -466,12 +476,15 @@ describe('Agendou Pagamento parcial', () => {
     const again = await h.patch(
       `/api/leads/${id}`,
       { version: 2, paymentEntryCents: 500_000 },
-      ale,
+      ronaldo,
     );
     expect(again.status).toBe(200);
-    const out = await h.patch(`/api/leads/${id}`, { version: 3, stageKey: 'EM_FOLLOW' }, ale);
+    const out = await h.patch(`/api/leads/${id}`, { version: 3, stageKey: 'EM_FOLLOW' }, ronaldo);
     expect(out.status).toBe(200);
-    expect(await get(id)).toMatchObject({ paymentEntryCents: null, paymentAmountCents: null });
+    expect(await get(id, ronaldo)).toMatchObject({
+      paymentEntryCents: null,
+      paymentAmountCents: null,
+    });
   });
 
   it('closer grava a entrada junto da troca; registrar a venda apaga', async () => {

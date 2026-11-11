@@ -18,7 +18,7 @@ beforeAll(async () => {
 afterAll(async () => closeTestApp(app));
 beforeEach(async () => {
   await resetAuthState();
-  await owner`truncate lgpd_requests, chat_reads, chat_messages, chat_members, payments, deals, lead_notes, lead_tasks, notifications, lead_timeline, meeting_reminders_sent, meeting_confirmations, meetings, leads`;
+  await owner`truncate lgpd_requests, chat_reads, chat_messages, chat_members, payments, deals, lead_notes, lead_tasks, notifications, lead_timeline, meeting_reminders_sent, meeting_confirmations, meetings, form_responses, leads`;
   ale = await h.signIn('ale@npac.com.br');
   murilo = await h.signIn('murilo@npac.com.br');
   a = (
@@ -70,15 +70,89 @@ it('contato de hoje que já passou da hora está em atrasados', async () => {
     expect(later.body.overdue).toEqual([]);
   }
 });
+it('reunião do dia informa o closer', async () => {
+  await owner`insert into meetings (lead_id, closer_id, scheduled_at, origin, created_by)
+    values (${a}, ${ids('ronaldo')}, now(), 'DIRETO', ${ids('ale')})`;
+  const res = await h.post('/api/today/search', {}, ale);
+  expect(res.body.meetings[0].closer).toEqual({ id: ids('ronaldo'), name: 'Ronaldo' });
+});
 it('tarefas concluídas saem da aba Hoje', async () => {
   const task = await h.post(
     `/api/leads/${a}/tasks`,
     { title: 'Retorno hoje', dueAt: new Date().toISOString() },
     ale,
   );
-  expect((await h.post('/api/today/search', {}, ale)).body.tasks).toHaveLength(1);
+  expect((await h.post('/api/today/search', {}, ale)).body.overdueTasks).toHaveLength(1);
   await h.patch(`/api/leads/${a}/tasks/${task.body.id}`, { version: 1, completed: true }, ale);
-  expect((await h.post('/api/today/search', {}, ale)).body.tasks).toHaveLength(0);
+  const after = await h.post('/api/today/search', {}, ale);
+  expect(after.body.overdueTasks).toHaveLength(0);
+  expect(after.body.tasks).toHaveLength(0);
+});
+describe('Atrasados: reuniões e tarefas vencidas', () => {
+  const addMeeting = async (at: Date, closer = 'sonia') =>
+    (
+      await owner<
+        { id: string }[]
+      >`insert into meetings (lead_id, closer_id, scheduled_at, origin, created_by)
+        values (${a}, ${ids(closer)}, ${at}, 'DIRETO', ${ids('ale')}) returning id`
+    )[0]!.id;
+  const meetingIds = (res: { body: { overdueMeetings: { id: string }[] } }) =>
+    res.body.overdueMeetings.map((x) => x.id);
+  const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000);
+
+  it('reunião que passou sem resultado entra em atrasados, de qualquer data', async () => {
+    const pending = await addMeeting(daysAgo(3));
+    await addMeeting(new Date(Date.now() + 86_400_000));
+    const done = await addMeeting(daysAgo(2));
+    await owner`update meetings set outcome = 'DONE', outcome_at = now() where id = ${done}`;
+    const canceled = await addMeeting(daysAgo(1));
+    await owner`update meetings set canceled_at = now() where id = ${canceled}`;
+
+    const res = await h.post('/api/today/search', {}, ale);
+    expect(meetingIds(res)).toEqual([pending]);
+    expect(res.body.overdueMeetings[0]).toMatchObject({
+      leadId: a,
+      name: 'Hoje Ale',
+      version: 1,
+      closer: { id: ids('sonia'), name: 'Sônia' },
+    });
+  });
+
+  it('respeita o escopo de cada pessoa e os filtros da liderança', async () => {
+    const pending = await addMeeting(daysAgo(3));
+    expect(meetingIds(await h.post('/api/today/search', {}, murilo))).toEqual([]);
+    const sonia = await h.signIn('sonia@npac.com.br');
+    expect(meetingIds(await h.post('/api/today/search', {}, sonia))).toEqual([pending]);
+    const head = await h.signIn('ronaldo@npac.com.br');
+    await owner`update "user" set two_factor_enabled = true where email = 'ronaldo@npac.com.br'`;
+    const search = (filters: object) => h.post('/api/today/search', filters, head);
+    expect(meetingIds(await search({ closerId: ids('sonia') }))).toEqual([pending]);
+    expect(meetingIds(await search({ closerId: ids('ronaldo') }))).toEqual([]);
+    expect(meetingIds(await search({ sdrId: ids('murilo') }))).toEqual([]);
+  });
+
+  it('registrar o resultado tira a reunião de atrasados', async () => {
+    const pending = await addMeeting(daysAgo(3));
+    const res = await h.post(
+      `/api/meetings/${pending}/outcome`,
+      { version: 1, outcome: 'NO_SHOW' },
+      ale,
+    );
+    expect(res.status).toBe(200);
+    expect(meetingIds(await h.post('/api/today/search', {}, ale))).toEqual([]);
+  });
+
+  it('tarefa vencida sai de Tarefas e entra em atrasados; sem prazo continua em Tarefas', async () => {
+    const late = await h.post(
+      `/api/leads/${a}/tasks`,
+      { title: 'Vencida', dueAt: daysAgo(2).toISOString() },
+      ale,
+    );
+    const open = await h.post(`/api/leads/${a}/tasks`, { title: 'Sem prazo' }, ale);
+    const res = await h.post('/api/today/search', {}, ale);
+    expect(res.body.overdueTasks.map((t: { id: string }) => t.id)).toEqual([late.body.id]);
+    expect(res.body.tasks.map((t: { id: string }) => t.id)).toEqual([open.body.id]);
+  });
 });
 
 it('tarefas avulsas são pessoais e podem ser concluídas sem lead', async () => {

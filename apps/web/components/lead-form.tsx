@@ -70,7 +70,7 @@ export function LeadForm({
     try {
       stageBody = sold
         ? readSoldFields(form, saleKey)
-        : readStageFields(stage, form, { changed, withMeeting: !openMeeting });
+        : readStageFields(stage, form, { changed, withMeeting: !openMeeting, role: me.role });
     } catch (err) {
       setError((err as Error).message);
       setBusy(false);
@@ -93,6 +93,7 @@ export function LeadForm({
       raw.version = lead.version;
       if (!raw.phone) raw.phone = null;
       if (!raw.instagram) raw.instagram = null;
+      if (!raw.email) raw.email = null;
       if (raw.source !== 'OUTRO') raw.sourceOther = null;
     }
     const parsed = (lead ? leadUpdateSchema : leadCreateSchema).safeParse(raw);
@@ -165,6 +166,19 @@ export function LeadForm({
             autoComplete="off"
           />
         </Field>
+        <Field label="E-mail">
+          {/* Texto com teclado de e-mail: quem valida é o schema, com a mensagem em português. */}
+          <input
+            className={control}
+            name="email"
+            defaultValue={lead?.email ?? ''}
+            inputMode="email"
+            maxLength={254}
+            autoCapitalize="none"
+            autoComplete="off"
+            spellCheck={false}
+          />
+        </Field>
         <Field label="Faixa de renda">
           <select
             className={control}
@@ -220,7 +234,7 @@ export function LeadForm({
                 {LEAD_SOURCE_LABELS[s]}
               </option>
             ))}
-            {/* Origem antiga só aparece no lead que já está nela. */}
+            {/* Origem antiga ou do Forms só aparece no lead que já está nela. */}
             {lead && isLegacyLeadSource(lead.source) && (
               <option value={lead.source}>{LEAD_SOURCE_LABELS[lead.source]}</option>
             )}

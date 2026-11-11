@@ -11,9 +11,11 @@ import type {
 import { INCOME_DISCOVERY_STAGE, TIER_LABELS } from '@npac/shared/enums';
 import { can } from '@npac/shared/permissions';
 import Link from 'next/link';
-import { useState, type CSSProperties, type FormEvent } from 'react';
+import { useLayoutEffect, useRef, useState, type CSSProperties, type FormEvent } from 'react';
 import { clientApi } from '@/lib/client-api';
+import { parseHidden, PIPE_COOKIE_PATH, serializeHidden } from '@/lib/pipeline-columns';
 import { stageNeedsFields, type StageFieldsBody } from '@/lib/stage-fields';
+import { readPreference, savePreference } from '@/lib/user-cookie';
 import { button, control, FormError, quietButton, StageOptions } from './crm-ui';
 import { LeadFilters, readFilters } from './lead-filters';
 import { PipelineColumnsEditor } from './pipeline-columns-editor';
@@ -26,11 +28,16 @@ export function Pipeline({
   canCreate,
   canEditColumns = false,
   role,
+  cookie,
+  initialHidden,
 }: {
   initial: PipelineDTO;
   catalog: LeadCatalog;
   canCreate: boolean;
   role: Role;
+  /** Cookie da pessoa com as colunas ocultas (pedido do Igor, 10/11/2026). */
+  cookie: string;
+  initialHidden: StageKey[];
   /** Liderança cria, renomeia, reordena e exclui colunas (pedido de 04/11/2026). */
   canEditColumns?: boolean;
 }) {
@@ -39,7 +46,20 @@ export function Pipeline({
   const [active, setActive] = useState<StageKey>('SONDAGEM');
   // Etapas vivas (o editor de colunas muda a lista) e as ocultas pela pessoa: coluna nova aparece.
   const [stages, setStages] = useState(catalog.stages);
-  const [hidden, setHidden] = useState<StageKey[]>([]);
+  const [hidden, setHidden] = useState<StageKey[]>(initialHidden);
+  // Voltar no navegador reaproveita a página antiga: ao montar, o cookie tem a escolha mais recente.
+  const mounted = useRef({ cookie, keys: catalog.stages.map((s) => s.key) });
+  useLayoutEffect(() => {
+    const { cookie, keys } = mounted.current;
+    if (!cookie) return;
+    const now = parseHidden(readPreference(cookie), keys);
+    setHidden((prev) => (serializeHidden(prev) === serializeHidden(now) ? prev : now));
+  }, []);
+  function toggleColumn(key: StageKey, visible: boolean) {
+    const next = visible ? hidden.filter((k) => k !== key) : [...hidden, key];
+    setHidden(next);
+    if (cookie) savePreference(cookie, serializeHidden(next), PIPE_COOKIE_PATH);
+  }
   const [editing, setEditing] = useState(false);
   const [filters, setFilters] = useState<Record<string, string>>({});
   useCrmRefresh(() => load());
@@ -127,6 +147,9 @@ export function Pipeline({
       setBusy(false);
     }
   }
+  // No celular aparece uma etapa por vez: se a escolhida estiver oculta, vale a primeira visível.
+  const shown = columns.filter((c) => !hidden.includes(c.stage.key));
+  const current = shown.some((c) => c.stage.key === active) ? active : shown[0]?.stage.key;
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -166,7 +189,7 @@ export function Pipeline({
           name="q"
           className={control}
           aria-label="Buscar no Pipeline"
-          placeholder="Nome, WhatsApp ou @instagram"
+          placeholder="Nome, WhatsApp, @instagram ou e-mail"
         />
         <button className={button} disabled={busy}>
           Buscar
@@ -181,11 +204,7 @@ export function Pipeline({
               <input
                 type="checkbox"
                 checked={!hidden.includes(s.key)}
-                onChange={(e) =>
-                  setHidden(
-                    e.target.checked ? hidden.filter((k) => k !== s.key) : [...hidden, s.key],
-                  )
-                }
+                onChange={(e) => toggleColumn(s.key, e.target.checked)}
               />
               {s.label}
             </label>
@@ -213,8 +232,8 @@ export function Pipeline({
             <button
               key={c.stage.id}
               onClick={() => setActive(c.stage.key)}
-              aria-pressed={active === c.stage.key}
-              className={`${quietButton} shrink-0 ${active === c.stage.key ? 'bg-[var(--on)]' : ''}`}
+              aria-pressed={current === c.stage.key}
+              className={`${quietButton} shrink-0 ${current === c.stage.key ? 'bg-[var(--on)]' : ''}`}
             >
               {c.stage.label} ({c.total})
             </button>
@@ -234,7 +253,7 @@ export function Pipeline({
               aria-label={c.stage.label}
               // Entrada em cascata (globals.css `.reveal`): coluna por coluna, depois os cards.
               style={{ '--delay': `${200 + col * 90}ms` } as CSSProperties}
-              className={`reveal glass-card scroll-thin min-w-0 flex-col gap-3 p-3 md:max-h-[min(70vh,720px)] md:overflow-y-auto ${active === c.stage.key ? 'flex' : 'hidden md:flex'}`}
+              className={`reveal glass-card scroll-thin min-w-0 flex-col gap-3 p-3 md:max-h-[min(70vh,720px)] md:overflow-y-auto ${current === c.stage.key ? 'flex' : 'hidden md:flex'}`}
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => {
                 e.preventDefault();
@@ -274,6 +293,11 @@ export function Pipeline({
                           Registrar venda
                         </Link>
                       )}
+                    </div>
+                  )}
+                  {l.paymentToComplete && (
+                    <div className="mt-2">
+                      <span className="sale-pending">Pagamento a completar</span>
                     </div>
                   )}
                   <p className="my-2 text-xs text-ink2">

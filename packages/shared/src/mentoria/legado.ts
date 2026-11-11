@@ -10,13 +10,13 @@ import type { BackupJson, RegistroDashboard, RegistroFicha, RegistroRdv } from '
  */
 
 type Midia = RegistroFicha['midias'][number];
-type Bruto = Record<string, unknown>;
+export type Bruto = Record<string, unknown>;
 
-const obj = (v: unknown): Bruto =>
+export const obj = (v: unknown): Bruto =>
   v && typeof v === 'object' && !Array.isArray(v) ? (v as Bruto) : {};
-const lista = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
+export const lista = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
 /** Texto como veio, só sem espaços nas bordas; vazio vira nulo. */
-const txt = (v: unknown): string | null => {
+export const txt = (v: unknown): string | null => {
   const s = typeof v === 'string' ? v.trim() : typeof v === 'number' ? String(v) : '';
   return s ? s : null;
 };

@@ -47,6 +47,40 @@ describe('leadCreateSchema', () => {
   });
   it('nome curto falha', () =>
     expect(leadCreateSchema.safeParse({ ...base, name: 'M' }).success).toBe(false));
+  it('e-mail é opcional e sai normalizado', () => {
+    expect(leadCreateSchema.parse(base).email).toBeUndefined();
+    expect(leadCreateSchema.parse({ ...base, email: ' Maria.Silva@Exemplo.COM ' }).email).toBe(
+      'maria.silva@exemplo.com',
+    );
+  });
+  it('e-mail vazio equivale a ausente', () =>
+    expect(leadCreateSchema.parse({ ...base, email: '  ' }).email).toBeUndefined());
+  it('e-mail inválido falha com a mensagem em português', () => {
+    const r = leadCreateSchema.safeParse({ ...base, email: 'maria@' });
+    expect(r.success).toBe(false);
+    expect(r.error?.issues[0]?.message).toBe('E-mail inválido');
+  });
+  it('e-mail vai até 254 caracteres', () => {
+    const at = (n: number) => `${'a'.repeat(n - '@exemplo.com'.length)}@exemplo.com`;
+    expect(leadCreateSchema.safeParse({ ...base, email: at(254) }).success).toBe(true);
+    expect(leadCreateSchema.safeParse({ ...base, email: at(255) }).success).toBe(false);
+  });
+  it('e-mail não substitui telefone ou Instagram', () =>
+    expect(
+      leadCreateSchema.safeParse({ ...base, instagram: undefined, email: 'maria@exemplo.com' })
+        .success,
+    ).toBe(false));
+});
+
+describe('leadUpdateSchema: e-mail', () => {
+  it('normaliza, aceita null para apagar e ausente não muda', () => {
+    const parse = (over: object) => leadUpdateSchema.parse({ version: 1, name: 'Maria', ...over });
+    expect(parse({ email: 'Maria@Exemplo.com' }).email).toBe('maria@exemplo.com');
+    expect(parse({ email: null }).email).toBeNull();
+    expect(parse({}).email).toBeUndefined();
+  });
+  it('recusa e-mail inválido', () =>
+    expect(leadUpdateSchema.safeParse({ version: 1, email: 'sem-arroba' }).success).toBe(false));
 });
 
 // Campos por etapa (NPAC-38): o formato é validado aqui; quando cada um é exigido, a API decide.
@@ -78,6 +112,11 @@ describe('campos por etapa', () => {
       leadCreateSchema.safeParse({ ...base, paymentProductId, paymentAmountCents: 10.5 }).success,
     ).toBe(false);
     expect(leadCreateSchema.safeParse({ ...base, paymentProductId: 'x' }).success).toBe(false);
+    // Item 13: o SDR informa o closer e se já pagou entrada (sim/não).
+    expect(
+      leadCreateSchema.parse({ ...base, paymentCloserId: 'u-1', paymentEntryPaid: true }),
+    ).toMatchObject({ paymentCloserId: 'u-1', paymentEntryPaid: true });
+    expect(leadCreateSchema.safeParse({ ...base, paymentEntryPaid: 'sim' }).success).toBe(false);
   });
   it('motivo: só a lista; texto aparado até 80', () => {
     expect(leadCreateSchema.safeParse({ ...base, lostReason: 'OUTRA' }).success).toBe(false);

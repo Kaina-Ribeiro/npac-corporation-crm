@@ -5,10 +5,10 @@ export * from './normalizar.js';
 export * from './datas.js';
 export * from './links.js';
 export * from './dedupe.js';
-export * from './planilha.js';
-export * from './diagnostico.js';
-export * from './eventos-colados.js';
 export * from './dto.js';
 export * from './field-queue.js';
-export * from './topicos.js';
 export * from './legado.js';
+export * from './onboarding.js';
+export * from './importacao.js';
+// Pura, sem zod: a ficha grava o telefone já no formato do servidor.
+export { normalizePhoneBR } from '../normalize.js';

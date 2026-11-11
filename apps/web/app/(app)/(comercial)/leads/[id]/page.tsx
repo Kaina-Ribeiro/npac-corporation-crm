@@ -1,6 +1,7 @@
 import {
   can,
   type DealDTO,
+  type FormResponseDTO,
   type ProductDTO,
   type LeadActivityDTO,
   type LeadCatalog,
@@ -22,8 +23,9 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
     const lead = await apiGet<LeadDTO>(`/api/leads/${encodeURIComponent(id)}`);
     // Vendas e pagamentos: closer e liderança. O SDR só marca o resultado da reunião (04/11).
     const sells = can(me, 'sale:register');
-    const [activity, catalog, meetings, deals, products] = await Promise.all([
+    const [activity, formResponses, catalog, meetings, deals, products] = await Promise.all([
       apiGet<LeadActivityDTO>(`/api/leads/${id}/activity`),
+      apiGet<FormResponseDTO[]>(`/api/leads/${id}/form-responses`),
       apiGet<LeadCatalog>('/api/leads/catalog'),
       apiGet<MeetingDTO[]>(`/api/meetings?leadId=${id}`),
       sells ? apiGet<DealDTO[]>(`/api/finance/leads/${id}`) : null,
@@ -38,6 +40,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
         <LeadDetail
           lead={lead}
           activity={activity}
+          formResponses={formResponses}
           catalog={catalog}
           meetings={meetings}
           deals={deals}

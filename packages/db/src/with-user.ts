@@ -18,23 +18,24 @@ export async function withUser<T>(
 }
 
 /**
- * Indica se já existe lead ativo (não excluído) com o mesmo blind index de telefone
- * ou o mesmo instagram — enxergando leads de todos os SDRs, apesar da RLS.
+ * Indica se já existe lead ativo (não excluído) com o mesmo blind index de telefone ou de
+ * e-mail, ou o mesmo instagram — enxergando leads de todos os SDRs, apesar da RLS.
  */
 export async function leadContactTaken(
   tx: Tx,
   bidx: string | null,
   instagram: string | null,
+  emailBidx: string | null = null,
   excludeId?: string,
 ): Promise<boolean> {
   if (excludeId) {
     const rows = await tx.execute<{ taken: boolean }>(
-      sql`select lead_contact_taken(${bidx}::text, ${instagram}::text, ${excludeId}::uuid) as taken`,
+      sql`select lead_contact_taken(${bidx}::text, ${instagram}::text, ${excludeId}::uuid, ${emailBidx}::text) as taken`,
     );
     return rows[0]?.taken === true;
   }
   const rows = await tx.execute<{ taken: boolean }>(
-    sql`select lead_contact_taken(${bidx}::text, ${instagram}::text) as taken`,
+    sql`select lead_contact_taken(${bidx}::text, ${instagram}::text, ${emailBidx}::text) as taken`,
   );
   return rows[0]?.taken === true;
 }

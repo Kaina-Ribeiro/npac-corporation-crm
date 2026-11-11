@@ -139,8 +139,10 @@ export const requestHash = (input: unknown) =>
 @Injectable()
 export class FinanceService {
   constructor(@Inject(DB) private readonly db: Db) {}
-  catalog(u: AuthUser) {
-    return withUser(this.db, u.id, (tx) =>
+  /** SDR não vê R$ de venda (item 13): sem o preço e sem a ordem por preço. */
+  async catalog(u: AuthUser) {
+    const sdr = u.role === 'SDR';
+    const rows = await withUser(this.db, u.id, (tx) =>
       tx
         .select({
           id: products.id,
@@ -152,8 +154,11 @@ export class FinanceService {
         .from(products)
         .innerJoin(user, eq(user.id, products.closerId))
         .where(and(eq(products.active, true), eq(user.active, true), eq(user.canClose, true)))
-        .orderBy(asc(products.priceCents)),
+        .orderBy(sdr ? asc(products.name) : asc(products.priceCents)),
     );
+    return sdr
+      ? rows.map(({ id, name, closerId, closerName }) => ({ id, name, closerId, closerName }))
+      : rows;
   }
   list(u: AuthUser, id: string) {
     return withUser(this.db, u.id, async (tx) => {
@@ -198,6 +203,9 @@ export class FinanceService {
           paymentProductId: null,
           paymentAmountCents: null,
           paymentEntryCents: null,
+          paymentEntryPaid: false,
+          // A data era a do pagamento combinado (item 13); sem ele, é um próximo contato comum.
+          ...(lead.paymentProductId ? { nextContactAt: null } : {}),
           // Venda a registrar (NPAC-41): o produto informado no cadastro vira o da venda.
           soldProductId: null,
           lostReason: null,

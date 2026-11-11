@@ -99,6 +99,6 @@ describe('cargo Acompanhamento não vê o comercial', () => {
   it('o módulo e a própria sessão continuam abertos', async () => {
     const s = await carla();
     expect((await h.get('/api/me', s)).status).toBe(200);
-    expect((await h.post('/api/mentoria/mentorados/search', {}, s)).status).toBe(200);
+    expect((await h.get('/api/mentoria/eu', s)).status).toBe(200);
   });
 });

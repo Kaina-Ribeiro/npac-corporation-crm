@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Mentorados</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="prototipo.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="app raiz">
+  <aside class="side glass">
+    <div class="brand"><span class="mark">N</span><b>NPAC Corporation</b></div>
+    <nav aria-label="Navegação lateral">
+      <sc-for list="{{menu}}" as="m" hint-placeholder-count="12">
+        <sc-if value="{{m.sec}}" hint-placeholder-val="{{no}}"><div class="nsec">{{m.label}}</div></sc-if>
+        <sc-if value="{{m.link}}" hint-placeholder-val="{{yes}}">
+          <a class="nl {{m.on}}" href="{{m.href}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{m.d}}"></path></svg><span>{{m.label}}</span><sc-if value="{{m.cnt}}" hint-placeholder-val="{{no}}"><span class="cnt">{{m.cnt}}</span></sc-if></a>
+        </sc-if>
+      </sc-for>
+    </nav>
+    <div class="foot"><span class="ava me">D</span><div><b>Duda</b><span>Acompanhamento e Admin</span></div></div>
+  </aside>
+  <main><div class="wrap">
+    <div class="top">
+      <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><input class="field" type="search" aria-label="Buscar mentorados" placeholder="Nome, fone com DDD ou e-mail"></div>
+      <a class="ava me so-cel" href="Mais.dc.html" aria-label="Menu e conta">D</a>
+      <span class="tag gold so-desk">Protótipo com dados inventados</span>
+    </div>
+    <section class="view">
+      <div class="hrow"><div><h1 class="h1">Mentorados</h1><p class="sub">184 na carteira: 152 ativos, 21 em onboarding, 3 pausados.</p></div><div class="acts so-desk"><button class="btn s">Exportar</button><a class="btn p" href="NovaInscricao.dc.html">Nova inscrição</a></div></div>
+      <div class="fchips so-cel">
+        <button class="fchip ouro">Completar a ficha<span>14</span></button>
+        <button class="fchip">Mês<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button>
+        <button class="fchip">Status<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button>
+        <button class="fchip">Responsável<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button>
+      </div>
+      <div class="filters so-desk">
+        <select class="field" aria-label="Mês da jornada"><option>Todos os meses</option></select>
+        <select class="field" aria-label="Status"><option>Todos os status</option></select>
+        <select class="field todo" aria-label="Responsável"><option>Todos os responsáveis</option></select>
+        <button class="chip">Completar a ficha (14)</button>
+      </div>
+      <section class="card" style="overflow: hidden">
+        <div class="lhead"><span>Mentorado</span><span>Mentoria</span><span>Mês da jornada</span><span>Status</span><span>Responsável</span><span>Último contato</span></div>
+        <sc-for list="{{carteira}}" as="r" hint-placeholder-count="10">
+          <a class="row" href="{{r.href}}">
+            <div class="cell-n"><span class="{{r.fc}}"><sc-for list="{{r.faces}}" as="f" hint-placeholder-count="1"><span class="ava {{f.c}}">{{f.l}}</span></sc-for></span><div class="nm">{{r.nome}}<small>{{r.sub}}</small></div></div>
+            <span class="tp tag" style="justify-self: start">{{r.mentoria}}</span>
+            <div class="jm">
+              <sc-if value="{{r.mes}}" hint-placeholder-val="{{yes}}"><b>Mês {{r.mes}}</b><span class="trail"><sc-for list="{{r.trail}}" as="t" hint-placeholder-count="12"><i class="{{t.c}}"></i></sc-for></span></sc-if>
+              <sc-if value="{{r.antes}}" hint-placeholder-val="{{no}}"><b class="antes">Antes da IDR</b></sc-if>
+            </div>
+            <span class="st-tag tag {{r.sc}}" style="justify-self: start">{{r.status}}</span>
+            <span class="rs">{{r.resp}}</span>
+            <span class="lc">{{r.ultimo}}</span>
+            <div class="mobmeta">{{r.resp}}, último contato: {{r.ultimoMin}}</div>
+          </a>
+        </sc-for>
+      </section>
+      <p class="selo-cel so-cel">Protótipo com dados inventados</p>
+    </section>
+  </div></main>
+  <nav class="bnav glass" aria-label="Abas do acompanhamento">
+    <a href="FilaCelular.dc.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"></path></svg>Fila</a>
+    <a class="on" href="MentoradosCelular.dc.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7M22 19v-1a4 4 0 0 0-3-3.8M16 3.2a3.5 3.5 0 0 1 0 6.6"></path></svg>Mentorados</a>
+    <a class="plus" href="NovaInscricaoCelular.dc.html" aria-label="Nova inscrição"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" width="22" height="22"><path d="M12 5v14M5 12h14"></path></svg></a>
+    <a href="EmBreveCelular.dc.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M3 7h13v10H3zM16 11l5-3v8l-5-3"></path></svg>Reuniões</a>
+    <a href="Mais.dc.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M5 12h.01M12 12h.01M19 12h.01"></path></svg>Mais</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"celular":{"editor":null},"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const ic = { fila:'M4 6h16M4 12h16M4 18h10', ment:'M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7M22 19v-1a4 4 0 0 0-3-3.8M16 3.2a3.5 3.5 0 0 1 0 6.6', ficha:'M6 3h9l4 4v14H6zM9 12h7M9 16h7', onb:'M4 5h16l-6 7v6l-4 2v-8z', plano:'M4 6h16v15H4zM4 10h16M9 3v4M15 3v4', reun:'M3 7h13v10H3zM16 11l5-3v8l-5-3', pme:'M12 3a9 9 0 1 0 9 9M12 7v5l3 2', linha:'M4 6h16M4 12h10M4 18h7', env:'M3 8l9-5 9 5v8l-9 5-9-5zM3 8l9 5 9-5M12 13v8', ev:'M5 4h14v17H5zM5 9h14', ren:'M4 12a8 8 0 0 1 14-5l2 2M20 12a8 8 0 0 1-14 5l-2-2M20 4v5h-5M4 20v-5h5', conf:'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6M12 3v3M12 18v3M3 12h3M18 12h3' };
+    const L = (label, d, href, on, cnt) => ({ link: true, label, d, href: href || 'EmBreve.dc.html', on: on ? 'on' : '', cnt: cnt || 0 });
+    const S = (label) => ({ sec: true, label });
+    const menu = [L('Fila do dia', ic.fila, 'Main.dc.html', false, 12), L('Mentorados', ic.ment, 'Mentorados.dc.html', true), L('Ficha do mentorado', ic.ficha, 'Ficha.dc.html'), L('Onboarding', ic.onb), L('Plano dos 12 meses', ic.plano), L('Reuniões', ic.reun), S('Em breve'), L('PMEs e ciclos', ic.pme), L('Linha do tempo e conquistas', ic.linha), L('Envios físicos', ic.env), L('Eventos e agenda', ic.ev), L('Renovações e gestão', ic.ren), S('Admin'), L('Configurações', ic.conf, 'Configuracoes.dc.html')];
+    const dados = [
+      ['Marina Alves', ['M'], 'Individual', 'RDV', 5, 'ativo', 'Ativo', 'Duda', 'Hoje'],
+      ['Marcos e Paula Teixeira', ['M','P'], 'Casal', 'RDV', 0, 'onb', 'Onboarding', 'Duda', 'Ontem'],
+      ['Helena Duarte', ['H'], 'Individual', 'RDV', 2, 'ativo', 'Ativo', 'Duda', '2 dias'],
+      ['Vitor e Aline Campos', ['V','A'], 'Casal', 'RDV', 10, 'ativo', 'Ativo', 'Duda', '6 dias', true],
+      ['Renato Lacerda', ['R'], 'Individual', '2M', 0, 'onb', 'Onboarding', 'Operação', 'Hoje'],
+      ['Isabela Nunes', ['I'], 'Individual', '6M', 4, 'ativo', 'Ativo', 'Duda', '12 dias'],
+      ['Diego Faria', ['D'], 'Individual', 'RDV', 7, 'pausa', 'Pausado', 'Duda', '34 dias'],
+      ['Olívia Santana', ['O'], 'Individual', 'RDV', 12, 'ativo', 'Ativo', 'Duda', '3 dias'],
+      ['Pedro e Lia Monteiro', ['P','L'], 'Casal', '6M', 8, 'ativo', 'Ativo', 'Duda', 'Hoje'],
+      ['Sérgio Vidal', ['S'], 'Individual', 'RDV', 0, 'canc', 'Cancelado', 'Duda', '90 dias'],
+    ];
+    const carteira = dados.map((r, i) => ({
+      nome: r[0],
+      faces: r[1].map((l, k) => ({ l, c: 'g' + ((i + k * 3) % 7) + (k ? ' b' : '') })),
+      fc: r[1].length > 1 ? 'pair' : 'solo',
+      href: (r[2] === 'Casal' ? 'FichaCasal' : 'Ficha') + (this.props.celular ? 'Celular' : '') + '.dc.html',
+      sub: r[2] + ', ' + r[3] + (r[9] ? ', completar a ficha' : ''),
+      mentoria: r[3],
+      mes: r[4],
+      antes: !r[4],
+      trail: Array.from({ length: 12 }, (_, k) => ({ c: k + 1 < r[4] ? 'f' : k + 1 === r[4] ? (r[9] ? 'l' : 'c') : '' })),
+      sc: r[5],
+      status: r[6],
+      resp: r[7],
+      ultimo: r[8],
+      ultimoMin: r[8].toLowerCase(),
+    }));
+    return { menu, carteira, yes: true, no: false };
+  }
+}
+</script>
+</body>
+</html>

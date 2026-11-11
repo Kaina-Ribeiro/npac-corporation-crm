@@ -7,12 +7,10 @@ const owner = ownerSql(E2E_DB);
 
 test.beforeEach(async () => {
   await owner`truncate rate_limit`;
-  await owner`truncate mentoria_mentorados, mentoria_fichas, mentoria_rdv_pessoas, mentoria_midia cascade`;
   await owner`update "user" set two_factor_enabled = false`;
   await owner`update "user" set role = 'DIRETOR' where email = 'diretor@npac.com.br'`;
 });
 test.afterAll(async () => {
-  await owner`truncate mentoria_mentorados, mentoria_fichas, mentoria_rdv_pessoas, mentoria_midia cascade`;
   await owner`update "user" set two_factor_enabled = false`;
   await closeTestConnections();
 });
@@ -23,25 +21,40 @@ async function login(page: Page, email: string, mfa = true) {
   await page.getByLabel('Usuário', { exact: true }).fill(email.split('@')[0]!);
   await page.getByLabel('Senha').fill(E2E_PASSWORD);
   await page.getByRole('button', { name: 'Login', exact: true }).click();
-  await page.waitForURL(/\/dashboard/);
+  await page.waitForURL(/\/(dashboard|acompanhamento)/);
   if (mfa) await owner`update "user" set two_factor_enabled = true where email = ${email}`;
 }
 
-/** Sub-itens do módulo, na ordem das antigas abas do topo. */
-const MODULOS = ['Dashboard', 'Linha do tempo', 'Linha do tempo RDV', 'Importação e backup'];
+/** As 11 abas do módulo e Configurações, para quem é Admin. */
+const MODULOS = [
+  'Fila do dia',
+  'Mentorados',
+  'Ficha do mentorado',
+  'Onboarding',
+  'Plano dos 12 meses',
+  'Reuniões',
+  'PMEs e ciclos',
+  'Linha do tempo e conquistas',
+  'Envios físicos',
+  'Eventos e agenda',
+  'Renovações e gestão',
+  'Configurações',
+];
+const ENTRADA = /\/acompanhamento\/mentorados/;
+const titulo = (page: Page) => page.getByRole('heading', { name: 'Mentorados', exact: true });
 
 const sidebarLinks = (page: Page) =>
   page.getByRole('navigation', { name: 'Navegação lateral' }).getByRole('link').allInnerTexts();
 
-test('Carla vê só o Acompanhamento na sidebar, na tela Mais e no Ctrl+K', async ({ page }) => {
-  await login(page, 'carla@npac.com.br');
-  await page.waitForURL(/\/acompanhamento\/dashboard/);
+test('Duda vê só o Acompanhamento na sidebar, na tela Mais e no Ctrl+K', async ({ page }) => {
+  await login(page, 'duda@npac.com.br');
+  await page.waitForURL(ENTRADA);
   await expect(
     page.getByRole('navigation', { name: 'Navegação lateral' }).getByRole('link'),
   ).toHaveText(MODULOS);
   await page.keyboard.press('Control+k');
   const opcoes = page.getByRole('option');
-  await expect(opcoes.filter({ hasText: 'Acompanhamento · Linha do tempo RDV' })).toHaveCount(1);
+  await expect(opcoes.filter({ hasText: 'Acompanhamento · Plano dos 12 meses' })).toHaveCount(1);
   for (const nome of MODULOS)
     await expect(opcoes.filter({ hasText: `Acompanhamento · ${nome}` })).not.toHaveCount(0);
   for (const nome of ['Leads', 'Pipeline', 'Chat', 'Equipe'])
@@ -59,10 +72,10 @@ test('Carla vê só o Acompanhamento na sidebar, na tela Mais e no Ctrl+K', asyn
   await expect(page.locator('nav[aria-label="Abas do acompanhamento"]')).toHaveCount(1);
 });
 
-test('Carla troca a senha no primeiro acesso e cai no Acompanhamento', async ({ page }) => {
-  await owner`update "user" set must_change_password = true where email = 'carla@npac.com.br'`;
+test('Duda troca a senha no primeiro acesso e cai no Acompanhamento', async ({ page }) => {
+  await owner`update "user" set must_change_password = true where email = 'duda@npac.com.br'`;
   await page.goto('/login');
-  await page.getByLabel('Usuário', { exact: true }).fill('carla');
+  await page.getByLabel('Usuário', { exact: true }).fill('duda');
   await page.getByLabel('Senha').fill(E2E_PASSWORD);
   await page.getByRole('button', { name: 'Login', exact: true }).click();
   await page.waitForURL(/\/conta\/senha/);
@@ -70,7 +83,7 @@ test('Carla troca a senha no primeiro acesso e cai no Acompanhamento', async ({ 
   await page.getByLabel('Nova senha', { exact: true }).fill(E2E_PASSWORD);
   await page.getByLabel('Confirme a nova senha').fill(E2E_PASSWORD);
   await page.getByRole('button', { name: 'Salvar senha' }).click();
-  await page.waitForURL(/\/acompanhamento\/dashboard/);
+  await page.waitForURL(ENTRADA);
 });
 
 test('Diretoria convida e muda alguém para o cargo Acompanhamento pela tela', async ({ page }) => {
@@ -86,14 +99,14 @@ test('Diretoria convida e muda alguém para o cargo Acompanhamento pela tela', a
   ).toHaveCount(1);
 });
 
-test('Carla navega no módulo e nunca chega numa tela comercial (Link, URL ou 404)', async ({
+test('Duda navega no módulo e nunca chega numa tela comercial (Link, URL ou 404)', async ({
   page,
 }) => {
-  await login(page, 'carla@npac.com.br');
-  await page.waitForURL(/\/acompanhamento\/dashboard/);
+  await login(page, 'duda@npac.com.br');
+  await page.waitForURL(ENTRADA);
   // Navegação do navegador dentro do módulo.
-  await page.getByRole('link', { name: 'Linha do tempo', exact: true }).first().click();
-  await page.waitForURL(/\/acompanhamento\/linha-do-tempo/);
+  await page.getByRole('link', { name: 'Reuniões', exact: true }).first().click();
+  await page.waitForURL(/\/acompanhamento\/em-breve\/reunioes/);
   // Módulo → comercial por navegação do navegador (como um Link do Next): volta ao módulo.
   for (const alvo of ['/leads', '/equipe', '/dashboard']) {
     await page.evaluate((href) => {
@@ -101,18 +114,18 @@ test('Carla navega no módulo e nunca chega numa tela comercial (Link, URL ou 40
         href,
       );
     }, alvo);
-    await page.waitForURL(/\/acompanhamento\/dashboard/);
-    await expect(page.getByRole('heading', { name: 'Dashboard', exact: true })).toBeVisible();
+    await page.waitForURL(ENTRADA);
+    await expect(titulo(page)).toBeVisible();
   }
   // Por URL também.
   // A tela troca de endereço logo ao abrir: o goto pode ser interrompido; vale o destino.
   await page.goto('/pipeline').catch(() => {});
-  await page.waitForURL(/\/acompanhamento\/dashboard/);
-  await expect(page.getByRole('heading', { name: 'Dashboard', exact: true })).toBeVisible();
+  await page.waitForURL(ENTRADA);
+  await expect(titulo(page)).toBeVisible();
   // Endereço solto fora do módulo também leva a ele (cai em [secao] do comercial).
   // A tela troca de endereço logo ao abrir: o goto pode ser interrompido; vale o destino.
   await page.goto('/nao-existe').catch(() => {});
-  await page.waitForURL(/\/acompanhamento\/dashboard/);
+  await page.waitForURL(ENTRADA);
   // Do 404 (endereço inexistente no módulo), o botão leva ao módulo.
   await page.goto('/acompanhamento/nao-existe');
   await expect(page.getByText('Esta tela não faz parte do seu acesso.')).toBeVisible();
@@ -120,15 +133,15 @@ test('Carla navega no módulo e nunca chega numa tela comercial (Link, URL ou 40
     page.getByRole('navigation', { name: 'Navegação lateral' }).getByRole('link'),
   ).toHaveText(MODULOS);
   await page.getByRole('link', { name: 'Ir para o Acompanhamento' }).click();
-  await page.waitForURL(/\/acompanhamento\/dashboard/);
-  await expect(page.getByRole('heading', { name: 'Dashboard', exact: true })).toBeVisible();
+  await page.waitForURL(ENTRADA);
+  await expect(titulo(page)).toBeVisible();
   // Da tela Mais (fora do módulo) para o módulo, pelo card.
   await page.goto('/mais');
   await page
     .getByRole('navigation', { name: 'Mais seções' })
     .getByRole('link', { name: /Acompanhamento/ })
     .click();
-  await page.waitForURL(/\/acompanhamento\/dashboard/);
+  await page.waitForURL(ENTRADA);
 });
 
 test('SDR e HEAD não veem o item Acompanhamento na sidebar, na barra e no Ctrl+K', async ({
@@ -151,21 +164,25 @@ test('SDR e HEAD não veem o item Acompanhamento na sidebar, na barra e no Ctrl+
 
 test('rotas do módulo respondem 404 para SDR', async ({ page }) => {
   await login(page, 'ale@npac.com.br', false);
-  for (const rota of ['/acompanhamento', '/acompanhamento/dashboard', '/acompanhamento/backup']) {
+  for (const rota of [
+    '/acompanhamento',
+    '/acompanhamento/mentorados',
+    '/acompanhamento/configuracoes',
+  ]) {
     const res = await page.goto(rota);
     expect(res?.status(), rota).toBe(404);
   }
 });
 
-test('MFA desligado: Diretoria e Carla usam o módulo sem autenticador, sem aviso nem link', async ({
+test('MFA desligado: Diretoria e Duda usam o módulo sem autenticador, sem aviso nem link', async ({
   page,
   browser,
 }) => {
   test.skip(MFA_LIGADO, 'só com o MFA desligado');
   await login(page, 'diretor@npac.com.br', false);
-  await page.goto('/acompanhamento/backup');
+  await page.goto('/acompanhamento/mentorados');
   await expect(page.getByText('Ative a verificação em duas etapas')).toHaveCount(0);
-  await expect(page.getByRole('heading', { name: 'Entrada e saída por módulo' })).toBeVisible();
+  await expect(titulo(page)).toBeVisible();
   await expect(page.getByRole('link', { name: 'Autenticador' })).toHaveCount(0);
   await page.goto('/mais');
   await expect(page.getByRole('link', { name: 'Autenticador' })).toHaveCount(0);
@@ -173,16 +190,16 @@ test('MFA desligado: Diretoria e Carla usam o módulo sem autenticador, sem avis
   await page.goto('/conta/mfa');
   await page.waitForURL(/\/dashboard/);
   const outra = await browser.newPage();
-  await login(outra, 'carla@npac.com.br', false);
-  await outra.waitForURL(/\/acompanhamento\/dashboard/);
-  await expect(outra.getByRole('heading', { name: 'Dashboard', exact: true })).toBeVisible();
+  await login(outra, 'duda@npac.com.br', false);
+  await outra.waitForURL(ENTRADA);
+  await expect(titulo(outra)).toBeVisible();
   await outra.close();
 });
 
 test('Diretoria sem MFA vê o aviso para ativar o autenticador', async ({ page }) => {
   test.skip(!MFA_LIGADO, 'só com o MFA ligado');
   await login(page, 'diretor@npac.com.br', false);
-  await page.goto('/acompanhamento/backup');
+  await page.goto('/acompanhamento/mentorados');
   await expect(page.getByText('Ative a verificação em duas etapas')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Ativar o autenticador' })).toHaveAttribute(
     'href',
@@ -190,77 +207,30 @@ test('Diretoria sem MFA vê o aviso para ativar o autenticador', async ({ page }
   );
 });
 
-test('390 px: sem overflow horizontal em /acompanhamento/backup', async ({ page }) => {
+test('390 px: sem overflow horizontal em Mentorados', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await login(page, 'carla@npac.com.br');
-  await page.goto('/acompanhamento/backup');
-  await expect(
-    page.getByRole('heading', { name: 'Importação, exportação e backup' }),
-  ).toBeVisible();
+  await login(page, 'duda@npac.com.br');
+  await page.waitForURL(ENTRADA);
+  await expect(titulo(page)).toBeVisible();
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
   );
   expect(overflow).toBeLessThanOrEqual(0);
 });
 
-test('390 px: do módulo, o avatar leva à conta e ao Sair (as abas não têm "Mais")', async ({
-  page,
-}) => {
+test('390 px: do módulo, o avatar leva ao Mais, que tem Sair', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await login(page, 'carla@npac.com.br');
-  await page.waitForURL(/\/acompanhamento\/dashboard/);
-  await page.getByRole('link', { name: 'Conta e sair' }).click();
-  await page.waitForURL(/\/mais$/);
-  // Fora do módulo nenhuma aba fica marcada; o "+" volta ao Dashboard já no Colar planilha.
+  await login(page, 'duda@npac.com.br');
+  await page.waitForURL(ENTRADA);
+  await page.getByRole('link', { name: 'Menu e conta' }).click();
+  await page.waitForURL(/\/acompanhamento\/mais$/);
+  await page.goto('/mais');
+  // No Mais do CRM nenhuma aba fica marcada; as abas levam de volta ao módulo.
   const abas = page.getByRole('navigation', { name: 'Abas do acompanhamento' });
   await expect(abas.locator('[aria-current="page"]')).toHaveCount(0);
-  await abas.getByRole('button', { name: 'Colar planilha' }).click();
-  await page.waitForURL(/\/acompanhamento\/dashboard$/);
-  await expect(page.getByRole('dialog', { name: 'Importar no Dashboard' })).toBeVisible();
-  await page.keyboard.press('Escape');
-  await page.getByRole('link', { name: 'Conta e sair' }).click();
+  await abas.getByRole('link', { name: 'Mentorados' }).click();
+  await page.waitForURL(ENTRADA);
+  await page.goto('/acompanhamento/mais');
   await page.getByRole('main').getByRole('button', { name: 'Sair' }).click();
   await page.waitForURL(/\/login/);
-});
-
-test('gaveta de importação mostra "X entram · Y já existem" e exige escolha para linha pendente', async ({
-  page,
-}) => {
-  await owner`insert into mentoria_mentorados (nome, nome_norm, status) values ('Mentorado Fictício 01', 'mentorado ficticio 01', 'ENGAJADO')`;
-  await login(page, 'carla@npac.com.br');
-  await page.goto('/acompanhamento/backup');
-  await page.getByRole('button', { name: 'Importar no Dashboard' }).click();
-  const gaveta = page.getByRole('dialog', { name: 'Importar no Dashboard' });
-  await gaveta
-    .getByLabel('Linhas da planilha')
-    .fill(
-      [
-        'Mentorado Fictício 01\tIndividual\tMentoria A\t\tEngajado',
-        'Mentorado Fictício 02\tIndividual\tMentoria A\t\tEngajado',
-        'Mentorado Fictício 03\tIndividual\t\t\tEm risco',
-      ].join('\n'),
-    );
-  await gaveta.getByRole('button', { name: 'Pré-visualizar' }).click();
-  await expect(gaveta.getByText('2 entram · 1 já existem')).toBeVisible();
-  const confirmar = gaveta.getByRole('button', { name: 'Confirmar importação' });
-  await expect(confirmar).toBeDisabled();
-  await gaveta.getByLabel('Tipo de mentoria da linha 3').fill('Mentoria B');
-  // Nome que já existe: a equipe confere antes (12C); no Dashboard a ficha é atualizada.
-  await expect(confirmar).toBeDisabled();
-  await gaveta.getByRole('checkbox', { name: /Conferi/ }).check();
-  await expect(confirmar).toBeEnabled();
-  await confirmar.click();
-  await expect(gaveta.getByText('2 gravados · 0 ignorados · 1 atualizados')).toBeVisible();
-  const [n] = await owner<{ n: number }[]>`select count(*)::int as n from mentoria_mentorados`;
-  expect(n?.n).toBe(3);
-});
-
-test('Exportar .json baixa arquivo com nome só de módulo e data', async ({ page }) => {
-  await login(page, 'carla@npac.com.br');
-  await page.goto('/acompanhamento/backup');
-  const download = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Exportar .json do Dashboard' }).click();
-  expect((await download).suggestedFilename()).toMatch(
-    /^acompanhamento-dashboard-\d{4}-\d{2}-\d{2}\.json$/,
-  );
 });

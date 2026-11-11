@@ -5,6 +5,7 @@ import { REMINDER_MINUTES } from '@npac/shared/reminders';
 import { HandoffActions } from './handoff-actions';
 import type {
   DealDTO,
+  FormResponseDTO,
   ProductDTO,
   LeadActivityDTO,
   LeadCatalog,
@@ -25,6 +26,7 @@ import {
 } from '@/lib/stage-fields';
 import { button, control, Field, FormError, quietButton, StageOptions } from './crm-ui';
 import { LeadForm } from './lead-form';
+import { PaymentComplete } from './payment-complete';
 import { StageFields } from './stage-fields';
 import { FinancePanel } from './finance-panel';
 import { useCrmRefresh } from './shell/live-updates';
@@ -56,7 +58,9 @@ const EVENT_LABEL: Record<string, string> = {
   'sale.registered': 'Venda registrada',
   'sale.pending': 'Venda a registrar (aviso ao closer)',
   'sale.reversed': 'Venda estornada',
+  'payment.pending': 'Pagamento a completar (aviso ao closer)',
   'payment.received': 'Pagamento recebido',
+  'form.received': 'Formulário preenchido',
 };
 
 /**
@@ -93,6 +97,7 @@ function ConfirmationSteps({ meeting: m }: { meeting: MeetingDTO }) {
 export function LeadDetail({
   lead,
   activity,
+  formResponses,
   catalog,
   meetings,
   deals,
@@ -101,6 +106,7 @@ export function LeadDetail({
 }: {
   lead: LeadDTO;
   activity: LeadActivityDTO;
+  formResponses: FormResponseDTO[];
   catalog: LeadCatalog;
   meetings: MeetingDTO[];
   /** `null` para quem não vê vendas e pagamentos (SDR). */
@@ -112,12 +118,17 @@ export function LeadDetail({
   useCrmRefresh(() => router.refresh());
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  async function mutate(path: string, method: string, body: object) {
+  async function mutate(
+    path: string,
+    method: string,
+    body: object,
+    after: () => void = () => router.refresh(),
+  ) {
     setBusy(true);
     setError('');
     try {
       await clientApi(path, method, body);
-      router.refresh();
+      after();
       return true;
     } catch (e) {
       setError((e as Error).message);
@@ -161,6 +172,14 @@ export function LeadDetail({
   const soldProduct = products.find((p) => p.id === lead.soldProductId);
   // Pagamento parcial (NPAC-41): entrada já paga; o restante vence na data combinada.
   const entry = lead.paymentAmountCents ? lead.paymentEntryCents : null;
+  // Item 13: quem completa é o closer escolhido pelo SDR, ou a liderança.
+  const canComplete = lead.paymentToComplete && (isLeader(me.role) || lead.closer?.id === me.id);
+  // Closer que só vê o lead pelo Agendou Pagamento o perde ao tirá-lo da etapa: volta ao Pipeline.
+  const keepsLead =
+    me.role !== 'CLOSER' ||
+    meetings.some((m) => m.closerId === me.id && !m.canceledAt) ||
+    Boolean(deals?.some((d) => !d.reversedAt));
+  const afterMove = () => (keepsLead ? router.refresh() : router.push('/pipeline'));
   function move(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     let body;
@@ -168,16 +187,18 @@ export function LeadDetail({
       body = readStageFields(moveTo, new FormData(e.currentTarget), {
         changed: true,
         withMeeting: !openMeeting,
+        role: me.role,
       });
     } catch (err) {
       setError((err as Error).message);
       return;
     }
-    void mutate(`/api/leads/${lead.id}`, 'PATCH', {
-      version: lead.version,
-      stageKey: moveTo,
-      ...body,
-    }).then((ok) => {
+    void mutate(
+      `/api/leads/${lead.id}`,
+      'PATCH',
+      { version: lead.version, stageKey: moveTo, ...body },
+      afterMove,
+    ).then((ok) => {
       if (ok) setMoveTo('');
     });
   }
@@ -207,6 +228,25 @@ export function LeadDetail({
               )}
             </div>
           )}
+          {lead.paymentToComplete && (
+            // O SDR informou produto e closer (item 13, 3A): falta o closer pôr valor e data.
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <span className="sale-pending">Pagamento a completar</span>
+              {payment && (
+                <span className="text-sm">
+                  Produto: <strong>{payment.name}</strong>
+                </span>
+              )}
+              {lead.closer && (
+                <span className="text-sm">
+                  Closer: <strong>{lead.closer.name}</strong>
+                </span>
+              )}
+              {lead.paymentEntryPaid && (
+                <span className="text-xs text-ink2">Já pagou uma entrada</span>
+              )}
+            </div>
+          )}
         </div>
         <div className="flex flex-wrap gap-2">
           <HandoffActions leadId={lead.id} />
@@ -232,9 +272,35 @@ export function LeadDetail({
             </a>
           )}
           {lead.instagram && <span className="px-3 py-2 text-sm text-ink2">@{lead.instagram}</span>}
+          {lead.email && (
+            <span className="min-w-0 px-3 py-2 text-sm break-all text-ink2">{lead.email}</span>
+          )}
         </div>
       </div>
       <FormError message={error} />
+      {canComplete && (
+        <PaymentComplete
+          key={lead.version}
+          lead={lead}
+          product={payment}
+          onDone={() => router.refresh()}
+        />
+      )}
+      {/* Primeiro bloco da ficha (pedido do Igor, 10/11/2026): os dados à mão, sem rolar a página. */}
+      {me.role !== 'CLOSER' && (
+        <details className="glass-card p-5">
+          <summary className="cursor-pointer font-semibold">Editar dados do lead</summary>
+          <div className="mt-5">
+            <LeadForm
+              lead={lead}
+              catalog={catalog}
+              me={me}
+              products={products}
+              openMeeting={openMeeting}
+            />
+          </div>
+        </details>
+      )}
       <form onSubmit={move} className="glass-card flex flex-wrap items-end gap-3 p-4">
         <Field label="Mover para">
           <select
@@ -248,10 +314,12 @@ export function LeadDetail({
               else if (stageNeedsFields(target)) setMoveTo(target);
               else {
                 setMoveTo('');
-                void mutate(`/api/leads/${lead.id}`, 'PATCH', {
-                  version: lead.version,
-                  stageKey: target,
-                });
+                void mutate(
+                  `/api/leads/${lead.id}`,
+                  'PATCH',
+                  { version: lead.version, stageKey: target },
+                  afterMove,
+                );
               }
             }}
             disabled={busy}
@@ -304,6 +372,19 @@ export function LeadDetail({
                   : lead.lostReason
                     ? LOST_REASON_LABELS[lead.lostReason]
                     : 'não informado'}
+              </>
+            ) : lead.paymentToComplete ? (
+              <>
+                {canComplete
+                  ? 'Falta informar o valor e a data.'
+                  : 'Aguardando o closer informar o valor e a data.'}
+              </>
+            ) : lead.stageKey === 'AGENDOU_PAGAMENTO' && me.role === 'SDR' ? (
+              // SDR não vê R$ nem a data combinada (item 13).
+              <>
+                {payment ? `Produto: ${payment.name}` : 'Produto não informado'}
+                {lead.closer && ` · Closer: ${lead.closer.name}`}
+                {lead.paymentEntryPaid && ' · já pagou uma entrada'}
               </>
             ) : (
               <>
@@ -587,6 +668,24 @@ export function LeadDetail({
             </form>
           )}
         </section>
+        {formResponses.length > 0 && (
+          <section className="glass-card flex flex-col gap-4 p-5">
+            <h2 className="text-lg font-bold">Respostas do formulário</h2>
+            {formResponses.map((r) => (
+              <article key={r.id} className="flex flex-col gap-3 border-b border-line pb-4">
+                <p className="text-xs text-ink2">Enviado em {date(r.submittedAt)}</p>
+                <dl className="flex flex-col gap-3">
+                  {r.answers.map((a, i) => (
+                    <div key={i}>
+                      <dt className="text-xs font-semibold text-ink2">{a.q}</dt>
+                      <dd className="text-sm break-words whitespace-pre-wrap">{a.a}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </article>
+            ))}
+          </section>
+        )}
         <section className="glass-card p-5">
           <h2 className="mb-4 text-lg font-bold">Histórico</h2>
           <ol className="flex flex-col gap-4">
@@ -608,20 +707,6 @@ export function LeadDetail({
         </section>
       </div>
       {deals && <FinancePanel lead={lead} deals={deals} products={products} me={me} />}
-      {me.role !== 'CLOSER' && (
-        <details className="glass-card p-5">
-          <summary className="cursor-pointer font-semibold">Editar dados do lead</summary>
-          <div className="mt-5">
-            <LeadForm
-              lead={lead}
-              catalog={catalog}
-              me={me}
-              products={products}
-              openMeeting={openMeeting}
-            />
-          </div>
-        </details>
-      )}
       {isLeader(me.role) && (
         <details className="glass-card p-5">
           <summary className="cursor-pointer text-sm text-danger">Excluir lead</summary>

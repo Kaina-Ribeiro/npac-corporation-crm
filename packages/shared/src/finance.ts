@@ -3,7 +3,8 @@ export type ProductDTO = {
   name: string;
   closerId: string;
   closerName: string;
-  priceCents: number;
+  /** Ausente para SDR (SDR não vê R$ de venda). */
+  priceCents?: number;
 };
 export type PaymentDTO = {
   id: string;

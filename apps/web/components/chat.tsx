@@ -51,6 +51,8 @@ export function Chat({
   const [mention, setMention] = useState<LeadHit | null>(null);
   const [hits, setHits] = useState<LeadHit[]>([]);
   const [query, setQuery] = useState('');
+  const [searchNote, setSearchNote] = useState('');
+  const searchSeq = useRef(0);
   const bottom = useRef<HTMLDivElement>(null);
   const current = channels.find((c) => c.id === active);
 
@@ -111,12 +113,28 @@ export function Chat({
 
   async function searchLeads(text: string) {
     setQuery(text);
-    if (text.trim().length < 2) return setHits([]);
-    const page = await clientApi<{ items: LeadHit[] }>('/api/leads/search', 'POST', {
-      search: text.trim(),
-      pageSize: 5,
-    }).catch(() => ({ items: [] }));
-    setHits(page.items.map(({ id, name }) => ({ id, name })));
+    // O campo sugere "#lead": o # é só a marca da menção, não faz parte do nome.
+    const term = text.trim().replace(/^#+/, '').trim();
+    const seq = ++searchSeq.current;
+    if (term.length < 2) {
+      setHits([]);
+      setSearchNote('');
+      return;
+    }
+    try {
+      const page = await clientApi<{ items: LeadHit[] }>('/api/leads/search', 'POST', {
+        search: term,
+        pageSize: 5,
+      });
+      // Resposta de uma digitação antiga não apaga a mais recente.
+      if (seq !== searchSeq.current) return;
+      setHits(page.items.map(({ id, name }) => ({ id, name })));
+      setSearchNote(page.items.length ? '' : 'Nenhum lead encontrado');
+    } catch (err) {
+      if (seq !== searchSeq.current) return;
+      setHits([]);
+      setSearchNote((err as Error).message);
+    }
   }
 
   async function startDm(userId: string) {
@@ -261,6 +279,14 @@ export function Chat({
                       </li>
                     ))}
                   </ul>
+                )}
+                {searchNote && (
+                  <p
+                    role="status"
+                    className="glass-card absolute bottom-full z-10 mb-1 w-full px-4 py-3 text-sm text-ink2"
+                  >
+                    {searchNote}
+                  </p>
                 )}
               </div>
             )}

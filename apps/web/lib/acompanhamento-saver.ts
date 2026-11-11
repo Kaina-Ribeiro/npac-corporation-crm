@@ -1,48 +1,47 @@
 'use client';
-import { ErroDeEnvio, FieldQueue, type StatusFila } from '@npac/shared/mentoria';
+import { ErroDeEnvio, FieldQueue, type FichaDTO, type StatusFila } from '@npac/shared/mentoria';
 import { useEffect, useState } from 'react';
 
 /**
- * Liga a fila de salvamento (regra 2, D5) à API. Usa `fetch` direto (não o `clientApi`) para
- * ler o status e o `code` do 409. Uma fila por aba; nada vai para storage. Chave do registro:
- * `mentorado:<id>`, `ficha:<id>` ou `rdv:<id>`. Campo com ponto vira objeto aninhado
- * (`campos.FE.antes` → `{ campos: { FE: { antes } } }`).
+ * Liga a fila de salvamento (T5 do SPEC) à API. Usa `fetch` direto (não o `clientApi`) para ler o
+ * status do 409. Uma fila por aba; nada vai para storage. Chaves do registro:
+ * `inscricao:<id>`, `pessoa:<inscricaoId>:<pessoaId>`, `etapa:<inscricaoId>:<etapaId>`,
+ * `endereco:<id>`, `momento:<id>` e
+ * `avaliacao:<pessoaId>:<tipo>` (esta sem version: uma coluna por envio, não colide).
  */
-const ROTAS: Record<string, string> = {
-  mentorado: '/api/mentoria/mentorados',
-  ficha: '/api/mentoria/fichas',
-  rdv: '/api/mentoria/rdv',
-};
+type Alvo = { url: string; method: 'PATCH' | 'PUT'; corpo: (v: number) => object };
 
-function url(key: string): string {
-  const [tipo, id] = key.split(':');
-  const base = tipo ? ROTAS[tipo] : undefined;
-  if (!base || !id) throw new Error(`Registro desconhecido: ${key}`);
-  return `${base}/${id}`;
-}
-
-function aninhar(patch: Record<string, unknown>): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
-  for (const [campo, valor] of Object.entries(patch)) {
-    const partes = campo.split('.');
-    let alvo = out;
-    partes.slice(0, -1).forEach((p) => {
-      alvo[p] = (alvo[p] as Record<string, unknown> | undefined) ?? {};
-      alvo = alvo[p] as Record<string, unknown>;
-    });
-    alvo[partes.at(-1)!] = valor;
+function alvo(key: string): Alvo {
+  const [tipo, a, b] = key.split(':');
+  const comVersion = (version: number) => ({ version });
+  const base = '/api/mentoria';
+  switch (tipo) {
+    case 'inscricao':
+      return { url: `${base}/inscricoes/${a}`, method: 'PATCH', corpo: comVersion };
+    case 'pessoa':
+      return { url: `${base}/pessoas/${b}`, method: 'PATCH', corpo: comVersion };
+    case 'endereco':
+      return { url: `${base}/inscricoes/${a}/endereco`, method: 'PUT', corpo: comVersion };
+    case 'momento':
+      return { url: `${base}/inscricoes/${a}/momento`, method: 'PUT', corpo: comVersion };
+    case 'etapa':
+      return { url: `${base}/onboarding/${b}`, method: 'PATCH', corpo: comVersion };
+    case 'avaliacao':
+      return { url: `${base}/pessoas/${a}/avaliacoes`, method: 'PUT', corpo: () => ({ tipo: b }) };
+    default:
+      throw new Error(`Registro desconhecido: ${key}`);
   }
-  return out;
 }
 
 async function enviar(key: string, patch: Record<string, unknown>, version: number) {
+  const { url, method, corpo } = alvo(key);
   let res: Response;
   try {
-    res = await fetch(url(key), {
-      method: 'PATCH',
+    res = await fetch(url, {
+      method,
       cache: 'no-store',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ version, ...aninhar(patch) }),
+      body: JSON.stringify({ ...corpo(version), ...patch }),
     });
   } catch {
     throw new ErroDeEnvio('Sem conexão');
@@ -56,33 +55,66 @@ async function enviar(key: string, patch: Record<string, unknown>, version: numb
   return ((await res.json()) as { version: number }).version;
 }
 
-async function recarregarVersion(key: string): Promise<number> {
-  const res = await fetch(url(key), { cache: 'no-store' });
+/** Version e valores atuais do registro, lidos da ficha. Registro sem linha ainda: version 0. */
+async function recarregar(key: string) {
+  const [tipo, a, b] = key.split(':');
+  if (tipo === 'avaliacao') return { version: 0, valores: {} };
+  const res = await fetch(`/api/mentoria/inscricoes/${a}`, { cache: 'no-store' });
   if (!res.ok) throw new ErroDeEnvio('Não foi possível recarregar', res.status);
-  return ((await res.json()) as { version: number }).version;
+  const ficha = (await res.json()) as FichaDTO;
+  const linha =
+    tipo === 'pessoa'
+      ? ficha.pessoas.find((p) => p.id === b)
+      : tipo === 'etapa'
+        ? ficha.onboarding.find((e) => e.id === b)
+        : tipo === 'endereco'
+          ? ficha.endereco
+          : tipo === 'momento'
+            ? ficha.momento
+            : ficha;
+  return {
+    version: linha?.version ?? 0,
+    valores: (linha ?? {}) as unknown as Record<string, unknown>,
+  };
 }
+
+type Ouvinte = { mudou(valor: unknown): void; erro(): void };
 
 let fila: FieldQueue | null = null;
 let avisos: ((msg: string) => void)[] = [];
+const ouvintes = new Map<string, Set<Ouvinte>>();
+const idCampo = (key: string, campo: string) => `${key}\u0000${campo}`;
+
+/** Mostra um aviso no indicador de salvamento. */
+export const avisar = (msg: string) => avisos.forEach((a) => a(msg));
 
 /** A fila única da aba (criada no primeiro uso, só no navegador). */
 export function filaDeSalvamento(): FieldQueue {
   if (fila) return fila;
-  fila = new FieldQueue({ send: enviar, reloadVersion: recarregarVersion });
-  fila.onConflict(() =>
-    avisos.forEach((a) => a('Outra pessoa alterou este registro; sua edição foi reaplicada.')),
-  );
-  fila.onError((_k, _c, msg) => avisos.forEach((a) => a(msg)));
+  fila = new FieldQueue({
+    send: enviar,
+    reload: recarregar,
+    reloadVersion: async (key) => (await recarregar(key)).version,
+  });
+  fila.onCampoMudou((key, campo, valor) => {
+    ouvintes.get(idCampo(key, campo))?.forEach((o) => o.mudou(valor));
+    avisar('Outra pessoa mudou este campo; o valor dela foi mantido.');
+  });
+  fila.onError((key, campo, msg) => {
+    ouvintes.get(idCampo(key, campo))?.forEach((o) => o.erro());
+    avisar(msg);
+  });
   const q = fila;
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState !== 'hidden') return;
     q.aoEsconder((key, patch, version) => {
       try {
-        void fetch(url(key), {
-          method: 'PATCH',
+        const { url, method, corpo } = alvo(key);
+        void fetch(url, {
+          method,
           keepalive: true,
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ version, ...aninhar(patch) }),
+          body: JSON.stringify({ ...corpo(version), ...patch }),
         });
         return true;
       } catch {
@@ -96,13 +128,30 @@ export function filaDeSalvamento(): FieldQueue {
   return fila;
 }
 
-/** Lista do módulo só recarrega sem fila pendente (D5, D24). */
-export const filaOcupada = () => fila?.isBusy() ?? false;
+/** Salva ao sair do campo; `visto` é o valor que a pessoa via antes de editar. */
+export const salvarCampo = (key: string, campo: string, valor: unknown, visto: unknown) =>
+  filaDeSalvamento().enqueue(key, campo, valor, visto);
 
-/**
- * Salvar ao sair do campo: `salvar(chave, campo, valor)`. A version de partida vem da tela
- * (`registrar`); as seguintes, das respostas do PATCH.
- */
+/** Version de partida do registro: a da tela, a não ser que a fila já conheça uma mais nova. */
+export function registrarVersion(key: string, version: number) {
+  const q = filaDeSalvamento();
+  const atual = q.version(key);
+  if (atual == null || version > atual) q.setVersion(key, version);
+}
+
+/** Avisa o campo quando outra pessoa o mudou ou quando o servidor recusou o valor. */
+export function ouvirCampo(key: string, campo: string, o: Ouvinte): () => void {
+  const id = idCampo(key, campo);
+  const lista = ouvintes.get(id) ?? new Set<Ouvinte>();
+  ouvintes.set(id, lista);
+  lista.add(o);
+  return () => {
+    lista.delete(o);
+    if (!lista.size) ouvintes.delete(id);
+  };
+}
+
+/** Status da fila e último aviso, para o indicador "Tudo salvo". */
 export function useFieldSaver() {
   const [status, setStatus] = useState<StatusFila>('saved');
   const [aviso, setAviso] = useState('');
@@ -122,15 +171,6 @@ export function useFieldSaver() {
     pendentes: status.startsWith('queued:') ? Number(status.slice(7)) : status === 'saving' ? 1 : 0,
     aviso,
     limparAviso: () => setAviso(''),
-    registrar: (key: string, version: number) => {
-      const q = filaDeSalvamento();
-      const atual = q.version(key);
-      if (atual == null || version > atual) q.setVersion(key, version);
-    },
-    /** Version mais nova que a fila conhece (para excluir sem 409 depois de editar). */
-    versionDe: (key: string) => filaDeSalvamento().version(key),
-    salvar: (key: string, campo: string, valor: unknown) =>
-      filaDeSalvamento().enqueue(key, campo, valor),
   };
 }
 

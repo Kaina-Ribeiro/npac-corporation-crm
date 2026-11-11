@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Ficha do mentorado</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="prototipo.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="app raiz">
+  <aside class="side glass">
+    <div class="brand"><span class="mark">N</span><b>NPAC Corporation</b></div>
+    <nav aria-label="Navegação lateral">
+      <sc-for list="{{menu}}" as="m" hint-placeholder-count="12">
+        <sc-if value="{{m.sec}}" hint-placeholder-val="{{no}}"><div class="nsec">{{m.label}}</div></sc-if>
+        <sc-if value="{{m.link}}" hint-placeholder-val="{{yes}}">
+          <a class="nl {{m.on}}" href="{{m.href}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{m.d}}"></path></svg><span>{{m.label}}</span><sc-if value="{{m.cnt}}" hint-placeholder-val="{{no}}"><span class="cnt">{{m.cnt}}</span></sc-if></a>
+        </sc-if>
+      </sc-for>
+    </nav>
+    <div class="foot"><span class="ava me">D</span><div><b>Duda</b><span>Acompanhamento e Admin</span></div></div>
+  </aside>
+  <main><div class="wrap">
+    <div class="top">
+      <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><input class="field" type="search" aria-label="Buscar mentorados" placeholder="Nome, fone com DDD ou e-mail"></div>
+      <a class="ava me so-cel" href="Mais.dc.html" aria-label="Menu e conta">D</a>
+      <span class="tag gold so-desk">Protótipo com dados inventados</span>
+    </div>
+    <section class="view">
+      <header class="card fc-h">
+        <div class="fc-quem">
+          <span class="{{fc}}"><sc-for list="{{faces}}" as="f" hint-placeholder-count="1"><span class="ava {{f.c}}">{{f.l}}</span></sc-for></span>
+          <div class="fc-id">
+            <a class="fc-voltar" href="{{voltar}}">Mentorados</a>
+            <h1>{{nome}}</h1>
+            <div class="fh-tags"><span class="tag gold">{{mentoria}}</span><span class="tag">{{tipo}}</span><span class="tag ativo">Ativo</span><span class="saved"><i></i>Tudo salvo</span></div>
+          </div>
+        </div>
+        <div class="fc-j"><div class="lbl"><b>{{mesTitulo}}</b><span>{{periodo}}</span></div><span class="trail"><sc-for list="{{rail}}" as="m" hint-placeholder-count="12"><i class="{{m.t}}"></i></sc-for></span></div>
+        <div class="fc-acts">
+          <button class="btn s sm wa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{iconeGrupo}}"></path></svg>Grupo</button>
+          <sc-for list="{{pessoas}}" as="p" hint-placeholder-count="1"><button class="btn s sm wa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{iconeWa}}"></path></svg>{{p.apelido}}</button></sc-for>
+          <div class="fc-mais"><button class="btn s sm mais" aria-haspopup="menu" aria-expanded="{{maisAria}}" onClick="{{alternarMais}}">Mais ações</button>
+            <sc-if value="{{maisAberto}}" hint-placeholder-val="{{no}}"><div class="fc-menu card" role="menu"><button role="menuitem">Pausar</button><button role="menuitem">{{mudarTipo}}</button><button role="menuitem" class="perigo">Excluir inscrição</button></div></sc-if>
+          </div>
+        </div>
+      </header>
+      <div class="fc-corpo">
+        <div class="fc-main">
+          <div class="tabs" role="tablist"><sc-for list="{{abas}}" as="t" hint-placeholder-count="5"><button role="tab" aria-selected="{{t.aria}}" class="{{t.cls}}" onClick="{{t.pick}}">{{t.l}}</button></sc-for></div>
+
+          <sc-if value="{{emJornada}}" hint-placeholder-val="{{yes}}">
+            <section class="card pa">
+              <div class="rail so-desk"><sc-for list="{{rail}}" as="m" hint-placeholder-count="12"><div class="m {{m.c}}"><span class="dot"><sc-if value="{{m.ok}}" hint-placeholder-val="{{no}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13l4 4L19 7"></path></svg></sc-if></span><span>{{m.n}}</span><span class="fo">{{m.foco}}</span></div></sc-for></div>
+              <div class="jg">
+                <div>
+                  <h3>Ações do plano</h3>
+                  <sc-for list="{{acoes}}" as="a" hint-placeholder-count="3"><div class="acao"><button class="check sm {{a.c}}" aria-label="Marcar a ação"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13l4 4L19 7"></path></svg></button><div><b>{{a.t}}</b><span>{{a.d}}</span></div></div></sc-for>
+                </div>
+                <div>
+                  <h3>Onboarding</h3>
+                  <div class="steps"><sc-for list="{{etapas}}" as="s" hint-placeholder-count="6"><div class="st {{s.linha}}"><span class="n"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13l4 4L19 7"></path></svg></span><div><b>{{s.t}}</b></div><em>{{s.d}}</em></div></sc-for></div>
+                </div>
+              </div>
+            </section>
+          </sc-if>
+
+          <sc-if value="{{emPessoas}}" hint-placeholder-val="{{no}}">
+            <section class="card pa">
+              <sc-if value="{{casal}}" hint-placeholder-val="{{no}}"><div class="seg pessoas-seg" role="group" aria-label="Pessoa do casal"><sc-for list="{{pessoas}}" as="p" hint-placeholder-count="2"><button class="{{p.segOn}}" onClick="{{p.pick}}">{{p.apelido}}</button></sc-for></div></sc-if>
+              <div class="pc-h"><span class="ava {{pessoa.g}}">{{pessoa.i}}</span><div><b>{{pessoa.nome}}</b><span>Toque na foto para trocar</span></div></div>
+              <div class="props {{tudoCls}}"><sc-for list="{{pessoa.campos}}" as="f" hint-placeholder-count="16"><label class="pr {{f.cls}}"><span>{{f.l}}</span><sc-if value="{{f.sel}}" hint-placeholder-val="{{no}}"><select class="pv"><option>{{f.v}}</option></select></sc-if><sc-if value="{{f.inp}}" hint-placeholder-val="{{yes}}"><input class="pv" value="{{f.v}}" readOnly="{{yes}}"></sc-if></label></sc-for></div>
+              <button class="btn s ver-mais so-cel" onClick="{{alternarTudo}}">{{tudoRotulo}}</button>
+              <h3>Entrega</h3>
+              <div class="props"><sc-for list="{{endereco}}" as="f" hint-placeholder-count="3"><label class="pr {{f.cls}}"><span>{{f.l}}</span><sc-if value="{{f.sel}}" hint-placeholder-val="{{no}}"><select class="pv"><option>{{f.v}}</option></select></sc-if><sc-if value="{{f.inp}}" hint-placeholder-val="{{yes}}"><input class="pv" value="{{f.v}}" readOnly="{{yes}}"></sc-if></label></sc-for><div class="pr"><span>Foto da família</span><div><button class="btn s sm">Anexar</button></div></div></div>
+            </section>
+          </sc-if>
+
+          <sc-if value="{{emMomento}}" hint-placeholder-val="{{no}}">
+            <section class="card pa">
+              <div class="mo-h"><span class="locked"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 11V8a5 5 0 0 1 10 0v3M5 11h14v10H5z"></path></svg>Concluído em 12/03/2026 por Duda</span><button class="btn s sm">Destravar</button></div>
+              <div class="kp"><sc-for list="{{numeros}}" as="n" hint-placeholder-count="4"><div class="pl"><small>{{n.l}}</small><b>{{n.v}}</b></div></sc-for></div>
+              <div class="tx"><sc-for list="{{textos}}" as="t" hint-placeholder-count="3"><div><small>{{t.l}}</small><p>{{t.v}}</p></div></sc-for></div>
+              <h3>Avaliação inicial</h3>
+              <sc-for list="{{avaliacoes}}" as="a" hint-placeholder-count="1"><div class="av"><b class="av-n">{{a.titulo}}</b><sc-for list="{{a.notas}}" as="n" hint-placeholder-count="5"><div><small>{{n.l}}</small><b>{{n.v}}</b></div></sc-for></div></sc-for>
+            </section>
+          </sc-if>
+
+          <sc-if value="{{emHistorico}}" hint-placeholder-val="{{no}}">
+            <section class="card pa">
+              <div class="hh"><div class="hf"><button class="on">Tudo</button><button>Reuniões</button><button>Contatos</button><button>Envios</button><button>Anotações</button><button>Alterações</button></div><button class="btn s sm">Nova anotação</button></div>
+              <sc-for list="{{historico}}" as="e" hint-placeholder-count="5"><div class="ev"><span class="i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{e.i}}"></path></svg></span><div><b>{{e.t}}</b><p>{{e.d}}</p><time>{{e.q}}</time></div></div></sc-for>
+            </section>
+          </sc-if>
+        </div>
+
+        <aside class="card fc-lado {{ladoCls}}" aria-label="Inscrição">
+          <h2>Inscrição</h2>
+          <sc-for list="{{inscricao}}" as="f" hint-placeholder-count="14"><label class="pr {{f.cls}}"><span>{{f.l}}</span><sc-if value="{{f.sel}}" hint-placeholder-val="{{no}}"><select class="pv"><option>{{f.v}}</option></select></sc-if><sc-if value="{{f.inp}}" hint-placeholder-val="{{yes}}"><input class="pv" value="{{f.v}}" placeholder="{{f.ph}}" readOnly="{{yes}}"></sc-if></label></sc-for>
+        </aside>
+      </div>
+      <p class="selo-cel so-cel">Protótipo com dados inventados</p>
+    </section>
+  </div></main>
+  <nav class="bnav glass" aria-label="Abas do acompanhamento">
+    <a href="FilaCelular.dc.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"></path></svg>Fila</a>
+    <a class="on" href="MentoradosCelular.dc.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7M22 19v-1a4 4 0 0 0-3-3.8M16 3.2a3.5 3.5 0 0 1 0 6.6"></path></svg>Mentorados</a>
+    <a class="plus" href="NovaInscricaoCelular.dc.html" aria-label="Nova inscrição"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" width="22" height="22"><path d="M12 5v14M5 12h14"></path></svg></a>
+    <a href="EmBreveCelular.dc.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M3 7h13v10H3zM16 11l5-3v8l-5-3"></path></svg>Reuniões</a>
+    <a href="Mais.dc.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M5 12h.01M12 12h.01M19 12h.01"></path></svg>Mais</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"casal":{"editor":"boolean","default":false},"aba":{"editor":null},"celular":{"editor":null},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  state = { aba: null, pessoa: 0, mais: false, tudo: false };
+
+  renderVals() {
+    const casal = this.props.casal ?? false;
+    const st = this.state;
+    const aba = st.aba ?? this.props.aba ?? 'jornada';
+    const abas = [['jornada', 'Jornada', ''], ['inscricao', 'Inscrição', 'so-lado'], ['pessoas', casal ? 'Pessoas' : 'Pessoa', ''], ['momento', 'Momento inicial', ''], ['historico', 'Histórico', '']].map((t) => ({ l: t[1], cls: ((t[0] === aba ? 'on ' : '') + t[2]).trim(), aria: t[0] === aba ? 'true' : 'false', pick: () => this.setState({ aba: t[0] }) }));
+    const ic = { fila:'M4 6h16M4 12h16M4 18h10', ment:'M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7M22 19v-1a4 4 0 0 0-3-3.8M16 3.2a3.5 3.5 0 0 1 0 6.6', ficha:'M6 3h9l4 4v14H6zM9 12h7M9 16h7', onb:'M4 5h16l-6 7v6l-4 2v-8z', plano:'M4 6h16v15H4zM4 10h16M9 3v4M15 3v4', reun:'M3 7h13v10H3zM16 11l5-3v8l-5-3', pme:'M12 3a9 9 0 1 0 9 9M12 7v5l3 2', linha:'M4 6h16M4 12h10M4 18h7', env:'M3 8l9-5 9 5v8l-9 5-9-5zM3 8l9 5 9-5M12 13v8', ev:'M5 4h14v17H5zM5 9h14', ren:'M4 12a8 8 0 0 1 14-5l2 2M20 12a8 8 0 0 1-14 5l-2-2M20 4v5h-5M4 20v-5h5', conf:'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6M12 3v3M12 18v3M3 12h3M18 12h3' };
+    const WA = 'M21 12a9 9 0 0 1-13.5 7.8L3 21l1.2-4.5A9 9 0 1 1 21 12z';
+    const L = (label, d, href, on, cnt) => ({ link: true, label, d, href: href || 'EmBreve.dc.html', on: on ? 'on' : '', cnt: cnt || 0 });
+    const S = (label) => ({ sec: true, label });
+    const menu = [L('Fila do dia', ic.fila, 'Main.dc.html', false, 12), L('Mentorados', ic.ment, 'Mentorados.dc.html'), L('Ficha do mentorado', ic.ficha, 'Ficha.dc.html', true), L('Onboarding', ic.onb), L('Plano dos 12 meses', ic.plano), L('Reuniões', ic.reun), S('Em breve'), L('PMEs e ciclos', ic.pme), L('Linha do tempo e conquistas', ic.linha), L('Envios físicos', ic.env), L('Eventos e agenda', ic.ev), L('Renovações e gestão', ic.ren), S('Admin'), L('Configurações', ic.conf, 'Configuracoes.dc.html')];
+    const F = (l, v, o) => ({ l, v, cls: (o && o.cls) || '', sel: !!(o && o.sel), inp: !(o && o.sel), ph: (o && o.ph) || '' });
+    const focos = ['Adaptação','Conexão','Momento mágico','Evolução','Posicionamento','Inspiração','Cartões e milhas','Evolução financeira','Villa NPAC','Jornada','Família','Renovação'];
+    const c = casal
+      ? { nome: 'Vitor e Aline Campos', mes: 10, inicio: '05/01/2026', termino: '05/01/2027', acoes: ['vídeo institucional da Villa', '2ª parte da linha do tempo', 'presente com a foto da família'],
+          ps: [
+            { i: 'V', nome: 'Vitor Campos', apelido: 'Vitor', nasc: '02/11/1984', cid: 'Curitiba', uf: 'PR', wa: '+55 41 90000-0202', em: 'vitor@exemplo.com', ig: '@vitor.exemplo', pr: 'Engenheiro', oc: 'Empregado', fi: '1', id: '4', tc: 'Alta', mh: 'Manhã', cp: 'WhatsApp', pu: 'G' },
+            { i: 'A', nome: 'Aline Campos', apelido: 'Aline', nasc: '21/07/1986', cid: 'Curitiba', uf: 'PR', wa: '+55 41 90000-0303', em: 'aline@exemplo.com', ig: '@aline.exemplo', pr: 'Arquiteta', oc: 'Empresário', fi: '1', id: '4', tc: 'Média', mh: 'Tarde', cp: 'Ligação', pu: 'P' } ] }
+      : { nome: 'Marina Alves', mes: 5, inicio: '12/03/2026', termino: '12/03/2027', acoes: ['enviar a 1ª parte da linha do tempo', 'reunião com a Manu e posicionamento', 'conversa com um mentorado experiente'],
+          ps: [ { i: 'M', nome: 'Marina Alves', apelido: 'Marina', nasc: '14/05/1988', cid: 'Campinas', uf: 'SP', wa: '+55 19 90000-0101', em: 'marina@exemplo.com', ig: '@marina.exemplo', pr: 'Dentista', oc: 'Autônomo', fi: '2', id: '6 e 9', tc: 'Média', mh: 'Depois das 19h', cp: 'WhatsApp', pu: 'M' } ] };
+    const X = { cls: 'extra' };
+    const XS = { cls: 'extra', sel: 1 };
+    const pessoas = c.ps.map((p, i) => ({ ...p, g: 'g' + (i ? 4 : 1), segOn: i === st.pessoa ? 'on' : '', pick: () => this.setState({ pessoa: i }), campos: [
+      F('Nome completo', p.nome), F('Como prefere', p.apelido), F('WhatsApp', p.wa), F('E-mail', p.em), F('Instagram', p.ig), F('Nascimento', p.nasc), F('Cidade', p.cid), F('UF', p.uf, { sel: 1 }), F('Profissão', p.pr, X), F('Ocupação', p.oc, XS), F('Filhos', p.fi, X), F('Idades dos filhos', p.id, X), F('Tecnologia', p.tc, XS), F('Melhor horário', p.mh, X), F('Canal preferido', p.cp, XS), F('Pulseira', p.pu, XS) ] }));
+    const notas = (prova, v) => [{ l: 'Prova', v: prova }, ...['Fé','Saúde','Dinheiro','Relacionamentos'].map((l, i) => ({ l, v: v[i] }))];
+    const avaliacoes = casal
+      ? [{ titulo: 'Vitor', notas: notas('64/100', [8,6,3,7]) }, { titulo: 'Aline', notas: notas('72/100', [6,8,4,9]) }]
+      : [{ titulo: 'Marina', notas: notas('64/100', [8,6,3,7]) }];
+    const etapas = [['Boas-vindas','20/02'],['Grupos de WhatsApp','22/02'],['Aquecimento da Riqueza','28/02'],['PME de aquecimento','05/03'],['Caixa da Verdadeira Riqueza','09/03'],['Reunião de IDR','12/03']].map((s, i, t) => ({ t: s[0], d: s[1], linha: i < t.length - 1 ? 'linha' : '' }));
+    return {
+      menu, casal, abas, yes: true, no: false, iconeWa: WA, iconeGrupo: ic.ment,
+      emJornada: aba === 'jornada', emPessoas: aba === 'pessoas', emMomento: aba === 'momento', emHistorico: aba === 'historico',
+      ladoCls: aba === 'inscricao' ? 'ativo' : '',
+      voltar: this.props.celular ? 'MentoradosCelular.dc.html' : 'Mentorados.dc.html',
+      maisAberto: st.mais, maisAria: st.mais ? 'true' : 'false',
+      alternarMais: () => this.setState({ mais: !this.state.mais }),
+      tudoCls: st.tudo ? 'tudo' : '', tudoRotulo: st.tudo ? 'Ver menos dados' : 'Ver todos os dados',
+      alternarTudo: () => this.setState({ tudo: !this.state.tudo }),
+      nome: c.nome, mentoria: 'RDV', tipo: casal ? 'Casal' : 'Individual',
+      faces: c.ps.map((p, i) => ({ l: p.i, c: 'g' + (i ? 4 : 1) + (i ? ' b' : '') })), fc: casal ? 'pair' : 'solo',
+      mudarTipo: casal ? 'Mudar para individual' : 'Mudar para casal',
+      mesTitulo: 'Mês ' + c.mes + ' de 12: ' + focos[c.mes - 1], periodo: c.inicio + ' a ' + c.termino,
+      rail: focos.map((foco, k) => ({ n: k + 1, foco, ok: k + 1 < c.mes, t: k + 1 < c.mes ? 'f' : k + 1 === c.mes ? 'c' : '', c: (k === 0 ? 'p1 ' : '') + (k + 1 < c.mes ? 'ok' : k + 1 === c.mes ? 'c' : '') })),
+      inscricao: [F('Tipo', casal ? 'Casal' : 'Individual', { sel: 1 }), F('Mentoria', 'RDV', { sel: 1 }), F('Variante', '', { ph: 'Nenhuma' }), F('Status', 'Ativo', { sel: 1 }), F('Responsável', 'Duda', { sel: 1 }), F('Origem', 'Nação Milionária', { sel: 1 }), F('Data da compra', '18/02/2026', { cls: 'gap' }), F('Data da IDR', c.inicio), F('Término previsto', c.termino), F('Valor', 'R$ 24.000,00', { cls: 'gap' }), F('Pagamento', 'Pix + 10x cartão'), F('Financeiro', 'Em dia', { sel: 1 }), F('Pasta', 'drive.exemplo/pasta', { cls: 'gap' }), F('Grupo', 'chat.whatsapp.com/ex')],
+      pessoa: pessoas[st.pessoa] || pessoas[0], pessoas,
+      endereco: [F('Endereço', 'Rua das Acácias, 120, ap. 41', { cls: 'longo' }), F('CEP', '01234-000'), F('Veio de', 'Formulário da Caixa', { sel: 1 })],
+      numeros: [{ l: 'Recebe por mês', v: 'R$ 12.000' }, { l: 'Custo mensal', v: 'R$ 9.500' }, { l: 'Dívidas', v: 'R$ 38.000' }, { l: 'Guardado', v: 'R$ 4.200' }],
+      textos: [{ l: 'Principal dor', v: 'Trabalho muito e nunca sobra nada no fim do mês.' }, { l: 'Principal sonho', v: 'Comprar a casa da família sem depender de ninguém.' }, { l: 'Meta de 12 meses', v: 'Quitar as dívidas e guardar seis meses de custo.' }],
+      avaliacoes, etapas,
+      acoes: [{ t: 'Mês ' + (c.mes - 1) + ': ' + c.acoes[0], d: 'Feita em 14/07 por Duda', c: 'done' }, { t: 'Mês ' + c.mes + ': ' + c.acoes[1], d: 'Prevista para 12/11, Manu', c: '' }, { t: 'Mês ' + (c.mes + 1) + ': ' + c.acoes[2], d: 'Prevista para 12/12, Duda', c: '' }],
+      historico: [[ic.reun,'Reunião do 4º PME, realizada','Com Duda. Combinado: revisar os aportes.','há 12 dias'],[WA,'WhatsApp, respondeu em 20 min','Operação falou sobre a agenda do mês.','há 3 dias'],[ic.env,'Caixa entregue','Rastreio informado pela Operação.','09/03/2026'],[ic.ficha,'Anotação de Duda','Prefere contato à noite, depois das 19h.','02/03/2026'],[ic.conf,'Alteração por Operação','Campos: WhatsApp, CEP.','24/02/2026']].map((e) => ({ i: e[0], t: e[1], d: e[2], q: e[3] })),
+    };
+  }
+}
+</script>
+</body>
+</html>

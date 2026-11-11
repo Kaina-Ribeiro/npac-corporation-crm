@@ -39,7 +39,7 @@ async function pgError(p: Promise<unknown>): Promise<string> {
 }
 
 beforeEach(async () => {
-  await owner`truncate push_subscriptions, meeting_reminders_sent, meeting_confirmations, chat_reads, chat_messages, chat_members, playbook_scripts, meetings, leads, pipeline_stages, "user" restart identity cascade`;
+  await owner`truncate push_subscriptions, meeting_reminders_sent, meeting_confirmations, chat_reads, chat_messages, chat_members, playbook_scripts, meetings, form_responses, leads, pipeline_stages, "user" restart identity cascade`;
   await owner`
     insert into "user" (id, name, email, role, can_prospect, can_close, active) values
       ('u-ana', 'Ana', 'ana@npac.test', 'HEAD', true, false, true),

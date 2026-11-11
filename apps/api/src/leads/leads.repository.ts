@@ -30,6 +30,7 @@ export interface LeadRow {
   name: string;
   phoneEnc: Buffer | null;
   instagram: string | null;
+  emailEnc: Buffer | null;
   incomeBand: IncomeBand;
   source: LeadSource;
   sourceOther: string | null;
@@ -44,6 +45,7 @@ export interface LeadRow {
   paymentProductId: string | null;
   paymentAmountCents: number | null;
   paymentEntryCents: number | null;
+  paymentEntryPaid: boolean;
   lostReason: LostReason | null;
   lostReasonOther: string | null;
   saleToRegister: boolean;
@@ -54,6 +56,7 @@ export interface LeadRow {
 
 export type LeadSearch =
   | { kind: 'phone'; bidx: string }
+  | { kind: 'email'; bidx: string }
   | { kind: 'instagram'; handle: string }
   | { kind: 'text'; term: string; handle: string | null };
 
@@ -141,6 +144,7 @@ export class LeadsRepository {
         name: leads.name,
         phoneEnc: leads.phoneEnc,
         instagram: leads.instagram,
+        emailEnc: leads.emailEnc,
         tier: leads.tier,
         stage: pipelineStages.label,
         sdrName: user.name,
@@ -167,6 +171,7 @@ export class LeadsRepository {
         name: leads.name,
         phoneEnc: leads.phoneEnc,
         instagram: leads.instagram,
+        emailEnc: leads.emailEnc,
         incomeBand: leads.incomeBand,
         source: leads.source,
         sourceOther: leads.sourceOther,
@@ -181,6 +186,7 @@ export class LeadsRepository {
         paymentProductId: leads.paymentProductId,
         paymentAmountCents: leads.paymentAmountCents,
         paymentEntryCents: leads.paymentEntryCents,
+        paymentEntryPaid: leads.paymentEntryPaid,
         soldProductId: leads.soldProductId,
         lostReason: leads.lostReason,
         lostReasonOther: leads.lostReasonOther,
@@ -199,6 +205,7 @@ export class LeadsRepository {
   private where(f: LeadFilters): SQL | undefined {
     const parts: (SQL | undefined)[] = [isNull(leads.deletedAt)];
     if (f.search?.kind === 'phone') parts.push(eq(leads.phoneBidx, f.search.bidx));
+    if (f.search?.kind === 'email') parts.push(eq(leads.emailBidx, f.search.bidx));
     if (f.search?.kind === 'instagram') parts.push(eq(leads.instagram, f.search.handle));
     if (f.search?.kind === 'text') {
       const byName = ilike(leads.name, `%${escapeLike(f.search.term)}%`);

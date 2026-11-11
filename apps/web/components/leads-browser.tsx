@@ -301,7 +301,7 @@ export function LeadsBrowser({
           className="relative w-full md:w-[340px]"
         >
           <label htmlFor="q" className="sr-only">
-            Buscar por nome, WhatsApp ou Instagram
+            Buscar por nome, WhatsApp, Instagram ou e-mail
           </label>
           <svg
             viewBox="0 0 24 24"
@@ -318,7 +318,7 @@ export function LeadsBrowser({
             id="q"
             name="q"
             defaultValue={q}
-            placeholder="Nome, WhatsApp ou @instagram"
+            placeholder="Nome, WhatsApp, @instagram ou e-mail"
             className="h-10 w-full rounded-xl border-0 bg-[rgba(118,118,128,.12)] pr-3 pl-9 text-base"
           />
         </form>

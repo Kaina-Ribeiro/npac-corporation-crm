@@ -68,11 +68,11 @@ export const leadTimeline = pgTable(
     index('lead_timeline_lead_idx').on(t.leadId, t.at),
     check(
       'timeline_kind_allowed',
-      sql`${t.kind} in ('lead.created','lead.updated','lead.moved','lead.reassigned','lead.deleted','lead.called','lead.contact_rescheduled','note.created','note.updated','task.created','task.updated','meeting.scheduled','meeting.rescheduled','meeting.canceled','meeting.outcome','meeting.confirmed','sale.registered','sale.pending','sale.reversed','payment.received')`,
+      sql`${t.kind} in ('lead.created','lead.updated','lead.moved','lead.reassigned','lead.deleted','lead.called','lead.contact_rescheduled','note.created','note.updated','task.created','task.updated','meeting.scheduled','meeting.rescheduled','meeting.canceled','meeting.outcome','meeting.confirmed','sale.registered','sale.pending','sale.reversed','payment.pending','payment.received','form.received')`,
     ),
     check(
       'timeline_fields_allowed',
-      sql`${t.fields} <@ ARRAY['name','phone','instagram','incomeBand','source','tier','stageKey','sdrId','closerId','nextContactAt','summary','body','title','dueAt','completedAt','assigneeId','scheduledAt','origin','outcome','canceledAt','step','payment','lostReason']::text[]`,
+      sql`${t.fields} <@ ARRAY['name','phone','instagram','email','incomeBand','source','tier','stageKey','sdrId','closerId','nextContactAt','summary','body','title','dueAt','completedAt','assigneeId','scheduledAt','origin','outcome','canceledAt','step','payment','lostReason']::text[]`,
     ),
   ],
 );

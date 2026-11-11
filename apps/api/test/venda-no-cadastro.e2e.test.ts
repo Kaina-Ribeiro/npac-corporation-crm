@@ -58,7 +58,7 @@ beforeAll(async () => {
 afterAll(async () => closeTestApp(app));
 beforeEach(async () => {
   await resetAuthState();
-  await owner`truncate lgpd_requests, chat_reads, chat_messages, chat_members, payments, deals, lead_notes, lead_tasks, notifications, lead_timeline, meeting_reminders_sent, meeting_confirmations, meetings, leads`;
+  await owner`truncate lgpd_requests, chat_reads, chat_messages, chat_members, payments, deals, lead_notes, lead_tasks, notifications, lead_timeline, meeting_reminders_sent, meeting_confirmations, meetings, form_responses, leads`;
   ale = await h.signIn('ale@npac.com.br');
   sonia = await h.signIn('sonia@npac.com.br');
   ronaldo = await h.signIn('ronaldo@npac.com.br');

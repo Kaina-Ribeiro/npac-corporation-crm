@@ -20,7 +20,9 @@ const VERB: Record<string, string> = {
   'sale.registered': 'registrou a venda de',
   'sale.pending': 'pediu o registro da venda de',
   'sale.reversed': 'estornou a venda de',
+  'payment.pending': 'pediu para completar o pagamento de',
   'payment.received': 'recebeu um pagamento de',
+  'form.received': 'recebeu o formulário de',
 };
 
 const spDay = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: SP }).format(d);
@@ -47,6 +49,7 @@ const FIELD_LABEL: Record<string, string> = {
   name: 'nome',
   phone: 'WhatsApp',
   instagram: 'Instagram',
+  email: 'e-mail',
   incomeBand: 'faixa de renda',
   source: 'origem',
   tier: 'perfil',

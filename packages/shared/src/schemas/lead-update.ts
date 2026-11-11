@@ -9,6 +9,7 @@ export const leadUpdateSchema = z
     name: f.name.optional(),
     phone: f.phone.nullable(),
     instagram: f.instagram.nullable(),
+    email: f.email.nullable(),
     incomeBand: f.incomeBand.optional(),
     // Aceita as antigas para o lead que já está nelas; trocar para uma antiga a API recusa.
     source: z.enum(LEAD_SOURCES).optional(),
