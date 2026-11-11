@@ -137,8 +137,6 @@ export class LeadsService {
   }
 
   async create(u: AuthUser, input: LeadCreateInput, meta: RequestMeta): Promise<{ id: string }> {
-    if (!isLeader(u.role) && !u.canProspect)
-      throw new ForbiddenException('Seu usuário não prospecta. Peça à liderança.');
     const sold = this.checkSoldLead(u, input);
     const sdrId = this.resolveSdr(u, input.sdrId);
     const bidx = input.phone ? this.crypto.blindIndex(input.phone) : null;

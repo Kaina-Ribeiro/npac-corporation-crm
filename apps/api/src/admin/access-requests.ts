@@ -14,20 +14,16 @@ import {
   Post,
 } from '@nestjs/common';
 import { accessRequests, account, user, type Db } from '@npac/db';
-import { ROLES, type AuthUser } from '@npac/shared';
+import { accessApprovalSchema, type AccessApproval, type AuthUser } from '@npac/shared';
 import { and, asc, eq, gte } from 'drizzle-orm';
-import { z } from 'zod';
 import { AuditService } from '../audit/audit.service.js';
 import { Can } from '../auth/can.decorator.js';
 import { CurrentUser, type SessionUser } from '../auth/current-user.decorator.js';
 import { accessRequestCutoff } from '../auth/request-access.js';
 import { DB } from '../common/db/db.module.js';
 import { validate } from '../common/validate.js';
+import { camposDoCargo, gravarPerfil, resolverOuRecusar } from './cargo.js';
 import { AdminUsersService } from './users.js';
-
-const approval = z
-  .object({ role: z.enum(ROLES), canProspect: z.boolean(), canClose: z.boolean() })
-  .strict();
 
 /** Pedidos de acesso feitos na tela de login: a liderança aprova (escolhendo o cargo) ou recusa. */
 @Injectable()
@@ -53,8 +49,10 @@ export class AccessRequestsService {
   }
 
   /** Cria a conta com a senha que a própria pessoa escolheu e apaga o pedido. */
-  async approve(actor: AuthUser, id: string, input: z.output<typeof approval>) {
+  async approve(actor: AuthUser, id: string, input: AccessApproval) {
     await this.users.guardLeadership(actor, null, input.role);
+    // Mesmo campo Cargo do convite: caixas pelo cargo e, no Acompanhamento, o perfil junto.
+    const cargo = resolverOuRecusar(input);
     const userId = randomUUID();
     await this.db
       .transaction(async (tx) => {
@@ -73,9 +71,12 @@ export class AccessRequestsService {
           email: req.email,
           username: req.username,
           displayUsername: req.username,
-          ...input,
+          role: cargo.role,
+          canProspect: cargo.canProspect,
+          canClose: cargo.canClose,
           mustChangePassword: false,
         });
+        await gravarPerfil(tx, this.audit, actor.id, userId, cargo);
         await tx.insert(account).values({
           id: randomUUID(),
           accountId: userId,
@@ -89,7 +90,7 @@ export class AccessRequestsService {
           throw new ConflictException('E-mail ou usuário já cadastrado');
         throw e;
       });
-    await this.record(actor, 'admin.access_request.approve', id, Object.keys(input));
+    await this.record(actor, 'admin.access_request.approve', id, camposDoCargo(cargo));
     return { id: userId };
   }
 
@@ -125,7 +126,7 @@ export class AccessRequestsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() body: unknown,
   ) {
-    return this.requests.approve(u, id, validate(approval, body));
+    return this.requests.approve(u, id, validate(accessApprovalSchema, body));
   }
   @Delete(':id') @HttpCode(204) reject(
     @CurrentUser() u: SessionUser,
