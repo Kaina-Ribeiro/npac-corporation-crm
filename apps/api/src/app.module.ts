@@ -16,6 +16,7 @@ import { CollabModule } from './collab/collab.module.js';
 import { AdminModule } from './admin/admin.module.js';
 import { MentoriaModule } from './mentoria/mentoria.module.js';
 import { PushModule } from './push/push.module.js';
+import { FormsModule } from './forms/forms.module.js';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { PushModule } from './push/push.module.js';
     CollabModule,
     AdminModule,
     MentoriaModule,
+    FormsModule,
   ],
   controllers: [HealthController, MeController],
 })

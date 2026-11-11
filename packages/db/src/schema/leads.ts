@@ -35,6 +35,9 @@ export const leads = pgTable(
     phoneEnc: bytea('phone_enc'),
     phoneBidx: text('phone_bidx'),
     instagram: text('instagram'),
+    /** Contato pessoal, como o telefone: cifrado, com blind index para busca e duplicidade. */
+    emailEnc: bytea('email_enc'),
+    emailBidx: text('email_bidx'),
     incomeBand: incomeBandEnum('income_band').notNull(),
     source: leadSourceEnum('source').notNull(),
     /** Texto livre de quando a origem é "Outro" (até 80 caracteres). */
@@ -83,6 +86,7 @@ export const leads = pgTable(
     index('leads_next_contact_at_idx').on(t.nextContactAt),
     index('leads_phone_bidx_idx').on(t.phoneBidx),
     index('leads_instagram_idx').on(t.instagram),
+    index('leads_email_bidx_idx').on(t.emailBidx),
     index('leads_name_trgm_idx').using('gin', sql`${t.name} gin_trgm_ops`),
     check(
       'leads_source_other_check',

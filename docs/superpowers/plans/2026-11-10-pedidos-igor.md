@@ -71,18 +71,18 @@ Risco: permissões e dados. Revisor independente ao fechar. Feito quando: suíte
 
 Risco: dados pessoais. Feito quando: testes de banco, API e e2e da spec (Parte A) passam.
 
-- ⏳ Migration, schema, Zod, cifra, duplicidade, timeline, LGPD, CSV e busca.
-- ⏳ Campo no cadastro e na ficha.
+- ✅ Migration, schema, Zod, cifra, duplicidade, timeline, LGPD, CSV e busca.
+- ✅ Campo no cadastro e na ficha.
 
 ## Fase 4B: Forms
 
 Risco: rota pública e dados pessoais. Revisor independente ao fechar. Feito quando: testes da spec
 (Parte B) passam e uma resposta real aparece no sino.
 
-- ⏳ Migration, tabela, RLS, `form_find_lead`, tipo novo e gatilho de avisos.
-- ⏳ Rota `/webhooks/forms` com token, idempotência e regra dos 5 mil.
-- ⏳ Sino, bloco "Formulários novos", card na ficha e push.
-- ⏳ Apps Script (precisa do link do Forms) e checklist de configuração.
+- ✅ Migration, tabela, RLS, `form_find_lead`, tipo novo e gatilho de avisos.
+- ✅ Rota `/webhooks/forms` com token, idempotência e regra dos 5 mil.
+- ✅ Sino, bloco "Formulários novos", card na ficha e push.
+- ✅ Apps Script por palavras-chave e checklist (`docs/integracao-forms/`); falta instalar no Google.
 
 ## Ao fechar cada fase
 

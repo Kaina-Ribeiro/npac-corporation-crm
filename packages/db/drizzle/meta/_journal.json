@@ -323,6 +323,20 @@
       "when": 1794360888622,
       "tag": "0045_acompanhamento_v2_base",
       "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1794364602784,
+      "tag": "0046_email_do_lead",
+      "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1794364614498,
+      "tag": "0047_forms",
+      "breakpoints": true
     }
   ]
 }

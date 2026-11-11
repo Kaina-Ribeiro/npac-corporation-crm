@@ -124,6 +124,7 @@ export class LgpdService {
         name: string;
         phone_enc: Buffer | null;
         instagram: string | null;
+        email_enc: Buffer | null;
         income_band: string;
         source: string;
         source_other: string | null;
@@ -132,7 +133,7 @@ export class LgpdService {
         legal_basis: string;
         created_at: Date;
         anonymized_at: Date | null;
-      }>(sql`select id, name, phone_enc, instagram, income_band, source, source_other, tier, summary,
+      }>(sql`select id, name, phone_enc, instagram, email_enc, income_band, source, source_other, tier, summary,
         legal_basis,
         created_at, anonymized_at from leads where id = ${r.leadId}`);
       if (!lead) throw new NotFoundException();
@@ -144,6 +145,7 @@ export class LgpdService {
           name: lead.name,
           phone: lead.phone_enc ? this.crypto.decrypt(lead.phone_enc) : null,
           instagram: lead.instagram,
+          email: lead.email_enc ? this.crypto.decrypt(lead.email_enc) : null,
           incomeBand: lead.income_band,
           source: lead.source,
           sourceOther: lead.source_other,
@@ -165,6 +167,16 @@ export class LgpdService {
         purchases: await q(
           sql`select product_name, total_cents, method, closed_at, reversed_at from deals where lead_id = ${r.leadId} order by closed_at`,
         ),
+        formResponses: (
+          await q<{ submitted_at: Date; answers_enc: Buffer | null }>(
+            sql`select submitted_at, answers_enc from form_responses where lead_id = ${r.leadId} order by submitted_at`,
+          )
+        ).map((f) => ({
+          submittedAt: f.submitted_at,
+          answers: f.answers_enc
+            ? (JSON.parse(this.crypto.decrypt(f.answers_enc)) as unknown)
+            : null,
+        })),
         history: await q(
           sql`select kind, fields, at from lead_timeline where lead_id = ${r.leadId} order by at`,
         ),

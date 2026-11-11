@@ -63,6 +63,10 @@ VAPID_PUBLIC_KEY=<npx web-push generate-vapid-keys>
 VAPID_PRIVATE_KEY=<idem>
 ```
 
+Google Forms (opcional, só no app `api`): `FORMS_WEBHOOK_TOKEN` (32 caracteres ou mais; sem ele a
+rota responde 404) e `FORMS_OWNER_USERNAME` (dono dos leads criados). Passo a passo do lado do
+Google: `docs/integracao-forms/README.md`.
+
 As chaves VAPID ligam o push do navegador (avisos do chat e lembretes de reunião). Sem elas
 a API sobe normalmente e só a tela avisa. Trocar o par invalida as inscrições dos aparelhos:
 cada pessoa ativa de novo em `/conta/avisos`.

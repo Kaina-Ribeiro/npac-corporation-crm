@@ -5,6 +5,7 @@ import { REMINDER_MINUTES } from '@npac/shared/reminders';
 import { HandoffActions } from './handoff-actions';
 import type {
   DealDTO,
+  FormResponseDTO,
   ProductDTO,
   LeadActivityDTO,
   LeadCatalog,
@@ -59,6 +60,7 @@ const EVENT_LABEL: Record<string, string> = {
   'sale.reversed': 'Venda estornada',
   'payment.pending': 'Pagamento a completar (aviso ao closer)',
   'payment.received': 'Pagamento recebido',
+  'form.received': 'Formulário preenchido',
 };
 
 /**
@@ -95,6 +97,7 @@ function ConfirmationSteps({ meeting: m }: { meeting: MeetingDTO }) {
 export function LeadDetail({
   lead,
   activity,
+  formResponses,
   catalog,
   meetings,
   deals,
@@ -103,6 +106,7 @@ export function LeadDetail({
 }: {
   lead: LeadDTO;
   activity: LeadActivityDTO;
+  formResponses: FormResponseDTO[];
   catalog: LeadCatalog;
   meetings: MeetingDTO[];
   /** `null` para quem não vê vendas e pagamentos (SDR). */
@@ -268,6 +272,9 @@ export function LeadDetail({
             </a>
           )}
           {lead.instagram && <span className="px-3 py-2 text-sm text-ink2">@{lead.instagram}</span>}
+          {lead.email && (
+            <span className="min-w-0 px-3 py-2 text-sm break-all text-ink2">{lead.email}</span>
+          )}
         </div>
       </div>
       <FormError message={error} />
@@ -661,6 +668,24 @@ export function LeadDetail({
             </form>
           )}
         </section>
+        {formResponses.length > 0 && (
+          <section className="glass-card flex flex-col gap-4 p-5">
+            <h2 className="text-lg font-bold">Respostas do formulário</h2>
+            {formResponses.map((r) => (
+              <article key={r.id} className="flex flex-col gap-3 border-b border-line pb-4">
+                <p className="text-xs text-ink2">Enviado em {date(r.submittedAt)}</p>
+                <dl className="flex flex-col gap-3">
+                  {r.answers.map((a, i) => (
+                    <div key={i}>
+                      <dt className="text-xs font-semibold text-ink2">{a.q}</dt>
+                      <dd className="text-sm break-words whitespace-pre-wrap">{a.a}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </article>
+            ))}
+          </section>
+        )}
         <section className="glass-card p-5">
           <h2 className="mb-4 text-lg font-bold">Histórico</h2>
           <ol className="flex flex-col gap-4">

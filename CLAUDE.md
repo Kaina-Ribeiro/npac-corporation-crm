@@ -136,8 +136,12 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
 - Contato, termo de busca e conteúdo pessoal nunca em URL, logs, analytics ou localStorage (há e2e
   que barra `@` e dígitos longos). Buscas/relatórios por POST. Exceção pedida pelo cliente (04/11):
   o link do Google Agenda leva nome do lead, perfil, sigla de quem agendou e o handoff; nunca
-  telefone nem Instagram.
+  telefone, Instagram ou e-mail.
 - Telefone E.164 BR, AES-256-GCM + blind index HMAC. Renda só em faixas ≥ R$ 5 mil ou "Descobrindo renda".
+- E-mail do lead (NPAC-42, opcional, não conta para "informe telefone ou Instagram"): igual ao telefone,
+  `email_enc` + `email_bidx` (0044) sobre `normalizeEmail` (`trim` + minúsculas, `sh/normalize.ts`). Busca só
+  pelo endereço inteiro: `parseSearch` trata como e-mail texto com `@` no meio, sem espaço nem `/`.
+  Na ficha é texto, sem `mailto:`.
 - Timeline append-only: tipo, IDs e nomes de campos, **nunca valores**. Auditoria sem e-mail nem nome.
 - API com `Cache-Control: no-store`. SSE só manda `{ type }`.
 - Chat: DM privada por RLS mesmo para liderança; mensagens append-only.
@@ -147,7 +151,8 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
 ## Regras de escrita e negócio
 
 - PATCH exige `version` (409 `VERSION_CONFLICT`); campos permitidos explícitos.
-- Duplicidade de contato: advisory locks em ordem determinística; resposta não revela o dono.
+- Duplicidade de contato (telefone, Instagram e e-mail, `lead_contact_taken`): advisory locks em ordem
+  determinística; resposta não revela o dono.
 - Mudança + `recordActivity` na **mesma transação**.
 - Dinheiro em centavos inteiros (`sh/money.ts`), nunca `parseFloat * 100`.
 - Venda: uma ativa por lead; `requestKey` idempotente + hash do payload; entrada + parcelas = total,
@@ -243,6 +248,17 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
 - Push: VAPID opcional no env (sem chaves = desligado). Inscrição por `push_subscribe` (o aparelho
   vai para quem logou por último); sair e desativar usuário apagam; 404/410 apaga.
 
+## Google Forms (NPAC-42, 10/11/2026)
+
+- `POST /webhooks/forms` (`api/forms/*`, `@Public`, cabeçalho `x-forms-token`): sem
+  `FORMS_WEBHOOK_TOKEN` ou com token errado, 404. Apps Script e passo a passo em `docs/integracao-forms/`.
+- Acha o lead por telefone, Instagram e e-mail (`form_find_lead`); não altera o lead nem troca o dono.
+  Sem lead: cria só com faixa do CRM (acima de 5 mil) e telefone ou Instagram, dono =
+  `FORMS_OWNER_USERNAME`, origem `FORMULARIO`, etapa Criando Relacionamento; senão descarta, sem guardar.
+- `form_responses`: respostas cifradas, gravação só por `form_response_record` (timeline
+  `form.received` + auditoria), LGPD zera. Aviso ao dono e à liderança, sem excluir o autor; bloco
+  "Formulários novos" no Hoje e card na ficha. `truncate leads` nos testes inclui `form_responses`.
+
 ## Banco
 
 - Migration nova: `pnpm --filter @npac/db generate` (ou SQL manual) → `00NN_nome.sql` + snapshot +
@@ -259,7 +275,7 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
 - Valor novo de enum não vale na mesma transação da migration (compare como texto).
 - Aplicar no dev: `pnpm --filter @npac/db build && pnpm --filter @npac/db migrate`.
   psql: `docker exec npac-corporation-postgres-1 psql -U npac_owner -d npac`.
-- Apagar lead/usuário à mão: FKs em `chat_reads`, `chat_*`, `payments`, `deals`, `lead_notes`,
+- Apagar lead/usuário à mão: FKs em `form_responses`, `chat_reads`, `chat_*`, `payments`, `deals`, `lead_notes`,
   `lead_tasks`, `notifications`, `lead_timeline`, `meetings` (`meeting_confirmations` e
   `meeting_reminders_sent` em cascata), `lgpd_requests` (usuário: também `session`, `account`,
   `push_subscriptions`). `truncate` de `meetings` nos testes lista as duas tabelas de lembretes.

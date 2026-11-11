@@ -66,7 +66,7 @@ export class NotificationsService {
     await withUser(this.db, u.id, (tx) =>
       tx.execute(sql`update notifications set read_at = now()
         where user_id = ${u.id} and read_at is null
-        ${ids ? sql`and id = any(${ids}::uuid[])` : sql``}`),
+        ${ids ? sql`and id = any(string_to_array(${ids.join(',')}, ',')::uuid[])` : sql``}`),
     );
     return { ok: true };
   }

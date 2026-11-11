@@ -13,7 +13,7 @@ beforeAll(async () => {
   const url = new URL(process.env.TEST_DATABASE_URL ?? '');
   url.pathname = `/${DB}`;
   client = createDb(url.toString(), { max: 2 });
-  await owner`truncate meetings, leads, pipeline_stages, audit_log, "user" restart identity cascade`;
+  await owner`truncate meetings, form_responses, leads, pipeline_stages, audit_log, "user" restart identity cascade`;
   await seed(client.db, { hashPassword, initialPassword: 'inicial' });
   await owner`update "user" set must_change_password = false, two_factor_enabled = true where username = 'diretor'`;
   const [u] = await owner<{ id: string }[]>`select id from "user" where username = 'diretor'`;

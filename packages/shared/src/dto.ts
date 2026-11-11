@@ -9,6 +9,7 @@ export type LeadDTO = {
   name: string;
   phone: string | null;
   instagram: string | null;
+  email: string | null;
   incomeBand: IncomeBand;
   source: LeadSource;
   /** Texto de quando a origem é "Outro". */
@@ -52,6 +53,13 @@ export type LeadCatalog = {
     canClose: boolean;
   }[];
 };
+/** Resposta do Google Forms ligada ao lead. */
+export type FormResponseDTO = {
+  id: string;
+  submittedAt: string;
+  answers: { q: string; a: string }[];
+};
+
 export type LeadActivityDTO = {
   notes: { id: string; body: string; createdBy: string; version: number; createdAt: string }[];
   tasks: {

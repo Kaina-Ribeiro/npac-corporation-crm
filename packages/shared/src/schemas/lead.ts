@@ -7,7 +7,7 @@ import {
   SOURCE_OTHER_MAX,
   STAGE_KEY_PATTERN,
 } from '../enums.js';
-import { normalizeInstagram, normalizePhoneBR } from '../normalize.js';
+import { normalizeEmail, normalizeInstagram, normalizePhoneBR } from '../normalize.js';
 
 /** Etapa por chave; a existência é conferida no banco ("Etapa inexistente"). */
 export const stageKeySchema = z.string().regex(STAGE_KEY_PATTERN);
@@ -108,6 +108,15 @@ export const leadCreateSchema = z
     name: z.string().trim().min(2).max(120),
     phone: normalized('Telefone', normalizePhoneBR),
     instagram: normalized('Instagram', normalizeInstagram),
+    // Adicional: não conta para a regra de "informe telefone ou Instagram".
+    email: z.preprocess(
+      blankToUndefined,
+      z
+        .string()
+        .transform(normalizeEmail)
+        .pipe(z.email('E-mail inválido').max(254, 'E-mail inválido'))
+        .optional(),
+    ),
     incomeBand: z.enum(INCOME_BANDS),
     // Cadastro só oferece a lista atual; as antigas (Instagram, WhatsApp) ficam nos leads existentes.
     source: z.enum(LEAD_SOURCE_OPTIONS, { error: 'Escolha a origem' }),

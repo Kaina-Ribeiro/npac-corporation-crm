@@ -156,12 +156,22 @@ export class LeadMutationsService {
             : null;
       const instagram = input.instagram === undefined ? old.instagram : input.instagram;
       if (!phoneBidx && !instagram) throw new BadRequestException('Informe telefone ou Instagram');
-      for (const key of [phoneBidx && `phone:${phoneBidx}`, instagram && `instagram:${instagram}`]
+      const emailBidx =
+        input.email === undefined
+          ? old.emailBidx
+          : input.email
+            ? this.crypto.blindIndex(input.email)
+            : null;
+      for (const key of [
+        phoneBidx && `phone:${phoneBidx}`,
+        instagram && `instagram:${instagram}`,
+        emailBidx && `email:${emailBidx}`,
+      ]
         .filter((v): v is string => Boolean(v))
         .sort()) {
         await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${key}, 0))`);
       }
-      if (await leadContactTaken(tx, phoneBidx, instagram, id))
+      if (await leadContactTaken(tx, phoneBidx, instagram, emailBidx, id))
         throw new ConflictException({ code: 'DUPLICATE_LEAD', message: 'Contato já cadastrado.' });
       const patch: Partial<typeof leads.$inferInsert> = {
         version: old.version + 1,
@@ -198,6 +208,10 @@ export class LeadMutationsService {
         patch.phoneEnc = input.phone ? this.crypto.encrypt(input.phone) : null;
       }
       if (input.instagram !== undefined) patch.instagram = instagram;
+      if (input.email !== undefined) {
+        patch.emailBidx = emailBidx;
+        patch.emailEnc = input.email ? this.crypto.encrypt(input.email) : null;
+      }
       if (sourceOther !== old.sourceOther) patch.sourceOther = sourceOther ?? null;
       // O perfil acompanha a faixa (gatilho no banco); a timeline registra quando ele muda.
       if (input.incomeBand && TIER_BY_INCOME_BAND[input.incomeBand] !== old.tier) {

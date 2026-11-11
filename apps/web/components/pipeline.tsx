@@ -189,7 +189,7 @@ export function Pipeline({
           name="q"
           className={control}
           aria-label="Buscar no Pipeline"
-          placeholder="Nome, WhatsApp ou @instagram"
+          placeholder="Nome, WhatsApp, @instagram ou e-mail"
         />
         <button className={button} disabled={busy}>
           Buscar

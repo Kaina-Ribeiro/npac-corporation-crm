@@ -37,7 +37,7 @@ beforeAll(async () => {
 afterAll(async () => closeTestApp(app));
 beforeEach(async () => {
   await resetAuthState();
-  await owner`truncate push_subscriptions, lgpd_requests, chat_reads, chat_messages, chat_members, payments, deals, lead_notes, lead_tasks, notifications, lead_timeline, meeting_reminders_sent, meeting_confirmations, meetings, leads`;
+  await owner`truncate push_subscriptions, lgpd_requests, chat_reads, chat_messages, chat_members, payments, deals, lead_notes, lead_tasks, notifications, lead_timeline, meeting_reminders_sent, meeting_confirmations, meetings, form_responses, leads`;
   await owner`delete from chat_channels where kind = 'DM'`;
   ale = await h.signIn('ale@npac.com.br');
   sonia = await h.signIn('sonia@npac.com.br');

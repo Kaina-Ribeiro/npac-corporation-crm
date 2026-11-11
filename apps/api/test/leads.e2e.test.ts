@@ -30,7 +30,7 @@ afterAll(async () => closeTestApp(app));
 
 beforeEach(async () => {
   await resetAuthState();
-  await owner`truncate lgpd_requests, chat_reads, chat_messages, chat_members, payments, deals, lead_notes, lead_tasks, notifications, lead_timeline, meeting_reminders_sent, meeting_confirmations, meetings, leads`;
+  await owner`truncate lgpd_requests, chat_reads, chat_messages, chat_members, payments, deals, lead_notes, lead_tasks, notifications, lead_timeline, meeting_reminders_sent, meeting_confirmations, meetings, form_responses, leads`;
   ale = await h.signIn('ale@npac.com.br');
   murilo = await h.signIn('murilo@npac.com.br');
   sonia = await h.signIn('sonia@npac.com.br');
@@ -407,8 +407,108 @@ describe('leads', () => {
     expect((await h.get('/api/leads', ale)).headers['cache-control']).toContain('no-store'));
 });
 
+describe('e-mail do lead', () => {
+  const search = async (q: string, cookie: Cookie = ale) =>
+    (await h.post('/api/leads/search', { search: q }, cookie)).body.items.map(
+      (l: { id: string }) => l.id,
+    );
+
+  it('fica cifrado no banco com blind index e volta decifrado', async () => {
+    const id = await create(lead({ email: ' Maria.Cifra@Exemplo.COM ' }), ale);
+    const [row] = await owner<{ email_enc: Buffer; email_bidx: string }[]>`
+      select email_enc, email_bidx from leads where id = ${id}`;
+    expect(row!.email_enc.toString('latin1')).not.toMatch(/maria|cifra|exemplo/i);
+    expect(row!.email_bidx).toMatch(/^[0-9a-f]{64}$/);
+    expect((await h.get(`/api/leads/${id}`, ale)).body.email).toBe('maria.cifra@exemplo.com');
+  });
+
+  it('é opcional: lead sem e-mail vem com null', async () => {
+    const id = await create(lead(), ale);
+    expect((await h.get(`/api/leads/${id}`, ale)).body.email).toBeNull();
+  });
+
+  it('sozinho não basta: continua exigindo telefone ou Instagram', async () =>
+    expect(
+      (await h.post('/api/leads', lead({ instagram: undefined, email: 'so@exemplo.com' }), ale))
+        .status,
+    ).toBe(400));
+
+  it('duplicado entre SDRs é barrado sem revelar o dono', async () => {
+    await create(lead({ email: 'mesma@exemplo.com' }), murilo);
+    const r = await h.post('/api/leads', lead({ email: 'MESMA@Exemplo.com' }), ale);
+    expect(r.status).toBe(409);
+    expect(r.body.code).toBe('DUPLICATE_LEAD');
+    expect(JSON.stringify(r.body)).not.toMatch(/murilo|mesma@/i);
+  });
+
+  it('na edição barra e-mail de outro lead e aceita o próprio', async () => {
+    await create(lead({ email: 'outra@exemplo.com' }), murilo);
+    const id = await create(lead({ email: 'minha@exemplo.com' }), ale);
+    const taken = await h.patch(
+      `/api/leads/${id}`,
+      { version: 1, email: 'outra@exemplo.com' },
+      ale,
+    );
+    expect(taken.status).toBe(409);
+    expect(taken.body.code).toBe('DUPLICATE_LEAD');
+    const same = await h.patch(`/api/leads/${id}`, { version: 1, email: 'minha@exemplo.com' }, ale);
+    expect(same.status).toBe(200);
+  });
+
+  it('edição troca e apaga; timeline e auditoria guardam só o nome do campo', async () => {
+    const id = await create(lead({ email: 'antes@exemplo.com' }), ale);
+    expect(
+      (await h.patch(`/api/leads/${id}`, { version: 1, email: 'depois@exemplo.com' }, ale)).status,
+    ).toBe(200);
+    expect((await h.get(`/api/leads/${id}`, ale)).body.email).toBe('depois@exemplo.com');
+    expect(await search('antes@exemplo.com')).toEqual([]);
+    expect(await search('depois@exemplo.com')).toEqual([id]);
+    const [t] = await owner<{ fields: string[] }[]>`
+      select fields from lead_timeline where lead_id = ${id} and kind = 'lead.updated'`;
+    expect(t!.fields).toEqual(['email']);
+    const dump = await owner<{ d: string }[]>`
+      select coalesce(data::text, '') as d from audit_log where entity_id = ${id}`;
+    for (const r of dump) expect(r.d).not.toContain('@');
+    expect((await h.patch(`/api/leads/${id}`, { version: 2, email: null }, ale)).status).toBe(200);
+    const [row] = await owner<{ email_enc: Buffer | null; email_bidx: string | null }[]>`
+      select email_enc, email_bidx from leads where id = ${id}`;
+    expect(row).toEqual({ email_enc: null, email_bidx: null });
+  });
+
+  it('busca pelo blind index, sem diferença de maiúsculas e só nos leads visíveis', async () => {
+    const a = await create(lead({ name: 'Joana', email: 'joana@exemplo.com' }), ale);
+    await create(lead({ name: 'Carlos', email: 'carlos@exemplo.com' }), murilo);
+    expect(await search(' JOANA@Exemplo.com ')).toEqual([a]);
+    expect(await search('carlos@exemplo.com')).toEqual([]);
+    // Parte do e-mail não acha: o blind index só compara o endereço inteiro.
+    expect(await search('joana@exem')).toEqual([]);
+  });
+
+  it('busca aceita e-mail de 254 caracteres', async () => {
+    const email = `${'a'.repeat(242)}@exemplo.com`;
+    const id = await create(lead({ email }), ale);
+    expect(await search(email)).toEqual([id]);
+  });
+
+  it('@usuario e link do Instagram continuam buscando o Instagram', async () => {
+    const id = await create(lead({ instagram: '@joana.prado' }), ale);
+    expect(await search('@joana.prado')).toEqual([id]);
+    expect(await search('https://instagram.com/@joana.prado')).toEqual([id]);
+  });
+});
+
 describe('exportar leads (período, filtro ou total)', () => {
   const csv = (body: object, cookie: Cookie) => h.post('/api/leads/csv', body, cookie);
+
+  it('leva o e-mail decifrado e neutraliza fórmula', async () => {
+    await create(lead({ name: 'Com e-mail', email: 'csv@exemplo.com' }), ale);
+    await create(lead({ name: 'Fórmula', email: '+formula@exemplo.com' }), ale);
+    await create(lead({ name: 'Sem e-mail' }), ale);
+    const res = await csv({}, ronaldo);
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('"csv@exemplo.com"');
+    expect(res.text).toContain('"\'+formula@exemplo.com"');
+  });
 
   it('só liderança exporta', async () => {
     await create(lead(), ale);
@@ -422,7 +522,9 @@ describe('exportar leads (período, filtro ou total)', () => {
     expect(res.status).toBe(200);
     expect(res.headers['content-type']).toContain('text/csv');
     const [header, ...lines] = res.text.replace('﻿', '').split('\r\n');
-    expect(header).toBe('"Nome";"Telefone";"Instagram";"Perfil";"Etapa";"SDR";"Criado em"');
+    expect(header).toBe(
+      '"Nome";"Telefone";"Instagram";"E-mail";"Perfil";"Etapa";"SDR";"Criado em"',
+    );
     expect(lines).toHaveLength(2);
     expect(res.text).toContain('+5511987654321');
     expect(res.text).toContain('"\'=1+1"');
