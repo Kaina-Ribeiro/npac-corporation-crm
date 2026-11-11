@@ -25,10 +25,13 @@ export function NavGroup({
   item,
   linkClass,
   activeClass,
+  rotulo,
 }: {
   item: NavItem;
   linkClass: string;
   activeClass: string;
+  /** Texto de cada sub-item; a sidebar dá uma 2ª linha ao "Ficha do mentorado". */
+  rotulo: (n: NavItem) => React.ReactNode;
 }) {
   return (
     <>
@@ -62,7 +65,7 @@ export function NavGroup({
               )}
               <NavLink item={c} className={linkClass} activeClassName={activeClass}>
                 {c.icon}
-                <span className="side-label">{c.label}</span>
+                {rotulo(c)}
               </NavLink>
             </div>
           ))}
