@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
   UseGuards,
+  UseInterceptors,
   type CanActivate,
   type ExecutionContext,
 } from '@nestjs/common';
@@ -11,6 +12,7 @@ import type { Role } from '@npac/shared';
 import type { FastifyRequest } from 'fastify';
 import { AllRoles } from '../auth/all-roles.decorator.js';
 import { RequiresMfa } from '../auth/requires-mfa.decorator.js';
+import { AvisosRearme } from './avisos.scheduler.js';
 import { PerfilGuard } from './perfil.guard.js';
 
 const PAPEIS: readonly Role[] = ['DIRETOR', 'ACOMPANHAMENTO'];
@@ -30,7 +32,8 @@ export class MentoriaGuard implements CanActivate {
 
 /**
  * Controller do módulo: prefixo `mentoria/...`, MFA obrigatório (default-deny, D18), guarda de
- * cargo e de perfil. Todo controller do módulo usa este decorator; um teste varre as rotas.
+ * cargo e de perfil, e o rearme do push da Fila depois de cada escrita. Todo controller do módulo
+ * usa este decorator; um teste varre as rotas.
  */
 export const MentoriaController = (path: string) =>
   applyDecorators(
@@ -38,4 +41,5 @@ export const MentoriaController = (path: string) =>
     AllRoles(),
     RequiresMfa(),
     UseGuards(MentoriaGuard, PerfilGuard),
+    UseInterceptors(AvisosRearme),
   );

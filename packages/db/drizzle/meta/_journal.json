@@ -386,6 +386,13 @@
       "when": 1794413335740,
       "tag": "0054_acompanhamento_v2_mensagens",
       "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1794414098909,
+      "tag": "0055_acompanhamento_v2_avisos",
+      "breakpoints": true
     }
   ]
 }

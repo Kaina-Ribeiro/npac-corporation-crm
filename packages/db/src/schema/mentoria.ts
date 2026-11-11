@@ -712,3 +712,9 @@ export const mentoriaMensagensModelo = pgTable(
     check('mentoria_mensagens_canal', sql`${t.canal} in ('WHATSAPP')`),
   ],
 );
+
+/** Push da Fila enviado (§5, D10): cada aviso uma vez só. Sem RLS de usuário: só as funções. */
+export const mentoriaAvisosEnviados = pgTable('mentoria_avisos_enviados', {
+  chave: text('chave').primaryKey(),
+  enviadoEm: timestamp('enviado_em', { withTimezone: true }).notNull().defaultNow(),
+});

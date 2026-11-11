@@ -1,4 +1,3 @@
-import { hasCommercialAccess } from '@npac/shared/enums';
 import { PERFIL_LABEL } from '@npac/shared/mentoria';
 import Link from 'next/link';
 import { SignOutButton } from '@/components/shell/sign-out-button';
@@ -69,9 +68,12 @@ export default async function MaisPage() {
   const [eu, ultima] = await Promise.all([lerEu(), ultimaFicha()]);
   const perfil = eu?.perfil ? PERFIL_LABEL[eu.perfil] : 'Diretoria';
   const cargo = eu?.admin && eu.perfil ? `${perfil} e Admin` : perfil;
-  const avisos: Item = hasCommercialAccess(me.role)
-    ? { rotulo: 'Avisos neste aparelho', icone: ICONES.sino, href: '/conta/avisos' }
-    : { rotulo: 'Avisos neste aparelho', icone: ICONES.sino, breve: true };
+  const avisos: Item = {
+    rotulo: 'Avisos neste aparelho',
+    icone: ICONES.sino,
+    href: '/conta/avisos',
+    sub: 'Push da Fila do dia',
+  };
   return (
     <section className="view">
       <h1 className="h1">Mais</h1>

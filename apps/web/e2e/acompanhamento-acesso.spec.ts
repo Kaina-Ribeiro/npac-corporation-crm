@@ -67,7 +67,10 @@ test('Duda vê só o Acompanhamento na sidebar, na tela Mais e no Ctrl+K', async
   expect((await secoes.allInnerTexts()).map((t) => t.split('\n')[0]!.trim())).toEqual([
     'Acompanhamento',
   ]);
-  await expect(page.getByRole('link', { name: 'Avisos neste aparelho' })).toHaveCount(0);
+  // O push da Fila do dia vale para o cargo (D12): o link aparece, e a tela abre.
+  await page.getByRole('link', { name: 'Avisos neste aparelho' }).click();
+  await page.waitForURL(/\/conta\/avisos/);
+  await page.goto('/mais');
   await expect(page.getByRole('main').getByRole('button', { name: 'Sair' })).toBeVisible();
   // Celular: nada da barra comercial; as abas do módulo levam de volta.
   await expect(page.locator('nav[aria-label="Navegação inferior"]')).toHaveCount(0);

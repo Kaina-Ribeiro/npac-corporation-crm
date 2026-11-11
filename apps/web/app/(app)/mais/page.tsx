@@ -27,7 +27,7 @@ const HINT: Record<string, string> = {
 export default async function MorePage() {
   const me = await getSession();
   if (!me) redirect('/login');
-  // Cargo Acompanhamento: só o módulo, sem Avisos nem push (são do comercial).
+  // Cargo Acompanhamento: só o módulo; o push da Fila do dia vale para ele também (D12).
   const commercial = hasCommercialAccess(me.role);
   const items = [
     ...(commercial ? MORE_ITEMS : []),
@@ -115,7 +115,7 @@ export default async function MorePage() {
           Autenticador
         </Link>
       )}
-      {commercial && (
+      {(commercial || me.modules.mentoria) && (
         <Link
           href="/conta/avisos"
           className="glass-card flex min-h-14 w-full items-center justify-center text-base font-semibold"
