@@ -207,7 +207,7 @@ Props novas de `Reports`: `prefs: { screen: 'dashboard' | 'reports'; cookie: str
 - [ ] **Step 2:** rodar → FAIL. **Step 3:** implementar. **Step 4:** rodar → PASS; `e2e/dashboard.spec.ts` → PASS.
 - [ ] **Step 5:** Commit `feat(NPAC-46): dashboard e relatorios lembram filtros`.
 
-### Task 7: Admin, Chat e Playbook — Status: ⏳
+### Task 7: Admin, Chat e Playbook — Status: ✅
 
 **Files:** Modify `apps/web/app/(app)/(comercial)/admin/page.tsx`, `components/admin.tsx` (`tab` inicial do cookie, `oneOf(TABS)`; grava ao trocar), `chat/page.tsx`, `components/chat.tsx` (`active` inicial = canal do cookie se ainda está em `initial`; grava ao abrir), `playbook/page.tsx`, `components/playbook.tsx` (`query` em memória, chave `prefsCookie('playbook', me.id)`); Test `e2e/preferencias.spec.ts`.
 
