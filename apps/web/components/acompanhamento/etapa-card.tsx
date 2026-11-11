@@ -28,7 +28,7 @@ const BOOL = {
 const chaveDe = (fichaId: string, etapa: EtapaDTO) => `etapa:${fichaId}:${etapa.id}`;
 
 /** Sim ou não do PDF, na linha rótulo/valor: uma chave que salva ao tocar. */
-function CampoSimNao({
+export function CampoSimNao({
   chave,
   campo,
   rotulo,
@@ -234,7 +234,16 @@ function situacao(e: EtapaDTO, liberada: boolean, agora: Date) {
 }
 
 /** Coluna de passos com o passo aberto ao lado; no celular o aberto vem primeiro. */
-export function OnboardingFicha({ ficha, atualizar }: { ficha: FichaDTO; atualizar: () => void }) {
+export function OnboardingFicha({
+  ficha,
+  atualizar,
+  plano,
+}: {
+  ficha: FichaDTO;
+  atualizar: () => void;
+  /** As ações do plano: ficam na coluna do passo aberto. */
+  plano: React.ReactNode;
+}) {
   const atual = etapaAtual(ficha.onboarding);
   const [escolhida, setEscolhida] = useState<Etapa | null>(null);
   const nome = escolhida ?? atual;
@@ -243,7 +252,7 @@ export function OnboardingFicha({ ficha, atualizar }: { ficha: FichaDTO; atualiz
   const agora = new Date();
 
   const passos = (
-    <div>
+    <div className={anterior ? 'jg-anterior' : ''}>
       <h3>Onboarding</h3>
       <ol className="steps">
         {ficha.onboarding.map((e, i) => {
@@ -264,7 +273,7 @@ export function OnboardingFicha({ ficha, atualizar }: { ficha: FichaDTO; atualiz
                 className={`st-b ${nome === e.etapa ? 'on' : ''}`}
                 aria-pressed={nome === e.etapa}
                 disabled={anterior}
-                onClick={() => setEscolhida(e.etapa)}
+                onClick={() => setEscolhida(escolhida === e.etapa ? null : e.etapa)}
               >
                 <span
                   aria-hidden="true"
@@ -296,22 +305,28 @@ export function OnboardingFicha({ ficha, atualizar }: { ficha: FichaDTO; atualiz
   if (anterior)
     return (
       <div className="jg">
-        <p className="jg-aviso">
-          Entrou antes do sistema: as etapas do onboarding já tinham acontecido.
-        </p>
+        <div>
+          {plano}
+          <p className="jg-aviso">
+            Entrou antes do sistema: as etapas do onboarding já tinham acontecido.
+          </p>
+        </div>
         {passos}
       </div>
     );
   return (
     <div className="jg">
-      {etapa ? (
-        <div>
-          <h3>{ETAPA_LABEL[etapa.etapa]}</h3>
-          <EtapaCard key={etapa.id} ficha={ficha} etapa={etapa} atualizar={atualizar} />
-        </div>
-      ) : (
-        <p className="jg-aviso">Onboarding concluído.</p>
-      )}
+      <div>
+        {etapa ? (
+          <>
+            <h3>{ETAPA_LABEL[etapa.etapa]}</h3>
+            <EtapaCard key={etapa.id} ficha={ficha} etapa={etapa} atualizar={atualizar} />
+          </>
+        ) : (
+          !plano && <p className="jg-aviso">Onboarding concluído.</p>
+        )}
+        {plano}
+      </div>
       {passos}
     </div>
   );

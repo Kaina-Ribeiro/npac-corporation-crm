@@ -1,6 +1,6 @@
 'use client';
 
-export type DonoUrl = 'pessoa-foto' | 'foto-familia';
+export type DonoUrl = 'pessoa-foto' | 'foto-familia' | 'acao-evidencia';
 
 const LIMITE = 20 * 1024 * 1024;
 

@@ -21,7 +21,7 @@
 |---|---|---|
 | 1 | Base: protótipo, limpeza, perfis, inscrição, ficha, Mentorados | ✅ |
 | 2 | Onboarding + importação | ✅ |
-| 3 | Plano por mentoria + pausa | ⏳ |
+| 3 | Plano por mentoria + pausa | ✅ |
 | 4 | Reuniões + IDR inicia a jornada | ⏳ |
 | 5 | Fila do dia, avisos, WhatsApp, exportação, fechamento | ⏳ |
 
@@ -328,7 +328,7 @@ it('mês da jornada depois do 12º continua calculando; tela mostra concluída')
 - [ ] **Step 5:** Commit `feat(NPAC-43): plano por mentoria`.
 
 ### Tarefa 3.2: Pausar e retomar
-Status: ⏳
+Status: ✅
 
 **Files:** Create: migration `00NN_acompanhamento_v2_pausas.sql`, `api/mentoria/pausa.service.ts`. Modify: `inscricoes.controller.ts`, `ficha.tsx`. Test: `apps/api/test/mentoria-v2-pausa.e2e.test.ts`.
 
@@ -353,7 +353,7 @@ it('Operação recebe 404 ao pausar')
 - [ ] **Step 5:** Commit `feat(NPAC-43): pausar e retomar`.
 
 ### Tarefa 3.3: Aba Plano e edição do modelo
-Status: ⏳
+Status: ✅
 
 **Files:** Create: `web/app/(app)/acompanhamento/plano/page.tsx`, `web/components/acompanhamento/{plano-mentorado,plano-semana,plano-modelo-admin}.tsx`. Test: `web/e2e/acompanhamento-v2-plano.spec.ts`.
 
