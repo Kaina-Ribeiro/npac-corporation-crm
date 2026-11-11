@@ -1,33 +1,27 @@
 'use client';
-import type { PerfilLinha } from '@npac/shared/mentoria';
+import type { Responsavel } from '@npac/shared/mentoria';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { button, control, FormError } from '@/components/crm-ui';
 import { clientApi } from '@/lib/client-api';
 import { Dialogo } from './dialogo';
-
-type Pessoa = { id: string; nome: string };
+import { rotuloResponsavel } from './ui';
 
 /**
  * Configurações > Transferir carteira (§5): as inscrições em andamento de uma pessoa (que saiu,
- * por exemplo) vão para outra do Acompanhamento, com as ações pendentes.
+ * por exemplo) vão para outra do Acompanhamento, com as ações pendentes. "De" lista quem tem
+ * carteira, inclusive conta desativada ou sem perfil; "Para", quem pode ser responsável.
  */
-export function TransferirCarteira({
-  responsaveis,
-  perfis,
-}: {
-  responsaveis: Pessoa[];
-  perfis: PerfilLinha[];
-}) {
+export function TransferirCarteira({ responsaveis }: { responsaveis: Responsavel[] }) {
   const router = useRouter();
   const [de, setDe] = useState('');
   const [para, setPara] = useState('');
   const [confirmar, setConfirmar] = useState(false);
   const [erro, setErro] = useState('');
   const [feito, setFeito] = useState<{ inscricoes: number; acoes: number } | null>(null);
-  const recebem = perfis.filter((p) => p.perfil === 'ACOMPANHAMENTO');
-  const nome = (id: string) =>
-    [...responsaveis, ...perfis].find((p) => p.id === id)?.nome ?? 'a pessoa';
+  const comCarteira = responsaveis.filter((r) => r.carteira > 0);
+  const recebem = responsaveis.filter((r) => r.elegivel);
+  const nome = (id: string) => responsaveis.find((p) => p.id === id)?.nome ?? 'a pessoa';
 
   return (
     <>
@@ -44,9 +38,9 @@ export function TransferirCarteira({
             }}
           >
             <option value="">Escolha quem sai</option>
-            {responsaveis.map((p) => (
+            {comCarteira.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.nome}
+                {rotuloResponsavel(p)}, {p.carteira} {p.carteira === 1 ? 'inscrição' : 'inscrições'}
               </option>
             ))}
           </select>
@@ -106,6 +100,8 @@ export function TransferirCarteira({
                   { de, para },
                 ),
               );
+              // Quem saiu fica sem carteira e some da lista "De".
+              setDe('');
               router.refresh();
             } catch (e) {
               setErro((e as Error).message);

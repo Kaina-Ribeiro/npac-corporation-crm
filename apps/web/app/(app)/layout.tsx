@@ -49,7 +49,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const who = (
     <span className="min-w-0 leading-tight">
       <b className="block truncate text-sm font-semibold">{me.name}</b>
-      <RoleTag role={me.role} className="mt-1" />
+      <RoleTag role={me.role} perfil={eu?.perfil} className="mt-1" />
       <small className="mt-1 flex items-center gap-1.5 text-xs text-ink2">
         <Link href="/conta/senha" className="underline-offset-2 hover:text-ink hover:underline">
           Trocar senha

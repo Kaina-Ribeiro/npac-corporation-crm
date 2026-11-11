@@ -2,6 +2,8 @@ import {
   INSCRICAO_STATUS_LABEL,
   REUNIAO_STATUS_LABEL,
   type InscricaoStatus,
+  type Mentoria,
+  type Responsavel,
   type ReuniaoStatus,
 } from '@npac/shared/mentoria';
 
@@ -148,10 +150,31 @@ export function Rostos({ pessoas }: { pessoas: Rosto[] }) {
 export const dataBR = (iso: string | null | undefined) =>
   iso ? iso.slice(0, 10).split('-').reverse().join('/') : '';
 
+/**
+ * Antes de a jornada começar. RDV começa na IDR; 2M e 6M podem começar sem ela (D15: no dia em
+ * que o onboarding fecha, ou na data de início importada).
+ */
+export const rotuloAntesDoInicio = (mentoria: Mentoria) =>
+  mentoria === 'RDV' ? 'Antes da IDR' : 'Antes do início';
+
 /** Rótulo do mês da jornada na lista e na ficha. */
-export function rotuloMes(mes: number | null) {
-  if (mes === null) return 'Antes da IDR';
+export function rotuloMes(mes: number | null, mentoria: Mentoria) {
+  if (mes === null) return rotuloAntesDoInicio(mentoria);
   return mes > 12 ? 'Jornada concluída' : `Mês ${mes}`;
+}
+
+/** Nome do responsável, marcando quem saiu ou perdeu o perfil (não pode ser escolhido de novo). */
+export const rotuloResponsavel = (r: Responsavel) =>
+  r.elegivel ? r.nome : `${r.nome} (${r.ativo ? 'sem o perfil Acompanhamento' : 'desativado'})`;
+
+/**
+ * Opções do campo Responsável: quem pode ser escolhido e, se for o caso, o atual que não pode mais
+ * (fica visível e desativado até alguém trocar ou transferir a carteira).
+ */
+export function opcoesResponsavel(lista: Responsavel[], atual: string | null) {
+  return lista
+    .filter((r) => r.elegivel || r.id === atual)
+    .map((r) => ({ valor: r.id, rotulo: rotuloResponsavel(r), desativada: !r.elegivel }));
 }
 
 const BRASILIA = 'America/Sao_Paulo';

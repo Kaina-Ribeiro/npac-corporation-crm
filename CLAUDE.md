@@ -146,7 +146,10 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   e o link "Avisos neste aparelho" aparece para o cargo; o push da Fila não leva nome (`AVISO_PAYLOAD`), vai a
   quem responde pelo item ou a todos do perfil, um por pessoa a cada disparo; pausado, cancelado e o que veio antes
   do sistema não avisam. Fila: só ONBOARDING e ATIVO; "hoje" e 8h de Brasília; responsável desativado ou sem
-  perfil cai no perfil (`mentoria_perfil_de`). CSV do módulo: Admin e perfil Acompanhamento, auditado
+  perfil cai no perfil (`mentoria_perfil_de`). Responsável pela inscrição (11/11/2026): só perfil Acompanhamento
+  ativo, como quem recebe carteira (400 no cadastro e na troca); `GET mentoria/responsaveis` traz também quem saiu
+  e ainda responde por inscrições (`elegivel`, `ativo`, `carteira`), para a ficha mostrar, o filtro achar e o
+  Admin transferir. CSV do módulo: Admin e perfil Acompanhamento, auditado
   (`mentoria.csv`), contato só para Admin, nunca dor, sonho, meta, anotações ou textos de reunião. Excluir e
   anonimizar (LGPD) só Admin, pela ficha; anonimizar mantém inscrição, reuniões e ações para as contagens.
   Salvar ao sair do campo: em 409 a fila reaplica se o outro não mexeu naquele campo; se mexeu, avisa e mantém o dele (`resolverConflito`).

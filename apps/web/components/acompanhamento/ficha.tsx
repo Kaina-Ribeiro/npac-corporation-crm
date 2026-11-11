@@ -11,6 +11,7 @@ import {
   linkGrupoValido,
   linkWhatsApp,
   type FichaDTO,
+  type Responsavel,
 } from '@npac/shared/mentoria';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -27,7 +28,18 @@ import { FichaPessoas } from './ficha-pessoas';
 import { HistoricoLista } from './historico-lista';
 import { IndicadorSalvo } from './indicador-salvo';
 import { PlanoMentorado } from './plano-mentorado';
-import { dataBR, FOCOS_RDV, ICONES, Icone, Rostos, TagStatus, Trilha, type Aba } from './ui';
+import {
+  dataBR,
+  FOCOS_RDV,
+  ICONES,
+  Icone,
+  opcoesResponsavel,
+  rotuloAntesDoInicio,
+  Rostos,
+  TagStatus,
+  Trilha,
+  type Aba,
+} from './ui';
 
 const COOKIE_ULTIMA_FICHA = 'npac_ultima_ficha';
 const sm = `${quietButton} sm`;
@@ -84,7 +96,7 @@ function Inscricao({
   pedirIdr,
 }: {
   ficha: FichaDTO;
-  responsaveis: { id: string; nome: string }[];
+  responsaveis: Responsavel[];
   ativo: boolean;
   atualizar: () => void;
   pedirTipo: () => void;
@@ -151,7 +163,7 @@ function Inscricao({
         campo="responsavelId"
         valor={ficha.responsavelId}
         tipo="select"
-        opcoes={responsaveis.map((r) => ({ valor: r.id, rotulo: r.nome }))}
+        opcoes={opcoesResponsavel(responsaveis, ficha.responsavelId)}
       />
       <CampoPr
         {...base}
@@ -495,7 +507,7 @@ export function Ficha({
   abaInicial,
 }: {
   ficha: FichaDTO;
-  responsaveis: { id: string; nome: string }[];
+  responsaveis: Responsavel[];
   abaInicial: Aba;
 }) {
   const router = useRouter();
@@ -532,7 +544,7 @@ export function Ficha({
   const foco = mes !== null && mes <= 12 && ficha.mentoria === 'RDV' ? FOCOS_RDV[mes - 1] : null;
   const titulo =
     mes === null
-      ? 'Antes da IDR'
+      ? rotuloAntesDoInicio(ficha.mentoria)
       : mes > 12
         ? 'Jornada concluída'
         : `Mês ${mes} de 12${foco ? `: ${foco}` : ''}`;

@@ -41,7 +41,9 @@ function Linha({ r, primeira }: { r: InscricaoItem; primeira: boolean }) {
       </div>
       <span className="tp tag justify-self-start">{r.mentoria}</span>
       <div className="jm">
-        <b className={r.mesJornada === null ? 'antes' : ''}>{rotuloMes(r.mesJornada)}</b>
+        <b className={r.mesJornada === null ? 'antes' : ''}>
+          {rotuloMes(r.mesJornada, r.mentoria)}
+        </b>
         {r.mesJornada !== null && <Trilha mes={r.mesJornada} alerta={r.completar} />}
       </div>
       <TagStatus status={r.status} className="st-tag justify-self-start" />

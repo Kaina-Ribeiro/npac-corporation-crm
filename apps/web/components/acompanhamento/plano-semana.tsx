@@ -187,7 +187,7 @@ export function PlanoMentorados({ inicial }: { inicial: PaginaInscricoes }) {
                   <div className="nm">
                     {r.nome}
                     <small>
-                      {r.mentoria}, {rotuloMes(r.mesJornada)}
+                      {r.mentoria}, {rotuloMes(r.mesJornada, r.mentoria)}
                     </small>
                   </div>
                 </div>

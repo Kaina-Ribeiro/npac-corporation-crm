@@ -64,9 +64,11 @@ beforeEach(async () => {
   await owner`delete from mentoria_perfis`;
 });
 afterEach(async () => {
-  await owner`delete from mentoria_perfis where user_id = ${ids.igor!}`;
-  await owner`update "user" set role = 'SDR', can_prospect = true, can_close = false
-    where id = ${ids.igor!}`;
+  for (const u of ['igor', 'ale']) {
+    await owner`delete from mentoria_perfis where user_id = ${ids[u]!}`;
+    await owner`update "user" set role = 'SDR', can_prospect = true, can_close = false,
+      active = true where id = ${ids[u]!}`;
+  }
 });
 
 describe('excluir e anonimizar', () => {
@@ -216,6 +218,76 @@ describe('CSV', () => {
 });
 
 describe('carteira', () => {
+  const comResponsavel = async (responsavel: string, status = 'ATIVO') => {
+    const [i] = await owner<{ id: string }[]>`
+      insert into mentoria_inscricoes (tipo, mentoria, status, responsavel_id)
+      values ('INDIVIDUAL', 'RDV', ${status}, ${responsavel}) returning id`;
+    await owner`insert into mentoria_pessoas (inscricao_id, ordem, nome, nome_norm)
+      values (${i!.id}, 1, 'Mentorado Fictício R', 'mentorado ficticio r')`;
+    return i!.id;
+  };
+
+  it('responsáveis: só o perfil Acompanhamento é escolhido; quem saiu com carteira aparece', async () => {
+    await virar('igor', 'ACOMPANHAMENTO');
+    await virar('ale', 'ACOMPANHAMENTO');
+    await comResponsavel(ids.igor!);
+    await comResponsavel(ids.ale!);
+    await comResponsavel(ids.ale!, 'CONCLUIDO');
+    // Ale saiu: conta desativada, carteira ainda com ele.
+    await owner`update "user" set active = false where id = ${ids.ale!}`;
+    const diretor = await h.signIn('diretor@npac.com.br');
+    const r = await h.get('/api/mentoria/responsaveis', diretor);
+    expect(r.status, r.text).toBe(200);
+    type Linha = { id: string; elegivel: boolean; ativo: boolean; carteira: number };
+    const por = new Map((r.body as Linha[]).map((p) => [p.id, p]));
+    expect(por.get(ids.igor!)).toMatchObject({ elegivel: true, ativo: true, carteira: 1 });
+    expect(por.get(ids.ale!)).toMatchObject({ elegivel: false, ativo: false, carteira: 1 });
+    // Cargo Acompanhamento sem perfil e Diretoria sem carteira não são responsáveis.
+    expect(por.has(ids.carla!)).toBe(false);
+    expect(por.has(ids.diretor!)).toBe(false);
+    const t = await h.post(
+      '/api/mentoria/carteira/transferir',
+      { de: ids.ale, para: ids.igor },
+      diretor,
+    );
+    expect(t.status, t.text).toBe(200);
+    expect(t.body).toEqual({ inscricoes: 1, acoes: 0 });
+  });
+
+  it('responsável sem o perfil Acompanhamento é recusado no cadastro e na edição', async () => {
+    await virar('igor', 'OPERACAO');
+    const s = await duda();
+    const novo = (responsavelId: string) =>
+      h.post(
+        '/api/mentoria/inscricoes',
+        {
+          tipo: 'INDIVIDUAL',
+          mentoria: 'RDV',
+          responsavelId,
+          pessoas: [{ nome: 'Mentorado Fictício 9' }],
+        },
+        s,
+      );
+    const recusado = await novo(ids.igor!);
+    expect(recusado.status).toBe(400);
+    expect(recusado.body.message).toBe('O responsável precisa ter o perfil Acompanhamento');
+    const ok = await novo(ids.carla!);
+    expect(ok.status, ok.text).toBe(201);
+    const p = await h.patch(
+      `/api/mentoria/inscricoes/${ok.body.id}`,
+      { version: ok.body.version, responsavelId: ids.diretor },
+      s,
+    );
+    expect(p.status).toBe(400);
+    // Sem responsável continua valendo.
+    const vazio = await h.patch(
+      `/api/mentoria/inscricoes/${ok.body.id}`,
+      { version: ok.body.version, responsavelId: null },
+      s,
+    );
+    expect(vazio.status, vazio.text).toBe(200);
+  });
+
   it('transferir carteira move inscrições e ações pendentes', async () => {
     await virar('igor', 'ACOMPANHAMENTO');
     await comoPerfil('ACOMPANHAMENTO');
