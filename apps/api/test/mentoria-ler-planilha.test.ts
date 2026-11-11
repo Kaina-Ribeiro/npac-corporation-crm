@@ -158,6 +158,21 @@ describe('lerPlanilha', () => {
     });
   });
 
+  it('título mesclado acima dos cabeçalhos é pulado (CANCELAMENTOS da equipe)', async () => {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('CANCELAMENTOS');
+    ws.addRow(['Dados Mentorado']);
+    ws.mergeCells('A1:E1');
+    ws.addRow(['Data pedido de reembolso', 'Nome do mentorado', 'Data de entrada', 'Motivo']);
+    ws.addRow([46111, 'Fictício Dois', 'Fevereiro', 'Motivo fictício']);
+    ws.addRow([null, 'Fictício Três']);
+    const lida = await lerPlanilha(Buffer.from(await wb.xlsx.writeBuffer()));
+    expect(lida.cancelamentos).toEqual([
+      { nome: 'Fictício Dois', mentoria: null },
+      { nome: 'Fictício Três', mentoria: null },
+    ]);
+  });
+
   it('linha sem nome é pulada', async () => {
     const lida = await lerPlanilha(
       await arquivo({

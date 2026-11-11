@@ -36,10 +36,30 @@ const simNao = (s: string | null) => {
 
 type Coluna = { titulo: string; indice: number };
 
+/** Uma única célula mesclada, como "Dados Mentorado" sobre A1:E1: é faixa, não cabeçalho. */
+function ehFaixa(row: ExcelJS.Row): boolean {
+  const mestres = new Set<string>();
+  let soltas = 0;
+  row.eachCell({ includeEmpty: false }, (cell) => {
+    if (cell.isMerged) mestres.add(cell.master.address);
+    else soltas += 1;
+  });
+  return soltas === 0 && mestres.size === 1;
+}
+
+/** Linha dos títulos: a primeira que não é vazia nem faixa mesclada (até a 5ª). */
+function linhaTitulos(ws: ExcelJS.Worksheet): number {
+  for (let n = 1; n <= Math.min(5, ws.rowCount); n += 1) {
+    const row = ws.getRow(n);
+    if (row.actualCellCount > 0 && !ehFaixa(row)) return n;
+  }
+  return 1;
+}
+
 /** Lê os títulos. Qualquer coluna com "cpf" no título é descartada aqui, antes de tudo. */
 function colunas(ws: ExcelJS.Worksheet): Coluna[] {
   const out: Coluna[] = [];
-  ws.getRow(1).eachCell({ includeEmpty: false }, (cell, indice) => {
+  ws.getRow(linhaTitulos(ws)).eachCell({ includeEmpty: false }, (cell, indice) => {
     const t = texto(cell.value);
     if (!t) return;
     const titulo = nomeNormalizado(t);
@@ -65,8 +85,9 @@ function aba(wb: ExcelJS.Workbook, nome: string): ExcelJS.Worksheet | undefined 
 function linhas(ws: ExcelJS.Worksheet, ler: (r: ExcelJS.Row) => void): void {
   if (ws.rowCount - 1 > LIMITE_LINHAS)
     throw new BadRequestException(`A planilha passa do limite de 5.000 linhas (aba ${ws.name})`);
+  const titulos = linhaTitulos(ws);
   ws.eachRow({ includeEmpty: false }, (row, n) => {
-    if (n > 1) ler(row);
+    if (n > titulos) ler(row);
   });
 }
 
