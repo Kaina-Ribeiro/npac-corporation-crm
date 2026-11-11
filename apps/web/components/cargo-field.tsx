@@ -119,7 +119,8 @@ export function CargoExtras({
         type="checkbox"
         role={role}
         className={`${box} mt-px`}
-        aria-label={nome ? `${label} para ${nome}` : undefined}
+        // Nome curto (a dica fica como texto ao lado): "Atua como SDR", "… para Ana".
+        aria-label={nome ? `${label} para ${nome}` : label}
         checked={value[campo]}
         onChange={(e) => onChange(campo, e.target.checked)}
       />

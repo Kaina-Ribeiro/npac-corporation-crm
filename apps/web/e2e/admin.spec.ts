@@ -39,7 +39,7 @@ test('HEAD convida usuário, vê auditoria e registra pedido LGPD', async ({ pag
   await expect(cargo.locator('option')).toHaveText(['SDR', 'Closer']);
   await expect(cargo.locator('optgroup')).toHaveAttribute('label', 'Comercial');
   await expect(page.getByText('Não vê valores de venda.')).toBeVisible();
-  await expect(page.getByLabel('Atua como SDR')).toHaveCount(0);
+  await expect(page.getByLabel('Atua como SDR', { exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'Convidar', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Senha temporária' })).toBeVisible();
   await expect(
@@ -104,14 +104,16 @@ test('Diretoria convida Operação, que entra direto no módulo; caixas só na l
   const cargo = page.getByLabel('Cargo', { exact: true });
   await expect(cargo.locator('optgroup')).toHaveCount(2);
   await cargo.selectOption('HEAD');
-  await expect(page.getByLabel('Atua como SDR')).toBeVisible();
-  await expect(page.getByLabel('Atua como Closer')).toBeVisible();
+  await expect(page.getByLabel('Atua como SDR', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Atua como Closer', { exact: true })).toBeVisible();
   await cargo.selectOption('OPERACAO');
   await expect(
     page.getByText('Cadastra inscrições, onboarding, Caixa e agenda de reuniões.'),
   ).toBeVisible();
-  await expect(page.getByLabel('Atua como SDR')).toHaveCount(0);
-  await expect(page.getByRole('switch', { name: 'Admin do Acompanhamento' })).not.toBeChecked();
+  await expect(page.getByLabel('Atua como SDR', { exact: true })).toHaveCount(0);
+  await expect(
+    page.getByRole('switch', { name: 'Admin do Acompanhamento', exact: true }),
+  ).not.toBeChecked();
   await page.screenshot({ path: 'test-results/admin-convidar-operacao.png', fullPage: true });
   await page.getByRole('button', { name: 'Convidar', exact: true }).click();
   const aviso = page.getByRole('status').filter({ hasText: 'Senha temporária' });
@@ -121,8 +123,8 @@ test('Diretoria convida Operação, que entra direto no módulo; caixas só na l
     page
       .getByRole('listitem')
       .filter({ hasText: `${usuario}@npac.test` })
-      .getByText('Operação'),
-  ).toBeVisible();
+      .locator('.role-ACOMPANHAMENTO'),
+  ).toHaveText('Operação');
 
   const ctx = await browser.newContext();
   const nova = await ctx.newPage();
