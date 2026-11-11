@@ -197,7 +197,7 @@ Cookie `npac_f_pipe`: filtros (`leadFilterRules`) + `col` (coluna aberta no celu
 - [ ] **Step 2:** Implementar. **Step 3:** rodar `-g "hoje"` → PASS.
 - [ ] **Step 4:** Commit `feat(NPAC-46): hoje aplica o filtro ao escolher`.
 
-### Task 6: Dashboard e Relatórios — Status: ⏳
+### Task 6: Dashboard e Relatórios — Status: ✅
 
 **Files:** Modify `apps/web/app/(app)/(comercial)/dashboard/page.tsx`, `apps/web/app/(app)/(comercial)/relatorios/page.tsx`, `apps/web/components/reports.tsx`; Test `e2e/preferencias.spec.ts` e `grep -rn "Atualizar relatório" apps/web/e2e`.
 
