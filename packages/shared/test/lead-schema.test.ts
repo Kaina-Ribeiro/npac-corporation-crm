@@ -78,6 +78,11 @@ describe('campos por etapa', () => {
       leadCreateSchema.safeParse({ ...base, paymentProductId, paymentAmountCents: 10.5 }).success,
     ).toBe(false);
     expect(leadCreateSchema.safeParse({ ...base, paymentProductId: 'x' }).success).toBe(false);
+    // Item 13: o SDR informa o closer e se já pagou entrada (sim/não).
+    expect(
+      leadCreateSchema.parse({ ...base, paymentCloserId: 'u-1', paymentEntryPaid: true }),
+    ).toMatchObject({ paymentCloserId: 'u-1', paymentEntryPaid: true });
+    expect(leadCreateSchema.safeParse({ ...base, paymentEntryPaid: 'sim' }).success).toBe(false);
   });
   it('motivo: só a lista; texto aparado até 80', () => {
     expect(leadCreateSchema.safeParse({ ...base, lostReason: 'OUTRA' }).success).toBe(false);

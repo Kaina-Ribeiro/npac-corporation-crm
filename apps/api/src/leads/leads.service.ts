@@ -110,7 +110,7 @@ export class LeadsService {
             total: data.total,
             page: 1,
             items: data.items.map(
-              ({ id, name, tier, stageKey, version, nextContactAt, saleToRegister }) => ({
+              ({
                 id,
                 name,
                 tier,
@@ -118,6 +118,16 @@ export class LeadsService {
                 version,
                 nextContactAt,
                 saleToRegister,
+                paymentToComplete,
+              }) => ({
+                id,
+                name,
+                tier,
+                stageKey,
+                version,
+                nextContactAt,
+                saleToRegister,
+                paymentToComplete,
               }),
             ),
           };
@@ -178,6 +188,7 @@ export class LeadsService {
         changed: true,
         input,
         old: EMPTY_STAGE_STATE,
+        role: u.role,
       });
       const created = await this.repo.insert(tx, {
         name: input.name,
@@ -192,13 +203,15 @@ export class LeadsService {
         stageId,
         sdrId,
         // Venda Fechada: o closer da reunião passa a ser o do lead.
-        closerId: input.closerId ?? sold?.closerId ?? null,
+        closerId: stage.closerId ?? input.closerId ?? sold?.closerId ?? null,
         ...stage.values,
         soldProductId: sold && !input.sale ? (input.soldProductId ?? null) : null,
         summary: input.summary ?? null,
         createdBy: u.id,
       });
       await recordActivity(tx, u, created, 'lead.created', [], undefined, meta);
+      if (stage.notifyCloser)
+        await recordActivity(tx, u, created, 'payment.pending', [], undefined, meta);
       // Mesma transação: se a reunião falhar, o lead não fica criado.
       if (stage.meeting) await scheduleMeeting(tx, u, { leadId: created, ...stage.meeting });
       if (sold) await this.registerSold(tx, u, { id: created, sdrId, stageId }, sold, input, hash);
@@ -224,7 +237,7 @@ export class LeadsService {
       data: { ids: rows.map((r) => r.id), page, pageSize },
       ...meta,
     });
-    return { items: rows.map((r) => this.toDTO(r)), total, page, pageSize };
+    return { items: rows.map((r) => this.toDTO(r, u)), total, page, pageSize };
   }
 
   /** CSV com contato (só liderança, pela rota): período, filtros atuais ou todos. */
@@ -276,7 +289,7 @@ export class LeadsService {
       entityId: id,
       ...meta,
     });
-    return this.toDTO(row);
+    return this.toDTO(row, u);
   }
 
   /**
@@ -382,7 +395,9 @@ export class LeadsService {
     return { kind: 'text', term, handle };
   }
 
-  private toDTO(r: LeadRow): LeadDTO {
+  private toDTO(r: LeadRow, u: AuthUser): LeadDTO {
+    // SDR não vê R$ de venda (item 13): corte aqui, não na tela.
+    const sees = u.role !== 'SDR';
     return {
       id: r.id,
       name: r.name,
@@ -395,11 +410,21 @@ export class LeadsService {
       stageKey: r.stageKey,
       sdr: { id: r.sdrId, name: r.sdrName },
       closer: r.closerId && r.closerName ? { id: r.closerId, name: r.closerName } : null,
-      nextContactAt: r.nextContactAt?.toISOString() ?? null,
+      // Em Agendou Pagamento a data é a combinada com o closer, não um contato do SDR.
+      nextContactAt:
+        sees || r.stageKey !== 'AGENDOU_PAGAMENTO'
+          ? (r.nextContactAt?.toISOString() ?? null)
+          : null,
       summary: r.summary,
       paymentProductId: r.paymentProductId,
-      paymentAmountCents: r.paymentAmountCents,
-      paymentEntryCents: r.paymentEntryCents,
+      paymentAmountCents: sees ? r.paymentAmountCents : null,
+      paymentEntryCents: sees ? r.paymentEntryCents : null,
+      paymentEntryPaid: r.paymentEntryPaid,
+      // Sem produto é lead antigo na etapa (NPAC-38, 3A): não há o que completar.
+      paymentToComplete:
+        r.stageKey === 'AGENDOU_PAGAMENTO' &&
+        r.paymentProductId !== null &&
+        r.paymentAmountCents === null,
       lostReason: r.lostReason,
       lostReasonOther: r.lostReasonOther,
       saleToRegister: r.saleToRegister,

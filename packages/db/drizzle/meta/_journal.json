@@ -306,15 +306,22 @@
     {
       "idx": 43,
       "version": "7",
-      "when": 1794351483995,
-      "tag": "0043_acompanhamento_v2_limpeza",
+      "when": 1794355963178,
+      "tag": "0043_pagamento_sdr",
       "breakpoints": true
     },
     {
       "idx": 44,
       "version": "7",
-      "when": 1794352029135,
-      "tag": "0044_acompanhamento_v2_base",
+      "when": 1794360887622,
+      "tag": "0044_acompanhamento_v2_limpeza",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1794360888622,
+      "tag": "0045_acompanhamento_v2_base",
       "breakpoints": true
     }
   ]

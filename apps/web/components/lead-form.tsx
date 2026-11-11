@@ -70,7 +70,7 @@ export function LeadForm({
     try {
       stageBody = sold
         ? readSoldFields(form, saleKey)
-        : readStageFields(stage, form, { changed, withMeeting: !openMeeting });
+        : readStageFields(stage, form, { changed, withMeeting: !openMeeting, role: me.role });
     } catch (err) {
       setError((err as Error).message);
       setBusy(false);

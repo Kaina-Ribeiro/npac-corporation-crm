@@ -44,6 +44,7 @@ export interface LeadRow {
   paymentProductId: string | null;
   paymentAmountCents: number | null;
   paymentEntryCents: number | null;
+  paymentEntryPaid: boolean;
   lostReason: LostReason | null;
   lostReasonOther: string | null;
   saleToRegister: boolean;
@@ -181,6 +182,7 @@ export class LeadsRepository {
         paymentProductId: leads.paymentProductId,
         paymentAmountCents: leads.paymentAmountCents,
         paymentEntryCents: leads.paymentEntryCents,
+        paymentEntryPaid: leads.paymentEntryPaid,
         soldProductId: leads.soldProductId,
         lostReason: leads.lostReason,
         lostReasonOther: leads.lostReasonOther,

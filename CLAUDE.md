@@ -55,14 +55,14 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   admin `admin.tsx`, `access-requests.tsx` · Ctrl+K `shell/command-palette.tsx` · avisos `inbox.tsx` ·
   textos de atividade `lib/activity-text.ts` · campos por etapa `stage-fields.tsx` (+ `lib/stage-fields.ts`,
   `lib/stage-kind.ts`) e janelinha `stage-move-dialog.tsx` (Pipeline, lista, massa) · editor de colunas `pipeline-columns-editor.tsx` · ação
-  rápida do Hoje `today-quick-action.tsx` · menu de CSV `csv-export.tsx` (API: `api/common/csv.ts`) ·
+  rápida do Hoje `today-quick-action.tsx` · closer completa o pagamento `payment-complete.tsx` · menu de CSV `csv-export.tsx` (API: `api/common/csv.ts`) ·
   avisos compartilhados (selo do chat, `(N)` na aba, lembretes) `lib/alerts.ts`, `meeting-reminder.tsx` ·
   push no aparelho `lib/push.ts`, `public/sw.js`, `/conta/avisos`
 - **Acompanhamento (mentorados), v2 em 5 partes** (plano `docs/superpowers/plans/2026-11-10-acompanhamento-v2-fase-1.md`, protótipo `docs/acompanhamento/prototipo/canvas/`):
   API `api/mentoria/*` (guarda 404 + MFA: `MentoriaController` em `mentoria.guard.ts`; perfil `perfil.guard.ts`,
   `perfis.*`; inscrição e ficha `inscricoes.*`, `ficha.service.ts`, `historico.ts`; mídia `midia.controller.ts`,
   `media-store.ts`, `media-sniff.ts`, `media-worker.ts`; cifra `mentoria-crypto.ts`) · banco `db/src/schema/mentoria.ts`
-  - 0043–0044 (`mentoria_perfil()`, `mentoria_admin()`, `mentoria_ve()`, `mentoria_edita()`, funções `mentoria_*`) ·
+  - 0044–0045 (`mentoria_perfil()`, `mentoria_admin()`, `mentoria_ve()`, `mentoria_edita()`, funções `mentoria_*`) ·
     seed `db/src/seed-mentoria.ts` · lógica pura `sh/mentoria/*` (cliente: `@npac/shared/mentoria`, sem zod) ·
     telas `web/app/(app)/acompanhamento/*` (`mentorados`, `mentorados/nova`, `ficha/[id]`, `configuracoes`, `mais`,
     `em-breve/[aba]`), `web/components/acompanhamento/*`, CSS só do módulo sob `.ac` em `acompanhamento/modulo.css`,
@@ -79,10 +79,12 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
 - **DIRETOR** ("Diretoria") > **HEAD** > SDR / CLOSER. `isLeader(role)` (`LEADER_ROLES` = DIRETOR+HEAD), nunca `role === 'HEAD'`.
 - Só a Diretoria dá/tira liderança e administra contas de Head/Diretoria (`guardLeadership` em
   `admin/users.ts`); Head gerencia SDR/closer. Na RLS, `app_role()` devolve `'HEAD'` para DIRETOR (0021).
-- Liderança vê tudo; SDR, os próprios leads; CLOSER, leads com reunião não cancelada dele.
+- Liderança vê tudo; SDR, os próprios leads; CLOSER, leads com reunião não cancelada dele ou
+  que o SDR lhe passou em Agendou Pagamento (`leads.closer_id`).
   Invisível e inexistente → **404**, nunca 403. `canProspect`/`canClose` são dados; nada depende de nomes.
 - **SDR não recebe R$ de venda** (pedido do cliente, 04/11/2026): `/reports/search`, `/reports/summary`
-  e `/team` cortam no servidor (`dropSales`); o Dashboard do SDR mostra comparecimento. Closer igual a
+  e `/team` cortam no servidor (`dropSales`), o lead vem sem valor e entrada (`toDTO`) e
+  `/finance/products` sem preço; o Dashboard do SDR mostra comparecimento. Closer igual a
   antes; liderança vê venda + comparecimento, com filtro por SDR. Vendas e pagamentos (ficha,
   cobranças do Hoje, `sale:register`) são do closer e da liderança; o SDR só marca o resultado da reunião.
 - Login por **usuário** (`/sign-in/username`, `[a-z0-9_.]{3,30}`, minúsculo); login por e-mail e
@@ -176,6 +178,16 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   **Pagamento parcial** (NPAC-41, "1A"): caixa "Já pagou uma entrada" → `payment_entry_cents`
   (0 < entrada < valor, CHECK + 400); a data vira a do restante. Não cria venda nem entra nos
   relatórios até o closer registrar; o registro abre em Parcial com entrada + restante na data.
+  **Pagamento do SDR** (item 13, Igor 10/11/2026, "2A, 3A", 0043): o papel SDR informa só produto,
+  closer (`paymentCloserId` → `leads.closer_id`, ativo e `canClose`) e "já pagou" (`payment_entry_paid`);
+  valor, entrada ou data dele dão 403 e `next_contact_at` fica nulo (a ação rápida também recusa, o
+  lead sai do Hoje e do sino do SDR, e a data nessa etapa não vai no DTO dele). Sair da etapa ou
+  registrar a venda apaga também a data combinada. **Pagamento a completar** = etapa + produto + sem valor (`paymentToComplete`):
+  selo na ficha e no Pipeline, aviso `payment.pending` ao closer. O closer do lead (ou a liderança)
+  completa na ficha (`payment-complete.tsx`), sem trocar a etapa, só enquanto não há valor; depois
+  disso o SDR não mexe mais. `closer_has_lead` vale também para `leads.closer_id` nessa etapa e, com
+  venda ativa dele, depois dela. Closer sem reunião que tira o lead da etapa o perde: a timeline
+  grava antes do UPDATE (`lead-mutations.service.ts`).
 - Ficha: botões WhatsApp (`wa.me`, conversa) e Instagram (perfil, `instagram.com/<usuario>/`, NPAC-41 "3B").
 - Resultado de reunião só depois do horário (400 "A reunião ainda não aconteceu"). Resultados:
   `DONE`, `NO_SHOW`, `RESCHEDULED`. Valor por reunião realizada = `MEETING_VALUE_CENTS`

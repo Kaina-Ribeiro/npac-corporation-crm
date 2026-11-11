@@ -56,15 +56,16 @@ Feito quando: testes da API e e2e do Hoje passam; capturas nos 4 tamanhos.
 
 Risco: permissões e dados. Revisor independente ao fechar. Feito quando: suítes de API e banco passam.
 
-- ⏳ Banco: `payment_entry_paid` (boolean); `leads_payment_check` passa a aceitar produto sem valor;
-  `closer_has_lead` inclui `leads.closer_id` só na etapa Agendou Pagamento; gatilho do closer deixa
-  completar valor, entrada e data sem trocar a etapa; tipo `payment.pending` na timeline e nos avisos.
-- ⏳ API (`stage-fields.ts`): SDR informa só produto, closer e "já pagou entrada"; valor ou data do
-  SDR são recusados. Closer e liderança continuam com todos os campos.
-- ⏳ Corte no servidor: SDR não recebe valor, entrada nem preço de produto.
-- ⏳ Tela (`stage-fields.tsx`, cadastro, ficha, Pipeline e janelinha): SDR vê caixa, produto sem R$ e
+- ✅ Banco: `payment_entry_paid` (boolean); `leads_payment_check` passa a aceitar produto sem valor;
+  `closer_has_lead` inclui `leads.closer_id` só na etapa Agendou Pagamento (ou com a venda ativa dele);
+  gatilho do closer deixa completar valor, entrada e data sem trocar a etapa; o de dono deixa o SDR
+  escolher o closer; tipo `payment.pending` na timeline e nos avisos.
+- ✅ API (`stage-fields.ts`): SDR informa só produto, closer e "já pagou entrada"; valor ou data do
+  SDR são recusados (também na ação rápida do Hoje). Closer e liderança continuam com todos os campos.
+- ✅ Corte no servidor: SDR não recebe valor, entrada nem preço de produto.
+- ✅ Tela (`stage-fields.tsx`, cadastro, ficha, Pipeline e janelinha): SDR vê caixa, produto sem R$ e
   closer pré-preenchido pelo produto. Selo "Pagamento a completar" e formulário do closer na ficha.
-- ⏳ Registro da venda parte do que foi informado; sair da etapa apaga tudo, inclusive o novo campo.
+- ✅ Registro da venda parte do que foi informado; sair da etapa apaga tudo, inclusive o novo campo.
 
 ## Fase 4A: e-mail do lead
 
