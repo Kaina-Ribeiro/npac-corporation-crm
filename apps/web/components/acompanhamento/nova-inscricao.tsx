@@ -37,6 +37,7 @@ export function NovaInscricao({
   responsaveis,
   responsavelPadrao,
 }: {
+  /** Só quem pode ser escolhido (perfil Acompanhamento, conta ativa). */
   responsaveis: { id: string; nome: string }[];
   responsavelPadrao: string;
 }) {
@@ -48,7 +49,8 @@ export function NovaInscricao({
     dataCompra: '',
     valor: '',
     formaPagamento: '',
-    statusFinanceiro: 'EM_DIA',
+    // O PDF não define um padrão: fica sem valor até alguém informar.
+    statusFinanceiro: '',
     origem: '',
     responsavelId: responsavelPadrao,
   });
@@ -217,6 +219,7 @@ export function NovaInscricao({
                 value={compra.statusFinanceiro}
                 onChange={(e) => setCompra({ ...compra, statusFinanceiro: e.target.value })}
               >
+                <option value="">Não informado</option>
                 {STATUS_FINANCEIRO.map((s) => (
                   <option key={s} value={s}>
                     {STATUS_FINANCEIRO_LABEL[s]}

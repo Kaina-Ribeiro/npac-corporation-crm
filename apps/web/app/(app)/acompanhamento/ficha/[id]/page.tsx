@@ -1,4 +1,4 @@
-import type { FichaDTO } from '@npac/shared/mentoria';
+import type { FichaDTO, Responsavel } from '@npac/shared/mentoria';
 import { notFound } from 'next/navigation';
 import { Ficha } from '@/components/acompanhamento/ficha';
 import { abaValida } from '@/components/acompanhamento/ui';
@@ -21,7 +21,7 @@ export default async function FichaPage({
   if (!UUID.test(id)) notFound();
   const [ficha, responsaveis, { aba }] = await Promise.all([
     apiGet<FichaDTO>(`/api/mentoria/inscricoes/${id}`),
-    apiGet<{ id: string; nome: string }[]>('/api/mentoria/responsaveis'),
+    apiGet<Responsavel[]>('/api/mentoria/responsaveis'),
     searchParams,
   ]);
   return <Ficha key={id} ficha={ficha} responsaveis={responsaveis} abaInicial={abaValida(aba)} />;

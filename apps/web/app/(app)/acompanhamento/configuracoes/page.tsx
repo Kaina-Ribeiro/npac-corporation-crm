@@ -4,6 +4,7 @@ import {
   type Mentoria,
   type PerfilLinha,
   type PlanoModeloLinha,
+  type Responsavel,
 } from '@npac/shared/mentoria';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -38,14 +39,9 @@ export default async function ConfiguracoesPage({
   const q = await searchParams;
   const aba: AbaConfig = ABAS.includes(q.aba as AbaConfig) ? (q.aba as AbaConfig) : 'perfis';
   const mentoria = MENTORIAS.includes(q.mentoria as Mentoria) ? (q.mentoria as Mentoria) : 'RDV';
-  const perfis =
-    aba === 'perfis' || aba === 'carteira'
-      ? await apiGet<PerfilLinha[]>('/api/mentoria/perfis')
-      : [];
+  const perfis = aba === 'perfis' ? await apiGet<PerfilLinha[]>('/api/mentoria/perfis') : [];
   const responsaveis =
-    aba === 'carteira'
-      ? await apiGet<{ id: string; nome: string }[]>('/api/mentoria/responsaveis')
-      : [];
+    aba === 'carteira' ? await apiGet<Responsavel[]>('/api/mentoria/responsaveis') : [];
   const modelo =
     aba === 'plano' ? await apiGet<PlanoModeloLinha[]>('/api/mentoria/plano-modelo') : [];
   const mensagens =
@@ -91,7 +87,7 @@ export default async function ConfiguracoesPage({
       </div>
       {aba === 'importacao' && <ImportarCarteira />}
       {aba === 'mensagens' && <MensagensAdmin mensagens={mensagens} />}
-      {aba === 'carteira' && <TransferirCarteira responsaveis={responsaveis} perfis={perfis} />}
+      {aba === 'carteira' && <TransferirCarteira responsaveis={responsaveis} />}
       {aba === 'plano' && <PlanoModeloAdmin linhas={modelo} mentoria={mentoria} />}
       {aba === 'perfis' && (
         <>

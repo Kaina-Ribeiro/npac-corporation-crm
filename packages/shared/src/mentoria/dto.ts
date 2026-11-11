@@ -19,6 +19,19 @@ export type EuMentoria = { perfil: Perfil | null; admin: boolean };
 
 export type PerfilLinha = { id: string; nome: string; perfil: Perfil | null; admin: boolean };
 
+/**
+ * Responsável pelo acompanhamento (`GET mentoria/responsaveis`). `elegivel`: pode ser escolhido
+ * (perfil Acompanhamento, conta ativa). Os demais ainda respondem por alguma inscrição (saíram ou
+ * perderam o perfil); `carteira` conta as inscrições em andamento.
+ */
+export type Responsavel = {
+  id: string;
+  nome: string;
+  ativo: boolean;
+  elegivel: boolean;
+  carteira: number;
+};
+
 export type PessoaResumo = { nome: string; apelido: string | null; fotoMidiaId: string | null };
 
 /** Linha da lista de Mentorados. `mesJornada` nulo = antes do início. */
