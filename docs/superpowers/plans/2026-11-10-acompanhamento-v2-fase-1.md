@@ -57,9 +57,9 @@
 ## Parte 1 — Base
 
 ### Tarefa 1.1: Protótipo das telas principais
-Status: ⏳
+Status: ✅
 
-**Files:** Create: `docs/acompanhamento/prototipo/index.html` (HTML estático, dados inventados, tokens copiados de `globals.css`).
+**Files:** Create: `docs/acompanhamento/prototipo/canvas/` (cópia do canvas aprovado: telas `.dc.html` e `prototipo.css`, dados inventados, tokens copiados de `globals.css`).
 
 - [ ] **Step 1:** Montar Fila do dia, Mentorados e Ficha (individual e casal), em 375 e 1440 px, com os campos das §4 e §6 do SPEC.
 - [ ] **Step 2:** Mostrar ao Gabriel (screenshots). **Parar até o OK.** Nenhuma tela é codada antes disso.

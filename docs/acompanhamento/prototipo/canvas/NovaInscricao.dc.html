@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Nova inscrição</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="prototipo.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="app raiz sem-nav">
+  <aside class="side glass">
+    <div class="brand"><span class="mark">N</span><b>NPAC Corporation</b></div>
+    <nav aria-label="Navegação lateral">
+      <sc-for list="{{menu}}" as="m" hint-placeholder-count="12">
+        <sc-if value="{{m.sec}}" hint-placeholder-val="{{no}}"><div class="nsec">{{m.label}}</div></sc-if>
+        <sc-if value="{{m.link}}" hint-placeholder-val="{{yes}}">
+          <a class="nl {{m.on}}" href="{{m.href}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{m.d}}"></path></svg><span>{{m.label}}</span><sc-if value="{{m.cnt}}" hint-placeholder-val="{{no}}"><span class="cnt">{{m.cnt}}</span></sc-if></a>
+        </sc-if>
+      </sc-for>
+    </nav>
+    <div class="foot"><span class="ava me">D</span><div><b>Duda</b><span>Acompanhamento e Admin</span></div></div>
+  </aside>
+  <main><div class="wrap">
+    <section class="view">
+      <a class="back" href="{{voltar}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>Mentorados</a>
+      <div><h1 class="h1">Nova inscrição</h1><p class="sub">Só o essencial agora. O resto você completa na ficha.</p></div>
+      <div class="nf">
+        <section class="card sec">
+          <div class="form">
+            <div class="f w"><span>Tipo</span><div class="seg" role="group" aria-label="Tipo de inscrição"><button class="{{indCls}}" onClick="{{verIndividual}}">Individual</button><button class="{{casalCls}}" onClick="{{verCasal}}">Casal</button></div></div>
+            <div class="f w"><span>Mentoria</span><div class="seg" role="group" aria-label="Mentoria"><sc-for list="{{mentorias}}" as="m" hint-placeholder-count="3"><button class="{{m.on}}" onClick="{{m.pick}}">{{m.l}}</button></sc-for></div></div>
+          </div>
+        </section>
+        <sc-for list="{{pessoas}}" as="p" hint-placeholder-count="1">
+          <section class="card sec">
+            <header><h2>{{p.t}}</h2></header>
+            <div class="form">
+              <label class="f w"><span>Nome completo</span><input class="field" placeholder="Obrigatório"></label>
+              <label class="f w"><span>Como prefere ser chamado</span><input class="field"></label>
+              <label class="f w"><span>WhatsApp com DDD</span><input class="field" inputmode="tel"></label>
+              <label class="f w"><span>E-mail</span><input class="field" type="email"></label>
+            </div>
+          </section>
+        </sc-for>
+        <section class="card sec">
+          <header><h2>Compra</h2></header>
+          <div class="form">
+            <label class="f"><span>Data de compra</span><input class="field" placeholder="DD/MM/AAAA"></label>
+            <label class="f"><span>Valor</span><input class="field" placeholder="R$ 0,00" inputmode="decimal"></label>
+            <label class="f w"><span>Forma de pagamento</span><input class="field"></label>
+            <label class="f"><span>Status financeiro</span><select class="field"><option>Em dia</option><option>Em atraso</option><option>Quitado</option></select></label>
+            <label class="f"><span>Origem</span><select class="field"><option>Nação Milionária</option><option>Clube da Riqueza</option><option>Instagram</option><option>Indicação</option></select></label>
+            <label class="f w"><span>Responsável</span><select class="field"><option>Duda</option></select></label>
+          </div>
+        </section>
+        <div class="nf-barra">
+          <p class="nf-nota">Ao cadastrar, entra na Fila da Operação: criar o grupo e enviar as boas-vindas.</p>
+          <div class="nf-botoes"><a class="btn s" href="{{voltar}}">Cancelar</a><a class="btn p" href="{{ficha}}">Cadastrar inscrição</a></div>
+        </div>
+      </div>
+    </section>
+  </div></main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"celular":{"editor":null},"$preview":{"width":1440,"height":1160}}'>
+class Component extends DCLogic {
+  state = { tipo: 'INDIVIDUAL', mentoria: 'RDV' };
+
+  renderVals() {
+    const st = this.state;
+    const cel = this.props.celular ? 'Celular' : '';
+    const ic = { fila:'M4 6h16M4 12h16M4 18h10', ment:'M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7M22 19v-1a4 4 0 0 0-3-3.8M16 3.2a3.5 3.5 0 0 1 0 6.6', ficha:'M6 3h9l4 4v14H6zM9 12h7M9 16h7', onb:'M4 5h16l-6 7v6l-4 2v-8z', plano:'M4 6h16v15H4zM4 10h16M9 3v4M15 3v4', reun:'M3 7h13v10H3zM16 11l5-3v8l-5-3', pme:'M12 3a9 9 0 1 0 9 9M12 7v5l3 2', linha:'M4 6h16M4 12h10M4 18h7', env:'M3 8l9-5 9 5v8l-9 5-9-5zM3 8l9 5 9-5M12 13v8', ev:'M5 4h14v17H5zM5 9h14', ren:'M4 12a8 8 0 0 1 14-5l2 2M20 12a8 8 0 0 1-14 5l-2-2M20 4v5h-5M4 20v-5h5', conf:'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6M12 3v3M12 18v3M3 12h3M18 12h3' };
+    const L = (label, d, href, on, cnt) => ({ link: true, label, d, href: href || 'EmBreve.dc.html', on: on ? 'on' : '', cnt: cnt || 0 });
+    const S = (label) => ({ sec: true, label });
+    const menu = [L('Fila do dia', ic.fila, 'Main.dc.html', false, 12), L('Mentorados', ic.ment, 'Mentorados.dc.html', true), L('Ficha do mentorado', ic.ficha, 'Ficha.dc.html'), L('Onboarding', ic.onb), L('Plano dos 12 meses', ic.plano), L('Reuniões', ic.reun), S('Em breve'), L('PMEs e ciclos', ic.pme), L('Linha do tempo e conquistas', ic.linha), L('Envios físicos', ic.env), L('Eventos e agenda', ic.ev), L('Renovações e gestão', ic.ren), S('Admin'), L('Configurações', ic.conf, 'Configuracoes.dc.html')];
+    const casal = st.tipo === 'CASAL';
+    return {
+      menu, yes: true, no: false,
+      voltar: 'Mentorados' + cel + '.dc.html',
+      ficha: (casal ? 'FichaCasal' : 'Ficha') + cel + '.dc.html',
+      indCls: casal ? '' : 'on', casalCls: casal ? 'on' : '',
+      verIndividual: () => this.setState({ tipo: 'INDIVIDUAL' }),
+      verCasal: () => this.setState({ tipo: 'CASAL' }),
+      mentorias: ['RDV', '2M', '6M'].map((l) => ({ l, on: st.mentoria === l ? 'on' : '', pick: () => this.setState({ mentoria: l }) })),
+      pessoas: casal ? [{ t: 'Pessoa 1' }, { t: 'Pessoa 2' }] : [{ t: 'Pessoa' }],
+    };
+  }
+}
+</script>
+</body>
+</html>

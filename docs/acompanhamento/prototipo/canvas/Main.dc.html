@@ -12,7 +12,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
 <style>body{margin:0}</style>
 </helmet>
-<div class="app raiz">
+<div class="app raiz {{modoCls}}">
   <aside class="side glass">
     <div class="brand"><span class="mark">N</span><b>NPAC Corporation</b></div>
     <nav aria-label="Navegação lateral">
@@ -26,17 +26,17 @@
     <div class="foot"><span class="ava me">D</span><div><b>Duda</b><span>Acompanhamento e Admin</span></div></div>
   </aside>
   <main><div class="wrap">
-    <div class="mob"><span>Acompanhamento</span><span class="ava me">D</span></div>
     <div class="top">
-      <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><input class="field" type="search" aria-label="Buscar mentorados" placeholder="Nome, telefone com DDD ou e-mail"></div>
-      <span class="tag gold">Protótipo com dados inventados</span>
+      <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><input class="field" type="search" aria-label="Buscar mentorados" placeholder="Nome, fone com DDD ou e-mail"></div>
+      <a class="ava me so-cel" href="Mais.dc.html" aria-label="Menu e conta">D</a>
+      <span class="tag gold so-desk">Protótipo com dados inventados</span>
     </div>
     <section class="view">
       <div class="hrow">
         <div><h1 class="h1">Fila do dia</h1><p class="sub">{{resumo}}</p></div>
         <div class="acts">
           <div class="seg" role="group" aria-label="De quem é a fila"><button class="{{minhaCls}}" onClick="{{verMinha}}">Minha fila</button><button class="{{equipeCls}}" onClick="{{verEquipe}}">Equipe</button></div>
-          <button class="btn s">Exportar</button>
+          <button class="btn s so-desk">Exportar</button>
         </div>
       </div>
       <div class="fchips"><sc-for list="{{chips}}" as="c" hint-placeholder-count="5"><button class="fchip {{c.on}}" onClick="{{c.pick}}">{{c.l}}<span>{{c.n}}</span></button></sc-for></div>
@@ -85,14 +85,15 @@
           </sc-if>
         </aside>
       </div>
+      <p class="selo-cel so-cel">Protótipo com dados inventados</p>
     </section>
   </div></main>
   <nav class="bnav glass" aria-label="Abas do acompanhamento">
-    <a class="on" href="Main.dc.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"></path></svg>Fila</a>
-    <a href="Mentorados.dc.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7M22 19v-1a4 4 0 0 0-3-3.8M16 3.2a3.5 3.5 0 0 1 0 6.6"></path></svg>Mentorados</a>
-    <button class="plus" aria-label="Nova inscrição"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" width="22" height="22"><path d="M12 5v14M5 12h14"></path></svg></button>
-    <a href="#reunioes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M3 7h13v10H3zM16 11l5-3v8l-5-3"></path></svg>Reuniões</a>
-    <a href="#mais"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M5 12h.01M12 12h.01M19 12h.01"></path></svg>Mais</a>
+    <a class="on" href="FilaCelular.dc.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"></path></svg>Fila</a>
+    <a href="MentoradosCelular.dc.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7M22 19v-1a4 4 0 0 0-3-3.8M16 3.2a3.5 3.5 0 0 1 0 6.6"></path></svg>Mentorados</a>
+    <a class="plus" href="NovaInscricaoCelular.dc.html" aria-label="Nova inscrição"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" width="22" height="22"><path d="M12 5v14M5 12h14"></path></svg></a>
+    <a href="EmBreveCelular.dc.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M3 7h13v10H3zM16 11l5-3v8l-5-3"></path></svg>Reuniões</a>
+    <a href="Mais.dc.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M5 12h.01M12 12h.01M19 12h.01"></path></svg>Mais</a>
   </nav>
 </div>
 </x-dc>
@@ -153,14 +154,15 @@ class Component extends DCLogic {
     const total = visiveis.length;
     const resumo = 'Terça, 10 de novembro. ' + total + (total === 1 ? ' item, ' : ' itens, ') + atrasados + (atrasados === 1 ? ' atrasado.' : ' atrasados.');
 
-    const L = (label, d, href, on, cnt) => ({ link: true, label, d, href: href || '#em-breve', on: on ? 'on' : '', cnt: cnt || 0 });
+    const L = (label, d, href, on, cnt) => ({ link: true, label, d, href: href || 'EmBreve.dc.html', on: on ? 'on' : '', cnt: cnt || 0 });
     const S = (label) => ({ sec: true, label });
-    const menu = [L('Fila do dia', ic.fila, 'Main.dc.html', true, abertos.length), L('Mentorados', ic.ment, 'Mentorados.dc.html'), L('Ficha do mentorado', ic.ficha, 'Ficha.dc.html'), L('Onboarding', ic.onb), L('Plano dos 12 meses', ic.plano), L('Reuniões', ic.reun), S('Em breve'), L('PMEs e ciclos', ic.pme), L('Linha do tempo e conquistas', ic.linha), L('Envios físicos', ic.env), L('Eventos e agenda', ic.ev), L('Renovações e gestão', ic.ren), S('Admin'), L('Configurações', ic.conf)];
+    const menu = [L('Fila do dia', ic.fila, 'Main.dc.html', true, abertos.length), L('Mentorados', ic.ment, 'Mentorados.dc.html'), L('Ficha do mentorado', ic.ficha, 'Ficha.dc.html'), L('Onboarding', ic.onb), L('Plano dos 12 meses', ic.plano), L('Reuniões', ic.reun), S('Em breve'), L('PMEs e ciclos', ic.pme), L('Linha do tempo e conquistas', ic.linha), L('Envios físicos', ic.env), L('Eventos e agenda', ic.ev), L('Renovações e gestão', ic.ren), S('Admin'), L('Configurações', ic.conf, 'Configuracoes.dc.html')];
 
     const inicial = this.props.aberto ? todos.find((x) => x.id === 'vitor') : null;
     const alvo = (st.sel ? selecionado : inicial) || selecionado;
     const p = alvo ? {
       ...alvo,
+      href: alvo.href && this.props.celular ? alvo.href.replace('.dc.html', 'Celular.dc.html') : alvo.href,
       faces: emRosto(alvo),
       fc: alvo.ls.length > 1 ? 'pair' : 'solo',
       tags: alvo.tags || [{ c: 'gold', l: alvo.mentoria }, { c: '', l: alvo.tipoI }, alvo.st],
@@ -174,6 +176,7 @@ class Component extends DCLogic {
       temSel: !!alvo,
       vazia: visiveis.length === 0,
       abertoCls: this.props.aberto || st.aberto ? 'aberto' : '',
+      modoCls: this.props.aberto || st.aberto ? 'painel-aberto' : '',
       fechar: () => this.setState({ aberto: false }),
       minhaCls: st.dono === 'MINHA' ? 'on' : '',
       equipeCls: st.dono === 'EQUIPE' ? 'on' : '',
