@@ -32,6 +32,10 @@ const envSchema = z
     VAPID_PRIVATE_KEY: z.string().min(1).optional(),
     /** Contato do remetente exigido pelo Web Push (https: ou mailto:); padrão: WEB_ORIGIN. */
     VAPID_SUBJECT: z.string().min(1).optional(),
+    /** Google Forms: sem o token a rota do webhook responde 404. */
+    FORMS_WEBHOOK_TOKEN: z.string().min(32).optional(),
+    /** Usuário dono dos leads criados pelo formulário. */
+    FORMS_OWNER_USERNAME: z.string().min(1).optional(),
     /** Diretório da mídia do Acompanhamento (fora do banco). Obrigatório em produção. */
     MEDIA_DIR: z.string().min(1).optional(),
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),

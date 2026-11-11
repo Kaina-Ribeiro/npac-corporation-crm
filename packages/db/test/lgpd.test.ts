@@ -26,7 +26,7 @@ let lead: string;
 let stage: string;
 
 beforeEach(async () => {
-  await owner`truncate chat_reads, chat_messages, chat_members, lgpd_requests, lead_notes, lead_tasks, lead_timeline, payments, deals, meetings, leads, pipeline_stages, audit_log, products, "user" restart identity cascade`;
+  await owner`truncate chat_reads, chat_messages, chat_members, lgpd_requests, lead_notes, lead_tasks, lead_timeline, payments, deals, meetings, form_responses, leads, pipeline_stages, audit_log, products, "user" restart identity cascade`;
   await owner`
     insert into "user" (id, name, email, role, can_prospect, can_close) values
       ('u-ana', 'Ana', 'ana@npac.test', 'HEAD', true, false),

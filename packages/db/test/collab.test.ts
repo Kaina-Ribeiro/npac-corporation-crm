@@ -26,7 +26,7 @@ async function pgError(p: Promise<unknown>): Promise<string> {
 }
 
 beforeEach(async () => {
-  await owner`truncate chat_reads, chat_messages, chat_members, playbook_scripts, meetings, leads, pipeline_stages, "user" restart identity cascade`;
+  await owner`truncate chat_reads, chat_messages, chat_members, playbook_scripts, meetings, form_responses, leads, pipeline_stages, "user" restart identity cascade`;
   await owner`delete from chat_channels where kind = 'DM'`;
   await owner`
     insert into "user" (id, name, email, role, can_prospect, can_close, active) values

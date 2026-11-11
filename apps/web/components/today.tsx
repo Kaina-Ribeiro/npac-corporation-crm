@@ -79,10 +79,11 @@ const row =
   'group/row relative flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl px-3 py-2.5 transition-colors hover:bg-black/[.035] dark:hover:bg-white/[.05] [&>.w-full]:relative [&>.w-full]:z-[1] [&>.w-full]:order-last [&>button]:relative [&>button]:z-[1]';
 const list = 'gap-x-3 3xl:columns-2 4xl:columns-3 [&>li]:break-inside-avoid';
 
-function OpenLead({ href, name }: { href: string; name: string }) {
+function OpenLead({ href, name, onOpen }: { href: string; name: string; onOpen?: () => void }) {
   return (
     <Link
       href={href}
+      onClick={onOpen}
       aria-label={`Abrir ficha de ${name}`}
       title="Abrir ficha"
       className="grid size-8 flex-none place-items-center rounded-full text-ink3 transition-[color,transform] duration-150 group-hover/row:translate-x-0.5 group-hover/row:text-ink after:absolute after:inset-0 after:rounded-xl after:content-['']"
@@ -508,6 +509,27 @@ export function Today({
         </div>
 
         <div className="flex min-w-0 flex-col gap-5">
+          {data.formsNew.length > 0 && (
+            <Panel id="hoje-formularios" title="Formulários novos" count={data.formsNew.length}>
+              {data.formsNew.map((f) => (
+                <div key={f.id} className={row}>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold">{f.name}</p>
+                    <p className="text-xs text-ink2">{when(f.at)}</p>
+                  </div>
+                  <OpenLead
+                    href={`/leads/${f.leadId}`}
+                    name={f.name}
+                    onOpen={() =>
+                      void clientApi('/api/notifications/read', 'POST', { ids: [f.id] }).catch(
+                        () => {},
+                      )
+                    }
+                  />
+                </div>
+              ))}
+            </Panel>
+          )}
           <Panel id="hoje-reunioes" title="Reuniões de hoje" count={meetings.length}>
             {meetings.length > 0 && (
               <ol>

@@ -22,6 +22,7 @@ const VERB: Record<string, string> = {
   'sale.reversed': 'estornou a venda de',
   'payment.pending': 'pediu para completar o pagamento de',
   'payment.received': 'recebeu um pagamento de',
+  'form.received': 'recebeu o formulário de',
 };
 
 const spDay = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: SP }).format(d);

@@ -234,7 +234,7 @@ export function LeadForm({
                 {LEAD_SOURCE_LABELS[s]}
               </option>
             ))}
-            {/* Origem antiga só aparece no lead que já está nela. */}
+            {/* Origem antiga ou do Forms só aparece no lead que já está nela. */}
             {lead && isLegacyLeadSource(lead.source) && (
               <option value={lead.source}>{LEAD_SOURCE_LABELS[lead.source]}</option>
             )}

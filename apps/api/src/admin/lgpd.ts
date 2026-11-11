@@ -167,6 +167,16 @@ export class LgpdService {
         purchases: await q(
           sql`select product_name, total_cents, method, closed_at, reversed_at from deals where lead_id = ${r.leadId} order by closed_at`,
         ),
+        formResponses: (
+          await q<{ submitted_at: Date; answers_enc: Buffer | null }>(
+            sql`select submitted_at, answers_enc from form_responses where lead_id = ${r.leadId} order by submitted_at`,
+          )
+        ).map((f) => ({
+          submittedAt: f.submitted_at,
+          answers: f.answers_enc
+            ? (JSON.parse(this.crypto.decrypt(f.answers_enc)) as unknown)
+            : null,
+        })),
         history: await q(
           sql`select kind, fields, at from lead_timeline where lead_id = ${r.leadId} order by at`,
         ),

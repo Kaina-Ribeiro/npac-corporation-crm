@@ -227,7 +227,15 @@ export class TodayService {
               }
             : null,
       }));
+      // Formulários ainda não vistos pela própria pessoa: só nome e horário.
+      const forms = await tx.execute<{ id: string; leadId: string; name: string; at: string }>(sql`
+        select n.id, t.lead_id as "leadId", l.name, t.at
+        from notifications n join lead_timeline t on t.id = n.timeline_id
+        join leads l on l.id = t.lead_id and l.deleted_at is null
+        where n.user_id = ${u.id} and n.read_at is null and t.kind = 'form.received'
+        order by t.at desc, n.id limit 20`);
       return {
+        formsNew: forms.map((f) => ({ ...f, at: new Date(f.at).toISOString() })),
         overdue,
         overdueMeetings,
         overdueTasks,

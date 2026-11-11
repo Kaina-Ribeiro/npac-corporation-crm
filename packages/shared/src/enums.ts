@@ -98,12 +98,19 @@ export const LEAD_SOURCE_OPTIONS = [
 ] as const;
 /** Origens antigas: seguem nos leads já cadastrados, mas o cadastro não oferece mais. */
 export const LEGACY_LEAD_SOURCES = ['INSTAGRAM', 'WHATSAPP'] as const;
+/** Lead criado pelo Google Forms: vale em filtros e na ficha, mas o cadastro manual não oferece. */
+export const FORM_LEAD_SOURCE = 'FORMULARIO' as const;
 /** Todas as origens válidas no banco (enum `lead_source`). */
-export const LEAD_SOURCES = [...LEGACY_LEAD_SOURCES, ...LEAD_SOURCE_OPTIONS] as const;
+export const LEAD_SOURCES = [
+  ...LEGACY_LEAD_SOURCES,
+  ...LEAD_SOURCE_OPTIONS,
+  FORM_LEAD_SOURCE,
+] as const;
 export type LeadSource = (typeof LEAD_SOURCES)[number];
 export type LeadSourceOption = (typeof LEAD_SOURCE_OPTIONS)[number];
+/** Origens que não se escolhem à mão: as antigas e a do Forms. */
 export const isLegacyLeadSource = (s: LeadSource) =>
-  (LEGACY_LEAD_SOURCES as readonly string[]).includes(s);
+  s === FORM_LEAD_SOURCE || (LEGACY_LEAD_SOURCES as readonly string[]).includes(s);
 
 export const LEAD_SOURCE_LABELS: Record<LeadSource, string> = {
   AUDIO_AUTOMACAO: 'Áudio / automação',
@@ -135,6 +142,7 @@ export const LEAD_SOURCE_LABELS: Record<LeadSource, string> = {
   OUTRO: 'Outro',
   INSTAGRAM: 'Instagram (antigo)',
   WHATSAPP: 'WhatsApp (antigo)',
+  FORMULARIO: 'Formulário',
 };
 /** Texto livre de "Outro". */
 export const SOURCE_OTHER_MAX = 80;

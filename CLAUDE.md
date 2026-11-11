@@ -243,6 +243,17 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
 - Push: VAPID opcional no env (sem chaves = desligado). Inscrição por `push_subscribe` (o aparelho
   vai para quem logou por último); sair e desativar usuário apagam; 404/410 apaga.
 
+## Google Forms (NPAC-42, 10/11/2026)
+
+- `POST /webhooks/forms` (`api/forms/*`, `@Public`, cabeçalho `x-forms-token`): sem
+  `FORMS_WEBHOOK_TOKEN` ou com token errado, 404. Apps Script e passo a passo em `docs/integracao-forms/`.
+- Acha o lead por telefone, Instagram e e-mail (`form_find_lead`); não altera o lead nem troca o dono.
+  Sem lead: cria só com faixa do CRM (acima de 5 mil) e telefone ou Instagram, dono =
+  `FORMS_OWNER_USERNAME`, origem `FORMULARIO`, etapa Criando Relacionamento; senão descarta, sem guardar.
+- `form_responses`: respostas cifradas, gravação só por `form_response_record` (timeline
+  `form.received` + auditoria), LGPD zera. Aviso ao dono e à liderança, sem excluir o autor; bloco
+  "Formulários novos" no Hoje e card na ficha. `truncate leads` nos testes inclui `form_responses`.
+
 ## Banco
 
 - Migration nova: `pnpm --filter @npac/db generate` (ou SQL manual) → `00NN_nome.sql` + snapshot +
@@ -259,7 +270,7 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
 - Valor novo de enum não vale na mesma transação da migration (compare como texto).
 - Aplicar no dev: `pnpm --filter @npac/db build && pnpm --filter @npac/db migrate`.
   psql: `docker exec npac-corporation-postgres-1 psql -U npac_owner -d npac`.
-- Apagar lead/usuário à mão: FKs em `chat_reads`, `chat_*`, `payments`, `deals`, `lead_notes`,
+- Apagar lead/usuário à mão: FKs em `form_responses`, `chat_reads`, `chat_*`, `payments`, `deals`, `lead_notes`,
   `lead_tasks`, `notifications`, `lead_timeline`, `meetings` (`meeting_confirmations` e
   `meeting_reminders_sent` em cascata), `lgpd_requests` (usuário: também `session`, `account`,
   `push_subscriptions`). `truncate` de `meetings` nos testes lista as duas tabelas de lembretes.

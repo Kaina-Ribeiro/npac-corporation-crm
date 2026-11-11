@@ -10,6 +10,8 @@ type TodayTask = {
 };
 
 export type TodayDTO = {
+  /** Respostas do Forms ainda não vistas pela pessoa: `id` é o do aviso. */
+  formsNew: { id: string; leadId: string; name: string; at: string }[];
   charges: import('./finance.js').ChargeDTO[];
   overdue: { id: string; name: string; nextContactAt: string | null; version: number }[];
   /** Reuniões que já passaram sem resultado, de qualquer data e em qualquer etapa do lead. */

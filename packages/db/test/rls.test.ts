@@ -42,7 +42,7 @@ async function pgError<T>(p: Promise<T>): Promise<T> {
 }
 
 async function seedFixtures(): Promise<void> {
-  await owner`truncate meetings, leads, pipeline_stages, audit_log, "user" restart identity cascade`;
+  await owner`truncate meetings, form_responses, leads, pipeline_stages, audit_log, "user" restart identity cascade`;
   await owner`
     insert into "user" (id, name, email, role, can_prospect, can_close) values
       ('u-ana', 'Ana', 'ana@npac.test', 'HEAD', false, false),
