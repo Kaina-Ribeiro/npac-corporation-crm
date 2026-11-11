@@ -22,6 +22,9 @@ import { PerfisService } from './perfis.service.js';
 import { PlanoController } from './plano.controller.js';
 import { PlanoService } from './plano.service.js';
 import { ContatosController } from './contatos.controller.js';
+import { FilaController, Pme1Controller } from './fila.controller.js';
+import { FilaService } from './fila.service.js';
+import { MENTORIA_CLOCK, systemClock } from './relogio.js';
 import { ReunioesController } from './reunioes.controller.js';
 import { ReunioesService } from './reunioes.service.js';
 
@@ -36,6 +39,8 @@ import { ReunioesService } from './reunioes.service.js';
     PlanoController,
     ReunioesController,
     ContatosController,
+    FilaController,
+    Pme1Controller,
   ],
   providers: [
     MentoriaGuard,
@@ -48,6 +53,8 @@ import { ReunioesService } from './reunioes.service.js';
     FichaService,
     OnboardingService,
     ImportacaoService,
+    FilaService,
+    { provide: MENTORIA_CLOCK, useValue: systemClock },
     {
       provide: MentoriaCrypto,
       inject: [ENV],

@@ -15,6 +15,7 @@ import {
   type PushTarget,
 } from '../src/push/push.service.js';
 import { REMINDER_CLOCK, type Clock } from '../src/push/reminders.js';
+import { MENTORIA_CLOCK } from '../src/mentoria/relogio.js';
 
 /** Push de mentira: guarda o que seria enviado; `gone` simula inscrição expirada. */
 export class MemoryPushSender implements PushSender {
@@ -54,6 +55,11 @@ export class FakeClock implements Clock {
     this.base = Date.now();
     this.offset = 0;
     this.timers.clear();
+  }
+  /** Põe o relógio num instante qualquer (pode voltar), sem rodar timers. */
+  set(at: number) {
+    this.base = at;
+    this.offset = 0;
   }
   /** Avança até `at` (ms) e roda os timers vencidos. */
   advanceTo(at: number) {
@@ -96,6 +102,8 @@ export async function createTestApp(): Promise<NestFastifyApplication> {
     .overrideProvider(PUSH_SENDER)
     .useValue(new MemoryPushSender())
     .overrideProvider(REMINDER_CLOCK)
+    .useValue(new FakeClock())
+    .overrideProvider(MENTORIA_CLOCK)
     .useValue(new FakeClock())
     .compile();
   const app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter(), {
@@ -140,6 +148,8 @@ export function api(app: NestFastifyApplication) {
   };
   const patch = (path: string, body: object, cookie: Cookie) =>
     request(server).patch(path).set('Origin', ORIGIN).set('Cookie', cookie).send(body);
+  const put = (path: string, body: object, cookie: Cookie) =>
+    request(server).put(path).set('Origin', ORIGIN).set('Cookie', cookie).send(body);
   const del = (path: string, body: object, cookie: Cookie) =>
     request(server).delete(path).set('Origin', ORIGIN).set('Cookie', cookie).send(body);
   /** Login por usuário; os testes passam o e-mail e o usuário é a parte antes do @. */
@@ -152,7 +162,7 @@ export function api(app: NestFastifyApplication) {
     if (res.status !== 200) throw new Error(`login falhou (${res.status}): ${res.text}`);
     return cookiesOf(res);
   };
-  return { get, post, patch, del, signIn, signInRaw };
+  return { get, post, patch, put, del, signIn, signInRaw };
 }
 
 export async function auditCount(action: string): Promise<number> {

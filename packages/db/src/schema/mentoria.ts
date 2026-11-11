@@ -332,6 +332,8 @@ export const mentoriaOnboardingEtapas = pgTable(
     concluidaEm: timestamp('concluida_em', { withTimezone: true }),
     grupoCriadoEm: date('grupo_criado_em'),
     formularioPreenchido: boolean('formulario_preenchido'),
+    /** Quando o formulário foi marcado como preenchido (gatilho): base do "Enviar a Caixa". */
+    formularioPreenchidoEm: timestamp('formulario_preenchido_em', { withTimezone: true }),
     grupoAvisos: boolean('grupo_avisos'),
     grupoClube: boolean('grupo_clube'),
     grupoNacao: boolean('grupo_nacao'),
@@ -666,3 +668,19 @@ export const mentoriaMidiaExclusao = pgTable('mentoria_midia_exclusao', {
   enfileiradoEm: timestamp('enfileirado_em', { withTimezone: true }).notNull().defaultNow(),
   removidoEm: timestamp('removido_em', { withTimezone: true }),
 });
+
+/**
+ * Itens da Fila do dia sem estado próprio (lembrete da IDR, arte da agenda, reuniões 6M do mês):
+ * a chave é tipo + alvo + data, sem dado pessoal. Só acréscimo, em nome de quem está logado.
+ */
+export const mentoriaFilaFeitos = pgTable(
+  'mentoria_fila_feitos',
+  {
+    chave: text('chave').primaryKey(),
+    feitoPor: text('feito_por')
+      .notNull()
+      .references(() => user.id),
+    feitoEm: timestamp('feito_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [check('mentoria_fila_feitos_chave', sql`${t.chave} ~ '^[a-z0-9-]+:[0-9a-f:-]{7,80}$'`)],
+);

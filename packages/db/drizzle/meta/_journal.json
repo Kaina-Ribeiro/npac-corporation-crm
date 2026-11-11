@@ -372,6 +372,13 @@
       "when": 1794404761224,
       "tag": "0052_acompanhamento_v2_reunioes",
       "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1794412772168,
+      "tag": "0053_acompanhamento_v2_fila",
+      "breakpoints": true
     }
   ]
 }

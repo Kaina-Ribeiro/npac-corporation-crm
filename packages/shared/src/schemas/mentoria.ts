@@ -14,6 +14,7 @@ import {
 } from '../mentoria/enums.js';
 import { STATUS_IMPORTACAO } from '../mentoria/importacao.js';
 import { linkPermitido } from '../mentoria/links.js';
+import { FILA_TIPOS } from '../mentoria/fila.js';
 import { ENVIO_STATUS } from '../mentoria/onboarding.js';
 import { ACAO_STATUS, GATILHOS, PERFIS_ACAO, REUNIAO_TIPOS } from '../mentoria/plano.js';
 import {
@@ -392,3 +393,18 @@ export const contatoSchema = z
   })
   .strict();
 export type ContatoCriar = z.output<typeof contatoSchema>;
+
+export const filaSchema = z
+  .object({
+    escopo: z.enum(['MINHA', 'EQUIPE']).optional(),
+    tipos: z.array(z.enum(FILA_TIPOS)).max(FILA_TIPOS.length).optional(),
+  })
+  .strict();
+export type FilaFiltro = z.output<typeof filaSchema>;
+
+/** A chave é tipo + alvo + data (`agenda-mes:2026-12`), sem dado pessoal. */
+export const filaFeitoSchema = z
+  .object({ chave: z.string().regex(/^[a-z0-9-]+:[0-9a-f:-]{7,80}$/) })
+  .strict();
+
+export const pme1EnviadoSchema = z.object({ enviado: z.boolean() }).strict();
