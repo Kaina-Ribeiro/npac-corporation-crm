@@ -83,18 +83,13 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-      - name: Instalar psql
-        run: apt-get update -qq && apt-get install -y -qq --no-install-recommends postgresql-client
-      - name: Criar role npac_app e banco npac_test
-        run: sh infra/postgres/init/01-app-role.sh
-        env:
-          PGHOST: postgres
-          PGPASSWORD: ci_owner_password
-          POSTGRES_USER: npac_owner
-          POSTGRES_DB: npac
       - run: pnpm install --frozen-lockfile
       - name: Build dos pacotes (db, shared) usados pelo e2e
         run: pnpm turbo run build --filter="./packages/*"
+      # Sem psql no container: o mesmo SQL do 01-app-role.sh, por Node. Instalar psql por apt
+      # dependia dos espelhos do Ubuntu, que às vezes não resolviam e derrubavam o CI (exit 100).
+      - name: Criar role npac_app e banco npac_test
+        run: node packages/db/dist/app-role-cli.js
       - run: pnpm --filter @npac/web e2e
       - uses: actions/upload-artifact@v4
         if: failure()
