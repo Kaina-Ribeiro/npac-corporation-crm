@@ -113,6 +113,19 @@ Mesmo projeto `npac`, ambiente `itodev` (criado em 04/11/2026). É o **test stag
 | Variáveis   | do ambiente: `NODE_ENV`, `TRUST_PROXY`, `LOG_LEVEL`, `WEB_ORIGIN=https://crm-itodev.…`; do `api`: as mesmas cinco da seção 2, com valores próprios (nunca os de prod) |
 | Seed        | `SEED_INITIAL_PASSWORD=… node node_modules/@npac/db/dist/seed-cli.js` no shell do `api`: diretor (Diretoria), ana/ronaldo (Head), ale/murilo/igor (SDR), sonia (Closer) — todos os cargos para teste |
 
+**A build arg do `web` é o que separa o ITODEV da produção.** Sem ela o `web.Dockerfile` usa o
+padrão `cubeship-npac-production-api` e o site do ITODEV passa a ler e gravar no banco de produção,
+sem erro nenhum na tela (aconteceu em 11/11/2026, das ~20:59 UTC até a rc seguinte, depois de uma
+alteração do app pelo painel). Ao mexer no app pelo painel ou pelo MCP, mande de novo
+`build_args` com `API_INTERNAL_URL` (o campo não aparece na leitura). O Cubeship reaproveita a imagem
+pelo commit: trocar a build arg só vale com um commit novo (uma rc nova) ou um rebuild.
+Conferência rápida, sem login (precisa responder `Not Found`, nunca `Cannot POST`, que é a v0.12 da
+produção sem a rota):
+
+```sh
+curl -s -X POST -H 'content-type: application/json' -d '{}' https://crm-itodev.5-189-167-204.sslip.io/api/mentoria/fila
+```
+
 Fluxo: PR na `release/vX.Y` → rc `vX.Y.Z-rc` → ITODEV com essa tag (automático) → testar com
 cada cargo → Actions → Release → Run workflow **da `release/vX.Y`** → `deploy`, stage `prod`
 (tag vazia = última rc) → PR da release em `main` → tag final `vX.Y.Z` (mesmo código, sem novo
