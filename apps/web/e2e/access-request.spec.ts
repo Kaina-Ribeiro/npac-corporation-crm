@@ -94,11 +94,12 @@ test('recusar pede confirmação e apaga o pedido', async ({ page }) => {
   await page.goto('/admin');
   const requests = page.getByRole('region', { name: 'Pedidos de acesso' });
   await expect(requests).toContainText('Nova Pessoa');
-  // Head só oferece SDR e Closer.
+  // Head só oferece SDR e Closer, e nenhuma caixa vem marcada (o cargo define).
   await expect(requests.getByLabel('Cargo de Nova Pessoa').locator('option')).toHaveText([
     'SDR',
     'Closer',
   ]);
+  await expect(requests.getByRole('checkbox')).toHaveCount(0);
   page.once('dialog', (d) => void d.accept());
   await requests.getByRole('button', { name: 'Recusar' }).click();
   await expect(requests).toHaveCount(0);

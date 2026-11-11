@@ -75,8 +75,8 @@ describe('journal das migrations', () => {
 });
 
 describe('limpeza do módulo antigo', () => {
-  /** Aplica só as migrations anteriores ao Acompanhamento v2, numa cópia da pasta `drizzle`. */
-  async function migrarAteAntesDoV2(url: string) {
+  /** Aplica só as migrations anteriores à primeira com `tag`, numa cópia da pasta `drizzle`. */
+  async function migrarAteAntesDe(url: string, tag: string) {
     const pasta = mkdtempSync(join(tmpdir(), 'npac-migrations-'));
     try {
       cpSync(fileURLToPath(new URL('../drizzle', import.meta.url)), pasta, { recursive: true });
@@ -84,7 +84,7 @@ describe('limpeza do módulo antigo', () => {
       const journal = JSON.parse(readFileSync(arquivo, 'utf8')) as {
         entries: { tag: string }[];
       };
-      const v2 = journal.entries.findIndex((e) => e.tag.includes('acompanhamento_v2'));
+      const v2 = journal.entries.findIndex((e) => e.tag.includes(tag));
       if (v2 >= 0) journal.entries = journal.entries.slice(0, v2);
       writeFileSync(arquivo, JSON.stringify(journal));
       const sql = postgres(url, { max: 1, onnotice: () => {} });
@@ -101,7 +101,7 @@ describe('limpeza do módulo antigo', () => {
   it('limpeza remove o modelo antigo e enfileira a mídia antiga', async () => {
     const banco = 'npac_test_limpeza';
     const url = await createEmptyTestDb(banco);
-    await migrarAteAntesDoV2(url);
+    await migrarAteAntesDe(url, 'acompanhamento_v2');
     const owner = ownerSql(banco);
     await owner`insert into mentoria_midia (dono_tipo, dono_id, tipo, chave_objeto)
       values ('FICHA_ANTES', gen_random_uuid(), 'FOTO', 'antiga/1.jpg')`;
@@ -119,5 +119,59 @@ describe('limpeza do módulo antigo', () => {
     const sobra = await owner`select proname from pg_proc
       where proname in ('mentoria_excluir_registro', 'mentoria_excluir_pessoa', 'mentoria_travar_ficha')`;
     expect(sobra).toEqual([]);
+  });
+
+  // Produção chega à 0049 (cargos) com a carteira importada (Parte 2): o plano nasce sem alertar o
+  // passado, e quem estava PAUSADO ganha a pausa aberta com o status de antes.
+  it('plano e pausas chegam com a carteira que já existe', async () => {
+    const banco = 'npac_test_plano_migra';
+    const url = await createEmptyTestDb(banco);
+    await migrarAteAntesDe(url, 'acompanhamento_v2_plano');
+    const owner = ownerSql(banco);
+    const hoje = `(now() at time zone 'America/Sao_Paulo')::date`;
+    const nova = async (mentoria: string, status: string, inicio: string | null, imp = true) => {
+      const [i] = await owner.unsafe<{ id: string }[]>(
+        `insert into mentoria_inscricoes (tipo, mentoria, status, importada, inicio_jornada,
+           termino_previsto)
+         values ('INDIVIDUAL', '${mentoria}', '${status}', ${imp},
+           ${inicio ?? 'null'}, ${inicio ? `(${inicio} + interval '12 months')::date` : 'null'})
+         returning id`,
+      );
+      return i!.id;
+    };
+    const etapas = (id: string, status: string) =>
+      owner.unsafe(`insert into mentoria_onboarding_etapas (inscricao_id, etapa, status)
+        select '${id}', e, '${status}' from unnest(array['BOAS_VINDAS', 'GRUPOS', 'AQUECIMENTO',
+          'PME_AQUECIMENTO', 'CAIXA', 'IDR']) e`);
+    const m2 = await nova('2M', 'ATIVO', `${hoje} - 100`);
+    const rdvSemIdr = await nova('RDV', 'ATIVO', null);
+    const pausadoOnb = await nova('RDV', 'PAUSADO', null, false);
+    await etapas(pausadoOnb, 'PENDENTE');
+    const pausadoAtivo = await nova('6M', 'PAUSADO', `${hoje} - 40`);
+    await etapas(pausadoAtivo, 'ANTERIOR_AO_SISTEMA');
+
+    await runMigrations(url);
+
+    const contar = async (id: string) =>
+      (
+        await owner<{ total: number; alertam: number; passadas: number }[]>`
+          select count(*)::int as total,
+            (count(*) filter (where mentoria_acao_atrasada(status, anterior_ao_sistema,
+              data_limite, (now() at time zone 'America/Sao_Paulo')::date)))::int as alertam,
+            (count(*) filter (where data_prevista < (now() at time zone 'America/Sao_Paulo')::date
+              and not anterior_ao_sistema))::int as passadas
+          from mentoria_acoes where inscricao_id = ${id}`
+      )[0]!;
+    expect(await contar(m2)).toEqual({ total: 8, alertam: 0, passadas: 0 });
+    expect((await contar(rdvSemIdr)).total).toBe(0);
+    expect((await contar(pausadoAtivo)).alertam).toBe(0);
+    const [modelo] = await owner`select count(*)::int as n from mentoria_plano_modelo`;
+    expect(modelo!.n).toBe(43);
+    const pausas = await owner<{ inscricao_id: string; status_anterior: string; fim: null }[]>`
+      select inscricao_id, status_anterior, fim from mentoria_pausas order by status_anterior`;
+    expect(pausas).toEqual([
+      { inscricao_id: pausadoAtivo, status_anterior: 'ATIVO', fim: null },
+      { inscricao_id: pausadoOnb, status_anterior: 'ONBOARDING', fim: null },
+    ]);
   });
 });

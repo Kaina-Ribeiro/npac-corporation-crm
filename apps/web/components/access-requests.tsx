@@ -1,7 +1,7 @@
 'use client';
-import type { Role } from '@npac/shared';
+import type { Cargo } from '@npac/shared/cargos';
 import { useState } from 'react';
-import { ROLE_LABEL } from './role-tag';
+import { CargoDica, CargoExtras, CargoSelect, SEM_EXTRAS, type Extras } from './cargo-field';
 import { button, control, quietButton } from './crm-ui';
 
 export type AccessRequest = {
@@ -11,14 +11,6 @@ export type AccessRequest = {
   email: string;
   createdAt: string;
 };
-export type Approval = { role: Role; canProspect: boolean; canClose: boolean };
-
-/** O cargo define o que a pessoa faz; liderança prospecta e fecha. */
-const approvalFor = (role: Role): Approval => ({
-  role,
-  canProspect: role !== 'CLOSER',
-  canClose: role !== 'SDR',
-});
 
 const ago = (at: string) => {
   const days = Math.floor((Date.now() - new Date(at).getTime()) / 86_400_000);
@@ -28,14 +20,14 @@ const ago = (at: string) => {
 /** Pedidos feitos na tela de login; some quando não há nenhum. */
 export function AccessRequests({
   requests,
-  roles,
+  cargos,
   onApprove,
   onReject,
 }: {
   requests: AccessRequest[];
   /** Cargos que quem está logado pode dar (Head: SDR e Closer). */
-  roles: Role[];
-  onApprove: (r: AccessRequest, approval: Approval) => void;
+  cargos: Cargo[];
+  onApprove: (r: AccessRequest, cargo: Cargo, extras: Extras) => void;
   onReject: (r: AccessRequest) => void;
 }) {
   if (!requests.length) return null;
@@ -49,7 +41,7 @@ export function AccessRequests({
       </h2>
       <ul className="flex flex-col divide-y divide-line">
         {requests.map((r) => (
-          <Row key={r.id} request={r} roles={roles} onApprove={onApprove} onReject={onReject} />
+          <Row key={r.id} request={r} cargos={cargos} onApprove={onApprove} onReject={onReject} />
         ))}
       </ul>
     </section>
@@ -58,16 +50,18 @@ export function AccessRequests({
 
 function Row({
   request: r,
-  roles,
+  cargos,
   onApprove,
   onReject,
 }: {
   request: AccessRequest;
-  roles: Role[];
-  onApprove: (r: AccessRequest, approval: Approval) => void;
+  cargos: Cargo[];
+  onApprove: (r: AccessRequest, cargo: Cargo, extras: Extras) => void;
   onReject: (r: AccessRequest) => void;
 }) {
-  const [role, setRole] = useState<Role>('SDR');
+  // Mesmo campo do Convidar: o cargo define as caixas; nenhuma vem marcada.
+  const [cargo, setCargo] = useState<Cargo>('SDR');
+  const [extras, setExtras] = useState<Extras>(SEM_EXTRAS);
   return (
     <li className="flex flex-wrap items-center gap-3 py-3">
       {/* Base de 14rem: em telas estreitas os controles descem antes de cortar o nome. */}
@@ -77,19 +71,17 @@ function Row({
           {r.username} · {r.email} · {ago(r.createdAt)}
         </small>
       </span>
-      <select
-        aria-label={`Cargo de ${r.name}`}
+      <CargoSelect
+        ariaLabel={`Cargo de ${r.name}`}
         className={`${control} sm:!w-44`}
-        value={role}
-        onChange={(e) => setRole(e.target.value as Role)}
-      >
-        {roles.map((x) => (
-          <option key={x} value={x}>
-            {ROLE_LABEL[x]}
-          </option>
-        ))}
-      </select>
-      <button type="button" className={button} onClick={() => onApprove(r, approvalFor(role))}>
+        value={cargo}
+        permitidos={cargos}
+        onChange={(c) => {
+          setCargo(c);
+          setExtras(SEM_EXTRAS);
+        }}
+      />
+      <button type="button" className={button} onClick={() => onApprove(r, cargo, extras)}>
         Aprovar
       </button>
       <button
@@ -101,6 +93,16 @@ function Row({
       >
         Recusar
       </button>
+      <div className="flex basis-full flex-col gap-2">
+        <CargoDica cargo={cargo} />
+        <CargoExtras
+          compacto
+          nome={r.name}
+          cargo={cargo}
+          value={extras}
+          onChange={(campo, v) => setExtras((e) => ({ ...e, [campo]: v }))}
+        />
+      </div>
     </li>
   );
 }

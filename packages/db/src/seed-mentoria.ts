@@ -9,6 +9,7 @@ import {
   mentoriaInscricoes,
   mentoriaMomentoInicial,
   mentoriaOnboardingEtapas,
+  mentoriaPausas,
   mentoriaPerfis,
   mentoriaPessoas,
   user,
@@ -238,6 +239,22 @@ export async function seedMentoria(db: Db): Promise<void> {
               : null,
           rastreio: 'BR000000000FI',
           criadoPor: duda,
+        });
+      if (i.meses !== null) {
+        await tx.execute(
+          sql`select mentoria_gerar_acoes(${id}::uuid, (now() at time zone 'America/Sao_Paulo')::date)`,
+        );
+        // O que passou antes do mês atual já foi feito: sobra só o mês corrente para a equipe.
+        await tx.execute(sql`update mentoria_acoes set status = 'FEITA', feita_em = now(),
+            feita_por = ${duda}, itens_feitos = itens
+          where inscricao_id = ${id}::uuid and mes < ${i.meses}`);
+      }
+      if (i.status === 'PAUSADO')
+        await tx.insert(mentoriaPausas).values({
+          inscricaoId: id,
+          inicio: sql`(now() at time zone 'America/Sao_Paulo')::date - 10`,
+          statusAnterior: 'ATIVO',
+          pausadaPor: duda,
         });
     }
   });

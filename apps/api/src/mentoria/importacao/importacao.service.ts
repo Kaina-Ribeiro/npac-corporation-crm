@@ -30,6 +30,7 @@ import { erroDoBanco } from '../erros.js';
 import { registrarHistorico } from '../historico.js';
 import { aad, MentoriaCrypto } from '../mentoria-crypto.js';
 import { criarEtapas } from '../onboarding.service.js';
+import { PlanoService } from '../plano.service.js';
 import { lerPlanilha } from './ler-planilha.js';
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -46,6 +47,7 @@ export class ImportacaoService {
   constructor(
     @Inject(DB) private readonly db: Db,
     private readonly crypto: MentoriaCrypto,
+    private readonly plano: PlanoService,
   ) {}
 
   /** A planilha é lida fora da transação: quem espera é a tela, não o banco. */
@@ -191,6 +193,8 @@ export class ImportacaoService {
         inscricaoId: id,
         dados: this.crypto.cifrarTexto(JSON.stringify(legado), aad('mentoria_legado', 'dados', id)),
       });
+    // 2M e 6M chegam com o início; RDV espera a data da IDR. Passado nasce sem alertar (§7).
+    if (n.inicioJornada) await this.plano.gerar(tx, id);
     await registrarHistorico(tx, id, 'inscricao.importada', []);
   }
 

@@ -188,11 +188,11 @@ describe('Diretoria', () => {
     );
     expect((await h.post(`/api/admin/users/${ids.ana}/reset-password`, {}, head)).status).toBe(403);
     expect((await h.post(`/api/admin/users/${ids.ana}/reset-mfa`, {}, head)).status).toBe(403);
-    // Continua gerenciando SDR e closer.
-    expect((await h.patch(`/api/admin/users/${ids.ale}`, { canClose: true }, head)).status).toBe(
+    // Continua gerenciando SDR e closer (o cargo define as caixas deles).
+    expect((await h.patch(`/api/admin/users/${ids.ale}`, { role: 'CLOSER' }, head)).status).toBe(
       200,
     );
-    await owner`update "user" set can_close = false where email = 'ale@npac.com.br'`;
+    expect((await h.patch(`/api/admin/users/${ids.ale}`, { role: 'SDR' }, head)).status).toBe(200);
   });
 
   it('Diretoria promove e rebaixa Head e vê tudo como Head', async () => {

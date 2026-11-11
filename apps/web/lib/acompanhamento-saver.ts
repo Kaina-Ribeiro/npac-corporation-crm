@@ -1,12 +1,19 @@
 'use client';
-import { ErroDeEnvio, FieldQueue, type FichaDTO, type StatusFila } from '@npac/shared/mentoria';
+import {
+  ErroDeEnvio,
+  FieldQueue,
+  type AcaoDTO,
+  type FichaDTO,
+  type PlanoModeloLinha,
+  type StatusFila,
+} from '@npac/shared/mentoria';
 import { useEffect, useState } from 'react';
 
 /**
  * Liga a fila de salvamento (T5 do SPEC) à API. Usa `fetch` direto (não o `clientApi`) para ler o
  * status do 409. Uma fila por aba; nada vai para storage. Chaves do registro:
  * `inscricao:<id>`, `pessoa:<inscricaoId>:<pessoaId>`, `etapa:<inscricaoId>:<etapaId>`,
- * `endereco:<id>`, `momento:<id>` e
+ * `endereco:<id>`, `momento:<id>`, `acao:<inscricaoId>:<acaoId>`, `modelo:<id>` e
  * `avaliacao:<pessoaId>:<tipo>` (esta sem version: uma coluna por envio, não colide).
  */
 type Alvo = { url: string; method: 'PATCH' | 'PUT'; corpo: (v: number) => object };
@@ -28,6 +35,14 @@ function alvo(key: string): Alvo {
       return { url: `${base}/onboarding/${b}`, method: 'PATCH', corpo: comVersion };
     case 'avaliacao':
       return { url: `${base}/pessoas/${a}/avaliacoes`, method: 'PUT', corpo: () => ({ tipo: b }) };
+    case 'acao':
+      return { url: `${base}/acoes/${b}`, method: 'PATCH', corpo: comVersion };
+    case 'modelo':
+      return {
+        url: `${base}/plano-modelo`,
+        method: 'PUT',
+        corpo: (version) => ({ id: a, version }),
+      };
     default:
       throw new Error(`Registro desconhecido: ${key}`);
   }
@@ -59,6 +74,25 @@ async function enviar(key: string, patch: Record<string, unknown>, version: numb
 async function recarregar(key: string) {
   const [tipo, a, b] = key.split(':');
   if (tipo === 'avaliacao') return { version: 0, valores: {} };
+  // A fila compara por igualdade: listas vão como texto, nos dois lados da comparação.
+  if (tipo === 'modelo') {
+    const res = await fetch('/api/mentoria/plano-modelo', { cache: 'no-store' });
+    if (!res.ok) throw new ErroDeEnvio('Não foi possível recarregar', res.status);
+    const l = ((await res.json()) as PlanoModeloLinha[]).find((x) => x.id === a);
+    return {
+      version: l?.version ?? 0,
+      valores: { ...l, itens: JSON.stringify(l?.itens ?? []) } as Record<string, unknown>,
+    };
+  }
+  if (tipo === 'acao') {
+    const res = await fetch(`/api/mentoria/acoes/${b}`, { cache: 'no-store' });
+    if (!res.ok) throw new ErroDeEnvio('Não foi possível recarregar', res.status);
+    const x = (await res.json()) as AcaoDTO;
+    return {
+      version: x.version,
+      valores: { ...x, itensFeitos: JSON.stringify(x.itensFeitos) } as Record<string, unknown>,
+    };
+  }
   const res = await fetch(`/api/mentoria/inscricoes/${a}`, { cache: 'no-store' });
   if (!res.ok) throw new ErroDeEnvio('Não foi possível recarregar', res.status);
   const ficha = (await res.json()) as FichaDTO;

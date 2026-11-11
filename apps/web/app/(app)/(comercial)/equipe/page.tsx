@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
 import type { Role } from '@npac/shared';
+import { ATUA_COMO, temCaixas } from '@npac/shared/cargos';
 import { money } from '@npac/shared/money';
 import { apiGet } from '@/lib/api';
 import { RoleTag } from '@/components/role-tag';
@@ -45,9 +46,13 @@ export default async function EquipePage() {
                 <h2 className="font-bold">{m.name}</h2>
                 <p className="mt-1 flex items-center gap-1.5 text-xs text-ink2">
                   <RoleTag role={m.role} />
-                  {[m.canProspect && 'prospecta', m.canClose && 'fecha']
-                    .filter(Boolean)
-                    .join(' · ')}
+                  {temCaixas(m.role) &&
+                    [
+                      m.canProspect && ATUA_COMO.canProspect.label,
+                      m.canClose && ATUA_COMO.canClose.label,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
                 </p>
               </div>
             </div>

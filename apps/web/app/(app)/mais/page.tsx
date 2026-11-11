@@ -1,3 +1,4 @@
+import { ATUA_COMO, temCaixas } from '@npac/shared/cargos';
 import { hasCommercialAccess, isLeader, MFA_LIGADO } from '@npac/shared/enums';
 import { pendingAccessRequests } from '@/lib/access-requests';
 import Link from 'next/link';
@@ -34,7 +35,13 @@ export default async function MorePage() {
     ...(isLeader(me.role) ? [ADMIN_ITEM] : []),
   ];
   const requests = await pendingAccessRequests(me.role);
-  const flags = [me.canProspect && 'Prospecta', me.canClose && 'Fecha'].filter(Boolean);
+  // "Atua como SDR/Closer" só na liderança; SDR e Closer mostram só o cargo.
+  const flags = temCaixas(me.role)
+    ? [
+        me.canProspect && ATUA_COMO.canProspect.label,
+        me.canClose && ATUA_COMO.canClose.label,
+      ].filter(Boolean)
+    : [];
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-5 pt-2">
       <section className="glass-card flex items-center gap-4 p-5">

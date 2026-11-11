@@ -89,9 +89,10 @@ test('Duda troca a senha no primeiro acesso e cai no Acompanhamento', async ({ p
 test('Diretoria convida e muda alguém para o cargo Acompanhamento pela tela', async ({ page }) => {
   await login(page, 'diretor@npac.com.br');
   await page.goto('/admin');
+  // Cargo em um passo: o grupo Acompanhamento já traz os perfis do módulo.
   await expect(
-    page.locator('select[name="role"]').first().locator('option', { hasText: 'Acompanhamento' }),
-  ).toHaveCount(1);
+    page.getByLabel('Cargo', { exact: true }).locator('optgroup[label="Acompanhamento"] option'),
+  ).toHaveText(['Acompanhamento', 'Operação', 'Especialista', 'Mentor']);
   await expect(
     page.getByLabel('Cargo de Ale', { exact: false }).first().locator('option', {
       hasText: 'Acompanhamento',
@@ -103,29 +104,38 @@ test('Duda navega no módulo e nunca chega numa tela comercial (Link, URL ou 404
   page,
 }) => {
   await login(page, 'duda@npac.com.br');
-  await page.waitForURL(ENTRADA);
-  // Navegação do navegador dentro do módulo.
-  await page.getByRole('link', { name: 'Reuniões', exact: true }).first().click();
-  await page.waitForURL(/\/acompanhamento\/em-breve\/reunioes/);
+  // Cada ida ao comercial é trocada por uma carga completa do módulo: a navegação pedida é
+  // abortada no meio, e `waitForURL` (que espera o `load` dela) falhava às vezes com ERR_ABORTED
+  // (1 em 25 aqui, e no CI). `toHaveURL` só confere o endereço, repetindo até chegar.
+  await expect(page).toHaveURL(ENTRADA);
   // Módulo → comercial por navegação do navegador (como um Link do Next): volta ao módulo.
+  // Cada ida parte de Reuniões (navegação do navegador dentro do módulo), para a volta ser provada
+  // toda vez, e só depois que a carga anterior terminou.
   for (const alvo of ['/leads', '/equipe', '/dashboard']) {
-    await page.evaluate((href) => {
-      (window as unknown as { next: { router: { push: (h: string) => void } } }).next.router.push(
-        href,
-      );
-    }, alvo);
-    await page.waitForURL(ENTRADA);
+    await page.waitForLoadState('load');
+    await page.getByRole('link', { name: 'Reuniões', exact: true }).first().click();
+    await expect(page).toHaveURL(/\/acompanhamento\/em-breve\/reunioes/);
+    // A navegação que o push dispara pode destruir o contexto antes do evaluate responder.
+    await page
+      .evaluate((href) => {
+        (window as unknown as { next: { router: { push: (h: string) => void } } }).next.router.push(
+          href,
+        );
+      }, alvo)
+      .catch(() => {});
+    await expect(page).toHaveURL(ENTRADA);
     await expect(titulo(page)).toBeVisible();
   }
+  await page.waitForLoadState('load');
   // Por URL também.
   // A tela troca de endereço logo ao abrir: o goto pode ser interrompido; vale o destino.
   await page.goto('/pipeline').catch(() => {});
-  await page.waitForURL(ENTRADA);
+  await expect(page).toHaveURL(ENTRADA);
   await expect(titulo(page)).toBeVisible();
   // Endereço solto fora do módulo também leva a ele (cai em [secao] do comercial).
   // A tela troca de endereço logo ao abrir: o goto pode ser interrompido; vale o destino.
   await page.goto('/nao-existe').catch(() => {});
-  await page.waitForURL(ENTRADA);
+  await expect(page).toHaveURL(ENTRADA);
   // Do 404 (endereço inexistente no módulo), o botão leva ao módulo.
   await page.goto('/acompanhamento/nao-existe');
   await expect(page.getByText('Esta tela não faz parte do seu acesso.')).toBeVisible();
@@ -133,7 +143,7 @@ test('Duda navega no módulo e nunca chega numa tela comercial (Link, URL ou 404
     page.getByRole('navigation', { name: 'Navegação lateral' }).getByRole('link'),
   ).toHaveText(MODULOS);
   await page.getByRole('link', { name: 'Ir para o Acompanhamento' }).click();
-  await page.waitForURL(ENTRADA);
+  await expect(page).toHaveURL(ENTRADA);
   await expect(titulo(page)).toBeVisible();
   // Da tela Mais (fora do módulo) para o módulo, pelo card.
   await page.goto('/mais');
@@ -141,7 +151,7 @@ test('Duda navega no módulo e nunca chega numa tela comercial (Link, URL ou 404
     .getByRole('navigation', { name: 'Mais seções' })
     .getByRole('link', { name: /Acompanhamento/ })
     .click();
-  await page.waitForURL(ENTRADA);
+  await expect(page).toHaveURL(ENTRADA);
 });
 
 test('SDR e HEAD não veem o item Acompanhamento na sidebar, na barra e no Ctrl+K', async ({

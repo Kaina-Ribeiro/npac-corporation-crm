@@ -104,7 +104,7 @@ export default async function MaisPage() {
           {
             rotulo: 'Plano dos 12 meses',
             icone: ICONES.plano,
-            href: '/acompanhamento/em-breve/plano',
+            href: '/acompanhamento/plano',
           },
         ]}
       />

@@ -13,7 +13,7 @@ import {
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { control, quietButton } from '@/components/crm-ui';
+import { button, control, quietButton } from '@/components/crm-ui';
 import { clientApi } from '@/lib/client-api';
 import { filaDeSalvamento, registrarVersion } from '@/lib/acompanhamento-saver';
 import { CampoPr, DINHEIRO } from './campo';
@@ -23,6 +23,7 @@ import { FichaMomento } from './ficha-momento';
 import { FichaPessoas } from './ficha-pessoas';
 import { HistoricoLista } from './historico-lista';
 import { IndicadorSalvo } from './indicador-salvo';
+import { PlanoMentorado } from './plano-mentorado';
 import { dataBR, FOCOS_RDV, ICONES, Icone, Rostos, TagStatus, Trilha, type Aba } from './ui';
 
 const COOKIE_ULTIMA_FICHA = 'npac_ultima_ficha';
@@ -60,8 +61,13 @@ function Jornada({
           );
         })}
       </div>
-      <OnboardingFicha ficha={ficha} atualizar={atualizar} />
-      <p className="jg-aviso">As ações de cada mês entram aqui com o plano dos 12 meses.</p>
+      <OnboardingFicha
+        ficha={ficha}
+        atualizar={atualizar}
+        plano={
+          ficha.acoes.length > 0 ? <PlanoMentorado ficha={ficha} atualizar={atualizar} /> : null
+        }
+      />
     </section>
   );
 }
@@ -72,12 +78,14 @@ function Inscricao({
   ativo,
   atualizar,
   pedirTipo,
+  pedirIdr,
 }: {
   ficha: FichaDTO;
   responsaveis: { id: string; nome: string }[];
   ativo: boolean;
   atualizar: () => void;
   pedirTipo: () => void;
+  pedirIdr: () => void;
 }) {
   const chave = `inscricao:${ficha.id}`;
   const ed = ficha.pode.inscricao;
@@ -160,11 +168,19 @@ function Inscricao({
       {ficha.mentoria === 'RDV' ? (
         <div className="pr">
           <span>Data da IDR</span>
-          <span className="pv-fixo">{dataBR(ficha.dataIdr) || '—'}</span>
+          <div className="pl-idr">
+            <span className="pv-fixo">{dataBR(ficha.dataIdr) || '—'}</span>
+            {ficha.pode.plano && (ficha.importada || ficha.dataIdr) && (
+              <button type="button" className="pl-link" onClick={pedirIdr}>
+                {ficha.dataIdr ? 'Corrigir' : 'Informar'}
+              </button>
+            )}
+          </div>
         </div>
       ) : (
         <CampoPr
-          {...base}
+          chave={chave}
+          editavel={ed && (ficha.acoes.length === 0 || ficha.pode.plano)}
           rotulo="Início"
           campo="inicioJornada"
           valor={ficha.inicioJornada}
@@ -211,7 +227,15 @@ function Inscricao({
 }
 
 /** Menu "Mais ações": fecha ao clicar fora e com Esc. */
-function MaisAcoes({ ficha, pedirTipo }: { ficha: FichaDTO; pedirTipo: () => void }) {
+function MaisAcoes({
+  ficha,
+  pedirTipo,
+  pedirPausa,
+}: {
+  ficha: FichaDTO;
+  pedirTipo: () => void;
+  pedirPausa: () => void;
+}) {
   const [aberto, setAberto] = useState(false);
   const raiz = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -240,9 +264,21 @@ function MaisAcoes({ ficha, pedirTipo }: { ficha: FichaDTO; pedirTipo: () => voi
       </button>
       {aberto && (
         <div className="fc-menu card" role="menu">
-          <button type="button" role="menuitem" disabled>
-            Pausar<span className="tag">Em breve</span>
-          </button>
+          {ficha.status !== 'PAUSADO' && (
+            <button
+              type="button"
+              role="menuitem"
+              disabled={
+                !ficha.pode.plano || (ficha.status !== 'ATIVO' && ficha.status !== 'ONBOARDING')
+              }
+              onClick={() => {
+                setAberto(false);
+                pedirPausa();
+              }}
+            >
+              Pausar
+            </button>
+          )}
           <button
             type="button"
             role="menuitem"
@@ -316,6 +352,116 @@ function MudarTipo({
   );
 }
 
+/** Pausar: some da Fila e do plano da semana até retomar. */
+function Pausar({
+  ficha,
+  onFeito,
+  onFechar,
+}: {
+  ficha: FichaDTO;
+  onFeito: () => void;
+  onFechar: () => void;
+}) {
+  const [motivo, setMotivo] = useState('');
+  return (
+    <Dialogo
+      titulo="Pausar a jornada"
+      texto="Sai da Fila e do plano da semana. Ao retomar, os dias parados são somados ao término e às ações pendentes."
+      rotulo="Pausar"
+      onConfirmar={async () => {
+        await filaDeSalvamento().idle();
+        await clientApi(`/api/mentoria/inscricoes/${ficha.id}/pausar`, 'POST', {
+          motivo: motivo.trim(),
+        });
+        onFeito();
+      }}
+      onFechar={onFechar}
+    >
+      <label className="f">
+        <span>Motivo (opcional)</span>
+        <input
+          className={control}
+          autoFocus
+          maxLength={2000}
+          value={motivo}
+          onChange={(e) => setMotivo(e.target.value)}
+        />
+      </label>
+    </Dialogo>
+  );
+}
+
+function Retomar({
+  ficha,
+  onFeito,
+  onFechar,
+}: {
+  ficha: FichaDTO;
+  onFeito: () => void;
+  onFechar: () => void;
+}) {
+  const dias = ficha.pausa?.dias ?? 0;
+  return (
+    <Dialogo
+      titulo="Retomar a jornada"
+      texto={
+        dias === 0
+          ? 'Pausada hoje: as datas ficam como estão.'
+          : `${dias} ${dias === 1 ? 'dia parado será somado' : 'dias parados serão somados'} ao término e às ações pendentes.`
+      }
+      rotulo="Retomar"
+      onConfirmar={async () => {
+        await filaDeSalvamento().idle();
+        await clientApi(`/api/mentoria/inscricoes/${ficha.id}/retomar`, 'POST', {});
+        onFeito();
+      }}
+      onFechar={onFechar}
+    />
+  );
+}
+
+/** Informar ou corrigir a IDR: refaz as datas das ações pendentes. */
+function CorrigirIdr({
+  ficha,
+  onFeito,
+  onFechar,
+}: {
+  ficha: FichaDTO;
+  onFeito: () => void;
+  onFechar: () => void;
+}) {
+  const [data, setData] = useState(ficha.dataIdr ?? '');
+  const chave = `inscricao:${ficha.id}`;
+  return (
+    <Dialogo
+      titulo={ficha.dataIdr ? 'Corrigir a data da IDR' : 'Informar a data da IDR'}
+      texto="As ações pendentes são recalculadas a partir dessa data. As já feitas ficam como estão."
+      rotulo="Salvar"
+      podeConfirmar={data !== ''}
+      onConfirmar={async () => {
+        await filaDeSalvamento().idle();
+        await clientApi(`/api/mentoria/inscricoes/${ficha.id}/data-idr`, 'PUT', {
+          version: filaDeSalvamento().version(chave) ?? ficha.version,
+          dataIdr: data,
+        });
+        onFeito();
+      }}
+      onFechar={onFechar}
+    >
+      <label className="f">
+        <span>Data da IDR</span>
+        <input
+          className={control}
+          type="date"
+          autoFocus
+          value={data}
+          onChange={(e) => setData(e.target.value)}
+        />
+      </label>
+    </Dialogo>
+  );
+}
+
 export function Ficha({
   ficha,
   responsaveis,
@@ -328,6 +474,7 @@ export function Ficha({
   const router = useRouter();
   const [aba, setAba] = useState<Aba>(abaInicial);
   const [mudarTipo, setMudarTipo] = useState(false);
+  const [dialogo, setDialogo] = useState<'pausar' | 'retomar' | 'idr' | null>(null);
   const atualizar = () =>
     void filaDeSalvamento()
       .idle()
@@ -343,6 +490,7 @@ export function Ficha({
     registrarVersion(`momento:${ficha.id}`, ficha.momento?.version ?? 0);
     for (const p of ficha.pessoas) registrarVersion(`pessoa:${ficha.id}:${p.id}`, p.version);
     for (const e of ficha.onboarding) registrarVersion(`etapa:${ficha.id}:${e.id}`, e.version);
+    for (const a of ficha.acoes) registrarVersion(`acao:${ficha.id}:${a.id}`, a.version);
   }, [ficha]);
 
   function trocarAba(a: Aba) {
@@ -421,9 +569,28 @@ export function Ficha({
                 </a>
               ),
           )}
-          <MaisAcoes ficha={ficha} pedirTipo={() => setMudarTipo(true)} />
+          {ficha.status === 'PAUSADO' && ficha.pode.plano && (
+            <button type="button" className={`${button} sm`} onClick={() => setDialogo('retomar')}>
+              Retomar
+            </button>
+          )}
+          <MaisAcoes
+            ficha={ficha}
+            pedirTipo={() => setMudarTipo(true)}
+            pedirPausa={() => setDialogo('pausar')}
+          />
         </div>
       </header>
+
+      {ficha.pausa && (
+        <p className="card pl-pausa" role="status">
+          <b>
+            Pausado desde {dataBR(ficha.pausa.inicio)}, há {ficha.pausa.dias}{' '}
+            {ficha.pausa.dias === 1 ? 'dia' : 'dias'}.
+          </b>{' '}
+          {ficha.pausa.motivo}
+        </p>
+      )}
 
       <div className="fc-corpo">
         <div className="fc-main">
@@ -457,6 +624,7 @@ export function Ficha({
           ativo={aba === 'inscricao'}
           atualizar={atualizar}
           pedirTipo={() => setMudarTipo(true)}
+          pedirIdr={() => setDialogo('idr')}
         />
       </div>
 
@@ -465,6 +633,19 @@ export function Ficha({
           ficha={ficha}
           onFeito={() => router.refresh()}
           onFechar={() => setMudarTipo(false)}
+        />
+      )}
+      {dialogo === 'pausar' && (
+        <Pausar ficha={ficha} onFeito={() => router.refresh()} onFechar={() => setDialogo(null)} />
+      )}
+      {dialogo === 'retomar' && (
+        <Retomar ficha={ficha} onFeito={() => router.refresh()} onFechar={() => setDialogo(null)} />
+      )}
+      {dialogo === 'idr' && (
+        <CorrigirIdr
+          ficha={ficha}
+          onFeito={() => router.refresh()}
+          onFechar={() => setDialogo(null)}
         />
       )}
     </section>
