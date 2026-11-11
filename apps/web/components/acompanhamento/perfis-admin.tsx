@@ -1,16 +1,20 @@
 'use client';
+import { MODULO_ADMIN_LABEL } from '@npac/shared/cargos';
 import { PERFIL_LABEL, PERFIS, type Perfil, type PerfilLinha } from '@npac/shared/mentoria';
 import { useState } from 'react';
 import { control, FormError } from '@/components/crm-ui';
 import { clientApi } from '@/lib/client-api';
 import { Rostos } from './ui';
 
-/** Configurações > Perfis: perfil e selo de Admin de cada pessoa com o cargo Acompanhamento. */
+/**
+ * Configurações > Perfis: troca o perfil e o selo de Admin de quem já está na equipe (C7). Conta
+ * nova e saída da equipe são pelo cargo, no Admin do CRM; daqui não se tira o perfil.
+ */
 export function PerfisAdmin({ inicial }: { inicial: PerfilLinha[] }) {
   const [linhas, setLinhas] = useState(inicial);
   const [erro, setErro] = useState('');
 
-  async function definir(id: string, perfil: Perfil | null, admin: boolean) {
+  async function definir(id: string, perfil: Perfil, admin: boolean) {
     const antes = linhas;
     setErro('');
     setLinhas((ls) => ls.map((l) => (l.id === id ? { ...l, perfil, admin } : l)));
@@ -37,12 +41,14 @@ export function PerfisAdmin({ inicial }: { inicial: PerfilLinha[] }) {
               className={control}
               aria-label={`Perfil de ${u.nome}`}
               value={u.perfil ?? ''}
-              onChange={(e) => {
-                const perfil = (e.target.value || null) as Perfil | null;
-                void definir(u.id, perfil, perfil ? u.admin : false);
-              }}
+              onChange={(e) => void definir(u.id, e.target.value as Perfil, u.admin)}
             >
-              <option value="">Sem perfil</option>
+              {/* Só conta antiga sem perfil: pede a escolha, sem voltar a "sem perfil". */}
+              {!u.perfil && (
+                <option value="" disabled>
+                  Escolha o perfil
+                </option>
+              )}
               {PERFIS.map((p) => (
                 <option key={p} value={p}>
                   {PERFIL_LABEL[p]}
@@ -50,16 +56,16 @@ export function PerfisAdmin({ inicial }: { inicial: PerfilLinha[] }) {
               ))}
             </select>
             <div className="pf-admin">
-              Admin
+              <span className="pf-admin-rot">{MODULO_ADMIN_LABEL}</span>
               <button
                 type="button"
                 className={`sw ${u.admin ? 'on' : ''}`}
                 role="switch"
                 aria-checked={u.admin}
-                aria-label={`Admin para ${u.nome}`}
+                aria-label={`${MODULO_ADMIN_LABEL} para ${u.nome}`}
                 disabled={!u.perfil}
                 title={u.perfil ? undefined : 'Defina um perfil antes'}
-                onClick={() => void definir(u.id, u.perfil, !u.admin)}
+                onClick={() => u.perfil && void definir(u.id, u.perfil, !u.admin)}
               >
                 <i />
               </button>
@@ -69,7 +75,7 @@ export function PerfisAdmin({ inicial }: { inicial: PerfilLinha[] }) {
         {linhas.length === 0 && (
           <div className="vazio">
             <h2>Ninguém com o cargo Acompanhamento</h2>
-            <p>A liderança cria o login com esse cargo, e você define o perfil aqui.</p>
+            <p>A Diretoria cria o login no Admin do CRM, já com o perfil.</p>
           </div>
         )}
       </section>

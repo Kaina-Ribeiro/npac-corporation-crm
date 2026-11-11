@@ -512,6 +512,12 @@ body {
     --role-bg: #dcf3ea;
     --role-fg: #11704f;
   }
+  /* Conta antiga do Acompanhamento sem perfil: contorno, para chamar a escolha no Admin. */
+  .role-FALTA {
+    --role-bg: transparent;
+    --role-fg: var(--danger);
+    box-shadow: inset 0 0 0 1px currentColor;
+  }
   .dark .role-DIRETOR {
     --role-bg: #c9a24e;
     --role-fg: #241800;
@@ -1486,6 +1492,29 @@ html[data-dash-dragging] * {
     select option:disabled {
       opacity: 0.45;
       cursor: not-allowed;
+    }
+    /* Grupos (campo Cargo: Comercial / Acompanhamento): título discreto, opções como as outras. */
+    select optgroup {
+      padding: 6px 12px 2px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--ink2);
+    }
+    select optgroup + optgroup {
+      margin-block-start: 6px;
+      border-block-start: 1px solid var(--line);
+    }
+    select optgroup option {
+      margin-inline: -12px;
+      font-weight: 400;
+      letter-spacing: normal;
+      text-transform: none;
+      color: var(--ink);
+    }
+    select optgroup option:checked {
+      font-weight: 600;
     }
     /* Selects pequenos (cards do Pipeline, filtros em text-xs): lista mais compacta. */
     select:where(.text-xs) option {

@@ -19,13 +19,23 @@ import {
   account,
   leads,
   leadTimeline,
+  mentoriaPerfis,
   session,
   twoFactor,
   user,
   withUser,
   type Db,
 } from '@npac/db';
-import { isLeader, ROLES, usernameSchema, type AuthUser, type Role } from '@npac/shared';
+import {
+  isLeader,
+  userChangeSchema,
+  userInviteSchema,
+  type AuthUser,
+  type Perfil,
+  type Role,
+  type UserChange,
+  type UserInvite,
+} from '@npac/shared';
 import { and, asc, count, eq, isNull, sql } from 'drizzle-orm';
 import { ReminderScheduler } from '../push/reminders.js';
 import { z } from 'zod';
@@ -34,28 +44,9 @@ import { Can } from '../auth/can.decorator.js';
 import { CurrentUser, type SessionUser } from '../auth/current-user.decorator.js';
 import { DB } from '../common/db/db.module.js';
 import { validate } from '../common/validate.js';
+import { camposDoCargo, cargoAtual, gravarPerfil, resolverOuRecusar } from './cargo.js';
 
-const invite = z
-  .object({
-    name: z.string().trim().min(1).max(120),
-    email: z.email().trim().toLowerCase().max(200),
-    username: usernameSchema,
-    role: z.enum(ROLES),
-    canProspect: z.boolean(),
-    canClose: z.boolean(),
-  })
-  .strict();
-const change = z
-  .object({
-    name: z.string().trim().min(1).max(120),
-    role: z.enum(ROLES),
-    canProspect: z.boolean(),
-    canClose: z.boolean(),
-    active: z.boolean(),
-  })
-  .partial()
-  .strict()
-  .refine((v) => Object.keys(v).length > 0, 'Informe alteração');
+const CAMPOS_DO_CARGO = ['role', 'perfil', 'moduloAdmin', 'canProspect', 'canClose'] as const;
 
 /** Senha temporária mostrada uma única vez a quem administra; o titular troca no primeiro acesso. */
 const temporaryPassword = () => randomBytes(12).toString('base64url');
@@ -97,7 +88,30 @@ export class AdminUsersService {
       })
       .from(user)
       .orderBy(asc(user.active), asc(user.name));
-    return rows.map((r) => ({ ...r, leads: byUser.get(r.id) ?? 0 }));
+    // Perfil do Acompanhamento: só a Diretoria (Admin do módulo) lê pela RLS de mentoria_perfis.
+    const perfis =
+      actor.role === 'DIRETOR'
+        ? await withUser(this.db, actor.id, (tx) =>
+            tx
+              .select({
+                id: mentoriaPerfis.userId,
+                perfil: mentoriaPerfis.perfil,
+                admin: mentoriaPerfis.admin,
+              })
+              .from(mentoriaPerfis),
+          )
+        : [];
+    const perfilDe = new Map(perfis.map((p) => [p.id, p]));
+    return rows.map((r) => {
+      const p = perfilDe.get(r.id);
+      const veAcomp = actor.role === 'DIRETOR' && r.role === 'ACOMPANHAMENTO';
+      return {
+        ...r,
+        perfil: veAcomp ? ((p?.perfil as Perfil | undefined) ?? null) : null,
+        moduloAdmin: veAcomp ? (p?.admin ?? false) : null,
+        leads: byUser.get(r.id) ?? 0,
+      };
+    });
   }
 
   /** Passa todos os leads abertos de um SDR para outro (ex.: quem saiu da empresa). */
@@ -160,16 +174,31 @@ export class AdminUsersService {
       throw new ForbiddenException('Só a Diretoria administra contas de Acompanhamento');
   }
 
-  async invite(actor: AuthUser, input: z.output<typeof invite>) {
+  async invite(actor: AuthUser, input: UserInvite) {
     await this.guardLeadership(actor, null, input.role);
+    const { perfil, moduloAdmin, canProspect, canClose, ...conta } = input;
+    const cargo = resolverOuRecusar({
+      role: input.role,
+      perfil,
+      moduloAdmin,
+      canProspect,
+      canClose,
+    });
     const password = temporaryPassword();
     const id = randomUUID();
     const passwordHash = await hash(password);
     await this.db
       .transaction(async (tx) => {
-        await tx
-          .insert(user)
-          .values({ id, ...input, displayUsername: input.username, mustChangePassword: true });
+        await tx.insert(user).values({
+          id,
+          ...conta,
+          role: cargo.role,
+          canProspect: cargo.canProspect,
+          canClose: cargo.canClose,
+          displayUsername: input.username,
+          mustChangePassword: true,
+        });
+        await gravarPerfil(tx, this.audit, actor.id, id, cargo);
         await tx.insert(account).values({
           id: randomUUID(),
           accountId: id,
@@ -183,29 +212,43 @@ export class AdminUsersService {
           throw new ConflictException('E-mail ou usuário já cadastrado');
         throw e;
       });
-    await this.record(actor, 'admin.user.invite', id, ['role', 'canProspect', 'canClose']);
+    await this.record(actor, 'admin.user.invite', id, camposDoCargo(cargo));
     return { id, temporaryPassword: password };
   }
 
-  async update(actor: AuthUser, id: string, input: z.output<typeof change>) {
+  async update(actor: AuthUser, id: string, input: UserChange) {
     if (id === actor.id && (input.active === false || (input.role && input.role !== actor.role)))
       throw new BadRequestException('Você não pode remover o próprio cargo');
     await this.guardLeadership(actor, id, input.role);
-    await this.db.transaction(async (tx) => {
-      const [row] = await tx
-        .update(user)
-        .set(input)
-        .where(eq(user.id, id))
-        .returning({ id: user.id });
-      if (!row) throw new NotFoundException();
+    const { perfil, moduloAdmin, canProspect, canClose, role, ...resto } = input;
+    const mexeNoCargo = CAMPOS_DO_CARGO.some((k) => input[k] !== undefined);
+    const fields: string[] = Object.keys(input);
+    // app.user_id na transação: o perfil do módulo é lido e gravado pela RLS de quem faz.
+    await withUser(this.db, actor.id, async (tx) => {
+      const antes = await cargoAtual(tx, id);
+      if (!antes) throw new NotFoundException();
+      const cargo = mexeNoCargo
+        ? resolverOuRecusar(
+            { role: role ?? antes.role, perfil, moduloAdmin, canProspect, canClose },
+            antes,
+          )
+        : undefined;
+      const set = cargo
+        ? { ...resto, role: cargo.role, canProspect: cargo.canProspect, canClose: cargo.canClose }
+        : resto;
+      if (Object.keys(set).length) await tx.update(user).set(set).where(eq(user.id, id));
+      if (cargo) {
+        fields.push('canProspect', 'canClose');
+        if (await gravarPerfil(tx, this.audit, actor.id, id, cargo, antes))
+          fields.push('perfil', 'moduloAdmin');
+      }
       if (input.active === false) {
         await tx.delete(session).where(eq(session.userId, id));
         // Avisos no aparelho também param (push_purge_user exige liderança na RLS).
-        await tx.execute(sql`select set_config('app.user_id', ${actor.id}, true)`);
         await tx.execute(sql`select push_purge_user(${id})`);
       }
     });
-    await this.record(actor, 'admin.user.update', id, Object.keys(input));
+    await this.record(actor, 'admin.user.update', id, [...new Set(fields)]);
     return { id };
   }
 
@@ -276,14 +319,14 @@ export class AdminUsersController {
     );
   }
   @Post() invite(@CurrentUser() u: SessionUser, @Body() body: unknown) {
-    return this.users.invite(u, validate(invite, body));
+    return this.users.invite(u, validate(userInviteSchema, body));
   }
   @Patch(':id') update(
     @CurrentUser() u: SessionUser,
     @Param('id') id: string,
     @Body() body: unknown,
   ) {
-    return this.users.update(u, id, validate(change, body));
+    return this.users.update(u, id, validate(userChangeSchema, body));
   }
   @Post(':id/reset-password') @HttpCode(200) resetPassword(
     @CurrentUser() u: SessionUser,
