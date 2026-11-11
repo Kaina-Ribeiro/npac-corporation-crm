@@ -49,7 +49,7 @@
 
 ## PR 1 — Comercial
 
-### Task 1: Regras puras em `@npac/shared/screen-prefs` — Status: ⏳
+### Task 1: Regras puras em `@npac/shared/screen-prefs` — Status: ✅
 
 **Files:** Create `packages/shared/src/screen-prefs.ts`, `packages/shared/test/screen-prefs.test.ts`; Modify `packages/shared/package.json` (exports, igual a `./reminders`).
 
