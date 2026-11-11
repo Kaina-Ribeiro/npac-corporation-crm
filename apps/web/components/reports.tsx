@@ -21,6 +21,7 @@ import Link from 'next/link';
 import { type CSSProperties, useMemo, useRef, useState, type FormEvent } from 'react';
 import { clientApi } from '@/lib/client-api';
 import { DASH_CARDS } from '@/lib/dashboard-layout';
+import { presetFilters, type Preset } from '@/lib/report-presets';
 import { button, control, Field, FormError, quietButton } from './crm-ui';
 import {
   ChartCard,
@@ -109,20 +110,7 @@ function Breakdown({ title, rows }: { title: string; rows: ReportRow[] }) {
     </section>
   );
 }
-type Preset = 'TODAY' | 'WEEK' | 'MONTH';
 const SP = 'America/Sao_Paulo';
-const spDate = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: SP }).format(d);
-
-/** Filtros do relatório para cada atalho de período do dashboard (dias de Brasília). */
-function presetFilters(p: Preset): Record<string, string> {
-  if (p !== 'WEEK') return { period: p };
-  const now = new Date();
-  return {
-    period: 'RANGE',
-    from: spDate(new Date(now.getTime() - 6 * 86_400_000)),
-    to: spDate(now),
-  };
-}
 
 function greeting(name?: string) {
   const h = Number(

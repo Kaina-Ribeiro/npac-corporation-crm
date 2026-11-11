@@ -117,7 +117,7 @@ it('brasiliaDay usa o dia de Brasília', () => {
 - [ ] **Step 4:** `pnpm --filter @npac/shared test -- screen-prefs` → PASS; `pnpm --filter @npac/shared build`.
 - [ ] **Step 5:** Commit `feat(NPAC-46): regras dos filtros lembrados`.
 
-### Task 2: Ferramentas do web — Status: ⏳
+### Task 2: Ferramentas do web — Status: ✅
 
 **Files:** Create `apps/web/lib/screen-prefs.ts`, `apps/web/lib/use-latest-prefs.ts`, `apps/web/lib/screen-memory.ts`, `apps/web/lib/report-presets.ts`; Modify `apps/web/components/reports.tsx` (importa `Preset`/`presetFilters` do arquivo novo).
 
