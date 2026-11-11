@@ -1,8 +1,28 @@
 import type { MeetingOutcome } from './enums.js';
 import type { ReminderStepConfirm } from './reminders.js';
+type TodayTask = {
+  id: string;
+  leadId: string | null;
+  title: string;
+  name: string | null;
+  dueAt: string | null;
+  version: number;
+};
+
 export type TodayDTO = {
   charges: import('./finance.js').ChargeDTO[];
   overdue: { id: string; name: string; nextContactAt: string | null; version: number }[];
+  /** Reuniões que já passaram sem resultado, de qualquer data e em qualquer etapa do lead. */
+  overdueMeetings: {
+    id: string;
+    leadId: string;
+    name: string;
+    scheduledAt: string;
+    version: number;
+    closer: { id: string; name: string };
+  }[];
+  /** Tarefas com prazo vencido; não aparecem em `tasks`. */
+  overdueTasks: TodayTask[];
   contacts: { id: string; name: string; nextContactAt: string | null; version: number }[];
   meetings: {
     id: string;
@@ -15,12 +35,5 @@ export type TodayDTO = {
     /** Só para o dono do lead (SDR): etapas já confirmadas no horário atual. */
     reminders: { confirmed: ReminderStepConfirm[] } | null;
   }[];
-  tasks: {
-    id: string;
-    leadId: string | null;
-    title: string;
-    name: string | null;
-    dueAt: string | null;
-    version: number;
-  }[];
+  tasks: TodayTask[];
 };

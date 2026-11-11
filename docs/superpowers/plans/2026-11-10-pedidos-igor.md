@@ -45,12 +45,12 @@ Feito quando: e2e focados passam e há capturas em 375 / 768 / 1024 / 1440 px.
 
 Feito quando: testes da API e e2e do Hoje passam; capturas nos 4 tamanhos.
 
-- ⏳ API: `/today/search` devolve também reuniões vencidas sem resultado e não canceladas (qualquer
+- ✅ API: `/today/search` devolve também reuniões vencidas sem resultado e não canceladas (qualquer
   data) e tarefas vencidas, respeitando a RLS e os filtros, limite 100 cada.
-- ⏳ Tela: lista única em Atrasados, por horário, com etiqueta Contato, Reunião ou Tarefa.
-- ⏳ Ações: reunião com Realizada, No-show e Remarcar; tarefa com Concluir; contato como hoje.
-- ⏳ Sem duplicar tarefa: a vencida sai do painel Tarefas. Reunião de hoje vencida fica também na agenda.
-- ⏳ Relógio do navegador (`moveDue`) passa reunião e tarefa para Atrasados sem chamar a API.
+- ✅ Tela: lista única em Atrasados, por horário, com etiqueta Contato, Reunião ou Tarefa.
+- ✅ Ações: reunião com Realizada, No-show e Remarcar; tarefa com Concluir; contato como hoje.
+- ✅ Sem duplicar tarefa: a vencida sai do painel Tarefas. Reunião de hoje vencida fica também na agenda.
+- ✅ Relógio do navegador (`moveDue`) passa reunião e tarefa para Atrasados sem chamar a API.
 
 ## Fase 3: pagamento do SDR (item 13, respostas 2A e 3A)
 
