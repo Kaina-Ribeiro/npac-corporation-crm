@@ -1,6 +1,9 @@
 'use client';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import { readPrefs, writePrefs } from '@npac/shared/screen-prefs';
+import { rememberPrefs } from '@/lib/screen-prefs';
+import { useLatestPrefs } from '@/lib/use-latest-prefs';
 import { clientApi } from '@/lib/client-api';
 import { button, control, FormError, quietButton } from './crm-ui';
 import { useCrmRefresh } from './shell/live-updates';
@@ -38,13 +41,40 @@ export function Chat({
   initial,
   users,
   meId,
+  prefs,
+  initialActive,
 }: {
   initial: Channel[];
   users: ChatUser[];
   meId: string;
+  /** Conversa lembrada (NPAC-46): cookie da pessoa e o valor que o servidor usou. */
+  prefs: { cookie: string; value: string };
+  initialActive?: string;
 }) {
   const [channels, setChannels] = useState(initial);
-  const [active, setActive] = useState<string | null>(initial[0]?.id ?? null);
+  const [active, setActiveState] = useState<string | null>(initialActive ?? initial[0]?.id ?? null);
+  /** Abre a conversa e lembra dela no aparelho (só o ID do canal). */
+  const setActive = useCallback(
+    (id: string) => {
+      setActiveState(id);
+      rememberPrefs('chat', prefs.cookie, writePrefs({ c: id }, { c: (v) => !!v }));
+    },
+    [prefs.cookie],
+  );
+  // Voltar do navegador reaproveita a página antiga: o cookie tem a conversa mais recente.
+  // O Next pode reaproveitar a lista de canais do prefetch (sem uma DM nova): confere com a API.
+  useLatestPrefs(prefs.cookie, prefs.value, (saved) => {
+    const { c } = readPrefs(saved, { c: (v) => v.length <= 64 });
+    if (!c) return;
+    if (initial.some((ch) => ch.id === c)) setActiveState(c);
+    else
+      void clientApi<Channel[]>('/api/chat/channels')
+        .then((list) => {
+          setChannels(list);
+          if (list.some((ch) => ch.id === c)) setActiveState(c);
+        })
+        .catch(() => undefined);
+  });
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [error, setError] = useState<string>();

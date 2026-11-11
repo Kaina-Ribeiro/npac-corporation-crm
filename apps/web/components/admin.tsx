@@ -12,7 +12,11 @@ import { isLeader } from '@npac/shared/enums';
 import type { Perfil } from '@npac/shared/mentoria';
 import { money, parseCents } from '@npac/shared/money';
 import { useRouter } from 'next/navigation';
-import { useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { oneOf, readPrefs, writePrefs } from '@npac/shared/screen-prefs';
+import { ADMIN_TABS as TABS, type AdminTab } from '@/lib/admin-tabs';
+import { rememberPrefs } from '@/lib/screen-prefs';
+import { useLatestPrefs } from '@/lib/use-latest-prefs';
 import { clientApi } from '@/lib/client-api';
 import { AccessRequests, type AccessRequest } from './access-requests';
 import {
@@ -81,7 +85,7 @@ export type AdminData = {
   requests: AccessRequest[];
 };
 
-const TABS = ['Usuários', 'Produtos', 'Etapas', 'Auditoria', 'LGPD'] as const;
+const ADMIN_TAB_RULE = { tab: oneOf(TABS.filter((t) => t !== 'Usuários')) };
 const KIND: Record<Lgpd['kind'], string> = {
   ACCESS: 'Acesso',
   CORRECTION: 'Correção',
@@ -121,10 +125,15 @@ export function Admin({
   initial,
   meId,
   meRole,
+  prefs,
+  initialTab = 'Usuários',
 }: {
   initial: AdminData;
   meId: string;
   meRole: Role;
+  /** Aba lembrada (NPAC-46): cookie da pessoa e o valor que o servidor usou. */
+  prefs: { cookie: string; value: string };
+  initialTab?: AdminTab;
 }) {
   // Mesma regra da API: só a Diretoria dá cargo de liderança ou mexe em conta de Head/Diretoria.
   // Acompanhamento lê dados sensíveis de mentorados: também só a Diretoria concede (D10).
@@ -135,7 +144,7 @@ export function Admin({
     extras: SEM_EXTRAS,
   });
   const router = useRouter();
-  const [tab, setTab] = useState<(typeof TABS)[number]>('Usuários');
+  const [tab, setTab] = useState<AdminTab>(initialTab);
   const [data, setData] = useState(initial);
   const [error, setError] = useState<string>();
   const [notice, setNotice] = useState<string>();
@@ -161,6 +170,20 @@ export function Admin({
       setError((e as Error).message);
     }
   }
+  /** Troca de aba; a Auditoria só carrega quando abre. */
+  function openTab(t: AdminTab) {
+    setTab(t);
+    rememberPrefs('admin', prefs.cookie, writePrefs({ tab: t }, ADMIN_TAB_RULE));
+    if (t === 'Auditoria' && !audit) void loadAudit(1);
+  }
+  // Ao montar: aba do cookie (voltar do navegador traz a página antiga) e Auditoria já aberta.
+  useLatestPrefs(prefs.cookie, prefs.value, (saved) =>
+    openTab((readPrefs(saved, ADMIN_TAB_RULE).tab as AdminTab | undefined) ?? 'Usuários'),
+  );
+  const auditFirst = useRef(initialTab === 'Auditoria');
+  useEffect(() => {
+    if (auditFirst.current) void loadAudit(1);
+  }, []);
   const temp = (r: unknown) =>
     `Senha temporária (mostrada uma única vez): ${(r as { temporaryPassword: string }).temporaryPassword}`;
 
@@ -217,10 +240,7 @@ export function Admin({
             type="button"
             aria-selected={tab === t}
             className={tab === t ? button : quietButton}
-            onClick={() => {
-              setTab(t);
-              if (t === 'Auditoria' && !audit) void loadAudit(1);
-            }}
+            onClick={() => openTab(t)}
           >
             {t}
           </button>

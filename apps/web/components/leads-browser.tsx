@@ -1,15 +1,17 @@
 'use client';
 import type { LeadCatalog, LeadDTO, Page, Role, SavedViewDTO } from '@npac/shared';
 import { INCOME_BAND_LABELS, isLeader, TIER_LABELS } from '@npac/shared/enums';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { clientApi } from '@/lib/client-api';
+import { keep, recall } from '@/lib/screen-memory';
+import { readPreference } from '@/lib/read-preference';
 import type { StageFieldsBody } from '@/lib/stage-fields';
 import { stageFieldsKind, stageNeedsFields } from '@/lib/stage-kind';
+import type { CsvExport as Csv } from './csv-export';
 import type { StageMoveDialog as Dialog } from './stage-move-dialog';
 import { StageOptions } from './crm-ui';
 import { LeadFilters, readFilters } from './lead-filters';
-import { CsvExport } from './csv-export';
 import { useCrmRefresh } from './shell/live-updates';
 
 type Change = Partial<Pick<LeadDTO, 'stageKey'>> &
@@ -23,6 +25,17 @@ const cell =
   'max-w-full cursor-pointer rounded-lg border border-transparent bg-transparent py-1 pr-1 pl-1.5 text-[13px] text-ink transition-colors hover:border-line focus:border-line disabled:cursor-default disabled:hover:border-transparent';
 const barSelect =
   'h-9 rounded-xl border border-line bg-[var(--on)] px-2.5 text-sm font-medium text-ink disabled:opacity-50';
+
+/** Busca e página guardadas só na memória da aba (nunca em cookie). */
+type Memory = { q: string; page: number };
+type LeadsPrefs = typeof import('@/lib/leads-prefs');
+/** Regras do cookie só quando precisam (fora da primeira carga de /leads, limite de 150 KB). */
+const leadsPrefs = (): Promise<LeadsPrefs> => import('@/lib/leads-prefs');
+/** Há filtro fora da ordem padrão (mostra "Limpar filtros"). */
+const hasFilter = (f: Record<string, string>) =>
+  Object.entries(f).some(
+    ([k, v]) => v && !(k === 'sort' && v === 'createdAt') && !(k === 'direction' && v === 'desc'),
+  );
 
 const dateFmt = new Intl.DateTimeFormat('pt-BR', {
   day: '2-digit',
@@ -38,6 +51,10 @@ export function LeadsBrowser({
   role,
   views: initialViews = [],
   activeView,
+  cookie,
+  prefs,
+  initialFilters = {},
+  forcePrefs = false,
 }: {
   initialData: Page<LeadDTO>;
   canCreate: boolean;
@@ -46,12 +63,25 @@ export function LeadsBrowser({
   views?: SavedViewDTO[];
   /** Filtro salvo aberto pela URL (/leads?view=id); a lista inicial já vem filtrada. */
   activeView?: SavedViewDTO;
+  /** Cookie da pessoa com o filtro lembrado (NPAC-46). */
+  cookie: string;
+  /** Valor normalizado que o servidor usou (`view=<id>` ou os filtros). */
+  prefs: string;
+  /** Filtros lembrados (sem filtro salvo aberto); a lista inicial já vem filtrada. */
+  initialFilters?: Record<string, string>;
+  /**
+   * O valor do servidor vence o cookie e é gravado: `?view=` na URL, ou filtro lembrado que a API
+   * recusou (a lista veio sem ele).
+   */
+  forcePrefs?: boolean;
 }) {
   const [data, setData] = useState(initialData);
   const [q, setQ] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [filters, setFilters] = useState<Record<string, string>>(activeView?.filters ?? {});
+  const [filters, setFilters] = useState<Record<string, string>>(
+    activeView?.filters ?? initialFilters,
+  );
   const [views, setViews] = useState(initialViews);
   const [viewId, setViewId] = useState(activeView?.id ?? '');
   const [formKey, setFormKey] = useState(0);
@@ -75,14 +105,58 @@ export function LeadsBrowser({
   }
   // Mesmas regras da API: closer só move etapa; troca de responsável é do Head.
   const canAssign = isLeader(role);
+  // Exportar é só da liderança: baixa depois de montar, fora do JS da primeira carga de /leads
+  // (limite de 150 KB no e2e).
+  const [CsvExport, setCsv] = useState<typeof Csv | null>(null);
+  useEffect(() => {
+    if (canAssign)
+      import('./csv-export').then((m) => setCsv(() => m.CsvExport)).catch(() => undefined);
+  }, [canAssign]);
   const sdrs = catalog.team.filter((u) => u.canProspect);
   const closers = catalog.team.filter((u) => u.canClose);
   useCrmRefresh(() => search(q, data.page));
   const page = data.page;
   const pages = Math.max(1, Math.ceil(data.total / data.pageSize));
 
+  // Só a resposta da última busca vale (filtros aplicam ao mudar, uma atrás da outra).
+  const seq = useRef(0);
+  const qInput = useRef<HTMLInputElement>(null);
+  /** Grava o cookie da tela com o valor calculado pelas regras (carregadas sob demanda). */
+  function remember(make: (m: LeadsPrefs) => string) {
+    if (!cookie) return;
+    void leadsPrefs()
+      .then((m) => m.save(cookie, make(m)))
+      .catch(() => undefined);
+  }
+  // Ao montar: volta do navegador (cookie mais novo que a página) e busca guardada na memória.
+  const boot = useRef({ cookie, prefs, forcePrefs, views: initialViews, catalog });
+  useEffect(() => {
+    const { cookie, prefs, forcePrefs, views, catalog } = boot.current;
+    if (!cookie) return;
+    const memory = recall<Memory>(cookie);
+    if (memory && qInput.current) qInput.current.value = memory.q;
+    const restore = (next?: Record<string, string>) => {
+      if (next || memory) void search(memory?.q ?? '', memory?.page ?? 1, next);
+    };
+    const saved = readPreference(cookie) ?? '';
+    if (forcePrefs) remember(() => prefs);
+    if (forcePrefs || saved === prefs) return restore();
+    leadsPrefs()
+      .then((m) => {
+        const { view, filters, value } = m.parseLeadPrefs(saved, views, catalog);
+        m.save(cookie, value);
+        if (value === prefs) return restore();
+        setViewId(view?.id ?? '');
+        setFilters(filters);
+        setFormKey((k) => k + 1);
+        restore(filters);
+      })
+      .catch(() => restore());
+    // Só na montagem: o resto da tela grava o cookie a cada mudança.
+  }, []);
+
   async function search(term: string, target = 1, selected = filters) {
-    if (busy) return;
+    const mine = ++seq.current;
     setBusy(true);
     setError('');
     try {
@@ -97,12 +171,16 @@ export function LeadsBrowser({
         return;
       }
       if (!res.ok) throw new Error();
-      setData((await res.json()) as Page<LeadDTO>);
+      const page = (await res.json()) as Page<LeadDTO>;
+      if (mine !== seq.current) return;
+      setData(page);
       setQ(term);
+      if (cookie)
+        keep(cookie, term || target > 1 ? ({ q: term, page: target } satisfies Memory) : undefined);
     } catch {
-      setError('Não foi possível buscar. Tente novamente.');
+      if (mine === seq.current) setError('Não foi possível buscar. Tente novamente.');
     } finally {
-      setBusy(false);
+      if (mine === seq.current) setBusy(false);
     }
   }
   /** PATCH com a versão da linha; atualiza só a linha local (sem recarregar a lista). */
@@ -227,6 +305,8 @@ export function LeadsBrowser({
     setFilters(f);
     setFormKey((k) => k + 1);
     window.history.replaceState(null, '', v ? `/leads?view=${v.id}` : '/leads');
+    // Pela mesma fila das outras gravações: a ordem dos cliques vale.
+    remember((m) => (v ? m.viewPrefs(v.id) : ''));
     await search(q, 1, f);
   }
   async function saveView(name: string) {
@@ -236,6 +316,7 @@ export function LeadsBrowser({
       setViews((vs) => [...vs, { id, name: name.trim(), filters }]);
       setViewId(id);
       setNaming(false);
+      remember((m) => m.viewPrefs(id));
       window.history.replaceState(null, '', `/leads?view=${id}`);
       window.dispatchEvent(new Event('crm:views'));
     } catch (e) {
@@ -254,6 +335,29 @@ export function LeadsBrowser({
     }
   }
 
+  /** Filtro vale ao escolher: lê os campos, grava o cookie e busca com o texto já buscado. */
+  function applyFilters() {
+    const el = document.getElementById('lead-search');
+    if (!(el instanceof HTMLFormElement)) return;
+    const selected = readFilters(new FormData(el));
+    // Intervalo só busca com as duas datas (a API recusaria).
+    if (selected.period === 'RANGE' && !(selected.from && selected.to)) return;
+    setFilters(selected);
+    if (viewId) {
+      setViewId('');
+      window.history.replaceState(null, '', '/leads');
+    }
+    remember((m) => m.filterPrefs(selected, catalog));
+    void search(q, 1, selected);
+  }
+  function clearFilters() {
+    setFilters({});
+    setViewId('');
+    setFormKey((k) => k + 1);
+    window.history.replaceState(null, '', '/leads');
+    remember(() => '');
+    void search(q, 1, {});
+  }
   function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
@@ -263,6 +367,7 @@ export function LeadsBrowser({
       setViewId('');
       window.history.replaceState(null, '', '/leads');
     }
+    remember((m) => m.filterPrefs(selected, catalog));
     void search(String(f.get('q') ?? '').trim(), 1, selected);
   }
   return (
@@ -274,7 +379,7 @@ export function LeadsBrowser({
             {data.total} {data.total === 1 ? 'lead' : 'leads'}
           </p>
         </div>
-        {canAssign && (
+        {canAssign && CsvExport && (
           <CsvExport
             label="Exportar"
             endpoint="/api/leads/csv"
@@ -315,6 +420,7 @@ export function LeadsBrowser({
             <path d="m20 20-3.5-3.5" />
           </svg>
           <input
+            ref={qInput}
             id="q"
             name="q"
             defaultValue={q}
@@ -392,7 +498,14 @@ export function LeadsBrowser({
           )
         )}
       </div>
-      <LeadFilters key={formKey} catalog={catalog} form="lead-search" values={filters} />
+      <LeadFilters
+        key={formKey}
+        catalog={catalog}
+        form="lead-search"
+        values={filters}
+        onApply={applyFilters}
+        onClear={viewId || hasFilter(filters) ? clearFilters : undefined}
+      />
       {error && <p role="alert">{error}</p>}
       {data.items.length === 0 ? (
         <section className="glass-card p-6 text-center text-sm text-ink2">

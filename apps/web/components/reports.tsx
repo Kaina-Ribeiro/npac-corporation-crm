@@ -17,11 +17,15 @@ import {
   type Tier,
 } from '@npac/shared/enums';
 import { money } from '@npac/shared/money';
+import { dashboardRules, readPrefs, reportRules, writePrefs } from '@npac/shared/screen-prefs';
 import Link from 'next/link';
-import { type CSSProperties, useMemo, useRef, useState, type FormEvent } from 'react';
+import { type CSSProperties, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { clientApi } from '@/lib/client-api';
 import { DASH_CARDS } from '@/lib/dashboard-layout';
-import { button, control, Field, FormError, quietButton } from './crm-ui';
+import { presetFilters, type Preset } from '@/lib/report-presets';
+import { rememberPrefs } from '@/lib/screen-prefs';
+import { readPreference } from '@/lib/user-cookie';
+import { control, Field, FormError, quietButton } from './crm-ui';
 import {
   ChartCard,
   DailyBars,
@@ -109,20 +113,7 @@ function Breakdown({ title, rows }: { title: string; rows: ReportRow[] }) {
     </section>
   );
 }
-type Preset = 'TODAY' | 'WEEK' | 'MONTH';
 const SP = 'America/Sao_Paulo';
-const spDate = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: SP }).format(d);
-
-/** Filtros do relatório para cada atalho de período do dashboard (dias de Brasília). */
-function presetFilters(p: Preset): Record<string, string> {
-  if (p !== 'WEEK') return { period: p };
-  const now = new Date();
-  return {
-    period: 'RANGE',
-    from: spDate(new Date(now.getTime() - 6 * 86_400_000)),
-    to: spDate(now),
-  };
-}
 
 function greeting(name?: string) {
   const h = Number(
@@ -156,6 +147,8 @@ export function Reports({
   name,
   activity,
   layout,
+  prefs,
+  initialFilters = {},
 }: {
   initial: ReportDTO;
   catalog: LeadCatalog;
@@ -169,14 +162,30 @@ export function Reports({
   activity?: TeamActivityDTO;
   /** Ordem salva dos cards do dashboard (cookie da pessoa). */
   layout?: { cookie: string; saved?: string };
+  /** Filtros lembrados (NPAC-46): cookie da tela, valor que o servidor usou e se ele vence. */
+  prefs?: { cookie: string; value: string; force?: boolean };
+  /** Filtros lembrados já aplicados na busca do servidor (sem o período padrão). */
+  initialFilters?: Record<string, string>;
 }) {
   const [data, setData] = useState(initial),
-    [filters, setFilters] = useState<Record<string, string>>({ period: 'MONTH' }),
+    [preset, setPreset] = useState<Preset>((initialFilters.preset as Preset) ?? 'MONTH'),
+    [sdrId, setSdrId] = useState(initialFilters.sdrId ?? ''),
+    [filters, setFilters] = useState<Record<string, string>>(() =>
+      dashboard
+        ? { ...presetFilters(preset), ...(sdrId ? { sdrId } : {}) }
+        : { period: 'MONTH', ...initialFilters },
+    ),
+    [formKey, setFormKey] = useState(0),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
-    [copied, setCopied] = useState(false),
-    [preset, setPreset] = useState<Preset>('MONTH'),
-    [sdrId, setSdrId] = useState('');
+    [copied, setCopied] = useState(false);
+  const productIds = useMemo(() => products.map((p) => p.id), [products]);
+  /** Regras do cookie da tela: o que o Dashboard ou o formulário dos Relatórios mostram. */
+  const rules = dashboard ? dashboardRules(catalog, head) : reportRules(catalog, productIds);
+  const screen = dashboard ? 'dashboard' : 'reports';
+  const remember = (values: Record<string, string>) => {
+    if (prefs?.cookie) rememberPrefs(screen, prefs.cookie, writePrefs(values, rules));
+  };
   async function load(selected = filters) {
     setData(await clientApi<ReportDTO>('/api/reports/search', 'POST', selected));
   }
@@ -187,6 +196,7 @@ export function Reports({
     setPreset(preset);
     setSdrId(sdr);
     setFilters(f);
+    remember({ preset, sdrId: sdr });
     setBusy(true);
     setError('');
     try {
@@ -213,20 +223,65 @@ export function Reports({
       setBusy(false);
     }
   }
-  async function submit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const f = read(e.currentTarget);
+  // Só a resposta da última busca vale (o filtro aplica a cada mudança).
+  const seq = useRef(0);
+  async function apply(f: Record<string, string>) {
+    const mine = ++seq.current;
     setFilters(f);
+    remember(f);
     setBusy(true);
     setError('');
     try {
-      await load(f);
+      const fresh = await clientApi<ReportDTO>('/api/reports/search', 'POST', f);
+      if (mine === seq.current) setData(fresh);
     } catch (e) {
-      setError((e as Error).message);
+      if (mine === seq.current) setError((e as Error).message);
     } finally {
-      setBusy(false);
+      if (mine === seq.current) setBusy(false);
     }
   }
+  /** Relatórios: o filtro vale ao escolher (NPAC-46); intervalo só com as duas datas. */
+  function changed(el: HTMLFormElement) {
+    const f = read(el);
+    if (f.period === 'RANGE' && !(f.from && f.to)) return;
+    void apply(f);
+  }
+  function submit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    changed(e.currentTarget);
+  }
+  function clearFilters() {
+    setFormKey((k) => k + 1);
+    void apply({ period: 'MONTH' });
+  }
+  // Voltar do navegador reaproveita a página antiga: o cookie tem a escolha mais recente.
+  const boot = useRef({ prefs, rules, dashboard, pick, apply });
+  useEffect(() => {
+    const { prefs, rules, dashboard, pick, apply } = boot.current;
+    if (!prefs?.cookie) return;
+    if (prefs.force) {
+      rememberPrefs(dashboard ? 'dashboard' : 'reports', prefs.cookie, prefs.value);
+      return;
+    }
+    const saved = readPreference(prefs.cookie) ?? '';
+    if (saved === prefs.value) return;
+    const f = readPrefs(saved, rules);
+    if (f.period === 'RANGE' && !(f.from && f.to)) {
+      delete f.period;
+      delete f.from;
+      delete f.to;
+    }
+    if (writePrefs(f, rules) === prefs.value) {
+      rememberPrefs(dashboard ? 'dashboard' : 'reports', prefs.cookie, prefs.value);
+      return;
+    }
+    if (dashboard) void pick((f.preset as Preset) ?? 'MONTH', f.sdrId ?? '');
+    else {
+      setFormKey((k) => k + 1);
+      void apply({ period: 'MONTH', ...f });
+    }
+  }, []);
+  const filtered = !dashboard && !!writePrefs(filters, rules);
   async function copy() {
     setError('');
     try {
@@ -535,25 +590,31 @@ export function Reports({
         </>
       )}
       {!dashboard && (
-        <form ref={form} className="glass-card p-4" onSubmit={submit}>
+        <form
+          key={formKey}
+          ref={form}
+          className="glass-card p-4"
+          onSubmit={submit}
+          onChange={(e) => changed(e.currentTarget)}
+        >
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 3xl:grid-cols-5">
             <Field label="Período do relatório">
-              <select name="period" className={control} defaultValue="MONTH">
+              <select name="period" className={control} defaultValue={filters.period ?? 'MONTH'}>
                 <option value="MONTH">Mês até hoje</option>
                 <option value="TODAY">Hoje</option>
                 <option value="RANGE">Intervalo</option>
               </select>
             </Field>
             <Field label="De">
-              <input name="from" type="date" className={control} />
+              <input name="from" type="date" className={control} defaultValue={filters.from} />
             </Field>
             <Field label="Até">
-              <input name="to" type="date" className={control} />
+              <input name="to" type="date" className={control} defaultValue={filters.to} />
             </Field>
             {
               <>
                 <Field label="SDR do relatório">
-                  <select name="sdrId" className={control}>
+                  <select name="sdrId" className={control} defaultValue={filters.sdrId ?? ''}>
                     <option value="">Todos no meu escopo</option>
                     {catalog.team
                       .filter((u) => u.canProspect)
@@ -565,7 +626,7 @@ export function Reports({
                   </select>
                 </Field>
                 <Field label="Closer do relatório">
-                  <select name="closerId" className={control}>
+                  <select name="closerId" className={control} defaultValue={filters.closerId ?? ''}>
                     <option value="">Todos no meu escopo</option>
                     {catalog.team
                       .filter((u) => u.canClose)
@@ -577,7 +638,7 @@ export function Reports({
                   </select>
                 </Field>
                 <Field label="Etapa do relatório">
-                  <select name="stage" className={control}>
+                  <select name="stage" className={control} defaultValue={filters.stage ?? ''}>
                     <option value="">Todas</option>
                     {catalog.stages.map((s) => (
                       <option key={s.id} value={s.key}>
@@ -587,7 +648,7 @@ export function Reports({
                   </select>
                 </Field>
                 <Field label="Perfil do relatório">
-                  <select name="tier" className={control}>
+                  <select name="tier" className={control} defaultValue={filters.tier ?? ''}>
                     <option value="">Todos</option>
                     {TIERS.map((t) => (
                       <option key={t} value={t}>
@@ -597,7 +658,7 @@ export function Reports({
                   </select>
                 </Field>
                 <Field label="Origem do relatório">
-                  <select name="source" className={control}>
+                  <select name="source" className={control} defaultValue={filters.source ?? ''}>
                     <option value="">Todas</option>
                     {[...LEAD_SOURCE_OPTIONS, ...LEGACY_LEAD_SOURCES, FORM_LEAD_SOURCE].map((s) => (
                       <option key={s} value={s}>
@@ -607,7 +668,11 @@ export function Reports({
                   </select>
                 </Field>
                 <Field label="Produto do relatório">
-                  <select name="productId" className={control}>
+                  <select
+                    name="productId"
+                    className={control}
+                    defaultValue={filters.productId ?? ''}
+                  >
                     <option value="">Todos</option>
                     {products.map((p) => (
                       <option key={p.id} value={p.id}>
@@ -620,9 +685,11 @@ export function Reports({
             }
           </div>
           <div className="mt-4 flex flex-wrap items-start gap-3">
-            <button className={button} disabled={busy}>
-              Atualizar relatório
-            </button>
+            {filtered && (
+              <button type="button" className={quietButton} onClick={clearFilters}>
+                Limpar filtros
+              </button>
+            )}
             <button
               type="button"
               className={quietButton}
