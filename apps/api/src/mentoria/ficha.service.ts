@@ -36,6 +36,7 @@ import { DB } from '../common/db/db.module.js';
 import { conflitoDeVersao, erroDoBanco } from './erros.js';
 import { exigirEdicao, registrarHistorico } from './historico.js';
 import { aad, MentoriaCrypto } from './mentoria-crypto.js';
+import { PlanoService } from './plano.service.js';
 
 const LIMITE_HISTORICO = 200;
 
@@ -44,6 +45,7 @@ export class FichaService {
   constructor(
     @Inject(DB) private readonly db: Db,
     private readonly crypto: MentoriaCrypto,
+    private readonly plano: PlanoService,
   ) {}
 
   /** Monta a ficha dentro da transação; RLS decide: invisível = 404. */
@@ -90,6 +92,7 @@ export class FichaService {
       momento: boolean;
       anotacao: boolean;
       onboarding: boolean;
+      plano: boolean;
       admin: boolean;
       travado_por: string | null;
     }>(sql`
@@ -98,6 +101,7 @@ export class FichaService {
         mentoria_edita('MOMENTO', ${id}::uuid) as momento,
         mentoria_edita('ANOTACAO', ${id}::uuid) as anotacao,
         mentoria_edita('ONBOARDING', ${id}::uuid) as onboarding,
+        mentoria_edita('PLANO', ${id}::uuid) as plano,
         mentoria_admin() as admin,
         (select name from "user" where id = ${momento?.travadoPor ?? null}) as travado_por`);
 
@@ -221,11 +225,13 @@ export class FichaService {
           }
         : null,
       completarCampos: i.completarCampos,
+      acoes: await this.plano.daInscricao(tx, id),
       pode: {
         inscricao: extra?.inscricao === true,
         momento: extra?.momento === true,
         anotacao: extra?.anotacao === true,
         onboarding: extra?.onboarding === true,
+        plano: extra?.plano === true,
         admin: extra?.admin === true,
       },
     };

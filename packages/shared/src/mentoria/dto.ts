@@ -11,6 +11,7 @@ import type {
   TipoInscricao,
 } from './enums.js';
 import type { EnvioStatus, Etapa, EtapaStatus } from './onboarding.js';
+import type { AcaoStatus, Gatilho, PerfilAcao, ReuniaoTipo } from './plano.js';
 
 /** `GET mentoria/eu`: o perfil operacional e o selo de Admin de quem está logado. */
 export type EuMentoria = { perfil: Perfil | null; admin: boolean };
@@ -31,6 +32,8 @@ export type InscricaoItem = {
   ultimoContato: string | null;
   completar: boolean;
   pessoas: PessoaResumo[];
+  /** Ações do plano: quantas há, feitas e atrasadas. */
+  plano: { total: number; feitas: number; atrasadas: number };
 };
 
 /** Página da lista: 50 itens e cursor opaco (só o id do último, assinado). */
@@ -206,6 +209,67 @@ export type PreviaImportacao = {
 
 export type ResultadoImportacao = { importados: number; ignorados: number };
 
+/** Linha do plano: sem observação, que só a página da ação decifra. */
+export type AcaoItem = {
+  id: string;
+  version: number;
+  inscricaoId: string;
+  nome: string;
+  pessoas: PessoaResumo[];
+  mentoria: Mentoria;
+  mes: number;
+  foco: string;
+  acao: string;
+  reuniaoTipo: ReuniaoTipo | null;
+  gatilho: Gatilho;
+  itens: string[];
+  itensFeitos: string[];
+  dataPrevista: string;
+  dataLimite: string;
+  responsavelPerfil: PerfilAcao;
+  responsavel: string | null;
+  status: AcaoStatus;
+  atrasada: boolean;
+  anteriorAoSistema: boolean;
+  feitaEm: string | null;
+  feitaPor: string | null;
+  podeEditar: boolean;
+};
+
+/** `GET mentoria/acoes/:id`: a página da ação. */
+export type AcaoDTO = AcaoItem & {
+  evidenciaLink: string | null;
+  evidenciaMidiaId: string | null;
+  observacao: string | null;
+};
+
+export type PaginaAcoes = { itens: AcaoItem[]; cursor: string | null; total: number };
+
+/** `POST mentoria/plano/semana`: de segunda a domingo, em Brasília. */
+export type PlanoSemana = {
+  inicio: string;
+  fim: string;
+  atrasadas: AcaoItem[];
+  atrasadasTotal: number;
+  semana: AcaoItem[];
+};
+
+export type PlanoModeloLinha = {
+  id: string;
+  version: number;
+  mentoria: Mentoria;
+  mes: number;
+  reuniaoTipo: ReuniaoTipo | null;
+  foco: string;
+  acao: string;
+  itens: string[];
+  responsavelPerfil: PerfilAcao;
+  gatilho: Gatilho;
+  diasParaExecutar: number;
+  segueCalendario: boolean;
+  ativo: boolean;
+};
+
 /** Ficha aberta: textos decifrados e o que a pessoa logada pode editar. */
 export type FichaDTO = {
   id: string;
@@ -237,11 +301,14 @@ export type FichaDTO = {
   caixa: CaixaDTO | null;
   /** Campos que vieram ilegíveis da importação e a equipe precisa completar. */
   completarCampos: string[];
+  /** Ações do plano, em ordem de mês e data. */
+  acoes: AcaoItem[];
   pode: {
     inscricao: boolean;
     momento: boolean;
     anotacao: boolean;
     onboarding: boolean;
+    plano: boolean;
     admin: boolean;
   };
 };

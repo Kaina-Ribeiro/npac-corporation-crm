@@ -295,7 +295,7 @@ it('rótulo sem mentoria exige decisão na confirmação')  // 400
 ## Parte 3 — Plano por mentoria e pausa
 
 ### Tarefa 3.1: Plano-modelo e geração de ações
-Status: ⏳
+Status: ✅
 
 **Files:** Create: migration `00NN_acompanhamento_v2_plano.sql`, `api/mentoria/plano.controller.ts`, `plano.service.ts`. Modify: `onboarding.service.ts`, `importacao.service.ts`, `inscricoes.service.ts`. Test: `packages/db/test/mentoria-v2-plano.test.ts`, `apps/api/test/mentoria-v2-plano.e2e.test.ts`.
 

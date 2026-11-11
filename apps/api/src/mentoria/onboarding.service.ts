@@ -33,6 +33,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import { DB } from '../common/db/db.module.js';
 import { conflitoDeVersao, erroDoBanco } from './erros.js';
 import { exigirEdicao, registrarHistorico } from './historico.js';
+import { PlanoService } from './plano.service.js';
 
 const HOJE = sql`(now() at time zone 'America/Sao_Paulo')::date`;
 
@@ -74,7 +75,10 @@ type LinhaPainel = {
 
 @Injectable()
 export class OnboardingService {
-  constructor(@Inject(DB) private readonly db: Db) {}
+  constructor(
+    @Inject(DB) private readonly db: Db,
+    private readonly plano: PlanoService,
+  ) {}
 
   /** Trava a inscrição e devolve as etapas. A trava serializa quem fecha a última etapa. */
   private async carregar(tx: Tx, inscricaoId: string) {
@@ -103,21 +107,19 @@ export class OnboardingService {
 
   /** 2M e 6M com tudo concluído ou dispensado viram ATIVO, mesmo sem IDR (§5, D15). */
   private async fecharSeCompleto(tx: Tx, inscricaoId: string): Promise<void> {
-    const fechou = await tx.execute<{ id: string }>(sql`
+    const [fechou] = await tx.execute<{ inicio: string }>(sql`
       update mentoria_inscricoes i set
         status = 'ATIVO',
-        inicio_jornada = coalesce(i.inicio_jornada, ${HOJE}),
-        termino_previsto = coalesce(i.termino_previsto,
-          (coalesce(i.inicio_jornada, ${HOJE}) + interval '12 months')::date),
         version = i.version + 1,
         atualizado_em = now()
       where i.id = ${inscricaoId}::uuid and i.mentoria <> 'RDV' and i.status = 'ONBOARDING'
         and not exists (
           select 1 from mentoria_onboarding_etapas e
           where e.inscricao_id = i.id and e.status not in ('CONCLUIDA', 'DISPENSADA'))
-      returning i.id`);
-    if ([...fechou].length)
-      await registrarHistorico(tx, inscricaoId, 'onboarding.fechado', ['status', 'inicioJornada']);
+      returning to_char(coalesce(i.inicio_jornada, ${HOJE}), 'YYYY-MM-DD') as inicio`);
+    if (!fechou) return;
+    await this.plano.definirInicio(tx, inscricaoId, fechou.inicio);
+    await registrarHistorico(tx, inscricaoId, 'onboarding.fechado', ['status', 'inicioJornada']);
   }
 
   atualizar(u: AuthUser, etapaId: string, b: EtapaPatch) {
