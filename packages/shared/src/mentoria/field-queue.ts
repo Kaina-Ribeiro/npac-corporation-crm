@@ -1,8 +1,9 @@
 /**
  * Fila de salvamento por campo do Acompanhamento (regra 2 do PDF, D5): salva ao sair do campo,
  * um envio por vez por registro, só o último valor de cada campo. A `version` de cada registro
- * vem da resposta do PATCH anterior; em 409 a fila recarrega só a version e reaplica o valor
- * local. TS puro: sem React, sem storage (nada de dado pessoal em localStorage/sessionStorage).
+ * vem da resposta do PATCH anterior. Em 409 a fila recarrega o registro: se ninguém mexeu no campo,
+ * reaplica o valor local; se outra pessoa mudou aquele campo, avisa e não sobrescreve (SPEC, T5).
+ * TS puro: sem React, sem storage (nada de dado pessoal em localStorage/sessionStorage).
  */
 
 export type StatusFila = 'saved' | 'saving' | `queued:${number}` | 'error' | 'unsaved';
@@ -22,8 +23,21 @@ export type FieldQueueOpts = {
   send(key: string, patch: Record<string, unknown>, version: number): Promise<number>;
   /** Lê a version atual do registro (depois de um 409). */
   reloadVersion(key: string): Promise<number>;
+  /** Lê version e valores atuais (depois de um 409); sem ele, a fila só reaplica. */
+  reload?(key: string): Promise<{ version: number; valores: Record<string, unknown> }>;
   retryMs?: number;
 };
+
+const vazio = (v: unknown) => v === undefined || v === null || v === '';
+
+/** O valor que a pessoa viu ainda é o do servidor? Vazio e nulo contam como o mesmo. */
+export function resolverConflito(
+  valorVisto: unknown,
+  valorServidor: unknown,
+): 'REAPLICAR' | 'AVISAR' {
+  if (vazio(valorVisto) && vazio(valorServidor)) return 'REAPLICAR';
+  return valorVisto === valorServidor ? 'REAPLICAR' : 'AVISAR';
+}
 
 // O pacote não depende de tipos de DOM nem de Node: o timer vem do ambiente.
 const esperar = (ms: number) =>
@@ -37,7 +51,13 @@ const esperar = (ms: number) =>
 /** Até onde o navegador aceita `fetch(..., { keepalive: true })` com folga. */
 export const LIMITE_KEEPALIVE_BYTES = 60 * 1024;
 
-type Registro = { version: number | null; campos: Map<string, unknown>; emVoo: string | null };
+type Registro = {
+  version: number | null;
+  campos: Map<string, unknown>;
+  /** Valor que a pessoa via antes de editar, por campo ainda não confirmado. */
+  vistos: Map<string, unknown>;
+  emVoo: string | null;
+};
 
 const bytes = (v: unknown) => {
   const s = JSON.stringify(v) ?? '';
@@ -54,6 +74,7 @@ export class FieldQueue {
   private statusCbs: ((s: StatusFila) => void)[] = [];
   private conflictCbs: ((key: string) => void)[] = [];
   private errorCbs: ((key: string, campo: string, msg: string) => void)[] = [];
+  private campoMudouCbs: ((key: string, campo: string, valor: unknown) => void)[] = [];
   private esperando: (() => void)[] = [];
   private erro = false;
   private naoSalvos = new Set<string>();
@@ -64,7 +85,7 @@ export class FieldQueue {
   private reg(key: string): Registro {
     let r = this.regs.get(key);
     if (!r) {
-      r = { version: null, campos: new Map(), emVoo: null };
+      r = { version: null, campos: new Map(), vistos: new Map(), emVoo: null };
       this.regs.set(key, r);
     }
     return r;
@@ -78,9 +99,13 @@ export class FieldQueue {
     return this.regs.get(key)?.version ?? null;
   }
 
-  /** Nova edição: substitui o valor pendente do mesmo campo e entra no fim da fila do registro. */
-  enqueue(key: string, campo: string, valor: unknown): void {
+  /**
+   * Nova edição: substitui o valor pendente do mesmo campo e entra no fim da fila do registro.
+   * `visto` é o valor que a pessoa via antes de editar; fica o da primeira edição não confirmada.
+   */
+  enqueue(key: string, campo: string, valor: unknown, ...visto: [unknown?]): void {
     const r = this.reg(key);
+    if (visto.length && !r.vistos.has(campo)) r.vistos.set(campo, visto[0]);
     if (r.emVoo !== campo) r.campos.delete(campo);
     r.campos.set(campo, valor);
     this.erro = false;
@@ -121,6 +146,12 @@ export class FieldQueue {
   onError(cb: (key: string, campo: string, msg: string) => void): () => void {
     this.errorCbs.push(cb);
     return () => (this.errorCbs = this.errorCbs.filter((c) => c !== cb));
+  }
+
+  /** Outra pessoa mudou o campo: a edição local foi descartada e `valor` é o do servidor. */
+  onCampoMudou(cb: (key: string, campo: string, valor: unknown) => void): () => void {
+    this.campoMudouCbs.push(cb);
+    return () => (this.campoMudouCbs = this.campoMudouCbs.filter((c) => c !== cb));
   }
 
   /** Resolve quando não houver mais nada pendente. */
@@ -165,6 +196,25 @@ export class FieldQueue {
     if (!this.isBusy()) for (const r of this.esperando.splice(0)) r();
   }
 
+  /** 409: recarrega; campo que o outro mudou sai da fila e avisa, o resto é reaplicado. */
+  private async aoConflitar(key: string, r: Registro, campo: string): Promise<void> {
+    if (!this.opts.reload) {
+      r.version = await this.opts.reloadVersion(key).catch(() => null);
+      for (const cb of this.conflictCbs) cb(key);
+      return;
+    }
+    const atual = await this.opts.reload(key).catch(() => null);
+    r.version = atual?.version ?? null;
+    for (const cb of this.conflictCbs) cb(key);
+    if (!atual || !r.vistos.has(campo)) return;
+    const servidor = atual.valores[campo];
+    if (resolverConflito(r.vistos.get(campo), servidor) === 'REAPLICAR') return;
+    r.campos.delete(campo);
+    r.vistos.delete(campo);
+    this.naoSalvos.delete(`${key}\u0000${campo}`);
+    for (const cb of this.campoMudouCbs) cb(key, campo, servidor);
+  }
+
   private async bombear(key: string): Promise<void> {
     const r = this.reg(key);
     if (r.emVoo !== null) return;
@@ -175,15 +225,18 @@ export class FieldQueue {
         if (r.version == null) r.version = await this.opts.reloadVersion(key);
         r.version = await this.opts.send(key, { [campo]: valor }, r.version);
         // Só sai da fila se ninguém editou o campo enquanto o envio estava em voo.
-        if (r.campos.get(campo) === valor) r.campos.delete(campo);
+        if (r.campos.get(campo) === valor) {
+          r.campos.delete(campo);
+          r.vistos.delete(campo);
+        } else if (r.vistos.has(campo)) r.vistos.set(campo, valor);
         this.naoSalvos.delete(`${key}\u0000${campo}`);
       } catch (e) {
         const st = e instanceof ErroDeEnvio ? e.status : undefined;
         if (st === 409) {
-          r.version = await this.opts.reloadVersion(key).catch(() => null);
-          for (const cb of this.conflictCbs) cb(key);
+          await this.aoConflitar(key, r, campo);
         } else if (st !== undefined && st < 500) {
           r.campos.delete(campo);
+          r.vistos.delete(campo);
           this.naoSalvos.delete(`${key}\u0000${campo}`);
           this.erro = true;
           for (const cb of this.errorCbs) cb(key, campo, (e as Error).message);

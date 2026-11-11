@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Sem perfil</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="prototipo.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="tela-solo raiz">
+  <section class="card vazio">
+    <span class="mark">N</span>
+    <h1>{{titulo}}</h1>
+    <p>{{texto}}</p>
+    <a class="btn s" href="#sair">Sair</a>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mentor":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const mentor = this.props.mentor ?? false;
+    return {
+      titulo: mentor ? 'Seu painel chega em breve' : 'Peça ao Admin para definir seu perfil',
+      texto: mentor
+        ? 'Você já aparece como condutor das reuniões. O painel entra numa próxima etapa do sistema.'
+        : 'Seu login funciona, mas falta o perfil no Acompanhamento. Um Admin define isso em Configurações.',
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -40,7 +40,7 @@ export function useCrmRefresh(callback: () => void | Promise<unknown>) {
  */
 export function IrParaModulo() {
   useEffect(() => {
-    window.location.replace('/acompanhamento/dashboard');
+    window.location.replace('/acompanhamento');
   }, []);
   return (
     <p role="status" className="pt-10 text-center text-sm text-ink2">

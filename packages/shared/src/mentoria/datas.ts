@@ -24,6 +24,12 @@ export function parseData(entrada: string): DataParseada {
   return { texto, data: null };
 }
 
+/** Data de calendário em ISO (`AAAA-MM-DD`) que existe de fato. */
+export function dataCalendarioValida(valor: string): boolean {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(valor);
+  return !!m && iso(+m[3]!, +m[2]!, +m[1]!) === valor;
+}
+
 /** Ordem cronológica calculada na leitura (regra 4): data, depois id; sem data vai para o fim. */
 export function ordenarPorData<T extends { id: string; data: string | null }>(itens: T[]): T[] {
   return [...itens].sort((a, b) => {

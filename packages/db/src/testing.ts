@@ -46,8 +46,8 @@ export function appDb(dbName: string): Db {
   return client.db;
 }
 
-/** Recria o banco `dbName`, concede CONNECT ao npac_app, roda migrations e devolve a URL do owner. */
-export async function resetTestDb(dbName: string): Promise<string> {
+/** Recria o banco `dbName` vazio, concede CONNECT ao npac_app e devolve a URL do owner. */
+export async function createEmptyTestDb(dbName: string): Promise<string> {
   if (!TEST_DB_NAME.test(dbName)) {
     throw new Error(`resetTestDb só aceita bancos de teste (npac_test*, npac_e2e*): ${dbName}`);
   }
@@ -60,7 +60,12 @@ export async function resetTestDb(dbName: string): Promise<string> {
   } finally {
     await admin.end({ timeout: 5 });
   }
-  const url = urlFor(dbName);
+  return urlFor(dbName);
+}
+
+/** Recria o banco `dbName`, concede CONNECT ao npac_app, roda migrations e devolve a URL do owner. */
+export async function resetTestDb(dbName: string): Promise<string> {
+  const url = await createEmptyTestDb(dbName);
   await runMigrations(url);
   return url;
 }

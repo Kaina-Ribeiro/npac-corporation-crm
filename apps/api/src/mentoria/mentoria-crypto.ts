@@ -1,23 +1,28 @@
+import { createHmac, hkdfSync } from 'node:crypto';
 import { BadRequestException } from '@nestjs/common';
 import { MentoriaFieldCrypto } from '../common/crypto/mentoria-field-crypto.js';
 
 /** Proteção por valor: o limite do PDF é por registro (256 KB somando os textos, Task 8). */
 export const LIMITE_VALOR_BYTES = 256 * 1024;
 
-/**
- * AAD = `tabela.coluna.id`; em `mentoria_ficha_campos` (chave composta) entra a chave:
- * `mentoria_ficha_campos.<coluna>.<ficha_id>.<chave>`. O id é gerado no app antes do INSERT.
- */
+/** AAD = `tabela.coluna.id`. O id é gerado no app antes do INSERT. */
 export function aad(tabela: string, coluna: string, id: string, chave?: string): string {
   return chave ? `${tabela}.${coluna}.${id}.${chave}` : `${tabela}.${coluna}.${id}`;
 }
 
-/** Texto sensível do Acompanhamento (notas, pilares, diagnóstico…) gravado como base64 do v2. */
+/** Texto sensível do Acompanhamento gravado como base64 do v2, e o índice cego da busca. */
 export class MentoriaCrypto {
   private readonly fc: MentoriaFieldCrypto;
+  private readonly chaveIndice: Buffer;
 
   constructor(key: Buffer) {
     this.fc = new MentoriaFieldCrypto(key);
+    this.chaveIndice = Buffer.from(hkdfSync('sha256', key, '', 'mentoria-indice-v1', 32));
+  }
+
+  /** HMAC do valor já normalizado (telefone E.164, e-mail em minúsculas): busca por igualdade. */
+  indiceCego(valorNormalizado: string): string {
+    return createHmac('sha256', this.chaveIndice).update(valorNormalizado).digest('hex');
   }
 
   cifrarTexto(valor: string, aadValue: string): string {

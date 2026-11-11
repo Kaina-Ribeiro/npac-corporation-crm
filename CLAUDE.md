@@ -58,13 +58,16 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   rápida do Hoje `today-quick-action.tsx` · closer completa o pagamento `payment-complete.tsx` · menu de CSV `csv-export.tsx` (API: `api/common/csv.ts`) ·
   avisos compartilhados (selo do chat, `(N)` na aba, lembretes) `lib/alerts.ts`, `meeting-reminder.tsx` ·
   push no aparelho `lib/push.ts`, `public/sw.js`, `/conta/avisos`
-- **Acompanhamento (mentorados):** API `api/mentoria/*` (guarda 404 + MFA: `MentoriaController` em
-  `mentoria.guard.ts`; leitura `mentoria.service.ts`, `fichas.service.ts`; RDV `rdv.service.ts`/`rdv.controller.ts`; escrita `escrita.service.ts`;
-  import/export `.json` `import.service.ts`; mídia `midia.controller.ts`, `media-store.ts`, `media-sniff.ts`,
-  `media-worker.ts`; cifra v2 `mentoria-crypto.ts`) · banco `db/src/schema/mentoria.ts` + 0029–0034
-  (`mentoria_pode()`, funções `mentoria_*`) · lógica pura `sh/mentoria/*` (cliente: `@npac/shared/mentoria`,
-  sem zod) · telas `web/app/(app)/acompanhamento/*`, `web/components/acompanhamento/*`, fila
-  `web/lib/acompanhamento-saver.ts` · backup cifrado `infra/backup/*` (age)
+- **Acompanhamento (mentorados), v2 em 5 partes** (plano `docs/superpowers/plans/2026-11-10-acompanhamento-v2-fase-1.md`, protótipo `docs/acompanhamento/prototipo/canvas/`):
+  API `api/mentoria/*` (guarda 404 + MFA: `MentoriaController` em `mentoria.guard.ts`; perfil `perfil.guard.ts`,
+  `perfis.*`; inscrição e ficha `inscricoes.*`, `ficha.service.ts`, `historico.ts`; mídia `midia.controller.ts`,
+  `media-store.ts`, `media-sniff.ts`, `media-worker.ts`; cifra `mentoria-crypto.ts`) · banco `db/src/schema/mentoria.ts`
+  - 0044–0045 (`mentoria_perfil()`, `mentoria_admin()`, `mentoria_ve()`, `mentoria_edita()`, funções `mentoria_*`) ·
+    seed `db/src/seed-mentoria.ts` · lógica pura `sh/mentoria/*` (cliente: `@npac/shared/mentoria`, sem zod) ·
+    telas `web/app/(app)/acompanhamento/*` (`mentorados`, `mentorados/nova`, `ficha/[id]`, `configuracoes`, `mais`,
+    `em-breve/[aba]`), `web/components/acompanhamento/*`, CSS só do módulo sob `.ac` em `acompanhamento/modulo.css`,
+    fila de salvamento `sh/mentoria/field-queue.ts` + `web/lib/acompanhamento-saver.ts`, perfil no servidor
+    `web/lib/acompanhamento.ts` (`lerEu`) · backup cifrado `infra/backup/*` (age)
 - **Docs:** `docs/spec.md`; deploy `docs/deploy.md` (Oracle), `docs/deploy-cubeship.md`; planos `docs/superpowers/plans/`; releases `RELEASING.md`
 
 Next 16 tem APIs incompatíveis: em dúvida, `web/node_modules/next/dist/docs/`. Valor exportado de
@@ -101,18 +104,20 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   guardados e os testes de MFA ligado são pulados. Religar depois: `true` e rodar as suítes.
 - MFA (TOTP) **opcional** (28/10/2026, vale com `MFA_LIGADO`): cada um liga/desliga em `/conta/mfa`; quem ligou confirma o
   login, código enviado sozinho aos 6 dígitos (`lib/otp-input.ts`). Primeiro acesso só obriga trocar a senha.
-- **Acompanhamento** (`ACOMPANHAMENTO`, 04/11/2026): só o módulo de mentorados; RLS por
-  `mentoria_pode()` (papel cru, nunca `app_role()`), MFA obrigatório nas rotas `mentoria/*` para
-  Diretoria e Acompanhamento, 404 para os demais. O cargo Acompanhamento não vê nada do comercial
+- **Acompanhamento** (`ACOMPANHAMENTO`, 04/11/2026): só o módulo de mentorados; dentro dele, o **perfil**
+  (`mentoria_perfis`: Acompanhamento, Operação, Especialista, Mentor) e o selo de Admin decidem o resto, por RLS
+  (`mentoria_ve`, `mentoria_edita`; Diretoria é Admin sem linha). Cargo sem perfil vê "Peça ao Admin" e Mentor vê
+  "Seu painel chega em breve", sem menu (`components/acompanhamento/sem-acesso.tsx`, no layout de `(app)`); API 404 em tudo menos
+  `mentoria/eu`. MFA obrigatório nas rotas `mentoria/*` para Diretoria e Acompanhamento, 404 para os demais. O cargo não vê nada do comercial
   (05/11/2026): `PermissionsGuard` dá 404 em toda rota sem `@AllRoles()` (`api/auth/all-roles.decorator.ts`;
-  hoje `me`, `events` e o módulo), e o web mostra só o item Acompanhamento (`hasCommercialAccess`,
+  hoje `me`, `events` e o módulo), e o web mostra só as abas do módulo (`hasCommercialAccess`,
   sidebar/Ctrl+K/Mais/rodapé). Telas comerciais ficam em `web/app/(app)/(comercial)/`, cujo layout
   manda o cargo ao módulo com carga completa (o layout de `(app)` não roda na navegação do
   navegador; redirect do servidor ali deixava o módulo em branco). Entrada única: login, troca de
   senha e MFA vão para `/`, que escolhe o destino pelo cargo. Rota nova que o cargo use leva
   `@AllRoles()`; o teste `acompanhamento-sem-comercial` varre todas. Texto sensível cifrado com AAD
   (`MENTORADO_ENCRYPTION_KEY`); mídia fora do banco em `MEDIA_DIR`; sem DELETE para `npac_app`
-  (exclusão só pelas funções, que enfileiram a mídia). Filhos usam a `version` do pai (D5).
+  (exclusão só pelas funções, que enfileiram a mídia). Salvar ao sair do campo: em 409 a fila reaplica se o outro não mexeu naquele campo; se mexeu, avisa e mantém o dele (`resolverConflito`).
 - **Siglas das mentorias** (Gabriel, 04/11/2026): RDV = Rico de Verdade · IDR = Introdução da
   Riqueza · PME = Plano Mensal de Enriquecimento · 2M = Marco e Mudança · 6M = sem definição ainda.
   Nas telas vale o texto literal do PDF, exceto IDR: "Introdução da Riqueza" (o PDF diz "à"; corrigido).
@@ -292,11 +297,11 @@ pnpm exec prettier --write <arquivos>
   segundo plano (porta 3000). e2e e dev disputam portas e `.next`: antes do e2e, `preview_stop` e
   libere 3000/4000; depois, `rm -rf apps/web/.next` e `preview_start`. e2e usa API 4100, web 3100
   (`E2E_WEB_PORT=3200` se outro projeto ocupar) e banco `npac_e2e`.
-- Testes só recriam `npac_test*`/`npac_e2e*`; nunca aponte para outro banco.
+- Testes só recriam `npac_test*`/`npac_e2e*`; nunca aponte para outro banco. `npac_test_api` é um só para todas as worktrees: duas suítes da API ao mesmo tempo dão 401 falso. O e2e isola com `E2E_DB`, `E2E_API_PORT` e `E2E_WEB_PORT`.
 - API e e2e compartilham usuários: teste que mexe em MFA/senha/papel restaura no fim; `truncate leads`
   inclui as tabelas com FK.
 - e2e loga com `email.split('@')[0]`. Seeds: diretor (DIRETOR), ana/ronaldo (HEAD), ale/murilo/igor
-  (SDR), sonia (CLOSER), `@npac.com.br`; teste que troca papel: `update "user" set role = …` e restaurar.
+  (SDR), sonia (CLOSER), carla (Acompanhamento sem perfil), duda (Acompanhamento + Admin), operacao, manu, leo, `@npac.com.br`; teste que troca papel: `update "user" set role = …` e restaurar.
 - Playwright: `filter({ visible: true })`/`exact: true` (layout mobile oculto duplica controles);
   `role=alert` também pega o anunciador de rotas do Next; nada de `networkidle` (SSE).
 - JS de `/leads` < 150 KB gzip (teste; hoje ~149,4). Sem libs pesadas no cliente, nem zod; prefira server components.
