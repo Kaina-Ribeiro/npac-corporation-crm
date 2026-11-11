@@ -215,7 +215,7 @@ Props novas de `Reports`: `prefs: { screen: 'dashboard' | 'reports'; cookie: str
 - [ ] **Step 2:** FAIL. **Step 3:** implementar. **Step 4:** PASS; `e2e/admin.spec.ts` e `e2e/collab.spec.ts` → PASS.
 - [ ] **Step 5:** Commit `feat(NPAC-46): admin, chat e playbook lembram a escolha`.
 
-### Task 8: Fechar o PR 1 — Status: ⏳
+### Task 8: Fechar o PR 1 — Status: ✅
 
 - [ ] `pnpm lint && pnpm typecheck` → limpo; `pnpm --filter @npac/shared test` → PASS.
 - [ ] `pnpm --filter @npac/web e2e > "$TEMP/e2e-pr1.log" 2>&1; tail -30 "$TEMP/e2e-pr1.log"` → 0 falhas.

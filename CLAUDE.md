@@ -25,6 +25,7 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
 - **Shared:** papéis/`isLeader`/enums `sh/enums.ts` · cargos e resolvedor `sh/cargos.ts` · `can` `sh/permissions.ts` · Zod de lead
   `sh/schemas/lead.ts`, `lead-update.ts` · usuário/pedido de acesso `sh/schemas/account.ts` ·
   DTOs `sh/dto.ts`, `finance.ts`, `today.ts` · dinheiro/datas BR `sh/money.ts`, `dates.ts`
+  · filtros lembrados `sh/screen-prefs.ts` (`@npac/shared/screen-prefs`)
 - **Banco:** schema `db/src/schema/*.ts` · migrations `db/drizzle/00NN_*.sql` + `meta/` ·
   `withUser`, `leadContactTaken` `db/src/with-user.ts` · seed `db/src/seed*.ts`
 - **Auth:** Better Auth (username, TOTP, auditoria, rate limit) `api/auth/auth.ts` · sessão e
@@ -46,7 +47,8 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   (`appearance: base-select` + `::picker(select)` no fim de `globals.css`; Safari fica com o do
   sistema; Lightning CSS não aceita pseudo-classe depois de `::picker`, use `select:open::picker(select)`) · login,
   pedir acesso `web/components/login/*` · senha/MFA `components/conta/*`, `app/(conta)/*` · API
-  server/client `web/lib/api.ts` / `lib/client-api.ts` · sessão (`getSession`, `pendingStep`)
+  server/client `web/lib/api.ts` / `lib/client-api.ts` · filtros lembrados `lib/screen-prefs.ts`,
+  `lib/use-latest-prefs.ts`, memória da busca `lib/screen-memory.ts` · sessão (`getSession`, `pendingStep`)
   `web/lib/session.ts` · UI base (`Field`, `button`, `StageOptions`) `components/crm-ui.tsx` ·
   cargo (`ROLE_LABEL`, `RoleTag`, `CargoTag`) `components/role-tag.tsx` · campo Cargo (select agrupado,
   dica, caixas/selo) `components/cargo-field.tsx` · tokens/`.tier-*`/`.role-*` `web/app/globals.css`
@@ -160,6 +162,19 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   `npac_dash_<hash do id>` (`Path=/dashboard`, só IDs, o servidor já renderiza na ordem); colunas
   ocultas `npac_pipe_<hash>` (`Path=/pipeline`) e filtro do Hoje `npac_hoje_<hash>` (`Path=/hoje`),
   helpers em `lib/user-cookie.ts`.
+- **Filtros lembrados** (NPAC-46, 11/11/2026, Gabriel "A, no aparelho"): cada tela grava filtro, aba e
+  período em `npac_f_<tela>_<hash>` só no `Path` da tela (`PREFS` em `lib/screen-prefs.ts`; `rememberPrefs`
+  não grava > 1 KB); valor `chave=valor&…` validado na leitura por `sh/screen-prefs.ts` (sem zod): ID de quem
+  saiu, etapa/produto excluído e intervalo sem as duas datas caem. O servidor lê o cookie e já busca filtrado;
+  a tela, ao montar, reaplica o cookie se ele for mais novo (voltar do navegador). URL com parâmetro
+  (`/leads?view=`) vence e vira o lembrado; filtro que a API recusa (400) abre sem ele e apaga o cookie.
+  Comercial: Leads (filtro salvo ou filtros), Pipeline (+ coluna do celular), Dashboard (período, SDR),
+  Relatórios, Admin (aba), Chat (conversa). **Busca por texto e página só na memória da aba**
+  (`lib/screen-memory.ts`, por pessoa): voltam ao trocar de tela, somem no F5; nunca em cookie, URL ou
+  storage. Seleção em massa não é lembrada. **Filtros aplicam ao mudar** (sem "Aplicar filtros",
+  "Filtrar Hoje", "Buscar" do Pipeline, "Atualizar relatório"); o texto da busca segue no Enter; "Limpar
+  filtros" aparece com filtro ativo. `CsvExport` de `/leads` vem sob demanda (`next/dynamic`) pelo limite
+  de 150 KB.
 
 ## Segurança e privacidade (não negociável)
 
