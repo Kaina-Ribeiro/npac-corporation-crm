@@ -11,12 +11,13 @@ import type { Role } from '@npac/shared';
 import type { FastifyRequest } from 'fastify';
 import { AllRoles } from '../auth/all-roles.decorator.js';
 import { RequiresMfa } from '../auth/requires-mfa.decorator.js';
+import { PerfilGuard } from './perfil.guard.js';
 
 const PAPEIS: readonly Role[] = ['DIRETOR', 'ACOMPANHAMENTO'];
 
 /**
  * Só Diretoria e Acompanhamento enxergam o módulo (D1). Os demais recebem 404, não 403: o
- * módulo não se revela (D14). A RLS (mentoria_pode) repete a regra no banco.
+ * módulo não se revela (D14). A RLS (mentoria_perfil, mentoria_admin) repete a regra no banco.
  */
 @Injectable()
 export class MentoriaGuard implements CanActivate {
@@ -28,13 +29,13 @@ export class MentoriaGuard implements CanActivate {
 }
 
 /**
- * Controller do módulo: prefixo `mentoria/...`, MFA obrigatório (default-deny, D18) e guarda
- * de papel. Todo controller do módulo usa este decorator; um teste varre as rotas.
+ * Controller do módulo: prefixo `mentoria/...`, MFA obrigatório (default-deny, D18), guarda de
+ * cargo e de perfil. Todo controller do módulo usa este decorator; um teste varre as rotas.
  */
 export const MentoriaController = (path: string) =>
   applyDecorators(
     Controller(`mentoria/${path}`),
     AllRoles(),
     RequiresMfa(),
-    UseGuards(MentoriaGuard),
+    UseGuards(MentoriaGuard, PerfilGuard),
   );

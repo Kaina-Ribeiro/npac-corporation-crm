@@ -1,5 +1,5 @@
 import { hash } from '@node-rs/argon2';
-import { createDb, seed } from '@npac/db';
+import { createDb, seed, seedMentoria } from '@npac/db';
 import { closeTestConnections, ownerSql, resetTestDb } from '@npac/db/testing';
 import { E2E_DB, E2E_PASSWORD } from './env.js';
 
@@ -9,6 +9,7 @@ export default async function globalSetup(): Promise<void> {
   const client = createDb(url, { max: 1 });
   try {
     await seed(client.db, { hashPassword: (p) => hash(p), initialPassword: E2E_PASSWORD });
+    await seedMentoria(client.db);
   } finally {
     await client.close();
   }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ordenarPorData, parseData } from '../src/mentoria/datas.js';
+import { dataCalendarioValida, ordenarPorData, parseData } from '../src/mentoria/datas.js';
 
 describe('parseData', () => {
   it('DD/MM/AAAA vira data', () => {
@@ -29,5 +29,13 @@ describe('parseData', () => {
       { id: 'a', data: '2026-01-01' },
     ];
     expect(ordenarPorData(itens).map((i) => i.id)).toEqual(['a', 'z']);
+  });
+});
+
+describe('dataCalendarioValida', () => {
+  it('aceita só data ISO que existe', () => {
+    expect(dataCalendarioValida('2026-02-28')).toBe(true);
+    expect(dataCalendarioValida('2026-02-30')).toBe(false);
+    expect(dataCalendarioValida('28/02/2026')).toBe(false);
   });
 });

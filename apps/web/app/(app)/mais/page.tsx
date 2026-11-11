@@ -19,7 +19,7 @@ const HINT: Record<string, string> = {
   '/equipe': 'Pessoas e números',
   '/playbook': 'Scripts de objeção',
   '/admin': 'Usuários, catálogo e LGPD',
-  '/acompanhamento/dashboard': 'Mentorados e backup',
+  '/acompanhamento': 'Mentorados e fichas',
 };
 
 /** No celular: perfil, demais seções (mesma ordem do desktop), aparência e sair. */
