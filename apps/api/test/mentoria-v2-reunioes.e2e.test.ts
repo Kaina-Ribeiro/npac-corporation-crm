@@ -335,6 +335,35 @@ describe('Especialista', () => {
     expect((await h.get(`/api/mentoria/inscricoes/${i}`, s)).status).toBe(404);
   });
 
+  it('Manu vê a agenda dela, mas controle mensal e sem reunião são da equipe', async () => {
+    const s = await manu();
+    expect((await h.post('/api/mentoria/reunioes/agenda', {}, s)).status).toBe(200);
+    expect((await h.post('/api/mentoria/reunioes/controle-mensal', {}, s)).status).toBe(404);
+    expect((await h.post('/api/mentoria/reunioes/sem-reuniao', {}, s)).status).toBe(404);
+  });
+
+  it('o último contato que a Manu vê conta as reuniões de toda a equipe', async () => {
+    const d = await h.signIn('diretor@npac.com.br');
+    const i = await inscricao();
+    await criarOk(d, {
+      inscricaoId: i,
+      tipo: 'POSICIONAMENTO',
+      inicio: '2026-01-05T10:00',
+      conduzidaPor: ids.carla!,
+    });
+    const outra = await criarOk(d, {
+      inscricaoId: i,
+      tipo: 'ACOMP_2PME',
+      inicio: '2026-02-10T10:00',
+    });
+    await patch(d, outra.id, { version: outra.version, status: 'REALIZADA' });
+    const s = await manu();
+    const r = await h.post('/api/mentoria/inscricoes/lista', {}, s);
+    expect(r.status, r.text).toBe(200);
+    expect(r.body.itens).toHaveLength(1);
+    expect(r.body.itens[0].ultimoContato).toBe('2026-02-10');
+  });
+
   it('Manu marca a ação do mês 5 de quem é dela e recebe 404 nas outras', async () => {
     const d = await h.signIn('diretor@npac.com.br');
     const dela = await inscricao();

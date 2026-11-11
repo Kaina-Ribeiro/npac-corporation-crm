@@ -39,7 +39,7 @@ export function SemReuniaoTela({
         ) : (
           <ul>
             {dados.itens.map((l) => (
-              <li key={l.inscricaoId} className="pl-r">
+              <li key={l.inscricaoId} className="pl-r rn-l">
                 <Link
                   className="pl-id"
                   href={`/acompanhamento/ficha/${l.inscricaoId}?aba=historico`}

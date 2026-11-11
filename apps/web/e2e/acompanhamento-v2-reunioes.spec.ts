@@ -106,6 +106,8 @@ test('Manu entra e vê só as reuniões dela', async ({ page }) => {
   await expect(page.getByText('Mentorado Fictício 82')).toHaveCount(0);
   await expect(page.getByRole('region', { name: 'Manu' })).toBeVisible();
   await expect(page.getByRole('region', { name: 'Duda' })).toHaveCount(0);
+  // Controle mensal e Sem reunião são painéis da equipe.
+  await expect(page.getByRole('link', { name: 'Controle mensal', exact: true })).toHaveCount(0);
 
   await page.getByRole('link', { name: /Mentorado Fictício 81/ }).click();
   await page.waitForURL(/\/acompanhamento\/reunioes\/[0-9a-f-]{36}$/);

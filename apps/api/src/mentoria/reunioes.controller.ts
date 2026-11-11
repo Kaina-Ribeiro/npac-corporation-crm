@@ -11,6 +11,7 @@ import { CurrentUser, type SessionUser } from '../auth/current-user.decorator.js
 import { entityId } from '../common/validate.js';
 import { validarComAviso } from './erros.js';
 import { MentoriaController } from './mentoria.guard.js';
+import { Perfis } from './perfil.guard.js';
 import { ReunioesService } from './reunioes.service.js';
 
 /** Reuniões (§6). Quem vê e quem edita cada linha é a RLS (Especialista: só as dela). */
@@ -29,14 +30,17 @@ export class ReunioesController {
     return this.reunioes.agenda(u, validarComAviso(agendaSchema, body));
   }
 
+  /** Painéis da equipe: a Especialista só vê as próprias reuniões, os números sairiam parciais. */
   @Post('controle-mensal')
   @HttpCode(200)
+  @Perfis('ACOMPANHAMENTO', 'OPERACAO')
   controleMensal(@CurrentUser() u: SessionUser, @Body() body: unknown) {
     return this.reunioes.controleMensal(u, validarComAviso(controleMensalSchema, body));
   }
 
   @Post('sem-reuniao')
   @HttpCode(200)
+  @Perfis('ACOMPANHAMENTO', 'OPERACAO')
   semReuniao(@CurrentUser() u: SessionUser, @Body() body: unknown) {
     return this.reunioes.semReuniao(u, validarComAviso(semReuniaoSchema, body));
   }

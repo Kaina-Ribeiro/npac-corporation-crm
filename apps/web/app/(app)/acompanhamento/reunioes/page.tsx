@@ -64,10 +64,13 @@ async function Conteudo({ aba, q, podeAgendar }: { aba: string; q: Busca; podeAg
 export default async function ReunioesPage({ searchParams }: { searchParams: Promise<Busca> }) {
   if (!(await sessaoDoModulo())) return null;
   const q = await searchParams;
-  const aba = ABAS.some(([id]) => id === q.aba) ? q.aba! : 'agenda';
   const eu = await lerEu();
   // A Especialista também agenda as próprias reuniões (a API recusa as que não são dela).
   const podeAgendar = !!eu && (eu.admin || eu.perfil !== 'MENTOR');
+  // Controle mensal e Sem reunião são painéis da equipe: a Especialista só vê as reuniões dela.
+  const equipe = !!eu && (eu.admin || eu.perfil === 'ACOMPANHAMENTO' || eu.perfil === 'OPERACAO');
+  const abas = equipe ? ABAS : ABAS.filter(([id]) => id === 'agenda');
+  const aba = abas.some(([id]) => id === q.aba) ? q.aba! : 'agenda';
   return (
     <section className="view">
       <div>
@@ -75,7 +78,7 @@ export default async function ReunioesPage({ searchParams }: { searchParams: Pro
         <p className="sub">Agenda da semana, quem já teve a reunião do mês e quem está sem.</p>
       </div>
       <div className="tabs">
-        {ABAS.map(([id, rotulo]) => (
+        {abas.map(([id, rotulo]) => (
           <Link
             key={id}
             className={aba === id ? 'on' : ''}

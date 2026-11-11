@@ -49,7 +49,7 @@ function Linha({ l, podeAgendar }: { l: LinhaControle; podeAgendar: boolean }) {
           ? `Última em ${dataBR(l.ultimaRealizada)}`
           : 'Nenhuma reunião realizada';
   return (
-    <li className="pl-r">
+    <li className="pl-r rn-l">
       <Link className="pl-id" href={`/acompanhamento/ficha/${l.inscricaoId}?aba=historico`}>
         <Rostos pessoas={l.pessoas} />
         <div className="nm">

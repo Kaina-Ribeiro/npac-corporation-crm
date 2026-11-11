@@ -2614,6 +2614,14 @@
   .rn-r {
     grid-template-columns: 46px minmax(0, 1fr);
   }
+  /* Linha sem botão à esquerda: nome em cima, tags e ação embaixo; lado a lado a partir de 1024. */
+  .rn-l {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .rn-l .pl-meta {
+    grid-column: 1;
+    padding-left: 52px;
+  }
   .rn-hora {
     align-self: center;
     font-size: 14px;
@@ -2808,10 +2816,25 @@
     .rn-r {
       grid-template-columns: 46px minmax(0, 1fr) auto;
     }
+    .rn-l {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+    .rn-l .pl-meta {
+      grid-column: 2;
+      padding-left: 0;
+    }
   }
   @media (min-width: 1280px) {
     .rn-grupos {
       grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    /* Coluna estreita do Controle mensal: nome em cima, tags embaixo. */
+    .pl-estreita .rn-l {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .pl-estreita .rn-l .pl-meta {
+      grid-column: 1;
+      padding-left: 52px;
     }
   }
 }

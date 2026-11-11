@@ -311,6 +311,21 @@ BEGIN
 END $$;
 --> statement-breakpoint
 
+-- Último contato (§6): contato ou reunião realizada, de toda a equipe. A Especialista só lê as
+-- próprias reuniões; sem esta função, a lista dela mostraria uma data velha.
+CREATE FUNCTION mentoria_ultimo_contato(inscricao uuid) RETURNS date
+  LANGUAGE sql STABLE SECURITY DEFINER
+  SET search_path = public, pg_temp
+AS $$
+  SELECT CASE WHEN mentoria_ve(inscricao) THEN (greatest(
+    (SELECT max(c.quando) FROM mentoria_contatos c WHERE c.inscricao_id = inscricao),
+    (SELECT max(r.inicio) FROM mentoria_reunioes r
+     WHERE r.inscricao_id = inscricao AND r.status = 'REALIZADA'))
+    AT TIME ZONE 'America/Sao_Paulo')::date END
+$$;
+--> statement-breakpoint
+ALTER FUNCTION mentoria_ultimo_contato(uuid) OWNER TO npac_owner;
+--> statement-breakpoint
 ALTER FUNCTION mentoria_ve_reuniao(text, uuid) OWNER TO npac_owner;
 --> statement-breakpoint
 ALTER FUNCTION mentoria_edita_reuniao(text, text, uuid) OWNER TO npac_owner;
@@ -327,11 +342,11 @@ ALTER FUNCTION mentoria_remarcar_reuniao(uuid, uuid, timestamptz, int) OWNER TO 
 --> statement-breakpoint
 ALTER FUNCTION mentoria_excluir_reuniao(uuid) OWNER TO npac_owner;
 --> statement-breakpoint
-REVOKE ALL ON FUNCTION mentoria_ve_reuniao(text, uuid), mentoria_edita_reuniao(text, text, uuid),
+REVOKE ALL ON FUNCTION mentoria_ultimo_contato(uuid), mentoria_ve_reuniao(text, uuid), mentoria_edita_reuniao(text, text, uuid),
   mentoria_sincronizar_idr(uuid), mentoria_reuniao_conclui_acao(uuid),
   mentoria_remarcar_reuniao(uuid, uuid, timestamptz, int), mentoria_excluir_reuniao(uuid) FROM PUBLIC;
 --> statement-breakpoint
-GRANT EXECUTE ON FUNCTION mentoria_ve_reuniao(text, uuid), mentoria_edita_reuniao(text, text, uuid),
+GRANT EXECUTE ON FUNCTION mentoria_ultimo_contato(uuid), mentoria_ve_reuniao(text, uuid), mentoria_edita_reuniao(text, text, uuid),
   mentoria_remarcar_reuniao(uuid, uuid, timestamptz, int), mentoria_excluir_reuniao(uuid) TO npac_app;
 --> statement-breakpoint
 

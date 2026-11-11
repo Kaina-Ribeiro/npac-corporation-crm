@@ -164,11 +164,7 @@ export class InscricoesService {
            'atrasadas', count(*) filter (where mentoria_acao_atrasada(a.status,
              a.anterior_ao_sistema, a.data_limite, ${HOJE})))
          from mentoria_acoes a where a.inscricao_id = i.id) as plano,
-        to_char((greatest(
-          (select max(c.quando) from mentoria_contatos c where c.inscricao_id = i.id),
-          (select max(r.inicio) from mentoria_reunioes r
-           where r.inscricao_id = i.id and r.status = 'REALIZADA'))
-          at time zone 'America/Sao_Paulo')::date, 'YYYY-MM-DD') as ultimo_contato
+        to_char(mentoria_ultimo_contato(i.id), 'YYYY-MM-DD') as ultimo_contato
       from mentoria_inscricoes i
       join mentoria_pessoas p1 on p1.inscricao_id = i.id and p1.ordem = 1
       left join "user" u on u.id = i.responsavel_id
