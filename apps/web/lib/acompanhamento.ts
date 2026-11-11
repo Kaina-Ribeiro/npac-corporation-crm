@@ -43,6 +43,10 @@ export const lerEu = cache(() => tentar<EuMentoria>('/api/mentoria/eu'));
 export const podeCadastrar = (eu: EuMentoria | null) =>
   !!eu && (eu.admin || eu.perfil === 'ACOMPANHAMENTO' || eu.perfil === 'OPERACAO');
 
+/** Quem exporta planilha (§6): Admin e Acompanhamento. A API repete a regra. */
+export const podeExportar = (eu: EuMentoria | null) =>
+  !!eu && (eu.admin || eu.perfil === 'ACOMPANHAMENTO');
+
 /** A última ficha aberta, se ainda existir e a pessoa ainda a enxergar. */
 export async function ultimaFicha(): Promise<{ id: string; nome: string } | null> {
   const id = (await cookies()).get(COOKIE_ULTIMA_FICHA)?.value;

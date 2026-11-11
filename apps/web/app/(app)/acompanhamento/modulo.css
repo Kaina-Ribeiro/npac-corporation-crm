@@ -3363,3 +3363,39 @@
     font-size: 16px;
   }
 }
+
+/* Ficha: ações de Admin no menu; Configurações > Transferir carteira */
+.ac {
+  .fc-menu button.perigo {
+    color: var(--danger);
+  }
+  .tc {
+    display: grid;
+    gap: 12px;
+    padding: 16px;
+  }
+  .tc-campo {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink2);
+  }
+  .tc .btn {
+    justify-self: start;
+  }
+  .tc-ok {
+    font-size: 13px;
+    color: var(--tag-ok);
+  }
+  @media (min-width: 768px) {
+    .tc {
+      grid-template-columns: 1fr 1fr auto;
+      align-items: end;
+    }
+    .tc-ok {
+      grid-column: 1 / -1;
+    }
+  }
+}

@@ -419,3 +419,26 @@ export const mensagemPutSchema = z
   })
   .strict();
 export type MensagemPut = z.output<typeof mensagemPutSchema>;
+
+/** Abas que exportam planilha (§6). Contato só para Admin; dor, sonho e anotações nunca saem. */
+export const ABAS_EXPORTACAO = ['MENTORADOS', 'FILA', 'PLANO', 'REUNIOES'] as const;
+export const exportarSchema = z
+  .object({
+    aba: z.enum(ABAS_EXPORTACAO),
+    filtros: z
+      .object({
+        status: z.enum(INSCRICAO_STATUS).optional(),
+        mentoria: z.enum(MENTORIAS).optional(),
+        responsavelId: z.string().min(1).max(100).optional(),
+        escopo: z.enum(['MINHA', 'EQUIPE']).optional(),
+      })
+      .strict()
+      .optional(),
+  })
+  .strict();
+export type Exportar = z.output<typeof exportarSchema>;
+
+export const transferirCarteiraSchema = z
+  .object({ de: z.string().min(1).max(100), para: z.string().min(1).max(100) })
+  .strict();
+export type TransferirCarteira = z.output<typeof transferirCarteiraSchema>;

@@ -19,6 +19,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { clientApi } from '@/lib/client-api';
+import { ExportarBotao } from './exportar-botao';
 import { ICONES, Icone, Rostos, dataBR, diaBR, horaBR } from './ui';
 import { WhatsappBotoes } from './whatsapp-botoes';
 
@@ -204,12 +205,14 @@ export function Fila({
   euId,
   temPerfil,
   admin,
+  exportar,
 }: {
   dados: FilaDTO;
   mensagens: MensagemModelo[];
   euId: string;
   temPerfil: boolean;
   admin: boolean;
+  exportar: boolean;
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -331,6 +334,11 @@ export function Fila({
                 Equipe
               </Link>
             </div>
+          )}
+          {exportar && (
+            <span className="so-desk">
+              <ExportarBotao aba="FILA" filtros={{ escopo: dados.escopo }} />
+            </span>
           )}
         </div>
       </div>

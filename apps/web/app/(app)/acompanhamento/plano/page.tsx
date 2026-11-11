@@ -1,7 +1,8 @@
 import type { PaginaAcoes, PaginaInscricoes, PlanoSemana as Semana } from '@npac/shared/mentoria';
 import Link from 'next/link';
 import { PlanoMentorados, PlanoMes, PlanoSemana } from '@/components/acompanhamento/plano-semana';
-import { sessaoDoModulo } from '@/lib/acompanhamento';
+import { ExportarBotao } from '@/components/acompanhamento/exportar-botao';
+import { lerEu, podeExportar, sessaoDoModulo } from '@/lib/acompanhamento';
 import { apiPost } from '@/lib/api';
 
 export const metadata = { title: 'Plano dos 12 meses' };
@@ -38,9 +39,16 @@ export default async function PlanoPage({
   const mes = Number.isInteger(n) && n >= 1 && n <= 13 ? n : 1;
   return (
     <section className="view">
-      <div>
-        <h1 className="h1">Plano dos 12 meses</h1>
-        <p className="sub">A ação de cada mês: o que vence, quem faz e o que já foi feito.</p>
+      <div className="hrow">
+        <div>
+          <h1 className="h1">Plano dos 12 meses</h1>
+          <p className="sub">A ação de cada mês: o que vence, quem faz e o que já foi feito.</p>
+        </div>
+        {podeExportar(await lerEu()) && (
+          <div className="acts so-desk">
+            <ExportarBotao aba="PLANO" />
+          </div>
+        )}
       </div>
       <div className="tabs">
         {ABAS.map(([id, rotulo]) => (

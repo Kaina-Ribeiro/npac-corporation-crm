@@ -68,10 +68,16 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   reimportar quem foi renomeado); reuniões e contatos `reunioes.*`, `contatos.controller.ts` (0052: estados e
   remarcar/excluir no banco; IDR realizada → `data_idr`/início de Brasília + ATIVO + ações em `iniciarPelaIdr`;
   reunião realizada conclui a ação do mesmo `reuniao_tipo`; Especialista vê só inscrições/reuniões que conduz,
-  nunca IDR) · banco `db/src/schema/mentoria.ts`
+  nunca IDR); Fila do dia `fila.*` (0053: `mentoria_fila(agora)` calcula na leitura, SECURITY INVOKER;
+  quem vê cada item `sh/mentoria/fila.ts` `itemVisivel`; `mentoria_fila_feitos` conclui o que não tem estado;
+  relógio `MENTORIA_CLOCK` em `relogio.ts`); mensagens-modelo `mensagens.controller.ts` + `sh/mentoria/mensagens.ts`
+  (0054; `{nome}`/`{nomes}`, WhatsApp copia e abre `wa.me/<número>` sem texto); push da Fila `avisos.scheduler.ts`
+  (0055: um timer, `mentoria_aviso_proximo`/`_reclamar`, `mentoria_avisos_enviados`; `AvisosRearme` no
+  `MentoriaController` rearma depois de toda escrita do módulo); CSV `exportacao.controller.ts`; excluir,
+  anonimizar e transferir carteira `carteira.controller.ts` (0056) · banco `db/src/schema/mentoria.ts`
   - 0044–0045 (`mentoria_perfil()`, `mentoria_admin()`, `mentoria_ve()`, `mentoria_edita()`, funções `mentoria_*`) ·
     seed `db/src/seed-mentoria.ts` · lógica pura `sh/mentoria/*` (cliente: `@npac/shared/mentoria`, sem zod) ·
-    telas `web/app/(app)/acompanhamento/*` (`mentorados`, `mentorados/nova`, `ficha/[id]`, `configuracoes`, `mais`,
+    telas `web/app/(app)/acompanhamento/*` (`fila` é a entrada, `mentorados`, `mentorados/nova`, `ficha/[id]`, `configuracoes`, `mais`,
     `reunioes`, `reunioes/[id]`, `reunioes/nova`, `em-breve/[aba]`), `web/components/acompanhamento/*`, CSS só do módulo sob `.ac` em `acompanhamento/modulo.css`,
     fila de salvamento `sh/mentoria/field-queue.ts` + `web/lib/acompanhamento-saver.ts`, perfil no servidor
     `web/lib/acompanhamento.ts` (`lerEu`) · backup cifrado `infra/backup/*` (age)
@@ -129,14 +135,21 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   "Seu painel chega em breve", sem menu (`components/acompanhamento/sem-acesso.tsx`, no layout de `(app)`); API 404 em tudo menos
   `mentoria/eu`. MFA obrigatório nas rotas `mentoria/*` para Diretoria e Acompanhamento, 404 para os demais. O cargo não vê nada do comercial
   (05/11/2026): `PermissionsGuard` dá 404 em toda rota sem `@AllRoles()` (`api/auth/all-roles.decorator.ts`;
-  hoje `me`, `events` e o módulo), e o web mostra só as abas do módulo (`hasCommercialAccess`,
+  hoje `me`, `events`, `push` e o módulo), e o web mostra só as abas do módulo (`hasCommercialAccess`,
   sidebar/Ctrl+K/Mais/rodapé). Telas comerciais ficam em `web/app/(app)/(comercial)/`, cujo layout
   manda o cargo ao módulo com carga completa (o layout de `(app)` não roda na navegação do
   navegador; redirect do servidor ali deixava o módulo em branco). Entrada única: login, troca de
   senha e MFA vão para `/`, que escolhe o destino pelo cargo. Rota nova que o cargo use leva
   `@AllRoles()`; o teste `acompanhamento-sem-comercial` varre todas. Texto sensível cifrado com AAD
   (`MENTORADO_ENCRYPTION_KEY`); mídia fora do banco em `MEDIA_DIR`; sem DELETE para `npac_app`
-  (exclusão só pelas funções, que enfileiram a mídia). Salvar ao sair do campo: em 409 a fila reaplica se o outro não mexeu naquele campo; se mexeu, avisa e mantém o dele (`resolverConflito`).
+  (exclusão só pelas funções, que enfileiram a mídia). Push (D12, 11/11/2026): `PushController` tem `@AllRoles()`
+  e o link "Avisos neste aparelho" aparece para o cargo; o push da Fila não leva nome (`AVISO_PAYLOAD`), vai a
+  quem responde pelo item ou a todos do perfil, um por pessoa a cada disparo; pausado, cancelado e o que veio antes
+  do sistema não avisam. Fila: só ONBOARDING e ATIVO; "hoje" e 8h de Brasília; responsável desativado ou sem
+  perfil cai no perfil (`mentoria_perfil_de`). CSV do módulo: Admin e perfil Acompanhamento, auditado
+  (`mentoria.csv`), contato só para Admin, nunca dor, sonho, meta, anotações ou textos de reunião. Excluir e
+  anonimizar (LGPD) só Admin, pela ficha; anonimizar mantém inscrição, reuniões e ações para as contagens.
+  Salvar ao sair do campo: em 409 a fila reaplica se o outro não mexeu naquele campo; se mexeu, avisa e mantém o dele (`resolverConflito`).
 - **Siglas das mentorias** (Gabriel, 04/11/2026): RDV = Rico de Verdade · IDR = Introdução da
   Riqueza · PME = Plano Mensal de Enriquecimento · 2M = Marco e Mudança · 6M = sem definição ainda.
   Nas telas vale o texto literal do PDF, exceto IDR: "Introdução da Riqueza" (o PDF diz "à"; corrigido).

@@ -13,6 +13,7 @@ import { button, control, quietButton } from '@/components/crm-ui';
 import { clientApi } from '@/lib/client-api';
 import { Dialogo } from './dialogo';
 import { dataBR, ICONES, Icone, Rostos, rotuloMes, TagStatus, Trilha } from './ui';
+import { ExportarBotao } from './exportar-botao';
 
 type Filtros = {
   mes?: number;
@@ -115,10 +116,12 @@ export function MentoradosLista({
   pagina,
   responsaveis,
   podeCriar,
+  exportar = false,
 }: {
   pagina: PaginaInscricoes;
   responsaveis: Pessoa[];
   podeCriar: boolean;
+  exportar?: boolean;
 }) {
   const [f, setF] = useState<Filtros>({});
   const [dados, setDados] = useState(pagina);
@@ -186,11 +189,22 @@ export function MentoradosLista({
             {resumo.pausados === 1 ? 'pausado' : 'pausados'}.
           </p>
         </div>
-        {podeCriar && (
+        {(podeCriar || exportar) && (
           <div className="acts so-desk">
-            <Link className={button} href="/acompanhamento/mentorados/nova">
-              Nova inscrição
-            </Link>
+            {exportar && (
+              <ExportarBotao
+                aba="MENTORADOS"
+                filtros={{
+                  ...(f.status ? { status: f.status } : {}),
+                  ...(f.responsavelId ? { responsavelId: f.responsavelId } : {}),
+                }}
+              />
+            )}
+            {podeCriar && (
+              <Link className={button} href="/acompanhamento/mentorados/nova">
+                Nova inscrição
+              </Link>
+            )}
           </div>
         )}
       </div>

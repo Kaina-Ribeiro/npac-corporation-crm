@@ -23,7 +23,7 @@
 | 2 | Onboarding + importação | ✅ |
 | 3 | Plano por mentoria + pausa | ✅ |
 | 4 | Reuniões + IDR inicia a jornada | ✅ |
-| 5 | Fila do dia, avisos, WhatsApp, exportação, fechamento | ⏳ |
+| 5 | Fila do dia, avisos, WhatsApp, exportação, fechamento | ✅ |
 
 ## Global Constraints
 
@@ -436,7 +436,7 @@ Status: ✅
 ## Parte 5 — Fila, avisos e fechamento
 
 ### Tarefa 5.1: Fila do dia na API
-Status: ⏳
+Status: ✅ (migration `0053_acompanhamento_v2_fila`; `formulario_preenchido_em` guarda a base do "Enviar a Caixa")
 
 **Files:** Create: migration `00NN_acompanhamento_v2_fila.sql`, `api/mentoria/fila.controller.ts`, `fila.service.ts`, `sh/mentoria/fila.ts`. Test: `apps/api/test/mentoria-v2-fila.e2e.test.ts`.
 
@@ -475,7 +475,7 @@ it('"hoje" muda à meia-noite de Brasília, não à de UTC')
 - [ ] **Step 5:** Commit `feat(NPAC-43): fila do dia`.
 
 ### Tarefa 5.2: Aba Fila, mensagens-modelo e WhatsApp
-Status: ⏳
+Status: ✅ (migration `0054_acompanhamento_v2_mensagens`; `/acompanhamento` abre a Fila)
 
 **Files:** Create: migration `00NN_acompanhamento_v2_mensagens.sql`, `api/mentoria/mensagens.controller.ts`, `web/app/(app)/acompanhamento/fila/page.tsx`, `web/components/acompanhamento/{fila,whatsapp-botoes,mensagens-admin}.tsx`, `sh/mentoria/mensagens.ts`. Modify: `web/app/(app)/acompanhamento/page.tsx` (redirect `/acompanhamento/fila`). Test: `packages/shared/test/mentoria-mensagens.test.ts`, `web/e2e/acompanhamento-v2-fila.spec.ts`.
 
@@ -499,7 +499,7 @@ test('Leo não tem Fila')
 - [ ] **Step 5:** Commit `feat(NPAC-43): aba fila e mensagens-modelo`.
 
 ### Tarefa 5.3: Avisos no celular
-Status: ⏳
+Status: ✅ (migration `0055_acompanhamento_v2_avisos`; o rearme é o interceptor `AvisosRearme` do `MentoriaController`, em toda escrita do módulo)
 
 **Files:** Create: migration `00NN_acompanhamento_v2_avisos.sql`, `api/mentoria/avisos.scheduler.ts`. Modify (**as 2 mudanças do D12**): `api/push/push.module.ts` (`@AllRoles()` em `PushController`), `web/app/(app)/mais/page.tsx` (link para quem tem `me.modules.mentoria` ou comercial); `apps/api/test/acompanhamento-sem-comercial.e2e.test.ts` (`LIBERADAS` ganha `/^\/api\/push\//`); serviços que mudam datas chamam `rearm()`. Test: `apps/api/test/mentoria-v2-avisos.e2e.test.ts`.
 
@@ -525,7 +525,7 @@ it('cargo Acompanhamento se inscreve no push; SDR continua igual')
 - [ ] **Step 5:** Commit `feat(NPAC-43): avisos no celular`.
 
 ### Tarefa 5.4: Exportação, exclusão, LGPD, transferência e fechamento
-Status: ⏳
+Status: ✅ (migration `0056_acompanhamento_v2_exclusao`; Step 7, backup e worker de mídia antes do deploy, fica com o Gabriel)
 
 **Files:** Create: migration `00NN_acompanhamento_v2_exclusao.sql`, `api/mentoria/exportacao.controller.ts`, `carteira.controller.ts`, `web/components/acompanhamento/{exportar-botao,transferir-carteira}.tsx`. Modify: `CLAUDE.md` (mapa do Acompanhamento, regras, `mentoria_pode` → `mentoria_perfil`/`mentoria_admin`). Test: `apps/api/test/mentoria-v2-exclusao.e2e.test.ts`.
 

@@ -26,6 +26,8 @@ import { FilaController, Pme1Controller } from './fila.controller.js';
 import { FilaService } from './fila.service.js';
 import { MensagensController, MensagensService } from './mensagens.controller.js';
 import { AvisosRearme, AvisosScheduler } from './avisos.scheduler.js';
+import { CarteiraController, CarteiraService, ExclusaoController } from './carteira.controller.js';
+import { ExportacaoController, ExportacaoService } from './exportacao.controller.js';
 import { MENTORIA_CLOCK, systemClock } from './relogio.js';
 import { ReunioesController } from './reunioes.controller.js';
 import { ReunioesService } from './reunioes.service.js';
@@ -44,6 +46,9 @@ import { ReunioesService } from './reunioes.service.js';
     FilaController,
     Pme1Controller,
     MensagensController,
+    ExportacaoController,
+    ExclusaoController,
+    CarteiraController,
   ],
   providers: [
     MentoriaGuard,
@@ -60,6 +65,8 @@ import { ReunioesService } from './reunioes.service.js';
     MensagensService,
     AvisosScheduler,
     AvisosRearme,
+    ExportacaoService,
+    CarteiraService,
     { provide: MENTORIA_CLOCK, useValue: systemClock },
     {
       provide: MentoriaCrypto,

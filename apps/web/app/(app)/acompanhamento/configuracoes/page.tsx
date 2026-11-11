@@ -11,6 +11,7 @@ import { ImportarCarteira } from '@/components/acompanhamento/importar-carteira'
 import { MensagensAdmin } from '@/components/acompanhamento/mensagens-admin';
 import { PerfisAdmin } from '@/components/acompanhamento/perfis-admin';
 import { PlanoModeloAdmin } from '@/components/acompanhamento/plano-modelo-admin';
+import { TransferirCarteira } from '@/components/acompanhamento/transferir-carteira';
 import { ICONES, Icone } from '@/components/acompanhamento/ui';
 import { lerEu, sessaoDoModulo } from '@/lib/acompanhamento';
 import { apiGet } from '@/lib/api';
@@ -22,8 +23,9 @@ const SUB = {
   plano: 'A ação de cada mês, por mentoria.',
   importacao: 'Traga a carteira atual do gerenciador e da planilha, sem redigitar.',
   mensagens: 'O texto que os botões de WhatsApp copiam, por momento.',
+  carteira: 'Passe as inscrições de uma pessoa para outra do Acompanhamento.',
 };
-const ABAS = ['perfis', 'plano', 'mensagens', 'importacao'] as const;
+const ABAS = ['perfis', 'plano', 'mensagens', 'importacao', 'carteira'] as const;
 type AbaConfig = (typeof ABAS)[number];
 
 export default async function ConfiguracoesPage({
@@ -36,7 +38,14 @@ export default async function ConfiguracoesPage({
   const q = await searchParams;
   const aba: AbaConfig = ABAS.includes(q.aba as AbaConfig) ? (q.aba as AbaConfig) : 'perfis';
   const mentoria = MENTORIAS.includes(q.mentoria as Mentoria) ? (q.mentoria as Mentoria) : 'RDV';
-  const perfis = aba === 'perfis' ? await apiGet<PerfilLinha[]>('/api/mentoria/perfis') : [];
+  const perfis =
+    aba === 'perfis' || aba === 'carteira'
+      ? await apiGet<PerfilLinha[]>('/api/mentoria/perfis')
+      : [];
+  const responsaveis =
+    aba === 'carteira'
+      ? await apiGet<{ id: string; nome: string }[]>('/api/mentoria/responsaveis')
+      : [];
   const modelo =
     aba === 'plano' ? await apiGet<PlanoModeloLinha[]>('/api/mentoria/plano-modelo') : [];
   const mensagens =
@@ -73,10 +82,16 @@ export default async function ConfiguracoesPage({
         >
           Importação
         </Link>
-        <span className="off">Transferir carteira</span>
+        <Link
+          className={aba === 'carteira' ? 'on' : ''}
+          href="/acompanhamento/configuracoes?aba=carteira"
+        >
+          Transferir carteira
+        </Link>
       </div>
       {aba === 'importacao' && <ImportarCarteira />}
       {aba === 'mensagens' && <MensagensAdmin mensagens={mensagens} />}
+      {aba === 'carteira' && <TransferirCarteira responsaveis={responsaveis} perfis={perfis} />}
       {aba === 'plano' && <PlanoModeloAdmin linhas={modelo} mentoria={mentoria} />}
       {aba === 'perfis' && (
         <>

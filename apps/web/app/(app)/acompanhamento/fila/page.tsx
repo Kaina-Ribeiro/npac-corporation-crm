@@ -1,6 +1,6 @@
 import type { FilaDTO, MensagemModelo } from '@npac/shared/mentoria';
 import { Fila } from '@/components/acompanhamento/fila';
-import { lerEu, sessaoDoModulo } from '@/lib/acompanhamento';
+import { lerEu, podeExportar, sessaoDoModulo } from '@/lib/acompanhamento';
 import { apiGet, apiPost } from '@/lib/api';
 
 export const metadata = { title: 'Fila do dia' };
@@ -27,6 +27,7 @@ export default async function FilaPage({
       euId={me.id}
       temPerfil={!!eu?.perfil}
       admin={!!eu?.admin}
+      exportar={podeExportar(eu)}
     />
   );
 }
