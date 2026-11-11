@@ -189,7 +189,7 @@ Cookie `npac_f_pipe`: filtros (`leadFilterRules`) + `col` (coluna aberta no celu
 - [ ] **Step 2:** rodar `-g "pipeline"` → FAIL. **Step 3:** implementar. **Step 4:** rodar → PASS (inclui o teste antigo das colunas ocultas).
 - [ ] **Step 5:** Commit `feat(NPAC-46): pipeline lembra filtros e coluna aberta`.
 
-### Task 5: Hoje aplica na hora — Status: ⏳
+### Task 5: Hoje aplica na hora — Status: ✅
 
 **Files:** Modify `apps/web/components/today.tsx` (sai o form/botão "Filtrar Hoje"; `onChange` dos selects chama `apply(selected)`, que grava o cookie e busca); Test `e2e/preferencias.spec.ts` (ajustar `hoje lembra o filtro de SDR e closer ao voltar`, que clicava no botão) e `grep -rn "Filtrar Hoje" apps/web/e2e` para os demais.
 

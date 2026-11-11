@@ -1,7 +1,7 @@
 'use client';
 import type { LeadCatalog, TodayDTO } from '@npac/shared';
 import Link from 'next/link';
-import { Fragment, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
 import { money } from '@npac/shared/money';
 import { brasiliaInput, clientApi } from '@/lib/client-api';
 import {
@@ -207,8 +207,6 @@ export function Today({
   const receiptKeys = useRef(new Map<string, string>());
   useCrmRefresh(() => load());
   const [filters, setFilters] = useState<TodayFilters>(initialFilters);
-  // O que está marcado nos campos, antes de clicar em Filtrar.
-  const [picked, setPicked] = useState<TodayFilters>(initialFilters);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   // Relógio do navegador para a marca "agora" da agenda: só depois de montar (sem divergir do
@@ -237,7 +235,6 @@ export function Today({
     const saved = parseTodayFilters(readPreference(cookie), team);
     if (serializeTodayFilters(saved) === serializeTodayFilters(initialFilters)) return;
     setFilters(saved);
-    setPicked(saved);
     void load(saved).catch((e: Error) => setError(e.message));
   }, []);
   async function action(path: string, method: string, body: object) {
@@ -252,14 +249,15 @@ export function Today({
       setBusy(false);
     }
   }
-  async function filter(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  /** Filtro vale ao escolher (NPAC-46): grava o cookie e busca. */
+  async function filter(change: TodayFilters) {
     const selected = Object.fromEntries(
-      [...new FormData(e.currentTarget)].filter(([, v]) => v),
+      Object.entries({ ...filters, ...change }).filter(([, v]) => v),
     ) as TodayFilters;
     setFilters(selected);
     savePreference(cookie, serializeTodayFilters(selected), TODAY_COOKIE_PATH);
     setBusy(true);
+    setError('');
     try {
       await load(selected);
     } catch (e) {
@@ -418,13 +416,16 @@ export function Today({
         </div>
       </header>
       {head && (
-        <form className="glass-card flex flex-wrap items-end gap-3 p-4" onSubmit={filter}>
+        <form
+          className="glass-card flex flex-wrap items-end gap-3 p-4"
+          onSubmit={(e) => e.preventDefault()}
+        >
           <Field label="SDR">
             <select
               name="sdrId"
               className={control}
-              value={picked.sdrId ?? ''}
-              onChange={(e) => setPicked((p) => ({ ...p, sdrId: e.target.value || undefined }))}
+              value={filters.sdrId ?? ''}
+              onChange={(e) => void filter({ sdrId: e.target.value || undefined })}
             >
               <option value="">Todos</option>
               {catalog.team
@@ -440,8 +441,8 @@ export function Today({
             <select
               name="closerId"
               className={control}
-              value={picked.closerId ?? ''}
-              onChange={(e) => setPicked((p) => ({ ...p, closerId: e.target.value || undefined }))}
+              value={filters.closerId ?? ''}
+              onChange={(e) => void filter({ closerId: e.target.value || undefined })}
             >
               <option value="">Todos</option>
               {catalog.team
@@ -453,9 +454,6 @@ export function Today({
                 ))}
             </select>
           </Field>
-          <button className={button} disabled={busy}>
-            Filtrar Hoje
-          </button>
         </form>
       )}
       <FormError message={error} />
