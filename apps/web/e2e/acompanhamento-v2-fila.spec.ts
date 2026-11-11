@@ -186,3 +186,28 @@ for (const [largura, altura] of [
     await expect(page.getByRole('complementary', { name: 'Detalhe do item' })).toBeVisible();
     await page.screenshot({ path: `test-results/fila-${largura}-item.png`, fullPage: true });
   });
+
+test('Duda escreve a mensagem em Configurações e a Fila mostra pronta', async ({ page }) => {
+  await entrar(page, 'operacao');
+  await criar(page, [{ nome: 'Mentorado Fictício 98', whatsapp: '11999990098' }]);
+  await page.context().clearCookies();
+  await entrar(page, 'duda');
+  await page.waitForURL(/\/acompanhamento\/fila/);
+  await lateral(page).getByRole('link', { name: 'Configurações', exact: true }).click();
+  await page.getByRole('link', { name: 'Mensagens-modelo', exact: true }).click();
+  await page.waitForURL(/aba=mensagens/);
+  const boas = page.locator('li.msg-modelo').filter({ hasText: 'Boas-vindas' });
+  await boas.getByLabel('Individual').fill('Bem-vindo, {nome}!');
+  await expect(boas.getByText('Prévia: Bem-vindo, Fictício!')).toBeVisible();
+  await boas.getByRole('button', { name: 'Salvar' }).click();
+  await expect(boas.getByText('Salvo')).toBeVisible();
+  await lateral(page).getByRole('link', { name: 'Fila do dia', exact: true }).click();
+  await page.getByRole('link', { name: 'Equipe', exact: true }).click();
+  await page.waitForURL(/ver=equipe/);
+  await linha(page, 'Mentorado Fictício 98')
+    .getByRole('button', { name: /^Abrir Mentorado Fictício 98/ })
+    .click();
+  await expect(
+    page.getByRole('complementary', { name: 'Detalhe do item' }).getByText('Bem-vindo, Mentorado!'),
+  ).toBeVisible();
+});
