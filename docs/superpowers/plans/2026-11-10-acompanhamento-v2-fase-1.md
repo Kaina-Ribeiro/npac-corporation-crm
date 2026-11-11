@@ -295,7 +295,7 @@ it('rótulo sem mentoria exige decisão na confirmação')  // 400
 ## Parte 3 — Plano por mentoria e pausa
 
 ### Tarefa 3.1: Plano-modelo e geração de ações
-Status: ✅
+Status: ✅ (migration `0050_acompanhamento_v2_plano`, depois da `0049_cargos_um_passo` da v0.12)
 
 **Files:** Create: migration `00NN_acompanhamento_v2_plano.sql`, `api/mentoria/plano.controller.ts`, `plano.service.ts`. Modify: `onboarding.service.ts`, `importacao.service.ts`, `inscricoes.service.ts`. Test: `packages/db/test/mentoria-v2-plano.test.ts`, `apps/api/test/mentoria-v2-plano.e2e.test.ts`.
 
@@ -328,7 +328,7 @@ it('mês da jornada depois do 12º continua calculando; tela mostra concluída')
 - [ ] **Step 5:** Commit `feat(NPAC-43): plano por mentoria`.
 
 ### Tarefa 3.2: Pausar e retomar
-Status: ✅
+Status: ✅ (migration `0051_acompanhamento_v2_pausas`)
 
 **Files:** Create: migration `00NN_acompanhamento_v2_pausas.sql`, `api/mentoria/pausa.service.ts`. Modify: `inscricoes.controller.ts`, `ficha.tsx`. Test: `apps/api/test/mentoria-v2-pausa.e2e.test.ts`.
 

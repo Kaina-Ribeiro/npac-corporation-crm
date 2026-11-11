@@ -996,6 +996,12 @@
     font-weight: 500;
     color: var(--ink2);
   }
+  /* "Admin do Acompanhamento" (C5) quebra em duas linhas no celular sem apertar o nome. */
+  .pf-admin-rot {
+    max-width: 100px;
+    line-height: 1.25;
+    text-align: right;
+  }
   .sw {
     flex: none;
     position: relative;
@@ -1521,6 +1527,24 @@
   @media (max-width: 767.98px) {
     .imp-casal input {
       font-size: 16px;
+    }
+  }
+  /* Perfis em uma linha só quando o card tem largura (com a barra lateral, a partir de 1024 px);
+     "Admin do Acompanhamento" por extenso não cabe ao lado do nome e do perfil em 768. */
+  @media (min-width: 1024px) {
+    .pf {
+      grid-template-columns: 40px minmax(0, 1fr) 200px auto;
+    }
+    .pf select {
+      grid-column: 3;
+      grid-row: 1;
+    }
+    .pf-admin {
+      grid-column: 4;
+      grid-row: 1;
+    }
+    .pf-admin-rot {
+      max-width: none;
     }
   }
   @media (min-width: 768px) {
@@ -2257,17 +2281,6 @@
     .fchip {
       height: 36px;
       border-radius: 18px;
-    }
-    .pf {
-      grid-template-columns: 40px minmax(0, 1fr) 200px auto;
-    }
-    .pf select {
-      grid-column: 3;
-      grid-row: 1;
-    }
-    .pf-admin {
-      grid-column: 4;
-      grid-row: 1;
     }
     .pv {
       font-size: 14px;

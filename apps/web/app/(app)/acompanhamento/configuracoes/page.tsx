@@ -69,8 +69,8 @@ export default async function ConfiguracoesPage({
         <>
           <PerfisAdmin inicial={perfis} />
           <p className="pf-nota">
-            A Diretoria é Admin automaticamente. Conta nova: a liderança cria o login com o cargo
-            Acompanhamento, e você define o perfil aqui.
+            A Diretoria é Admin automaticamente. Conta nova: a Diretoria cria o login no Admin do
+            CRM, já com o perfil. Aqui você troca o perfil de quem já está na equipe.
           </p>
         </>
       )}

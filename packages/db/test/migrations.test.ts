@@ -121,7 +121,7 @@ describe('limpeza do módulo antigo', () => {
     expect(sobra).toEqual([]);
   });
 
-  // Produção chega à 0049 com a carteira importada (Parte 2): o plano nasce sem alertar o
+  // Produção chega à 0049 (cargos) com a carteira importada (Parte 2): o plano nasce sem alertar o
   // passado, e quem estava PAUSADO ganha a pausa aberta com o status de antes.
   it('plano e pausas chegam com a carteira que já existe', async () => {
     const banco = 'npac_test_plano_migra';

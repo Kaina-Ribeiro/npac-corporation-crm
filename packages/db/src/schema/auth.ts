@@ -1,26 +1,42 @@
 // Tabelas do Better Auth (core + plugin twoFactor + rate limit em banco),
 // escritas à mão com nomes snake_case. As colunas extras de `user` são do domínio.
-import { bigint, boolean, integer, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import { bigint, boolean, check, integer, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 import { roleEnum } from './enums.js';
 
-export const user = pgTable('user', {
-  id: text('id').primaryKey(),
-  name: text('name').notNull(),
-  email: text('email').notNull().unique(),
-  // Plugin username do Better Auth: o login é por usuário (minúsculo); e-mail fica como contato.
-  username: text('username').unique(),
-  displayUsername: text('display_username'),
-  emailVerified: boolean('email_verified').notNull().default(false),
-  image: text('image'),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-  twoFactorEnabled: boolean('two_factor_enabled').default(false),
-  role: roleEnum('role').notNull(),
-  canProspect: boolean('can_prospect').notNull().default(false),
-  canClose: boolean('can_close').notNull().default(false),
-  active: boolean('active').notNull().default(true),
-  mustChangePassword: boolean('must_change_password').notNull().default(true),
-});
+export const user = pgTable(
+  'user',
+  {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+    email: text('email').notNull().unique(),
+    // Plugin username do Better Auth: o login é por usuário (minúsculo); e-mail fica como contato.
+    username: text('username').unique(),
+    displayUsername: text('display_username'),
+    emailVerified: boolean('email_verified').notNull().default(false),
+    image: text('image'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    twoFactorEnabled: boolean('two_factor_enabled').default(false),
+    role: roleEnum('role').notNull(),
+    canProspect: boolean('can_prospect').notNull().default(false),
+    canClose: boolean('can_close').notNull().default(false),
+    active: boolean('active').notNull().default(true),
+    mustChangePassword: boolean('must_change_password').notNull().default(true),
+  },
+  // Cargos em um passo (0049): SDR, Closer e Acompanhamento têm as caixas definidas pelo cargo;
+  // só Head e Diretoria escolhem "Atua como SDR/Closer". Cargo comparado como texto.
+  (t) => [
+    check(
+      'user_cargo_caixas',
+      sql`case ${t.role}::text
+        when 'SDR' then ${t.canProspect} and not ${t.canClose}
+        when 'CLOSER' then ${t.canClose} and not ${t.canProspect}
+        when 'ACOMPANHAMENTO' then not ${t.canProspect} and not ${t.canClose}
+        else true end`,
+    ),
+  ],
+);
 
 export const session = pgTable('session', {
   id: text('id').primaryKey(),
