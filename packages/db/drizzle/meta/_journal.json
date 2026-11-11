@@ -365,6 +365,13 @@
       "when": 1794396297304,
       "tag": "0051_acompanhamento_v2_pausas",
       "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1794404761224,
+      "tag": "0052_acompanhamento_v2_reunioes",
+      "breakpoints": true
     }
   ]
 }

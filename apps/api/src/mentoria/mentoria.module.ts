@@ -21,6 +21,9 @@ import { PerfisController } from './perfis.controller.js';
 import { PerfisService } from './perfis.service.js';
 import { PlanoController } from './plano.controller.js';
 import { PlanoService } from './plano.service.js';
+import { ContatosController } from './contatos.controller.js';
+import { ReunioesController } from './reunioes.controller.js';
+import { ReunioesService } from './reunioes.service.js';
 
 /** Acompanhamento de mentorados: base à parte do comercial, só Diretoria e Acompanhamento. */
 @Module({
@@ -31,6 +34,8 @@ import { PlanoService } from './plano.service.js';
     OnboardingController,
     ImportacaoController,
     PlanoController,
+    ReunioesController,
+    ContatosController,
   ],
   providers: [
     MentoriaGuard,
@@ -38,6 +43,7 @@ import { PlanoService } from './plano.service.js';
     PerfisService,
     PlanoService,
     PausaService,
+    ReunioesService,
     InscricoesService,
     FichaService,
     OnboardingService,
