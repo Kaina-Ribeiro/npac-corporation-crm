@@ -7,23 +7,31 @@
 
 ## 1. Pessoas e papéis
 
-| Pessoa  | Papel            | Prospecta? | Faz reunião (closer)? |
-|---------|------------------|:----------:|:---------------------:|
-| Ana     | **HEAD** (Pré-vendas / SDRs) | ✅ | — |
-| Ronaldo | **HEAD** (Vendedores / Closers) | — | ✅ (Mentorias P0) |
-| Ale     | SDR              | ✅ | — |
-| Murilo  | SDR              | ✅ | — |
-| Igor    | SDR              | ✅ | — |
-| Sônia   | CLOSER           | — | ✅ (Nação Milionária P1/P2) |
+| Pessoa  | Cargo            | Atua como SDR? | Atua como Closer? |
+|---------|------------------|:--------------:|:-----------------:|
+| Ana     | **HEAD** (Pré-vendas / SDRs) | ✅ (caixa) | — |
+| Ronaldo | **HEAD** (Vendedores / Closers) | — | ✅ (caixa; Mentorias P0) |
+| Ale     | SDR              | sempre | — |
+| Murilo  | SDR              | sempre | — |
+| Igor    | SDR              | sempre | — |
+| Sônia   | CLOSER           | — | sempre (Nação Milionária P1/P2) |
 
-Modelo: cada usuário tem **um papel** (`DIRETOR`, `HEAD`, `SDR`, `CLOSER`, `ACOMPANHAMENTO`) + duas flags (`can_prospect`, `can_close`).
+Modelo: cada usuário tem **um cargo** (`DIRETOR`, `HEAD`, `SDR`, `CLOSER`, `ACOMPANHAMENTO`) + duas
+flags (`can_prospect` = "Atua como SDR", pode ser dono de leads; `can_close` = "Atua como Closer",
+aparece nas listas de closer). **Cargos em um passo** (11/11/2026, spec
+`docs/superpowers/specs/2026-11-11-cargos-design.md`): no Admin há um campo só, "Cargo", agrupado em
+Comercial (SDR, Closer, Head, Diretoria) e Acompanhamento (Acompanhamento, Operação, Especialista,
+Mentor). SDR, Closer e Acompanhamento têm as flags fixas pelo cargo (SDR `t/f`, Closer `f/t`,
+Acompanhamento `f/f`, garantido por `CHECK` no banco, 0049); só Head e Diretoria marcam as caixas.
+Os cargos do Acompanhamento gravam `ACOMPANHAMENTO` + o perfil do módulo na mesma transação.
 
 **Acompanhamento** (`ACOMPANHAMENTO`, ex.: Carla): equipe de mentoria. Usa só o módulo
 Acompanhamento de mentorados (Dashboard, Linha do tempo, Linha do tempo RDV, Importação e backup),
 que segue o PDF "Escopo e regras" de 30/10/2026 (plano `docs/superpowers/plans/2026-11-04-08-mentoria.md`).
 Só Diretoria e Acompanhamento acessam o módulo (Head, SDR e Closer recebem 404), as duas com MFA
-obrigatório nele. Só a Diretoria dá ou tira o cargo. O menu é o mesmo de todos os cargos; as telas
-comerciais respondem 404 para o Acompanhamento.
+obrigatório nele. Só a Diretoria dá ou tira o cargo, já escolhendo o perfil (sem perfil, a API
+recusa); a aba Perfis do módulo só troca o perfil de quem já está na equipe. O menu é o mesmo de
+todos os cargos; as telas comerciais respondem 404 para o Acompanhamento.
 
 Login: **usuário + senha** (provisório: mínimo 3 caracteres enquanto o time testa; as regras voltam no fim). MFA (TOTP) é opcional: cada pessoa ativa ou desativa em "Autenticador", e quem ativou confirma o login com o código. O e-mail fica no cadastro
 como contato; o login por e-mail é desligado. A tela de login sugere o último usuário do aparelho
