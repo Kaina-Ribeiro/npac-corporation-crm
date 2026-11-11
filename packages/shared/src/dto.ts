@@ -9,6 +9,7 @@ export type LeadDTO = {
   name: string;
   phone: string | null;
   instagram: string | null;
+  email: string | null;
   incomeBand: IncomeBand;
   source: LeadSource;
   /** Texto de quando a origem é "Outro". */

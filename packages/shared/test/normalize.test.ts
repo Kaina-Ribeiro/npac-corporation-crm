@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeInstagram, normalizePhoneBR } from '../src/normalize.js';
+import { normalizeEmail, normalizeInstagram, normalizePhoneBR } from '../src/normalize.js';
+
+describe('normalizeEmail', () => {
+  it('tira espaços e passa para minúsculas', () =>
+    expect(normalizeEmail('  Maria.Silva@Exemplo.COM ')).toBe('maria.silva@exemplo.com'));
+});
 
 describe('normalizePhoneBR', () => {
   it.each([

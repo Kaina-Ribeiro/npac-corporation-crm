@@ -14,6 +14,9 @@ export function normalizePhoneBR(input: string): string | null {
   return `+55${digits}`;
 }
 
+/** Forma única do e-mail: é o que vai para a cifra e para o blind index (cadastro e busca). */
+export const normalizeEmail = (input: string): string => input.trim().toLowerCase();
+
 /**
  * Normaliza handle do Instagram: minúsculo, sem `@`, sem URL/query/barras.
  * Retorna null se não casar com /^[a-z0-9._]{1,30}$/.

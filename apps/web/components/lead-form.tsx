@@ -93,6 +93,7 @@ export function LeadForm({
       raw.version = lead.version;
       if (!raw.phone) raw.phone = null;
       if (!raw.instagram) raw.instagram = null;
+      if (!raw.email) raw.email = null;
       if (raw.source !== 'OUTRO') raw.sourceOther = null;
     }
     const parsed = (lead ? leadUpdateSchema : leadCreateSchema).safeParse(raw);
@@ -163,6 +164,19 @@ export function LeadForm({
             defaultValue={lead?.instagram ?? ''}
             placeholder="@usuario"
             autoComplete="off"
+          />
+        </Field>
+        <Field label="E-mail">
+          {/* Texto com teclado de e-mail: quem valida é o schema, com a mensagem em português. */}
+          <input
+            className={control}
+            name="email"
+            defaultValue={lead?.email ?? ''}
+            inputMode="email"
+            maxLength={254}
+            autoCapitalize="none"
+            autoComplete="off"
+            spellCheck={false}
           />
         </Field>
         <Field label="Faixa de renda">

@@ -96,6 +96,25 @@ it('CSV só HEAD e neutraliza fórmula; resumo não inclui contato', async () =>
   expect(r.status).toBe(200);
   expect(r.body.text).not.toContain('rel.ale');
 });
+it('CSV leva o e-mail decifrado, com fórmula neutralizada', async () => {
+  await h.post(
+    '/api/leads',
+    {
+      name: 'Com e-mail',
+      instagram: '@rel.email',
+      email: '-rel@exemplo.com',
+      incomeBand: 'R8_15K',
+      source: 'BIO',
+    },
+    ale,
+  );
+  const csv = await h.post('/api/reports/csv', { period: 'TODAY' }, head);
+  expect(csv.status).toBe(200);
+  expect(csv.text.replace('\uFEFF', '').split('\r\n')[0]).toBe(
+    '"Nome";"Telefone";"Instagram";"E-mail";"Perfil"',
+  );
+  expect(csv.text).toContain('"\'-rel@exemplo.com"');
+});
 it('exporta o relatório do período (números, sem contato); SDR sem valores de venda', async () => {
   const lead = await h.post('/api/reports/export', { period: 'TODAY' }, head);
   expect(lead.status).toBe(200);

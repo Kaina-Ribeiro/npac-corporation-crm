@@ -124,6 +124,7 @@ export class LgpdService {
         name: string;
         phone_enc: Buffer | null;
         instagram: string | null;
+        email_enc: Buffer | null;
         income_band: string;
         source: string;
         source_other: string | null;
@@ -132,7 +133,7 @@ export class LgpdService {
         legal_basis: string;
         created_at: Date;
         anonymized_at: Date | null;
-      }>(sql`select id, name, phone_enc, instagram, income_band, source, source_other, tier, summary,
+      }>(sql`select id, name, phone_enc, instagram, email_enc, income_band, source, source_other, tier, summary,
         legal_basis,
         created_at, anonymized_at from leads where id = ${r.leadId}`);
       if (!lead) throw new NotFoundException();
@@ -144,6 +145,7 @@ export class LgpdService {
           name: lead.name,
           phone: lead.phone_enc ? this.crypto.decrypt(lead.phone_enc) : null,
           instagram: lead.instagram,
+          email: lead.email_enc ? this.crypto.decrypt(lead.email_enc) : null,
           incomeBand: lead.income_band,
           source: lead.source,
           sourceOther: lead.source_other,

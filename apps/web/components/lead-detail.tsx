@@ -268,6 +268,9 @@ export function LeadDetail({
             </a>
           )}
           {lead.instagram && <span className="px-3 py-2 text-sm text-ink2">@{lead.instagram}</span>}
+          {lead.email && (
+            <span className="min-w-0 px-3 py-2 text-sm break-all text-ink2">{lead.email}</span>
+          )}
         </div>
       </div>
       <FormError message={error} />

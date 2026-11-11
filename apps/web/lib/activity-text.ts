@@ -48,6 +48,7 @@ const FIELD_LABEL: Record<string, string> = {
   name: 'nome',
   phone: 'WhatsApp',
   instagram: 'Instagram',
+  email: 'e-mail',
   incomeBand: 'faixa de renda',
   source: 'origem',
   tier: 'perfil',

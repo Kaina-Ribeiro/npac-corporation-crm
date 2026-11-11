@@ -278,6 +278,7 @@ describe('auditoria e LGPD', () => {
       {
         name: 'Titular Teste',
         phone: '11955554444',
+        email: 'titular@exemplo.com',
         incomeBand: 'R5_8K',
         source: 'BIO',
         tier: 'P2',
@@ -294,6 +295,7 @@ describe('auditoria e LGPD', () => {
     expect(exp.status).toBe(200);
     expect(exp.headers['content-disposition']).toContain('attachment');
     expect(exp.body.lead.phone).toBe('+5511955554444');
+    expect(exp.body.lead.email).toBe('titular@exemplo.com');
     const del = await h.post(
       '/api/admin/lgpd',
       { kind: 'DELETION', leadId: lead.body.id, description: 'Pediu eliminação' },
@@ -309,9 +311,19 @@ describe('auditoria e LGPD', () => {
       ).status,
     ).toBe(200);
     const [l] = await owner<
-      { name: string; phone_enc: Buffer | null }[]
-    >`select name, phone_enc from leads where id = ${lead.body.id}`;
-    expect(l).toEqual({ name: 'Titular anonimizado', phone_enc: null });
+      {
+        name: string;
+        phone_enc: Buffer | null;
+        email_enc: Buffer | null;
+        email_bidx: string | null;
+      }[]
+    >`select name, phone_enc, email_enc, email_bidx from leads where id = ${lead.body.id}`;
+    expect(l).toEqual({
+      name: 'Titular anonimizado',
+      phone_enc: null,
+      email_enc: null,
+      email_bidx: null,
+    });
     const list = await h.get('/api/admin/lgpd', head);
     expect(list.body.find((r: { id: string }) => r.id === del.body.id).status).toBe('DONE');
     expect((await h.get('/api/admin/lgpd', ale)).status).toBe(403);

@@ -20,6 +20,7 @@ import {
   spDayRange,
   TIER_BY_INCOME_BAND,
   TIER_LABELS,
+  normalizeEmail,
   normalizeInstagram,
   normalizePhoneBR,
   type AuthUser,
@@ -141,6 +142,7 @@ export class LeadsService {
     const sold = this.checkSoldLead(u, input);
     const sdrId = this.resolveSdr(u, input.sdrId);
     const bidx = input.phone ? this.crypto.blindIndex(input.phone) : null;
+    const emailBidx = input.email ? this.crypto.blindIndex(input.email) : null;
     const hash = input.sale ? requestHash(input) : '';
 
     const id = await withUser(this.db, u.id, async (tx) => {
@@ -159,8 +161,12 @@ export class LeadsService {
         }
       }
       // Serializa por contato entre todos os SDRs. A ordem evita deadlocks quando
-      // telefone e Instagram coincidem em requisições diferentes.
-      const contacts = [bidx && `phone:${bidx}`, input.instagram && `instagram:${input.instagram}`]
+      // os contatos coincidem em requisições diferentes.
+      const contacts = [
+        bidx && `phone:${bidx}`,
+        input.instagram && `instagram:${input.instagram}`,
+        emailBidx && `email:${emailBidx}`,
+      ]
         .filter((v): v is string => Boolean(v))
         .sort();
       for (const contact of contacts) {
@@ -173,10 +179,10 @@ export class LeadsService {
         throw new BadRequestException('O closer precisa ser um usuário ativo que fecha vendas');
       }
       // Enxerga leads de todos os SDRs, mas só responde sim/não: não revela de quem é.
-      if (await leadContactTaken(tx, bidx, input.instagram ?? null)) {
+      if (await leadContactTaken(tx, bidx, input.instagram ?? null, emailBidx)) {
         throw new ConflictException({
           code: 'DUPLICATE_LEAD',
-          message: 'Já existe um lead com este telefone ou Instagram.',
+          message: 'Já existe um lead com este telefone, Instagram ou e-mail.',
         });
       }
       const stageId = await this.repo.stageId(tx, input.stageKey);
@@ -195,6 +201,8 @@ export class LeadsService {
         phoneEnc: input.phone ? this.crypto.encrypt(input.phone) : null,
         phoneBidx: bidx,
         instagram: input.instagram ?? null,
+        emailEnc: input.email ? this.crypto.encrypt(input.email) : null,
+        emailBidx,
         incomeBand: input.incomeBand,
         source: input.source,
         sourceOther: input.source === 'OUTRO' ? (input.sourceOther ?? null) : null,
@@ -265,11 +273,12 @@ export class LeadsService {
       ...meta,
     });
     return toCsv([
-      ['Nome', 'Telefone', 'Instagram', 'Perfil', 'Etapa', 'SDR', 'Criado em'],
+      ['Nome', 'Telefone', 'Instagram', 'E-mail', 'Perfil', 'Etapa', 'SDR', 'Criado em'],
       ...rows.map((r) => [
         r.name,
         r.phoneEnc ? this.crypto.decrypt(r.phoneEnc) : '',
         r.instagram ?? '',
+        r.emailEnc ? this.crypto.decrypt(r.emailEnc) : '',
         TIER_LABELS[r.tier],
         r.stage,
         r.sdrName,
@@ -386,6 +395,9 @@ export class LeadsService {
   private parseSearch(raw: string | undefined): LeadSearch | undefined {
     const term = raw?.trim();
     if (!term) return undefined;
+    // "@" no meio é e-mail; "@usuario" e link do Instagram (com "/") seguem abaixo.
+    if (/^[^\s@/]+@[^\s@/]+$/.test(term))
+      return { kind: 'email', bidx: this.crypto.blindIndex(normalizeEmail(term)) };
     const phone = normalizePhoneBR(term);
     if (phone) return { kind: 'phone', bidx: this.crypto.blindIndex(phone) };
     const handle = normalizeInstagram(term);
@@ -403,6 +415,7 @@ export class LeadsService {
       name: r.name,
       phone: r.phoneEnc ? this.crypto.decrypt(r.phoneEnc) : null,
       instagram: r.instagram,
+      email: r.emailEnc ? this.crypto.decrypt(r.emailEnc) : null,
       incomeBand: r.incomeBand,
       source: r.source,
       sourceOther: r.sourceOther,

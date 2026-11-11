@@ -71,8 +71,8 @@ Risco: permissões e dados. Revisor independente ao fechar. Feito quando: suíte
 
 Risco: dados pessoais. Feito quando: testes de banco, API e e2e da spec (Parte A) passam.
 
-- ⏳ Migration, schema, Zod, cifra, duplicidade, timeline, LGPD, CSV e busca.
-- ⏳ Campo no cadastro e na ficha.
+- ✅ Migration, schema, Zod, cifra, duplicidade, timeline, LGPD, CSV e busca.
+- ✅ Campo no cadastro e na ficha.
 
 ## Fase 4B: Forms
 

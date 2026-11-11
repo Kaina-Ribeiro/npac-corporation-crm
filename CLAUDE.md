@@ -131,8 +131,12 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
 - Contato, termo de busca e conteúdo pessoal nunca em URL, logs, analytics ou localStorage (há e2e
   que barra `@` e dígitos longos). Buscas/relatórios por POST. Exceção pedida pelo cliente (04/11):
   o link do Google Agenda leva nome do lead, perfil, sigla de quem agendou e o handoff; nunca
-  telefone nem Instagram.
+  telefone, Instagram ou e-mail.
 - Telefone E.164 BR, AES-256-GCM + blind index HMAC. Renda só em faixas ≥ R$ 5 mil ou "Descobrindo renda".
+- E-mail do lead (NPAC-42, opcional, não conta para "informe telefone ou Instagram"): igual ao telefone,
+  `email_enc` + `email_bidx` (0044) sobre `normalizeEmail` (`trim` + minúsculas, `sh/normalize.ts`). Busca só
+  pelo endereço inteiro: `parseSearch` trata como e-mail texto com `@` no meio, sem espaço nem `/`.
+  Na ficha é texto, sem `mailto:`.
 - Timeline append-only: tipo, IDs e nomes de campos, **nunca valores**. Auditoria sem e-mail nem nome.
 - API com `Cache-Control: no-store`. SSE só manda `{ type }`.
 - Chat: DM privada por RLS mesmo para liderança; mensagens append-only.
@@ -142,7 +146,8 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
 ## Regras de escrita e negócio
 
 - PATCH exige `version` (409 `VERSION_CONFLICT`); campos permitidos explícitos.
-- Duplicidade de contato: advisory locks em ordem determinística; resposta não revela o dono.
+- Duplicidade de contato (telefone, Instagram e e-mail, `lead_contact_taken`): advisory locks em ordem
+  determinística; resposta não revela o dono.
 - Mudança + `recordActivity` na **mesma transação**.
 - Dinheiro em centavos inteiros (`sh/money.ts`), nunca `parseFloat * 100`.
 - Venda: uma ativa por lead; `requestKey` idempotente + hash do payload; entrada + parcelas = total,

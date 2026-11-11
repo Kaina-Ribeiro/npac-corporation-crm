@@ -256,9 +256,10 @@ export class ReportsService {
         name: string;
         phone_enc: Buffer | null;
         instagram: string | null;
+        email_enc: Buffer | null;
         tier: string;
       }>(
-        sql`select l.id,l.name,l.phone_enc,l.instagram,l.tier from leads l join pipeline_stages s on s.id=l.stage_id where ${scope(q)} and ${created} order by l.created_at,l.id limit 10001`,
+        sql`select l.id,l.name,l.phone_enc,l.instagram,l.email_enc,l.tier from leads l join pipeline_stages s on s.id=l.stage_id where ${scope(q)} and ${created} order by l.created_at,l.id limit 10001`,
       ),
     );
     if (rows.length > 10000)
@@ -270,11 +271,12 @@ export class ReportsService {
       data: { count: rows.length },
     });
     return toCsv([
-      ['Nome', 'Telefone', 'Instagram', 'Perfil'],
+      ['Nome', 'Telefone', 'Instagram', 'E-mail', 'Perfil'],
       ...rows.map((r) => [
         r.name,
         r.phone_enc ? this.crypto.decrypt(r.phone_enc) : '',
         r.instagram ?? '',
+        r.email_enc ? this.crypto.decrypt(r.email_enc) : '',
         TIER_LABELS[r.tier as Tier] ?? r.tier,
       ]),
     ]);
