@@ -10,6 +10,7 @@ import type {
   TipoAvaliacao,
   TipoInscricao,
 } from './enums.js';
+import type { EnvioStatus, Etapa, EtapaStatus } from './onboarding.js';
 
 /** `GET mentoria/eu`: o perfil operacional e o selo de Admin de quem está logado. */
 export type EuMentoria = { perfil: Perfil | null; admin: boolean };
@@ -107,6 +108,104 @@ export type MomentoDTO = {
   travadoPor: string | null;
 };
 
+export type EtapaDTO = {
+  id: string;
+  etapa: Etapa;
+  status: EtapaStatus;
+  version: number;
+  enviadaEm: string | null;
+  concluidaEm: string | null;
+  grupoCriadoEm: string | null;
+  formularioPreenchido: boolean | null;
+  grupoAvisos: boolean | null;
+  grupoClube: boolean | null;
+  grupoNacao: boolean | null;
+  aulasConcluidas: boolean | null;
+  aulasConcluidasEm: string | null;
+};
+
+export type CaixaDTO = {
+  version: number;
+  status: EnvioStatus;
+  enviadoEm: string | null;
+  rastreio: string | null;
+  entregueEm: string | null;
+};
+
+/** Pessoa parada numa etapa do funil. `etapaId` e `version` servem para andar sem abrir a ficha. */
+export type PessoaFunil = {
+  inscricaoId: string;
+  nome: string;
+  tipo: TipoInscricao;
+  mentoria: Mentoria;
+  pessoas: PessoaResumo[];
+  etapaId: string;
+  version: number;
+  etapa: Etapa;
+  status: EtapaStatus;
+  /** Dias de calendário de Brasília nesta situação. */
+  dias: number;
+  alerta: boolean;
+};
+
+export type CaixaPainel = {
+  inscricaoId: string;
+  nome: string;
+  pessoas: PessoaResumo[];
+  enviadoEm: string;
+  rastreio: string | null;
+  dias: number;
+  alerta: boolean;
+};
+
+export type IdrPainel = {
+  inscricaoId: string;
+  nome: string;
+  pessoas: PessoaResumo[];
+  /** Nulo quando a Caixa foi dispensada. */
+  entregueEm: string | null;
+};
+
+/** `POST mentoria/onboarding/painel`: a aba Onboarding inteira. */
+export type PainelOnboarding = {
+  total: number;
+  funil: { etapa: Etapa; total: number; alertas: number; pessoas: PessoaFunil[] }[];
+  caixasEmTransito: CaixaPainel[];
+  idrsAAgendar: IdrPainel[];
+};
+
+/** Linha da prévia da importação: sem contato nem diagnóstico, que ficam no servidor. */
+export type ItemPrevia = {
+  chave: string;
+  nome: string;
+  tipo: TipoInscricao;
+  mentoria: Mentoria | null;
+  rotulo: string;
+  status: 'ATIVO' | 'CANCELADO' | 'CONCLUIDO';
+  pessoa1: string;
+  pessoa2: string | null;
+  completar: number;
+};
+
+/** `POST mentoria/carteira/importar/previa`. */
+export type PreviaImportacao = {
+  totais: {
+    novos: number;
+    individuais: number;
+    casais: number;
+    cancelados: number;
+    completar: number;
+    ignorados: number;
+  };
+  novos: ItemPrevia[];
+  naoCasados: string[];
+  parecidos: [string, string][];
+  rotulosSemMentoria: { rotulo: string; total: number }[];
+  ignorados: string[];
+};
+
+export type ResultadoImportacao = { importados: number; ignorados: number };
+
 /** Ficha aberta: textos decifrados e o que a pessoa logada pode editar. */
 export type FichaDTO = {
   id: string;
@@ -134,7 +233,17 @@ export type FichaDTO = {
   pessoas: PessoaDTO[];
   endereco: EnderecoDTO | null;
   momento: MomentoDTO | null;
-  pode: { inscricao: boolean; momento: boolean; anotacao: boolean; admin: boolean };
+  onboarding: EtapaDTO[];
+  caixa: CaixaDTO | null;
+  /** Campos que vieram ilegíveis da importação e a equipe precisa completar. */
+  completarCampos: string[];
+  pode: {
+    inscricao: boolean;
+    momento: boolean;
+    anotacao: boolean;
+    onboarding: boolean;
+    admin: boolean;
+  };
 };
 
 export type HistoricoItem = {

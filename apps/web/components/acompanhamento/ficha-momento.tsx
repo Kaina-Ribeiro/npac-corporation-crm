@@ -12,6 +12,14 @@ import { dataBR, ICONES, Icone } from './ui';
 
 const sm = `${quietButton} sm`;
 
+const COMPLETAR_LABEL: Record<string, string> = {
+  recebeCentavos: 'Recebe por mês',
+  guardadoCentavos: 'Guardado',
+  dividasCentavos: 'Dívidas',
+  pessoa_2: 'Segunda pessoa',
+  inicioJornada: 'Início da jornada (na Inscrição)',
+};
+
 const SIM_NAO: Conversao = {
   paraTexto: (v) => (v === true ? 'SIM' : v === false ? 'NAO' : ''),
   deTexto: (t) => (t === 'SIM' ? true : t === 'NAO' ? false : null),
@@ -178,6 +186,12 @@ export function FichaMomento({ ficha, atualizar }: { ficha: FichaDTO; atualizar:
 
   return (
     <section className="card pa" role="tabpanel" aria-label="Momento inicial">
+      {ficha.completarCampos.length > 0 && (
+        <p className="jg-aviso mo-completar">
+          Veio da importação sem dado legível:{' '}
+          {ficha.completarCampos.map((c) => COMPLETAR_LABEL[c] ?? c).join(', ')}. Falta completar.
+        </p>
+      )}
       <div className="mo-h">
         {travado ? (
           <span className="locked">

@@ -20,7 +20,7 @@
 | Parte | Entrega | Status |
 |---|---|---|
 | 1 | Base: protótipo, limpeza, perfis, inscrição, ficha, Mentorados | ✅ |
-| 2 | Onboarding + importação | ⏳ |
+| 2 | Onboarding + importação | ✅ |
 | 3 | Plano por mentoria + pausa | ⏳ |
 | 4 | Reuniões + IDR inicia a jornada | ⏳ |
 | 5 | Fila do dia, avisos, WhatsApp, exportação, fechamento | ⏳ |
@@ -188,7 +188,7 @@ test('busca no topo acha por nome e o termo não aparece na URL')
 ## Parte 2 — Onboarding e importação
 
 ### Tarefa 2.1: Onboarding e Caixa na API
-Status: ⏳
+Status: ✅
 
 **Files:** Create: migration `00NN_acompanhamento_v2_onboarding.sql`, `api/mentoria/onboarding.controller.ts`, `onboarding.service.ts`, `sh/mentoria/onboarding.ts`. Test: `apps/api/test/mentoria-v2-onboarding.e2e.test.ts`, `packages/shared/test/mentoria-onboarding.test.ts`.
 
@@ -219,7 +219,7 @@ it('Manu recebe 404; Operação edita')
 - [ ] **Step 5:** Commit `feat(NPAC-43): onboarding e caixa`.
 
 ### Tarefa 2.2: Aba Onboarding
-Status: ⏳
+Status: ✅
 
 **Files:** Create: `web/app/(app)/acompanhamento/onboarding/page.tsx`, `web/components/acompanhamento/{onboarding-funil,etapa-card,caixa-form}.tsx`. Modify: `ficha.tsx` (seção Jornada). Test: `web/e2e/acompanhamento-v2-onboarding.spec.ts`.
 
@@ -229,7 +229,7 @@ Status: ⏳
 - [ ] **Step 5:** Commit `feat(NPAC-43): aba onboarding`.
 
 ### Tarefa 2.3: Leitura das duas fontes (lógica pura)
-Status: ⏳
+Status: ✅
 
 **Files:** Create: `sh/mentoria/importacao.ts`, `api/mentoria/importacao/ler-planilha.ts` (`exceljs`). Modify: `sh/mentoria/legado.ts`, `apps/api/package.json`. Test: `packages/shared/test/mentoria-importacao-v2.test.ts`, `apps/api/test/mentoria-ler-planilha.test.ts`.
 
@@ -264,7 +264,7 @@ it('planilha acima de 5.000 linhas é recusada')
 - [ ] **Step 5:** Commit `feat(NPAC-43): leitura do gerenciador e da planilha`.
 
 ### Tarefa 2.4: Importação na API e na tela
-Status: ⏳
+Status: ✅
 
 **Files:** Create: `api/mentoria/importacao/importacao.controller.ts`, `importacao.service.ts`, `web/components/acompanhamento/importar-carteira.tsx`. Modify: `configuracoes/page.tsx`. Test: `apps/api/test/mentoria-v2-importacao.e2e.test.ts`, `web/e2e/acompanhamento-v2-importacao.spec.ts`.
 

@@ -18,6 +18,7 @@ import { clientApi } from '@/lib/client-api';
 import { filaDeSalvamento, registrarVersion } from '@/lib/acompanhamento-saver';
 import { CampoPr, DINHEIRO } from './campo';
 import { Dialogo } from './dialogo';
+import { OnboardingFicha } from './etapa-card';
 import { FichaMomento } from './ficha-momento';
 import { FichaPessoas } from './ficha-pessoas';
 import { HistoricoLista } from './historico-lista';
@@ -27,7 +28,15 @@ import { dataBR, FOCOS_RDV, ICONES, Icone, Rostos, TagStatus, Trilha, type Aba }
 const COOKIE_ULTIMA_FICHA = 'npac_ultima_ficha';
 const sm = `${quietButton} sm`;
 
-function Jornada({ ficha, soLargo }: { ficha: FichaDTO; soLargo: boolean }) {
+function Jornada({
+  ficha,
+  soLargo,
+  atualizar,
+}: {
+  ficha: FichaDTO;
+  soLargo: boolean;
+  atualizar: () => void;
+}) {
   const mes = ficha.mesJornada;
   const focos = ficha.mentoria === 'RDV' ? FOCOS_RDV : null;
   return (
@@ -51,9 +60,8 @@ function Jornada({ ficha, soLargo }: { ficha: FichaDTO; soLargo: boolean }) {
           );
         })}
       </div>
-      <p className="jg-aviso">
-        O onboarding e as ações de cada mês entram aqui nas próximas etapas do sistema.
-      </p>
+      <OnboardingFicha ficha={ficha} atualizar={atualizar} />
+      <p className="jg-aviso">As ações de cada mês entram aqui com o plano dos 12 meses.</p>
     </section>
   );
 }
@@ -334,6 +342,7 @@ export function Ficha({
     registrarVersion(`endereco:${ficha.id}`, ficha.endereco?.version ?? 0);
     registrarVersion(`momento:${ficha.id}`, ficha.momento?.version ?? 0);
     for (const p of ficha.pessoas) registrarVersion(`pessoa:${ficha.id}:${p.id}`, p.version);
+    for (const e of ficha.onboarding) registrarVersion(`etapa:${ficha.id}:${e.id}`, e.version);
   }, [ficha]);
 
   function trocarAba(a: Aba) {
@@ -436,7 +445,7 @@ export function Ficha({
           </div>
           {/* A partir de 1280 px a Inscrição é coluna: a aba dela mostra a Jornada ao lado. */}
           {(aba === 'jornada' || aba === 'inscricao') && (
-            <Jornada ficha={ficha} soLargo={aba === 'inscricao'} />
+            <Jornada ficha={ficha} soLargo={aba === 'inscricao'} atualizar={atualizar} />
           )}
           {aba === 'pessoas' && <FichaPessoas ficha={ficha} atualizar={atualizar} />}
           {aba === 'momento' && <FichaMomento ficha={ficha} atualizar={atualizar} />}

@@ -28,6 +28,7 @@ import { conflitoDeVersao, erroDoBanco } from './erros.js';
 import { FichaService } from './ficha.service.js';
 import { exigirEdicao, registrarHistorico } from './historico.js';
 import { aad, MentoriaCrypto } from './mentoria-crypto.js';
+import { criarEtapas } from './onboarding.service.js';
 
 const PAGINA = 50;
 const LIMITE_BUSCA = 20;
@@ -63,7 +64,8 @@ const emItem = (r: LinhaBruta): InscricaoItem => ({
   pessoas: r.pessoas,
 });
 
-const COMPLETAR = sql`(i.importada and i.mentoria = 'RDV' and i.data_idr is null)`;
+const COMPLETAR = sql`(i.importada and ((i.mentoria = 'RDV' and i.data_idr is null)
+  or cardinality(i.completar_campos) > 0))`;
 
 @Injectable()
 export class InscricoesService {
@@ -137,6 +139,7 @@ export class InscricoesService {
             : null),
       });
       for (const [i, p] of pessoas.entries()) await this.inserirPessoa(tx, u, id, i + 1, p);
+      await criarEtapas(tx, id, 'PENDENTE', u.id);
       await registrarHistorico(tx, id, 'inscricao.criada', []);
       return this.ficha.montar(tx, id);
     }).catch((e) => erroDoBanco(e));
@@ -223,10 +226,20 @@ export class InscricoesService {
       await exigirEdicao(tx, 'INSCRICAO', id);
       const { version, ...campos } = b;
       const [atual] = await tx
-        .select({ status: mentoriaInscricoes.status })
+        .select({ status: mentoriaInscricoes.status, mentoria: mentoriaInscricoes.mentoria })
         .from(mentoriaInscricoes)
         .where(eq(mentoriaInscricoes.id, id));
       if (!atual) throw new NotFoundException();
+      // No RDV não se dispensa etapa: trocar a mentoria não pode servir de atalho.
+      if (campos.mentoria === 'RDV' && atual.mentoria !== 'RDV') {
+        const [q] = await tx.execute<{ tem: boolean }>(sql`select exists (
+          select 1 from mentoria_onboarding_etapas
+          where inscricao_id = ${id}::uuid and status = 'DISPENSADA') as tem`);
+        if (q?.tem)
+          throw new BadRequestException(
+            'Esta inscrição tem etapas dispensadas: não pode virar RDV',
+          );
+      }
       if (campos.status && campos.status !== atual.status) {
         if (campos.status === 'PAUSADO') throw new BadRequestException('Use a ação de pausar');
         if (atual.status === 'PAUSADO') throw new BadRequestException('Use a ação de retomar');
@@ -253,6 +266,10 @@ export class InscricoesService {
         .where(and(eq(mentoriaInscricoes.id, id), eq(mentoriaInscricoes.version, version)))
         .returning({ version: mentoriaInscricoes.version });
       if (!r) throw conflitoDeVersao();
+      if (campos.inicioJornada)
+        await tx.execute(sql`update mentoria_inscricoes
+          set completar_campos = array_remove(completar_campos, 'inicioJornada')
+          where id = ${id}::uuid`);
       await registrarHistorico(tx, id, 'inscricao.editada', Object.keys(campos));
       return r;
     }).catch((e) => erroDoBanco(e));
@@ -306,6 +323,8 @@ export class InscricoesService {
           atualizadoEm: sql`now()`,
         })
         .where(eq(mentoriaInscricoes.id, id));
+      await tx.execute(sql`update mentoria_inscricoes
+        set completar_campos = array_remove(completar_campos, 'pessoa_2') where id = ${id}::uuid`);
       await registrarHistorico(tx, id, 'inscricao.virou_casal', ['tipo', 'pessoa_2']);
       return this.ficha.montar(tx, id);
     }).catch((e) => erroDoBanco(e));

@@ -62,10 +62,27 @@ describe('seedMentoria', () => {
         (count(*) filter (where importada))::int as importada,
         (select count(*)::int from mentoria_pessoas) as pessoas
       from mentoria_inscricoes`;
-    expect(q!.total).toBe(8);
-    expect(q!.casal).toBe(2);
+    expect(q!.total).toBe(14);
+    expect(q!.casal).toBe(4);
     expect(q!.importada).toBe(1);
-    expect(q!.pessoas).toBe(10);
+    expect(q!.pessoas).toBe(18);
+  });
+
+  it('cria as 6 etapas de todas, com exemplos em cada etapa do funil', async () => {
+    const [q] = await owner<{ etapas: number; inscricoes: number }[]>`
+      select count(*)::int as etapas, count(distinct inscricao_id)::int as inscricoes
+      from mentoria_onboarding_etapas`;
+    expect(q!.etapas).toBe(q!.inscricoes * 6);
+    expect(q!.inscricoes).toBe(14);
+    const fora = await owner<{ n: number }[]>`
+      select count(*)::int as n from mentoria_inscricoes i
+      where i.status <> 'ONBOARDING' and exists (
+        select 1 from mentoria_onboarding_etapas e
+        where e.inscricao_id = i.id and e.status <> 'ANTERIOR_AO_SISTEMA')`;
+    expect(fora[0]!.n).toBe(0);
+    const caixas = await owner<{ status: string }[]>`
+      select status from mentoria_envios_fisicos order by status`;
+    expect(caixas.map((c) => c.status)).toEqual(['ENTREGUE', 'ENVIADO']);
   });
 
   it('só usa nomes fictícios', async () => {

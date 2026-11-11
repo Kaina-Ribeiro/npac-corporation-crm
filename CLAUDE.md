@@ -61,7 +61,10 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
 - **Acompanhamento (mentorados), v2 em 5 partes** (plano `docs/superpowers/plans/2026-11-10-acompanhamento-v2-fase-1.md`, protótipo `docs/acompanhamento/prototipo/canvas/`):
   API `api/mentoria/*` (guarda 404 + MFA: `MentoriaController` em `mentoria.guard.ts`; perfil `perfil.guard.ts`,
   `perfis.*`; inscrição e ficha `inscricoes.*`, `ficha.service.ts`, `historico.ts`; mídia `midia.controller.ts`,
-  `media-store.ts`, `media-sniff.ts`, `media-worker.ts`; cifra `mentoria-crypto.ts`) · banco `db/src/schema/mentoria.ts`
+  `media-store.ts`, `media-sniff.ts`, `media-worker.ts`; cifra `mentoria-crypto.ts`; onboarding e Caixa `onboarding.*`
+  (regras puras `sh/mentoria/onboarding.ts`; CAIXA e IDR são derivadas, gatilhos da 0048); importação `importacao/*`, junção das
+  fontes `sh/mentoria/importacao.ts`, planilha lida por título em `ler-planilha.ts`, CPF descartado ali; `importacao_chave` impede
+  reimportar quem foi renomeado) · banco `db/src/schema/mentoria.ts`
   - 0044–0045 (`mentoria_perfil()`, `mentoria_admin()`, `mentoria_ve()`, `mentoria_edita()`, funções `mentoria_*`) ·
     seed `db/src/seed-mentoria.ts` · lógica pura `sh/mentoria/*` (cliente: `@npac/shared/mentoria`, sem zod) ·
     telas `web/app/(app)/acompanhamento/*` (`mentorados`, `mentorados/nova`, `ficha/[id]`, `configuracoes`, `mais`,

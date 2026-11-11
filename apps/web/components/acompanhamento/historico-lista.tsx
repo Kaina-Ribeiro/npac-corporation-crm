@@ -1,5 +1,5 @@
 'use client';
-import type { FichaDTO, HistoricoItem } from '@npac/shared/mentoria';
+import { ETAPA_LABEL, type FichaDTO, type HistoricoItem } from '@npac/shared/mentoria';
 import { useCallback, useEffect, useState } from 'react';
 import { control, quietButton } from '@/components/crm-ui';
 import { clientApi } from '@/lib/client-api';
@@ -8,6 +8,7 @@ import { ICONES, Icone } from './ui';
 
 const TITULOS: Record<string, string> = {
   'inscricao.criada': 'Inscrição criada',
+  'inscricao.importada': 'Inscrição importada',
   'inscricao.editada': 'Alteração na inscrição',
   'inscricao.virou_casal': 'Mudou para casal',
   'inscricao.virou_individual': 'Mudou para individual',
@@ -17,6 +18,15 @@ const TITULOS: Record<string, string> = {
   'momento.concluido': 'Momento inicial concluído',
   'momento.destravado': 'Momento inicial destravado',
   'avaliacao.editada': 'Alteração na avaliação',
+  'onboarding.enviada': 'Etapa enviada',
+  'onboarding.concluida': 'Etapa concluída',
+  'onboarding.editada': 'Alteração no onboarding',
+  'onboarding.dispensada': 'Etapa dispensada',
+  'onboarding.fechado': 'Onboarding concluído',
+  'caixa.preparando': 'Caixa em preparação',
+  'caixa.enviada': 'Caixa enviada',
+  'caixa.entregue': 'Caixa entregue',
+  'caixa.editada': 'Alteração na Caixa',
 };
 
 const CAMPOS: Record<string, string> = {
@@ -67,6 +77,17 @@ const CAMPOS: Record<string, string> = {
   resultadoProva: 'Prova',
   tipo: 'Tipo',
   pessoa_2: 'Pessoa 2',
+  ...ETAPA_LABEL,
+  grupoCriadoEm: 'Data do grupo',
+  formularioPreenchido: 'Formulário preenchido',
+  grupoAvisos: 'Grupo Avisos',
+  grupoClube: 'Grupo Clube da Riqueza',
+  grupoNacao: 'Grupo Nação Milionária',
+  aulasConcluidas: 'Aulas concluídas',
+  aulasConcluidasEm: 'Data das aulas',
+  enviadoEm: 'Data de envio',
+  entregueEm: 'Data de recebimento',
+  rastreio: 'Rastreio',
 };
 
 const DIA = 86_400_000;
