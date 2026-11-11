@@ -2549,6 +2549,271 @@
       height: 44px;
     }
   }
+
+  /* Reuniões (Parte 4): agenda por quem conduz, controle mensal, sem reunião e a reunião aberta. */
+  .rn-corpo,
+  .rn-grupos {
+    display: grid;
+    gap: 14px;
+    align-items: start;
+  }
+  .rn-barra {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 14px;
+  }
+  .rn-semana {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .rn-semana b {
+    min-width: 96px;
+    text-align: center;
+    font-size: 15px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .rn-semana .btn {
+    width: 36px;
+    padding: 0;
+    justify-content: center;
+  }
+  .rn-hoje,
+  .rn-abrir {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gold-deep);
+    text-decoration: underline;
+  }
+  .rn-abrir {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+  }
+  .rn-filtro {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--ink2);
+  }
+  .rn-filtro .field {
+    height: 36px;
+    min-width: 0;
+    max-width: 220px;
+  }
+  .rn-nova {
+    margin-left: auto;
+  }
+  .rn-seg a {
+    min-width: 48px;
+    text-align: center;
+  }
+  .rn-r {
+    grid-template-columns: 46px minmax(0, 1fr);
+  }
+  .rn-hora {
+    align-self: center;
+    font-size: 14px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .rn-hora small {
+    display: block;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--ink2);
+  }
+  .rn-kpis {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding: 14px 4px;
+  }
+  .rn-kpis > div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 0 14px;
+    border-left: 1px solid var(--line);
+  }
+  .rn-kpis > div:first-child {
+    border-left: 0;
+  }
+  .rn-kpis b {
+    font-size: 26px;
+    line-height: 30px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+  .rn-kpis b.ruim {
+    color: var(--tag-bad);
+  }
+  .rn-kpis span {
+    font-size: 13px;
+    color: var(--ink2);
+  }
+  .rn-kpis small {
+    display: block;
+    font-size: 12px;
+    color: var(--ink3);
+  }
+  .rn-interno {
+    gap: 3px;
+    height: 20px;
+    padding: 0 6px;
+    font-size: 11px;
+    color: var(--ink2);
+  }
+  .rn-rot {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .rn-tx {
+    display: block;
+    margin-top: 8px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: var(--fill);
+    box-shadow: inset 0 0 0 0.5px var(--line);
+  }
+  .rn-tx small {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+    font-size: 12px;
+    color: var(--ink2);
+  }
+  .rn-tx textarea {
+    display: block;
+    width: 100%;
+    min-height: 40px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--ink);
+    font-size: 14px;
+    line-height: 19px;
+    resize: vertical;
+  }
+  .rn-tx textarea:focus {
+    outline: none;
+  }
+  .rn-tx:focus-within {
+    box-shadow: inset 0 0 0 1px var(--gold-ring);
+  }
+  .rn-legenda {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-top: 12px;
+    font-size: 12px;
+    color: var(--ink2);
+  }
+  .rn-acoes {
+    flex-wrap: wrap;
+  }
+  .rn-excluir {
+    color: var(--tag-bad);
+  }
+  .rn-escolhido {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 42px;
+  }
+  .rn-escolhido b {
+    flex: 1;
+    min-width: 0;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+  .rn-opcoes {
+    list-style: none;
+    margin: 6px 0 0;
+    padding: 4px;
+    border-radius: 12px;
+    background: var(--fill);
+    box-shadow: inset 0 0 0 0.5px var(--line);
+  }
+  .rn-opcoes .busca-item {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    color: var(--ink);
+    text-align: left;
+    font: inherit;
+  }
+  .rn-opcoes .busca-vazia {
+    padding: 10px;
+    font-size: 13px;
+    color: var(--ink2);
+  }
+  .rn-canais {
+    flex-wrap: wrap;
+  }
+  .hh-acoes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .ev-link {
+    color: inherit;
+  }
+  .ev-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 4px 0 2px;
+  }
+  @media (hover: hover) {
+    .ev-link:hover b {
+      text-decoration: underline;
+    }
+    .rn-opcoes .busca-item:hover {
+      background: var(--on);
+    }
+  }
+  @media (max-width: 767.98px) {
+    .rn-tx textarea,
+    .rn-filtro .field {
+      font-size: 16px;
+    }
+    .rn-nova {
+      width: 100%;
+      justify-content: center;
+      margin-left: 0;
+    }
+    .rn-filtro {
+      flex: 1 1 100%;
+    }
+    .rn-filtro .field {
+      flex: 1;
+      max-width: none;
+    }
+    .rn-kpis b {
+      font-size: 22px;
+      line-height: 26px;
+    }
+    .rn-kpis > div {
+      padding: 0 10px;
+    }
+  }
+  @media (min-width: 1024px) {
+    .rn-r {
+      grid-template-columns: 46px minmax(0, 1fr) auto;
+    }
+  }
+  @media (min-width: 1280px) {
+    .rn-grupos {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
 }
 
 /* O único rótulo do menu maior que a sidebar quebra em duas linhas, como no protótipo. */

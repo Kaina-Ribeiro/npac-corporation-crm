@@ -114,7 +114,7 @@ test('Duda navega no módulo e nunca chega numa tela comercial (Link, URL ou 404
   for (const alvo of ['/leads', '/equipe', '/dashboard']) {
     await page.waitForLoadState('load');
     await page.getByRole('link', { name: 'Reuniões', exact: true }).first().click();
-    await expect(page).toHaveURL(/\/acompanhamento\/em-breve\/reunioes/);
+    await expect(page).toHaveURL(/\/acompanhamento\/reunioes/);
     // A navegação que o push dispara pode destruir o contexto antes do evaluate responder.
     await page
       .evaluate((href) => {

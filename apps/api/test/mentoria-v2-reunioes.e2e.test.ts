@@ -481,6 +481,29 @@ describe('contatos', () => {
     }
   });
 
+  it('último contato na lista: o mais recente entre contato e reunião realizada', async () => {
+    const s = await duda();
+    const i = await inscricao();
+    const lista = async () => {
+      const r = await h.post('/api/mentoria/inscricoes/lista', {}, s);
+      expect(r.status, r.text).toBe(200);
+      return (r.body.itens as { id: string; ultimoContato: string | null }[]).find(
+        (x) => x.id === i,
+      )!.ultimoContato;
+    };
+    expect(await lista()).toBeNull();
+    const r = await criarOk(s, { inscricaoId: i, tipo: 'ACOMP_2PME', inicio: '2026-01-05T10:00' });
+    expect(await lista()).toBeNull(); // agendada não conta
+    await patch(s, r.id, { version: r.version, status: 'REALIZADA' });
+    expect(await lista()).toBe('2026-01-05');
+    await h.post(
+      '/api/mentoria/contatos',
+      { inscricaoId: i, canal: 'LIGACAO', quando: '2026-02-01T23:30' },
+      s,
+    );
+    expect(await lista()).toBe('2026-02-01');
+  });
+
   it('rotas de reunião dão 404 ao Mentor e a quem não tem perfil', async () => {
     for (const perfil of ['MENTOR', null]) {
       const s = await comoPerfil(perfil);

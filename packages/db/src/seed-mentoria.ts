@@ -12,6 +12,7 @@ import {
   mentoriaPausas,
   mentoriaPerfis,
   mentoriaPessoas,
+  mentoriaReunioes,
   user,
 } from './schema/index.js';
 
@@ -257,5 +258,58 @@ export async function seedMentoria(db: Db): Promise<void> {
           pausadaPor: duda,
         });
     }
+
+    // Reuniões de exemplo: a semana tem de tudo, e a Manu conduz uma (é o que lhe dá acesso).
+    const quando = (dias: number, hora: string) =>
+      sql`((now() at time zone 'America/Sao_Paulo')::date + ${dias}::int + ${hora}::time)
+        at time zone 'America/Sao_Paulo'`;
+    const reunioes = [
+      {
+        k: 1,
+        n: 1,
+        tipo: 'ACOMP_EMERGENCIA',
+        quem: duda,
+        dias: -10,
+        hora: '10:00',
+        status: 'REALIZADA',
+      },
+      {
+        k: 2,
+        n: 1,
+        tipo: 'POSICIONAMENTO',
+        quem: idDe('manu'),
+        dias: 2,
+        hora: '15:00',
+        status: 'AGENDADA',
+      },
+      {
+        k: 3,
+        n: 2,
+        tipo: 'ACOMP_EMERGENCIA',
+        quem: duda,
+        dias: 1,
+        hora: '10:00',
+        status: 'CONFIRMADA',
+      },
+      { k: 4, n: 5, tipo: 'MENSAL_6M', quem: duda, dias: 0, hora: '08:00', status: 'REALIZADA' },
+      { k: 5, n: 7, tipo: 'MENSAL_6M', quem: duda, dias: -3, hora: '19:00', status: 'FALTOU' },
+      { k: 6, n: 7, tipo: 'MENSAL_6M', quem: duda, dias: 3, hora: '19:00', status: 'LINK_ENVIADO' },
+      { k: 7, n: 14, tipo: 'IDR', quem: idDe('leo'), dias: 1, hora: '21:00', status: 'AGENDADA' },
+    ] as const;
+    await tx
+      .insert(mentoriaReunioes)
+      .values(
+        reunioes.map((r) => ({
+          id: `00000000-0000-4000-9000-${String(r.k).padStart(12, '0')}`,
+          inscricaoId: seedInscricaoId(r.n),
+          tipo: r.tipo,
+          conduzidaPor: r.quem,
+          inicio: quando(r.dias, r.hora) as unknown as Date,
+          plataforma: r.tipo === 'IDR' ? 'ZOOM' : 'MEET',
+          status: r.status,
+          criadoPor: duda,
+        })),
+      )
+      .onConflictDoNothing({ target: mentoriaReunioes.id });
   });
 }

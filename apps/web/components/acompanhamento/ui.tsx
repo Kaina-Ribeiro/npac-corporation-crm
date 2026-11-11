@@ -1,4 +1,9 @@
-import { INSCRICAO_STATUS_LABEL, type InscricaoStatus } from '@npac/shared/mentoria';
+import {
+  INSCRICAO_STATUS_LABEL,
+  REUNIAO_STATUS_LABEL,
+  type InscricaoStatus,
+  type ReuniaoStatus,
+} from '@npac/shared/mentoria';
 
 /** Peças visuais do módulo, sem estado: servem a telas de servidor e de cliente. */
 
@@ -147,4 +152,49 @@ export const dataBR = (iso: string | null | undefined) =>
 export function rotuloMes(mes: number | null) {
   if (mes === null) return 'Antes da IDR';
   return mes > 12 ? 'Jornada concluída' : `Mês ${mes}`;
+}
+
+const BRASILIA = 'America/Sao_Paulo';
+const formato = (o: Intl.DateTimeFormatOptions) =>
+  new Intl.DateTimeFormat('pt-BR', { timeZone: BRASILIA, ...o });
+const HORA = formato({ hour: '2-digit', minute: '2-digit' });
+const DIA_MES = formato({ day: '2-digit', month: '2-digit' });
+const DIA_ISO = new Intl.DateTimeFormat('en-CA', {
+  timeZone: BRASILIA,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+
+/** Hora de Brasília de um instante ISO (`21:00`). */
+export const horaBR = (iso: string) => HORA.format(new Date(iso));
+/** Data de Brasília de um instante ISO, em `AAAA-MM-DD`. */
+export const diaBR = (iso: string) => DIA_ISO.format(new Date(iso));
+/** `10/03, 21:00`, em Brasília. */
+export const diaHoraBR = (iso: string) =>
+  `${DIA_MES.format(new Date(iso))}, ${HORA.format(new Date(iso))}`;
+/** Instante ISO → `AAAA-MM-DDTHH:mm` de Brasília, o valor do `datetime-local`. */
+export const paraCampoBR = (iso: string) => `${diaBR(iso)}T${horaBR(iso)}`;
+
+const CLASSE_REUNIAO: Record<ReuniaoStatus, string> = {
+  AGENDADA: '',
+  CONFIRMADA: 'onb',
+  LINK_ENVIADO: 'onb',
+  REALIZADA: 'ativo',
+  FALTOU: 'canc',
+  REMARCADA: 'pausa',
+};
+
+export function TagReuniao({ status }: { status: ReuniaoStatus }) {
+  return <span className={`tag ${CLASSE_REUNIAO[status]}`}>{REUNIAO_STATUS_LABEL[status]}</span>;
+}
+
+/** Selo dos campos que nunca aparecem ao mentorado (tabela do PDF). */
+export function TagInterno() {
+  return (
+    <span className="tag rn-interno" title="Não aparece para o mentorado">
+      <Icone d={ICONES.cadeado} className="size-3" />
+      Interno
+    </span>
+  );
 }

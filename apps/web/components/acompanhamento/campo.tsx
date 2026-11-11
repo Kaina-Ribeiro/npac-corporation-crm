@@ -118,6 +118,7 @@ export function CampoPr({
   inputMode,
   conversao,
   aoSalvar,
+  selo,
 }: {
   rotulo: string;
   chave: string;
@@ -134,11 +135,16 @@ export function CampoPr({
   conversao?: Conversao;
   /** Depois de enfileirar: atualiza o que depende do campo (nome no cabeçalho, botões). */
   aoSalvar?: () => void;
+  /** Selo ao lado do rótulo (ex.: "Interno"). */
+  selo?: React.ReactNode;
 }) {
   const c = useCampo(chave, campo, valor, conversao);
   return (
     <label className={`pr ${classe}`}>
-      <span>{rotulo}</span>
+      <span className={selo ? 'rn-rot' : undefined}>
+        {rotulo}
+        {selo}
+      </span>
       {tipo === 'select' ? (
         <select
           className="pv"

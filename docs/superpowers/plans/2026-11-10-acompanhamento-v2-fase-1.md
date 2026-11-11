@@ -22,7 +22,7 @@
 | 1 | Base: protótipo, limpeza, perfis, inscrição, ficha, Mentorados | ✅ |
 | 2 | Onboarding + importação | ✅ |
 | 3 | Plano por mentoria + pausa | ✅ |
-| 4 | Reuniões + IDR inicia a jornada | ⏳ |
+| 4 | Reuniões + IDR inicia a jornada | ✅ |
 | 5 | Fila do dia, avisos, WhatsApp, exportação, fechamento | ⏳ |
 
 ## Global Constraints
@@ -367,7 +367,7 @@ Status: ✅
 ## Parte 4 — Reuniões
 
 ### Tarefa 4.1: Reuniões e contatos na API
-Status: ⏳
+Status: ✅ (migration `0052_acompanhamento_v2_reunioes`)
 
 **Files:** Create: migration `00NN_acompanhamento_v2_reunioes.sql`, `api/mentoria/reunioes.controller.ts`, `reunioes.service.ts`, `contatos.controller.ts`. Test: `apps/api/test/mentoria-v2-reunioes.e2e.test.ts`, `packages/db/test/mentoria-v2-especialista.test.ts`.
 
@@ -401,7 +401,7 @@ it('sem reunião há 30 dias conta da importação quando não há reunião')
 - [ ] **Step 5:** Commit `feat(NPAC-43): reuniões e contatos`.
 
 ### Tarefa 4.2: IDR inicia a jornada e reunião conclui ação
-Status: ⏳
+Status: ✅
 
 **Files:** Modify: `reunioes.service.ts`, `plano.service.ts`, `onboarding.service.ts`. Test: `apps/api/test/mentoria-v2-idr.e2e.test.ts`.
 
@@ -422,7 +422,7 @@ it('CARTOES_MILHAS realizada conclui a ação FLEXIVEL; segunda reunião não d�
 - [ ] **Step 5:** Commit `feat(NPAC-43): idr inicia a jornada`.
 
 ### Tarefa 4.3: Aba Reuniões
-Status: ⏳
+Status: ✅
 
 **Files:** Create: `web/app/(app)/acompanhamento/reunioes/page.tsx`, `web/components/acompanhamento/{reunioes-agenda,reuniao-registro,controle-mensal,sem-reuniao}.tsx`. Modify: `ficha.tsx`, `mentorados-lista.tsx` (coluna último contato: contato ou reunião realizada), `inscricoes.service.ts`. Test: `web/e2e/acompanhamento-v2-reunioes.spec.ts`.
 
