@@ -160,7 +160,7 @@ CREATE FUNCTION mentoria_gerar_acoes(inscricao uuid, hoje date) RETURNS int
 AS $$
 DECLARE i record; n int;
 BEGIN
-  IF session_user <> 'npac_owner' AND NOT mentoria_edita('INSCRICAO', inscricao) THEN
+  IF NOT pg_has_role(session_user, 'npac_owner', 'MEMBER') AND NOT mentoria_edita('INSCRICAO', inscricao) THEN
     RAISE EXCEPTION 'Acesso negado' USING ERRCODE = '42501';
   END IF;
   SELECT * INTO i FROM mentoria_inscricoes WHERE id = inscricao;
@@ -199,7 +199,7 @@ CREATE FUNCTION mentoria_recalcular_acoes(inscricao uuid, hoje date) RETURNS int
 AS $$
 DECLARE n int;
 BEGIN
-  IF session_user <> 'npac_owner' AND NOT mentoria_edita('PLANO', inscricao) THEN
+  IF NOT pg_has_role(session_user, 'npac_owner', 'MEMBER') AND NOT mentoria_edita('PLANO', inscricao) THEN
     RAISE EXCEPTION 'Acesso negado' USING ERRCODE = '42501';
   END IF;
   UPDATE mentoria_acoes a SET
@@ -231,7 +231,7 @@ CREATE FUNCTION mentoria_trocar_plano(inscricao uuid, hoje date) RETURNS int
   SET search_path = public, pg_temp
 AS $$
 BEGIN
-  IF session_user <> 'npac_owner' AND NOT mentoria_edita('PLANO', inscricao) THEN
+  IF NOT pg_has_role(session_user, 'npac_owner', 'MEMBER') AND NOT mentoria_edita('PLANO', inscricao) THEN
     RAISE EXCEPTION 'Acesso negado' USING ERRCODE = '42501';
   END IF;
   PERFORM mentoria_enfileirar_midia(ARRAY['ACAO_EVIDENCIA'], array_agg(a.id))
