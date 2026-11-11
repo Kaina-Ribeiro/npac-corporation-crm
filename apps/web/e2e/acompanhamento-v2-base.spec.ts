@@ -5,6 +5,8 @@ import { E2E_DB, E2E_PASSWORD } from './env.js';
 const owner = ownerSql(E2E_DB);
 /** Ficha individual do seed (`seedInscricaoId(1)`): "Mentorado Fictício 01". */
 const FICHA_01 = '00000000-0000-4000-8000-000000000001';
+/** `seedInscricaoId(5)`: "Mentorada Fictícia 06", sem reunião da Manu. */
+const FICHA_06 = '00000000-0000-4000-8000-000000000005';
 /** Importada, com o momento inicial ainda em aberto. */
 const FICHA_ABERTA = '00000000-0000-4000-8000-000000000003';
 /** Casal do seed, no mês 10. */
@@ -128,12 +130,14 @@ test('cargo sem perfil vê "Peça ao Admin"', async ({ page }) => {
   await expect(page.getByRole('navigation', { name: 'Navegação lateral' })).toHaveCount(0);
 });
 
+// No seed, a Manu conduz só a reunião de posicionamento do "Mentorado Fictício 01" (Parte 4).
 test('Manu não abre ficha de quem não é dela (404)', async ({ page }) => {
   await entrar(page, 'manu');
   await page.waitForURL(/\/acompanhamento\/mentorados/);
-  await expect(page.getByText('Mentorado Fictício 01')).toHaveCount(0);
-  const res = await page.goto(`/acompanhamento/ficha/${FICHA_01}`);
+  await expect(page.getByText('Mentorada Fictícia 06')).toHaveCount(0);
+  const res = await page.goto(`/acompanhamento/ficha/${FICHA_06}`);
   expect(res?.status()).toBe(404);
+  expect((await page.goto(`/acompanhamento/ficha/${FICHA_01}`))?.status()).toBe(200);
 });
 
 test('as 5 abas futuras mostram "em breve"', async ({ page }) => {
@@ -293,12 +297,13 @@ test('Operação: menu → ficha, edita a inscrição e vê o momento sem editar
   await expect(page.getByRole('button', { name: 'Destravar' })).toHaveCount(0);
 });
 
-test('Manu: menu sem Configurações, lista vazia e sem cadastro', async ({ page }) => {
+test('Manu: menu sem Configurações, só quem é dela e sem cadastro', async ({ page }) => {
   await entrar(page, 'manu');
   await page.waitForURL(/\/acompanhamento\/mentorados/);
   await expect(lateral(page).getByRole('link', { name: 'Configurações' })).toHaveCount(0);
   await lateral(page).getByRole('link', { name: 'Mentorados', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Nenhum mentorado por aqui' })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Mentorado Fictício 01/ }).first()).toBeVisible();
+  await expect(page.getByText('Mentorada Fictícia 06')).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Nova inscrição' })).toHaveCount(0);
   expect((await page.goto('/acompanhamento/mentorados/nova'))?.status()).toBe(404);
 });
