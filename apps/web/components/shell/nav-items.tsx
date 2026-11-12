@@ -10,8 +10,9 @@ export type NavItem = {
   /** Sub-itens (módulo do Acompanhamento para a Diretoria): abrem dentro de `match`. */
   children?: NavItem[];
   /**
-   * Destino decidido a cada clique (redirect do servidor, ex.: "Ficha do mentorado" → última
-   * ficha). Pré-carregado, o Next guardaria o destino velho.
+   * Sem pré-carga (`prefetch={false}`): destino decidido a cada clique (redirect do servidor, ex.:
+   * "Ficha do mentorado" → última ficha; pré-carregado, o Next guardaria o destino velho) ou tela
+   * quase nunca aberta (itens "Em breve" do módulo).
    */
   semPrefetch?: boolean;
 };

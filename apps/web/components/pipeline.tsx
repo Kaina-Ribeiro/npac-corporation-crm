@@ -375,7 +375,11 @@ export function Pipeline({
                   className="reveal rounded-2xl border border-line bg-[var(--gl2)] p-3"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <Link className="text-sm font-semibold" href={`/leads/${l.id}`}>
+                    <Link
+                      className="text-sm font-semibold"
+                      href={`/leads/${l.id}`}
+                      prefetch={false}
+                    >
                       {l.name}
                     </Link>
                     <span className={`tier tier-${l.tier}`}>{TIER_LABELS[l.tier]}</span>
@@ -387,6 +391,7 @@ export function Pipeline({
                         <Link
                           className="text-xs font-semibold text-gold-deep underline-offset-2 hover:underline"
                           href={`/leads/${l.id}#vendas`}
+                          prefetch={false}
                         >
                           Registrar venda
                         </Link>

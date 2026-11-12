@@ -165,3 +165,65 @@ test.describe('movimento reduzido', () => {
     expect(parseFloat(dur)).toBeLessThan(0.01);
   });
 });
+
+// Desempenho (T2.2, caso 5 do Foco da revisão): API lenta mostra o esqueleto na hora; API com 500
+// mostra a tela de erro, nunca o 500 cru, e "Tentar de novo" busca a tela outra vez. A lentidão e o
+// erro vêm do banco (tabela travada / sem permissão), porque quem chama a API é o servidor do Next.
+test.describe('carregamento e erro', () => {
+  const lateral = (page: Page) => page.getByRole('navigation', { name: 'Navegação lateral' });
+  async function entrarNosAvisos(page: Page) {
+    await page.goto('/login');
+    await page.getByLabel('Usuário', { exact: true }).fill('ale');
+    await page.getByLabel('Senha').fill(E2E_PASSWORD);
+    await page.getByRole('button', { name: 'Login', exact: true }).click();
+    await page.waitForURL((u) => !u.pathname.startsWith('/login'));
+    await page.goto('/avisos');
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  }
+  const playbook = (page: Page) =>
+    page.getByRole('heading', { name: 'Playbook', level: 1, exact: true });
+
+  test('API lenta mostra o esqueleto', async ({ page }) => {
+    await entrarNosAvisos(page);
+    let soltar!: () => void;
+    const preso = new Promise<void>((r) => (soltar = r));
+    let travou!: () => void;
+    const travado = new Promise<void>((r) => (travou = r));
+    const trava = owner.begin(async (tx) => {
+      await tx`lock table playbook_scripts in access exclusive mode`;
+      travou();
+      await preso;
+    });
+    await travado;
+    try {
+      await lateral(page).getByRole('link', { name: 'Playbook', exact: true }).click();
+      await expect(page.locator('[data-page-skeleton]').filter({ visible: true })).toBeVisible();
+      await expect(playbook(page)).toHaveCount(0);
+    } finally {
+      soltar();
+      await trava;
+    }
+    await expect(playbook(page)).toBeVisible();
+    await expect(page.locator('[data-page-skeleton]').filter({ visible: true })).toHaveCount(0);
+  });
+
+  test('API com erro mostra "Não foi possível carregar." e "Tentar de novo" recarrega', async ({
+    page,
+  }) => {
+    await entrarNosAvisos(page);
+    await owner`revoke select on playbook_scripts from npac_app`;
+    try {
+      await lateral(page).getByRole('link', { name: 'Playbook', exact: true }).click();
+      await expect(
+        page.getByRole('heading', { name: 'Não foi possível carregar.', exact: true }),
+      ).toBeVisible();
+      // A casca continua: a sidebar segue na tela.
+      await expect(lateral(page)).toBeVisible();
+    } finally {
+      await owner`grant select on playbook_scripts to npac_app`;
+    }
+    await page.getByRole('button', { name: 'Tentar de novo', exact: true }).click();
+    await expect(playbook(page)).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Não foi possível carregar.' })).toHaveCount(0);
+  });
+});

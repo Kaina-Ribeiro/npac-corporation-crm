@@ -320,7 +320,7 @@ export function Fila({
     if (!acao) return null;
     if (acao.href)
       return (
-        <Link className={classe} href={acao.href}>
+        <Link className={classe} href={acao.href} prefetch={false}>
           {acao.label}
         </Link>
       );
@@ -544,7 +544,7 @@ function Painel({
       <div className="pn-a">
         {acao}
         {item.inscricaoId && (
-          <Link className="btn btn-secondary" href={ficha(item.inscricaoId)}>
+          <Link className="btn btn-secondary" href={ficha(item.inscricaoId)} prefetch={false}>
             Abrir ficha
           </Link>
         )}

@@ -32,7 +32,11 @@ const MESES = Array.from({ length: 12 }, (_, i) => i + 1);
 function Linha({ r, primeira }: { r: InscricaoItem; primeira: boolean }) {
   const ultimo = r.ultimoContato ? dataBR(r.ultimoContato) : '—';
   return (
-    <Link className={`row ${primeira ? 'primeira' : ''}`} href={`/acompanhamento/ficha/${r.id}`}>
+    <Link
+      className={`row ${primeira ? 'primeira' : ''}`}
+      href={`/acompanhamento/ficha/${r.id}`}
+      prefetch={false}
+    >
       <div className="cell-n">
         <Rostos pessoas={r.pessoas} />
         <div className="nm">

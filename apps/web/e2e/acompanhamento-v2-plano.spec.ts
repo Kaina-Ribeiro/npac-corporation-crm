@@ -202,3 +202,37 @@ test('importado RDV: informar a IDR na ficha gera o plano', async ({ page }) => 
     )
     .toBe(12);
 });
+
+test('ação marcada em outra aba aparece ao abrir o Plano pelo menu', async ({ page, context }) => {
+  // Sem o `router.refresh()` ao montar (desempenho, T2.3): o dado vem fresco do clique no menu.
+  await entrar(page, 'duda');
+  await page.waitForURL(/\/acompanhamento\/fila/);
+  const nome = 'Mentorado Fictício 77';
+  const id = await comPlano(nome);
+  await naData(id, 3, HOJE);
+  await abrirPlano(page);
+  const semana = page.getByRole('region', { name: 'Vence esta semana' });
+  await expect(semana.getByText(nome).first()).toBeVisible();
+  await lateral(page).getByRole('link', { name: 'Mentorados', exact: true }).click();
+  await page.waitForURL(/\/acompanhamento\/mentorados/);
+
+  const outra = await context.newPage();
+  await outra.goto('/acompanhamento/plano');
+  await outra
+    .getByRole('region', { name: 'Vence esta semana' })
+    .getByRole('button', { name: new RegExp(`Marcar feita: ${nome}, Momento mágico`) })
+    .click();
+  await expect
+    .poll(
+      async () =>
+        (
+          await owner<{ status: string }[]>`
+          select status from mentoria_acoes where inscricao_id = ${id} and mes = 3`
+        )[0]?.status,
+    )
+    .toBe('FEITA');
+  await outra.close();
+
+  await abrirPlano(page);
+  await expect(semana.getByRole('listitem').filter({ hasText: nome })).toHaveCount(0);
+});

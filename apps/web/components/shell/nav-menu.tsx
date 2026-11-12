@@ -11,6 +11,8 @@ const item = (href: string, label: string, d: string, section?: NavItem['section
   ready: true,
   icon: icone(d),
   section,
+  // "Em breve" é uma tela de aviso, quase nunca aberta: não vale duas requisições a cada página.
+  ...(section === 'Em breve' ? { semPrefetch: true } : {}),
 });
 
 /** As 11 abas do módulo (D8). */
