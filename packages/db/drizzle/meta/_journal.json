@@ -407,6 +407,13 @@
       "when": 1794447719637,
       "tag": "0057_acompanhamento_v2_pmes",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1794453203126,
+      "tag": "0058_acompanhamento_v2_metas",
+      "breakpoints": true
     }
   ]
 }
