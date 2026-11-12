@@ -110,7 +110,9 @@ de link para outra tela (CSS `.nav-skeleton` em `globals.css`); sai quando a URL
 adiado para o commit (`CONSTRAINT TRIGGER … DEFERRABLE INITIALLY DEFERRED`, por linha, soma 1 por transação; UPDATE que
 não muda nada não soma) em `leads`, `lead_tasks`, `lead_timeline`, `chat_*` e `notifications`. `RevisionService` lê `n`
 com um temporizador de 2 s por processo (não por aba) e qualquer escrita vira `invalidate` para todas as abas; a sessão é
-conferida ao abrir e a cada 10 s (`heartbeat`). Tabela nova que deva avisar a tela: o mesmo gatilho na migration. Não
+conferida ao abrir e a cada 10 s (`heartbeat`). `/api/me` traz `revision`; o layout a passa ao `LiveUpdates`, que abre
+`/api/events?rev=`: igual à atual sai `ready` (a aba não recarrega: ficha, lista e Pipeline não carregam duas vezes),
+diferente ou ausente sai `invalidate`. Tabela nova que deva avisar a tela: o mesmo gatilho na migration. Não
 grave em tabela vigiada ao recarregar (laço de avisos); se precisar, só quando o valor muda.
 **Relatório** (`reports.service.ts`): resposta travada byte a byte por `test/reports-legacy.ts` (cópia congelada) em
 `reports.e2e.test.ts`; mexeu na busca, esse teste diz se algum número mudou (mudança de número pedida: altere a

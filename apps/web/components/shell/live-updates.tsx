@@ -1,14 +1,22 @@
 'use client';
 import { useEffect, useRef } from 'react';
 
-/** Uma conexão por aba; o evento contém só tipo de invalidação, sem dados pessoais. */
-export function LiveUpdates() {
+/**
+ * Uma conexão por aba; o evento contém só tipo de invalidação, sem dados pessoais. A aba manda a
+ * revisão do render e o servidor só responde `invalidate` se algo mudou desde então (`ready` não
+ * recarrega: a ficha, a lista e o Pipeline não carregam duas vezes ao abrir).
+ */
+export function LiveUpdates({ revision }: { revision?: string }) {
+  // Só a do primeiro render: `router.refresh()` traz outra, mas a conexão segue a mesma.
+  const rendered = useRef(revision);
   useEffect(() => {
-    const stream = new EventSource('/api/events');
+    const rev = rendered.current;
+    const stream = new EventSource(
+      rev ? `/api/events?rev=${encodeURIComponent(rev)}` : '/api/events',
+    );
     stream.onmessage = (event) => {
       const { type } = JSON.parse(String(event.data)) as { type: string };
-      if (type === 'ready' || type === 'invalidate')
-        window.dispatchEvent(new Event('crm:invalidate'));
+      if (type === 'invalidate') window.dispatchEvent(new Event('crm:invalidate'));
       if (type === 'session-ended' || type === 'access-required') {
         stream.close();
         window.location.replace(type === 'session-ended' ? '/login' : '/');

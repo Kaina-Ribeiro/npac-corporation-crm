@@ -362,11 +362,15 @@ linha; função de gatilho `app_revision_bump()`; `RevisionService.changes$: Obs
   commit, a trava dura milissegundos e o aviso só sai com a escrita pronta. UPDATE que não muda nada
   não soma: o Chat regrava "lido até" com o mesmo valor a cada recarga, e isso virava um laço de
   avisos a cada 2 s (o resumo antigo também não mudava nesse caso).
+- [x] Correção pedida na T1.5 (falha do `mobile-layout` no PR #95, carga dupla ao abrir): `/api/me`
+  traz `revision`; o layout passa ao `LiveUpdates`, que conecta com `?rev=`; o servidor responde
+  `ready` se o contador não mudou desde o render e `invalidate` se mudou (ou sem `rev`). No cliente,
+  só `invalidate` recarrega. O evento continua só `{ type }`.
 - [x] `RevisionService`: um `timer(0, 2000)` com `share()` para o processo inteiro (só corre com
   alguém conectado), lê `n` e emite quando muda; erro de leitura pula a rodada. `EventsController`
   assina `changes$` (só depois do `ready`) e confere a sessão ao abrir e a cada 10 s (`heartbeat`).
 - [x] Testes: uma escrita gera um `invalidate` em cada uma de três conexões e o sinal seguinte é o
-  `heartbeat` (saiu uma vez só); sem escrita, só `heartbeat`; o contador é lido no máximo uma vez a
+  `heartbeat` (saiu uma vez só); revisão do render em dia dá `ready`, velha ou ausente dá `invalidate`; sem escrita, só `heartbeat`; o contador é lido no máximo uma vez a
   cada 2 s com três abas; "lido até" repetido não avisa; usuário desativado recebe `session-ended`
   em até 10 s. No banco (`packages/db/test/app-revision.test.ts`): transação grande soma 1, rollback
   não soma, invisível antes do commit, cada tabela soma, UPDATE igual não soma.

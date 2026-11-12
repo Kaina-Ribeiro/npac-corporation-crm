@@ -20,9 +20,17 @@ beforeAll(async () => {
 });
 afterAll(async () => closeTestApp(app));
 
+/** Revisão do canal ao vivo que o render recebe (`/api/me`). */
+async function renderedRevision(cookie: Cookie): Promise<string> {
+  const me = await h.get('/api/me', cookie);
+  expect(me.body.revision).toMatch(/^\d+$/);
+  return me.body.revision as string;
+}
+
 /** Abre `/api/events` e lê os sinais um a um (cada `data:` só pode ter `type`). */
-async function openStream(cookie: Cookie, abort: AbortController) {
-  const res = await fetch(`${await app.getUrl()}/api/events`, {
+async function openStream(cookie: Cookie, abort: AbortController, rev?: string) {
+  const query = rev === undefined ? '' : `?rev=${rev}`;
+  const res = await fetch(`${await app.getUrl()}/api/events${query}`, {
     headers: { cookie },
     signal: abort.signal,
   });
@@ -60,7 +68,7 @@ it('stream não expõe PII, detecta mudanças e encerra usuário desativado', as
   const abort = new AbortController();
   const timeout = setTimeout(() => abort.abort(), 25_000);
   try {
-    const s = await openStream(cookie, abort);
+    const s = await openStream(cookie, abort, await renderedRevision(cookie));
     expect(await s.next()).toBe('ready');
     await h.post(
       '/api/leads',
@@ -118,9 +126,10 @@ it('uma escrita avisa cada conexão uma vez; o contador é lido uma vez a cada 2
   const timeout = setTimeout(() => abort.abort(), 25_000);
   try {
     // Três abas (duas pessoas): o contador é um só, não uma consulta por aba.
-    const a = await openStream(ale, abort);
-    const b = await openStream(igor, abort);
-    const c = await openStream(ale, abort);
+    const rev = await renderedRevision(ale);
+    const a = await openStream(ale, abort, rev);
+    const b = await openStream(igor, abort, rev);
+    const c = await openStream(ale, abort, rev);
     expect(await a.next()).toBe('ready');
     expect(await b.next()).toBe('ready');
     expect(await c.next()).toBe('ready');
@@ -143,5 +152,32 @@ it('uma escrita avisa cada conexão uma vez; o contador é lido uma vez a cada 2
     abort.abort();
     clearTimeout(timeout);
     reads.mockRestore();
+  }
+});
+
+it('ao abrir, só avisa se algo mudou desde o render (revisão velha ou ausente = invalidate)', async () => {
+  await resetAuthState();
+  const ale = await h.signIn('ale@npac.com.br');
+  const rev = await renderedRevision(ale);
+  const abort = new AbortController();
+  const timeout = setTimeout(() => abort.abort(), 15_000);
+  try {
+    // Em dia: `ready`, que a aba não trata como recarga (a tela não carrega duas vezes).
+    expect(await (await openStream(ale, abort, rev)).next()).toBe('ready');
+    // Uma escrita entre o render e a conexão: a aba recarrega ao conectar.
+    const novo = await h.post(
+      '/api/leads',
+      { name: 'Sinal render', instagram: '@evento.render', incomeBand: 'R5_8K', source: 'BIO' },
+      ale,
+    );
+    expect(novo.status).toBe(201);
+    expect(await (await openStream(ale, abort, rev)).next()).toBe('invalidate');
+    // Cliente antigo (sem revisão) ou valor inválido: recarrega, como antes.
+    expect(await (await openStream(ale, abort)).next()).toBe('invalidate');
+    expect(await (await openStream(ale, abort, 'abc')).next()).toBe('invalidate');
+    expect(await (await openStream(ale, abort, await renderedRevision(ale))).next()).toBe('ready');
+  } finally {
+    abort.abort();
+    clearTimeout(timeout);
   }
 });

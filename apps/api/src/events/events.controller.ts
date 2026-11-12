@@ -1,4 +1,4 @@
-import { Controller, Header, Inject, Req, Sse } from '@nestjs/common';
+import { Controller, Header, Inject, Query, Req, Sse } from '@nestjs/common';
 import type { FastifyRequest } from 'fastify';
 import { exhaustMap, filter, map, merge, takeWhile, tap, timer } from 'rxjs';
 import { AllRoles } from '../auth/all-roles.decorator.js';
@@ -24,20 +24,26 @@ export class EventsController {
   @Sse('events')
   @Header('Cache-Control', 'no-store')
   @Header('X-Accel-Buffering', 'no')
-  events(@Req() req: FastifyRequest) {
+  events(@Req() req: FastifyRequest, @Query('rev') rev?: string) {
     // Só sai um sinal vazio: qualquer escrita (contador global, D2) vira `invalidate` para todas
     // as abas, que refazem a consulta sujeita à RLS. A sessão é conferida ao abrir e a cada 10 s;
-    // nesse intervalo vai `heartbeat`.
+    // nesse intervalo vai `heartbeat`. Ao abrir, a aba manda a revisão que o render entregou
+    // (`/api/me`): igual à atual = `ready` (a tela já está em dia, não recarrega); diferente ou
+    // ausente = `invalidate`.
+    const rendered = typeof rev === 'string' && /^\d{1,19}$/.test(rev) ? rev : undefined;
     let ready = false;
     const status$ = timer(0, SESSION_CHECK_MS).pipe(
       exhaustMap(async (tick): Promise<Signal> => {
         const current = await this.auth.api.getSession({ headers: toHeaders(req) });
         if (!current || !current.user.active) return 'session-ended';
         if (current.user.mustChangePassword) return 'access-required';
-        return tick === 0 ? 'ready' : 'heartbeat';
+        if (tick > 0) return 'heartbeat';
+        return rendered !== undefined && rendered === (await this.revision.read())
+          ? 'ready'
+          : 'invalidate';
       }),
       tap((type) => {
-        if (type === 'ready') ready = true;
+        if (!END.includes(type)) ready = true;
       }),
     );
     const changes$ = this.revision.changes$.pipe(
