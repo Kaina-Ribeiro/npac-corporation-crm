@@ -9,6 +9,9 @@ export * from './dto.js';
 export * from './field-queue.js';
 export * from './legado.js';
 export * from './onboarding.js';
+export * from './reunioes.js';
+export * from './fila.js';
+export * from './mensagens.js';
 export * from './importacao.js';
 export * from './plano.js';
 // Pura, sem zod: a ficha grava o telefone já no formato do servidor.

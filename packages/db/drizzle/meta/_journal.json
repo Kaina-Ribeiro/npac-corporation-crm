@@ -365,6 +365,41 @@
       "when": 1794396297304,
       "tag": "0051_acompanhamento_v2_pausas",
       "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1794404761224,
+      "tag": "0052_acompanhamento_v2_reunioes",
+      "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1794412772168,
+      "tag": "0053_acompanhamento_v2_fila",
+      "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1794413335740,
+      "tag": "0054_acompanhamento_v2_mensagens",
+      "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1794414098909,
+      "tag": "0055_acompanhamento_v2_avisos",
+      "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1794414364090,
+      "tag": "0056_acompanhamento_v2_exclusao",
+      "breakpoints": true
     }
   ]
 }

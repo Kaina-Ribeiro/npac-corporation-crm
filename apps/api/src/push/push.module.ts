@@ -2,6 +2,7 @@ import { Body, Controller, Get, Global, HttpCode, Module, Post, Req } from '@nes
 import type { FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { ENV, type Env } from '../config/env.js';
+import { AllRoles } from '../auth/all-roles.decorator.js';
 import { CurrentUser, type SessionUser } from '../auth/current-user.decorator.js';
 import { validate } from '../common/validate.js';
 import { PUSH_SENDER, PushService, WebPushSender } from './push.service.js';
@@ -39,7 +40,9 @@ function shortAgent(ua: string | undefined): string | null {
   return `${browser} · ${os}`;
 }
 
+/** Também o cargo Acompanhamento: o push da Fila do dia (D12). Nada muda para o comercial. */
 @Controller('push')
+@AllRoles()
 export class PushController {
   constructor(private readonly push: PushService) {}
   @Get('key') key() {

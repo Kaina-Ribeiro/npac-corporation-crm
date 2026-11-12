@@ -332,6 +332,8 @@ export const mentoriaOnboardingEtapas = pgTable(
     concluidaEm: timestamp('concluida_em', { withTimezone: true }),
     grupoCriadoEm: date('grupo_criado_em'),
     formularioPreenchido: boolean('formulario_preenchido'),
+    /** Quando o formulário foi marcado como preenchido (gatilho): base do "Enviar a Caixa". */
+    formularioPreenchidoEm: timestamp('formulario_preenchido_em', { withTimezone: true }),
     grupoAvisos: boolean('grupo_avisos'),
     grupoClube: boolean('grupo_clube'),
     grupoNacao: boolean('grupo_nacao'),
@@ -520,6 +522,114 @@ export const mentoriaPausas = pgTable(
   ],
 );
 
+const REUNIAO_TIPOS_SQL = sql.raw(
+  `('IDR', 'ACOMP_2PME', 'POSICIONAMENTO', 'MENTORADO_EXPERIENTE', 'CARTOES_MILHAS', 'MENSAL_6M', 'TRIMESTRAL_2M', 'ACOMP_EMERGENCIA', 'RENOVACAO')`,
+);
+
+/**
+ * Reuniões (§4, §6). Status e remarcação seguem regras do banco; o registro (resumo, metas,
+ * combinado, cobrar, trava, anotação interna) chega cifrado. Visibilidade ao mentorado é por campo,
+ * fixa pela tabela do PDF (Fase 3), sem coluna.
+ */
+export const mentoriaReunioes = pgTable(
+  'mentoria_reunioes',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    inscricaoId: uuid('inscricao_id')
+      .notNull()
+      .references(() => mentoriaInscricoes.id, { onDelete: 'cascade' }),
+    tipo: text('tipo').notNull(),
+    conduzidaPor: text('conduzida_por').references(() => user.id),
+    /** O mentorado experiente que conduz a conversa do 6º mês (sem login). */
+    condutorInscricaoId: uuid('condutor_inscricao_id').references(
+      (): AnyPgColumn => mentoriaInscricoes.id,
+      { onDelete: 'set null' },
+    ),
+    inicio: timestamp('inicio', { withTimezone: true }).notNull(),
+    duracaoMin: smallint('duracao_min').notNull().default(60),
+    plataforma: text('plataforma'),
+    link: text('link'),
+    status: text('status').notNull().default('AGENDADA'),
+    remarcadaParaId: uuid('remarcada_para_id').references((): AnyPgColumn => mentoriaReunioes.id),
+    resumo: text('resumo'),
+    metas: text('metas'),
+    combinado: text('combinado'),
+    cobrar: text('cobrar'),
+    trava: text('trava'),
+    anotacaoInterna: text('anotacao_interna'),
+    humor: smallint('humor'),
+    interesseRenovar: boolean('interesse_renovar'),
+    version: integer('version').notNull().default(1),
+    ...autoria,
+  },
+  (t) => [
+    index('mentoria_reunioes_inscricao').on(t.inscricaoId, t.inicio),
+    index('mentoria_reunioes_inicio').on(t.inicio),
+    index('mentoria_reunioes_condutor').on(t.conduzidaPor, t.inicio),
+    check('mentoria_reunioes_tipo', sql`${t.tipo} in ${REUNIAO_TIPOS_SQL}`),
+    check(
+      'mentoria_reunioes_status',
+      sql`${t.status} in ('AGENDADA', 'CONFIRMADA', 'LINK_ENVIADO', 'REALIZADA', 'FALTOU', 'REMARCADA')`,
+    ),
+    check('mentoria_reunioes_plataforma', sql`${t.plataforma} in ('ZOOM', 'MEET')`),
+    check(
+      'mentoria_reunioes_link',
+      sql`${t.link} ~ '^https://' and char_length(${t.link}) <= 2000`,
+    ),
+    check('mentoria_reunioes_duracao', sql`${t.duracaoMin} between 5 and 480`),
+    check('mentoria_reunioes_humor', sql`${t.humor} between 1 and 5`),
+    check(
+      'mentoria_reunioes_condutor',
+      sql`${t.tipo} = 'MENTORADO_EXPERIENTE' or (${t.conduzidaPor} is not null and ${t.condutorInscricaoId} is null)`,
+    ),
+    check(
+      'mentoria_reunioes_renovar',
+      sql`${t.interesseRenovar} is null or ${t.tipo} = 'RENOVACAO'`,
+    ),
+    check(
+      'mentoria_reunioes_remarcada',
+      sql`${t.remarcadaParaId} is null or ${t.status} = 'REMARCADA'`,
+    ),
+    check('mentoria_reunioes_resumo', cifradoCabe(t.resumo)),
+    check('mentoria_reunioes_metas', cifradoCabe(t.metas)),
+    check('mentoria_reunioes_combinado', cifradoCabe(t.combinado)),
+    check('mentoria_reunioes_cobrar', cifradoCabe(t.cobrar)),
+    check('mentoria_reunioes_trava', cifradoCabe(t.trava)),
+    check('mentoria_reunioes_anotacao', cifradoCabe(t.anotacaoInterna)),
+  ],
+);
+
+/** Contatos com o mentorado (§4). Só acréscimo: quem fez é quem está logado. */
+export const mentoriaContatos = pgTable(
+  'mentoria_contatos',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    inscricaoId: uuid('inscricao_id')
+      .notNull()
+      .references(() => mentoriaInscricoes.id, { onDelete: 'cascade' }),
+    feitoPor: text('feito_por')
+      .notNull()
+      .references(() => user.id),
+    quando: timestamp('quando', { withTimezone: true }).notNull(),
+    canal: text('canal').notNull(),
+    motivo: text('motivo'),
+    respondeu: boolean('respondeu'),
+    tempoRespostaMin: integer('tempo_resposta_min'),
+    observacao: text('observacao'),
+    criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('mentoria_contatos_inscricao').on(t.inscricaoId, t.quando),
+    check(
+      'mentoria_contatos_canal',
+      sql`${t.canal} in ('WHATSAPP', 'LIGACAO', 'EMAIL', 'REUNIAO', 'OUTRO')`,
+    ),
+    check('mentoria_contatos_motivo', sql`char_length(${t.motivo}) <= 200`),
+    check('mentoria_contatos_tempo', sql`${t.tempoRespostaMin} between 0 and 100000`),
+    check('mentoria_contatos_observacao', cifradoCabe(t.observacao)),
+  ],
+);
+
 /**
  * Mídia: o registro guarda só o endereço; o arquivo fica fora do banco (MEDIA_DIR).
  * `dono_id` é polimórfico, sem FK: a exclusão do dono enfileira a mídia pela função.
@@ -557,4 +667,54 @@ export const mentoriaMidiaExclusao = pgTable('mentoria_midia_exclusao', {
   chaveObjeto: text('chave_objeto').notNull(),
   enfileiradoEm: timestamp('enfileirado_em', { withTimezone: true }).notNull().defaultNow(),
   removidoEm: timestamp('removido_em', { withTimezone: true }),
+});
+
+/**
+ * Itens da Fila do dia sem estado próprio (lembrete da IDR, arte da agenda, reuniões 6M do mês):
+ * a chave é tipo + alvo + data, sem dado pessoal. Só acréscimo, em nome de quem está logado.
+ */
+export const mentoriaFilaFeitos = pgTable(
+  'mentoria_fila_feitos',
+  {
+    chave: text('chave').primaryKey(),
+    feitoPor: text('feito_por')
+      .notNull()
+      .references(() => user.id),
+    feitoEm: timestamp('feito_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [check('mentoria_fila_feitos_chave', sql`${t.chave} ~ '^[a-z0-9-]+:[0-9a-f:-]{7,80}$'`)],
+);
+
+/**
+ * Mensagens-modelo (§4): um texto por momento, individual e casal, com `{nome}` e `{nomes}`. A
+ * Duda escreve; o seed traz só os nomes. Não é dado pessoal: texto puro, sem cifra.
+ */
+export const mentoriaMensagensModelo = pgTable(
+  'mentoria_mensagens_modelo',
+  {
+    momento: text('momento').primaryKey(),
+    nome: text('nome').notNull(),
+    textoIndividual: text('texto_individual').notNull().default(''),
+    textoCasal: text('texto_casal').notNull().default(''),
+    canal: text('canal').notNull().default('WHATSAPP'),
+    version: integer('version').notNull().default(1),
+    // Sem FK para user: as linhas vêm da migration e não podem cair num `truncate "user" cascade`.
+    atualizadoPor: text('atualizado_por'),
+    atualizadoEm: timestamp('atualizado_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    check(
+      'mentoria_mensagens_momento',
+      sql`${t.momento} in ('BOAS_VINDAS', 'PASSO_1', 'PASSO_2', 'PASSO_3', 'LEMBRETE_IDR', 'EVENTO', 'OUTRO')`,
+    ),
+    check('mentoria_mensagens_individual', sql`char_length(${t.textoIndividual}) <= 4000`),
+    check('mentoria_mensagens_casal', sql`char_length(${t.textoCasal}) <= 4000`),
+    check('mentoria_mensagens_canal', sql`${t.canal} in ('WHATSAPP')`),
+  ],
+);
+
+/** Push da Fila enviado (§5, D10): cada aviso uma vez só. Sem RLS de usuário: só as funções. */
+export const mentoriaAvisosEnviados = pgTable('mentoria_avisos_enviados', {
+  chave: text('chave').primaryKey(),
+  enviadoEm: timestamp('enviado_em', { withTimezone: true }).notNull().defaultNow(),
 });

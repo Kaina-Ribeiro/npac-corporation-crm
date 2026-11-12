@@ -4,17 +4,17 @@ import { usePathname } from 'next/navigation';
 import { ICONES, Icone } from './ui';
 
 const ABAS = [
-  { href: '/acompanhamento/em-breve/fila', label: 'Fila', icone: ICONES.fila },
+  { href: '/acompanhamento/fila', label: 'Fila', icone: ICONES.fila },
   { href: '/acompanhamento/mentorados', label: 'Mentorados', icone: ICONES.mentorados },
-  { href: '/acompanhamento/em-breve/reunioes', label: 'Reuniões', icone: ICONES.reunioes },
+  { href: '/acompanhamento/reunioes', label: 'Reuniões', icone: ICONES.reunioes },
   { href: '/acompanhamento/mais', label: 'Mais', icone: 'M5 12h.01M12 12h.01M19 12h.01' },
 ];
 
 /** Qual aba do rodapé fica marcada: a ficha é da lista; o resto do módulo vive no Mais. */
 function abaAtual(path: string): string | null {
   if (!path.startsWith('/acompanhamento')) return null;
-  if (path.startsWith('/acompanhamento/em-breve/fila')) return 'Fila';
-  if (path.startsWith('/acompanhamento/em-breve/reunioes')) return 'Reuniões';
+  if (path.startsWith('/acompanhamento/fila')) return 'Fila';
+  if (path.startsWith('/acompanhamento/reunioes')) return 'Reuniões';
   if (path.startsWith('/acompanhamento/mentorados') || path.startsWith('/acompanhamento/ficha'))
     return 'Mentorados';
   return 'Mais';

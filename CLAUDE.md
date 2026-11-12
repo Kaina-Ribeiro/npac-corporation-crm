@@ -25,6 +25,7 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
 - **Shared:** papéis/`isLeader`/enums `sh/enums.ts` · cargos e resolvedor `sh/cargos.ts` · `can` `sh/permissions.ts` · Zod de lead
   `sh/schemas/lead.ts`, `lead-update.ts` · usuário/pedido de acesso `sh/schemas/account.ts` ·
   DTOs `sh/dto.ts`, `finance.ts`, `today.ts` · dinheiro/datas BR `sh/money.ts`, `dates.ts`
+  · filtros lembrados `sh/screen-prefs.ts` (`@npac/shared/screen-prefs`)
 - **Banco:** schema `db/src/schema/*.ts` · migrations `db/drizzle/00NN_*.sql` + `meta/` ·
   `withUser`, `leadContactTaken` `db/src/with-user.ts` · seed `db/src/seed*.ts`
 - **Auth:** Better Auth (username, TOTP, auditoria, rate limit) `api/auth/auth.ts` · sessão e
@@ -46,7 +47,8 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   (`appearance: base-select` + `::picker(select)` no fim de `globals.css`; Safari fica com o do
   sistema; Lightning CSS não aceita pseudo-classe depois de `::picker`, use `select:open::picker(select)`) · login,
   pedir acesso `web/components/login/*` · senha/MFA `components/conta/*`, `app/(conta)/*` · API
-  server/client `web/lib/api.ts` / `lib/client-api.ts` · sessão (`getSession`, `pendingStep`)
+  server/client `web/lib/api.ts` / `lib/client-api.ts` · filtros lembrados `lib/screen-prefs.ts`,
+  `lib/use-latest-prefs.ts`, memória da busca `lib/screen-memory.ts` · sessão (`getSession`, `pendingStep`)
   `web/lib/session.ts` · UI base (`Field`, `button`, `StageOptions`) `components/crm-ui.tsx` ·
   cargo (`ROLE_LABEL`, `RoleTag`, `CargoTag`) `components/role-tag.tsx` · campo Cargo (select agrupado,
   dica, caixas/selo) `components/cargo-field.tsx` · tokens/`.tier-*`/`.role-*` `web/app/globals.css`
@@ -65,14 +67,25 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   `media-store.ts`, `media-sniff.ts`, `media-worker.ts`; cifra `mentoria-crypto.ts`; onboarding e Caixa `onboarding.*`
   (regras puras `sh/mentoria/onboarding.ts`; CAIXA e IDR são derivadas, gatilhos da 0048); importação `importacao/*`, junção das
   fontes `sh/mentoria/importacao.ts`, planilha lida por título em `ler-planilha.ts`, CPF descartado ali; `importacao_chave` impede
-  reimportar quem foi renomeado) · banco `db/src/schema/mentoria.ts`
+  reimportar quem foi renomeado); reuniões e contatos `reunioes.*`, `contatos.controller.ts` (0052: estados e
+  remarcar/excluir no banco; IDR realizada → `data_idr`/início de Brasília + ATIVO + ações em `iniciarPelaIdr`;
+  reunião realizada conclui a ação do mesmo `reuniao_tipo`; Especialista vê só inscrições/reuniões que conduz,
+  nunca IDR); Fila do dia `fila.*` (0053: `mentoria_fila(agora)` calcula na leitura, SECURITY INVOKER;
+  quem vê cada item `sh/mentoria/fila.ts` `itemVisivel`; `mentoria_fila_feitos` conclui o que não tem estado;
+  relógio `MENTORIA_CLOCK` em `relogio.ts`); mensagens-modelo `mensagens.controller.ts` + `sh/mentoria/mensagens.ts`
+  (0054; `{nome}`/`{nomes}`, WhatsApp copia e abre `wa.me/<número>` sem texto); push da Fila `avisos.scheduler.ts`
+  (0055: um timer, `mentoria_aviso_proximo`/`_reclamar`, `mentoria_avisos_enviados`; `AvisosRearme` no
+  `MentoriaController` rearma depois de toda escrita do módulo); CSV `exportacao.controller.ts`; excluir,
+  anonimizar e transferir carteira `carteira.controller.ts` (0056) · banco `db/src/schema/mentoria.ts`
   - 0044–0045 (`mentoria_perfil()`, `mentoria_admin()`, `mentoria_ve()`, `mentoria_edita()`, funções `mentoria_*`) ·
     seed `db/src/seed-mentoria.ts` · lógica pura `sh/mentoria/*` (cliente: `@npac/shared/mentoria`, sem zod) ·
-    telas `web/app/(app)/acompanhamento/*` (`mentorados`, `mentorados/nova`, `ficha/[id]`, `configuracoes`, `mais`,
-    `em-breve/[aba]`), `web/components/acompanhamento/*`, CSS só do módulo sob `.ac` em `acompanhamento/modulo.css`,
+    telas `web/app/(app)/acompanhamento/*` (`fila` é a entrada, `mentorados`, `mentorados/nova`, `ficha/[id]`, `configuracoes`, `mais`,
+    `reunioes`, `reunioes/[id]`, `reunioes/nova`, `em-breve/[aba]`), `web/components/acompanhamento/*`, CSS só do módulo sob `.ac` em `acompanhamento/modulo.css`,
     fila de salvamento `sh/mentoria/field-queue.ts` + `web/lib/acompanhamento-saver.ts`, perfil no servidor
     `web/lib/acompanhamento.ts` (`lerEu`) · backup cifrado `infra/backup/*` (age)
-- **Docs:** `docs/spec.md`; deploy `docs/deploy.md` (Oracle), `docs/deploy-cubeship.md`; planos `docs/superpowers/plans/`; releases `RELEASING.md`
+- **Docs:** `docs/spec.md`; deploy `docs/deploy.md` (Oracle), `docs/deploy-cubeship.md` (o `web` do
+  ITODEV só fala com a API dele pela build arg `API_INTERNAL_URL`; sem ela cai na API de produção:
+  conferir com o `curl` da seção 4 antes de testar); planos `docs/superpowers/plans/`; releases `RELEASING.md`
 
 Next 16 tem APIs incompatíveis: em dúvida, `web/node_modules/next/dist/docs/`. Valor exportado de
 módulo `'use client'` não é legível em server component: constantes compartilhadas ficam em arquivo
@@ -126,14 +139,24 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   "Seu painel chega em breve", sem menu (`components/acompanhamento/sem-acesso.tsx`, no layout de `(app)`); API 404 em tudo menos
   `mentoria/eu`. MFA obrigatório nas rotas `mentoria/*` para Diretoria e Acompanhamento, 404 para os demais. O cargo não vê nada do comercial
   (05/11/2026): `PermissionsGuard` dá 404 em toda rota sem `@AllRoles()` (`api/auth/all-roles.decorator.ts`;
-  hoje `me`, `events` e o módulo), e o web mostra só as abas do módulo (`hasCommercialAccess`,
+  hoje `me`, `events`, `push` e o módulo), e o web mostra só as abas do módulo (`hasCommercialAccess`,
   sidebar/Ctrl+K/Mais/rodapé). Telas comerciais ficam em `web/app/(app)/(comercial)/`, cujo layout
   manda o cargo ao módulo com carga completa (o layout de `(app)` não roda na navegação do
   navegador; redirect do servidor ali deixava o módulo em branco). Entrada única: login, troca de
   senha e MFA vão para `/`, que escolhe o destino pelo cargo. Rota nova que o cargo use leva
   `@AllRoles()`; o teste `acompanhamento-sem-comercial` varre todas. Texto sensível cifrado com AAD
   (`MENTORADO_ENCRYPTION_KEY`); mídia fora do banco em `MEDIA_DIR`; sem DELETE para `npac_app`
-  (exclusão só pelas funções, que enfileiram a mídia). Salvar ao sair do campo: em 409 a fila reaplica se o outro não mexeu naquele campo; se mexeu, avisa e mantém o dele (`resolverConflito`).
+  (exclusão só pelas funções, que enfileiram a mídia). Push (D12, 11/11/2026): `PushController` tem `@AllRoles()`
+  e o link "Avisos neste aparelho" aparece para o cargo; o push da Fila não leva nome (`AVISO_PAYLOAD`), vai a
+  quem responde pelo item ou a todos do perfil, um por pessoa a cada disparo; pausado, cancelado e o que veio antes
+  do sistema não avisam. Fila: só ONBOARDING e ATIVO; "hoje" e 8h de Brasília; responsável desativado ou sem
+  perfil cai no perfil (`mentoria_perfil_de`). Responsável pela inscrição (11/11/2026): só perfil Acompanhamento
+  ativo, como quem recebe carteira (400 no cadastro e na troca); `GET mentoria/responsaveis` traz também quem saiu
+  e ainda responde por inscrições (`elegivel`, `ativo`, `carteira`), para a ficha mostrar, o filtro achar e o
+  Admin transferir. CSV do módulo: Admin e perfil Acompanhamento, auditado
+  (`mentoria.csv`), contato só para Admin, nunca dor, sonho, meta, anotações ou textos de reunião. Excluir e
+  anonimizar (LGPD) só Admin, pela ficha; anonimizar mantém inscrição, reuniões e ações para as contagens.
+  Salvar ao sair do campo: em 409 a fila reaplica se o outro não mexeu naquele campo; se mexeu, avisa e mantém o dele (`resolverConflito`).
 - **Siglas das mentorias** (Gabriel, 04/11/2026): RDV = Rico de Verdade · IDR = Introdução da
   Riqueza · PME = Plano Mensal de Enriquecimento · 2M = Marco e Mudança · 6M = sem definição ainda.
   Nas telas vale o texto literal do PDF, exceto IDR: "Introdução da Riqueza" (o PDF diz "à"; corrigido).
@@ -141,6 +164,19 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   `npac_dash_<hash do id>` (`Path=/dashboard`, só IDs, o servidor já renderiza na ordem); colunas
   ocultas `npac_pipe_<hash>` (`Path=/pipeline`) e filtro do Hoje `npac_hoje_<hash>` (`Path=/hoje`),
   helpers em `lib/user-cookie.ts`.
+- **Filtros lembrados** (NPAC-46, 11/11/2026, Gabriel "A, no aparelho"): cada tela grava filtro, aba e
+  período em `npac_f_<tela>_<hash>` só no `Path` da tela (`PREFS` em `lib/screen-prefs.ts`; `rememberPrefs`
+  não grava > 1 KB); valor `chave=valor&…` validado na leitura por `sh/screen-prefs.ts` (sem zod): ID de quem
+  saiu, etapa/produto excluído e intervalo sem as duas datas caem. O servidor lê o cookie e já busca filtrado;
+  a tela, ao montar, reaplica o cookie se ele for mais novo (voltar do navegador). URL com parâmetro
+  (`/leads?view=`) vence e vira o lembrado; filtro que a API recusa (400) abre sem ele e apaga o cookie.
+  Comercial: Leads (filtro salvo ou filtros), Pipeline (+ coluna do celular), Dashboard (período, SDR),
+  Relatórios, Admin (aba), Chat (conversa). **Busca por texto e página só na memória da aba**
+  (`lib/screen-memory.ts`, por pessoa): voltam ao trocar de tela, somem no F5; nunca em cookie, URL ou
+  storage. Seleção em massa não é lembrada. **Filtros aplicam ao mudar** (sem "Aplicar filtros",
+  "Filtrar Hoje", "Buscar" do Pipeline, "Atualizar relatório"); o texto da busca segue no Enter; "Limpar
+  filtros" aparece com filtro ativo. `CsvExport` de `/leads` vem sob demanda (`next/dynamic`) pelo limite
+  de 150 KB.
 
 ## Segurança e privacidade (não negociável)
 

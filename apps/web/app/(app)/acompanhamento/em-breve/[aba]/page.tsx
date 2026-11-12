@@ -3,17 +3,8 @@ import { EmBreve } from '@/components/acompanhamento/em-breve';
 
 export const metadata = { title: 'Em breve' };
 
-/** Fila, Plano e Reuniões saem daqui quando suas partes chegarem. */
-const ABAS = new Set([
-  'fila',
-  'plano',
-  'reunioes',
-  'pmes',
-  'linha-do-tempo',
-  'envios',
-  'eventos',
-  'renovacoes',
-]);
+/** As abas fora da Fase 1 (D8). */
+const ABAS = new Set(['plano', 'pmes', 'linha-do-tempo', 'envios', 'eventos', 'renovacoes']);
 
 export default async function EmBrevePage({ params }: { params: Promise<{ aba: string }> }) {
   const { aba } = await params;

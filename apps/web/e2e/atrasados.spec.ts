@@ -78,9 +78,15 @@ test('tarefa vencida aparece em Atrasados e sai ao concluir', async ({ page }) =
   await expect(row.getByText('Tarefa', { exact: true })).toBeVisible();
   await expect(section(page, /^Tarefas/).getByText('Tarefa Esquecida')).toHaveCount(0);
 
+  const concluir = row.getByRole('button', { name: 'Concluir Tarefa Esquecida' });
   await expect(async () => {
-    await row.getByRole('button', { name: 'Concluir Tarefa Esquecida' }).click({ timeout: 1000 });
-    await expect(row).toHaveCount(0, { timeout: 1000 });
+    // Clica de novo só se o botão segue ali e livre (o clique antes da hidratação se perde). O
+    // clique que funcionou tira a linha da lista; repetir o clique esperava por um botão que não
+    // existe mais e estourava o tempo do teste no CI lento.
+    if (await concluir.isEnabled({ timeout: 500 }).catch(() => false)) {
+      await concluir.click({ timeout: 1000 });
+    }
+    await expect(row).toHaveCount(0, { timeout: 3000 });
   }).toPass();
 });
 

@@ -8,7 +8,10 @@ import {
   STATUS_FINANCEIRO,
   STATUS_FINANCEIRO_LABEL,
   TIPO_INSCRICAO_LABEL,
+  linkGrupoValido,
+  linkWhatsApp,
   type FichaDTO,
+  type Responsavel,
 } from '@npac/shared/mentoria';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -16,6 +19,7 @@ import { useEffect, useRef, useState } from 'react';
 import { button, control, quietButton } from '@/components/crm-ui';
 import { clientApi } from '@/lib/client-api';
 import { filaDeSalvamento, registrarVersion } from '@/lib/acompanhamento-saver';
+import { EVENTO_ULTIMA_FICHA } from '@/lib/ultima-ficha';
 import { CampoPr, DINHEIRO } from './campo';
 import { Dialogo } from './dialogo';
 import { OnboardingFicha } from './etapa-card';
@@ -24,7 +28,18 @@ import { FichaPessoas } from './ficha-pessoas';
 import { HistoricoLista } from './historico-lista';
 import { IndicadorSalvo } from './indicador-salvo';
 import { PlanoMentorado } from './plano-mentorado';
-import { dataBR, FOCOS_RDV, ICONES, Icone, Rostos, TagStatus, Trilha, type Aba } from './ui';
+import {
+  dataBR,
+  FOCOS_RDV,
+  ICONES,
+  Icone,
+  opcoesResponsavel,
+  rotuloAntesDoInicio,
+  Rostos,
+  TagStatus,
+  Trilha,
+  type Aba,
+} from './ui';
 
 const COOKIE_ULTIMA_FICHA = 'npac_ultima_ficha';
 const sm = `${quietButton} sm`;
@@ -81,7 +96,7 @@ function Inscricao({
   pedirIdr,
 }: {
   ficha: FichaDTO;
-  responsaveis: { id: string; nome: string }[];
+  responsaveis: Responsavel[];
   ativo: boolean;
   atualizar: () => void;
   pedirTipo: () => void;
@@ -148,7 +163,7 @@ function Inscricao({
         campo="responsavelId"
         valor={ficha.responsavelId}
         tipo="select"
-        opcoes={responsaveis.map((r) => ({ valor: r.id, rotulo: r.nome }))}
+        opcoes={opcoesResponsavel(responsaveis, ficha.responsavelId)}
       />
       <CampoPr
         {...base}
@@ -231,10 +246,12 @@ function MaisAcoes({
   ficha,
   pedirTipo,
   pedirPausa,
+  pedir,
 }: {
   ficha: FichaDTO;
   pedirTipo: () => void;
   pedirPausa: () => void;
+  pedir: (d: 'excluir' | 'anonimizar') => void;
 }) {
   const [aberto, setAberto] = useState(false);
   const raiz = useRef<HTMLDivElement>(null);
@@ -290,9 +307,31 @@ function MaisAcoes({
           >
             {ficha.tipo === 'CASAL' ? 'Mudar para individual' : 'Mudar para casal'}
           </button>
-          <button type="button" role="menuitem" disabled>
-            Excluir inscrição<span className="tag">Em breve</span>
-          </button>
+          {ficha.pode.admin && (
+            <>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setAberto(false);
+                  pedir('anonimizar');
+                }}
+              >
+                Anonimizar (LGPD)
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                className="perigo"
+                onClick={() => {
+                  setAberto(false);
+                  pedir('excluir');
+                }}
+              >
+                Excluir inscrição
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>
@@ -468,13 +507,15 @@ export function Ficha({
   abaInicial,
 }: {
   ficha: FichaDTO;
-  responsaveis: { id: string; nome: string }[];
+  responsaveis: Responsavel[];
   abaInicial: Aba;
 }) {
   const router = useRouter();
   const [aba, setAba] = useState<Aba>(abaInicial);
   const [mudarTipo, setMudarTipo] = useState(false);
-  const [dialogo, setDialogo] = useState<'pausar' | 'retomar' | 'idr' | null>(null);
+  const [dialogo, setDialogo] = useState<
+    'pausar' | 'retomar' | 'idr' | 'excluir' | 'anonimizar' | null
+  >(null);
   const atualizar = () =>
     void filaDeSalvamento()
       .idle()
@@ -482,7 +523,8 @@ export function Ficha({
 
   useEffect(() => {
     document.cookie = `${COOKIE_ULTIMA_FICHA}=${ficha.id}; Path=/acompanhamento; Max-Age=2592000; SameSite=Lax`;
-  }, [ficha.id]);
+    window.dispatchEvent(new CustomEvent(EVENTO_ULTIMA_FICHA, { detail: ficha.nome }));
+  }, [ficha.id, ficha.nome]);
 
   useEffect(() => {
     registrarVersion(`inscricao:${ficha.id}`, ficha.version);
@@ -502,7 +544,7 @@ export function Ficha({
   const foco = mes !== null && mes <= 12 && ficha.mentoria === 'RDV' ? FOCOS_RDV[mes - 1] : null;
   const titulo =
     mes === null
-      ? 'Antes da IDR'
+      ? rotuloAntesDoInicio(ficha.mentoria)
       : mes > 12
         ? 'Jornada concluída'
         : `Mês ${mes} de 12${foco ? `: ${foco}` : ''}`;
@@ -543,10 +585,10 @@ export function Ficha({
           <Trilha mes={mes} />
         </div>
         <div className="fc-acts">
-          {ficha.linkGrupo && (
+          {linkGrupoValido(ficha.linkGrupo) && (
             <a
               className={`${sm} wa`}
-              href={ficha.linkGrupo}
+              href={linkGrupoValido(ficha.linkGrupo)!}
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -556,11 +598,11 @@ export function Ficha({
           )}
           {ficha.pessoas.map(
             (p) =>
-              p.whatsapp && (
+              linkWhatsApp(p.whatsapp) && (
                 <a
                   key={p.id}
                   className={`${sm} wa`}
-                  href={`https://wa.me/${p.whatsapp.replace(/\D/g, '')}`}
+                  href={linkWhatsApp(p.whatsapp)!}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -578,6 +620,7 @@ export function Ficha({
             ficha={ficha}
             pedirTipo={() => setMudarTipo(true)}
             pedirPausa={() => setDialogo('pausar')}
+            pedir={setDialogo}
           />
         </div>
       </header>
@@ -640,6 +683,34 @@ export function Ficha({
       )}
       {dialogo === 'retomar' && (
         <Retomar ficha={ficha} onFeito={() => router.refresh()} onFechar={() => setDialogo(null)} />
+      )}
+      {dialogo === 'excluir' && (
+        <Dialogo
+          titulo="Excluir inscrição"
+          texto={`${ficha.nome} sai do sistema com pessoas, onboarding, plano, reuniões, contatos, anotações e fotos. Esta ação não pode ser desfeita.`}
+          rotulo="Excluir inscrição"
+          perigo
+          onConfirmar={async () => {
+            await filaDeSalvamento().idle();
+            await clientApi(`/api/mentoria/inscricoes/${ficha.id}`, 'DELETE');
+            router.replace('/acompanhamento/mentorados');
+          }}
+          onFechar={() => setDialogo(null)}
+        />
+      )}
+      {dialogo === 'anonimizar' && (
+        <Dialogo
+          titulo="Anonimizar (LGPD)"
+          texto="Nome, contato, endereço, momento inicial, avaliações, anotações, textos das reuniões e fotos são apagados. A inscrição, as reuniões e as ações continuam, sem dado pessoal, para as contagens. Esta ação não pode ser desfeita."
+          rotulo="Anonimizar"
+          perigo
+          onConfirmar={async () => {
+            await filaDeSalvamento().idle();
+            await clientApi(`/api/mentoria/inscricoes/${ficha.id}/anonimizar`, 'POST');
+            router.refresh();
+          }}
+          onFechar={() => setDialogo(null)}
+        />
       )}
       {dialogo === 'idr' && (
         <CorrigirIdr

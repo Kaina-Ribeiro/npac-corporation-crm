@@ -21,6 +21,16 @@ import { PerfisController } from './perfis.controller.js';
 import { PerfisService } from './perfis.service.js';
 import { PlanoController } from './plano.controller.js';
 import { PlanoService } from './plano.service.js';
+import { ContatosController } from './contatos.controller.js';
+import { FilaController, Pme1Controller } from './fila.controller.js';
+import { FilaService } from './fila.service.js';
+import { MensagensController, MensagensService } from './mensagens.controller.js';
+import { AvisosRearme, AvisosScheduler } from './avisos.scheduler.js';
+import { CarteiraController, CarteiraService, ExclusaoController } from './carteira.controller.js';
+import { ExportacaoController, ExportacaoService } from './exportacao.controller.js';
+import { MENTORIA_CLOCK, systemClock } from './relogio.js';
+import { ReunioesController } from './reunioes.controller.js';
+import { ReunioesService } from './reunioes.service.js';
 
 /** Acompanhamento de mentorados: base à parte do comercial, só Diretoria e Acompanhamento. */
 @Module({
@@ -31,6 +41,14 @@ import { PlanoService } from './plano.service.js';
     OnboardingController,
     ImportacaoController,
     PlanoController,
+    ReunioesController,
+    ContatosController,
+    FilaController,
+    Pme1Controller,
+    MensagensController,
+    ExportacaoController,
+    ExclusaoController,
+    CarteiraController,
   ],
   providers: [
     MentoriaGuard,
@@ -38,10 +56,18 @@ import { PlanoService } from './plano.service.js';
     PerfisService,
     PlanoService,
     PausaService,
+    ReunioesService,
     InscricoesService,
     FichaService,
     OnboardingService,
     ImportacaoService,
+    FilaService,
+    MensagensService,
+    AvisosScheduler,
+    AvisosRearme,
+    ExportacaoService,
+    CarteiraService,
+    { provide: MENTORIA_CLOCK, useValue: systemClock },
     {
       provide: MentoriaCrypto,
       inject: [ENV],

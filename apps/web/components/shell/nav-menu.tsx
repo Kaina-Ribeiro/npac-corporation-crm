@@ -13,18 +13,18 @@ const item = (href: string, label: string, d: string, section?: NavItem['section
   section,
 });
 
-/** As 11 abas do módulo (D8). Fila, Onboarding, Plano e Reuniões saem de `em-breve` nas suas partes. */
+/** As 11 abas do módulo (D8). */
 const ACOMPANHAMENTO_ABAS: NavItem[] = [
-  item('em-breve/fila', 'Fila do dia', 'M4 6h16M4 12h16M4 18h10'),
+  item('fila', 'Fila do dia', 'M4 6h16M4 12h16M4 18h10'),
   item(
     'mentorados',
     'Mentorados',
     'M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7M22 19v-1a4 4 0 0 0-3-3.8M16 3.2a3.5 3.5 0 0 1 0 6.6',
   ),
-  item('ficha', 'Ficha do mentorado', 'M6 3h9l4 4v14H6zM9 12h7M9 16h7'),
+  { ...item('ficha', 'Ficha do mentorado', 'M6 3h9l4 4v14H6zM9 12h7M9 16h7'), semPrefetch: true },
   item('onboarding', 'Onboarding', 'M4 5h16l-6 7v6l-4 2v-8z'),
   item('plano', 'Plano dos 12 meses', 'M4 6h16v15H4zM4 10h16M9 3v4M15 3v4'),
-  item('em-breve/reunioes', 'Reuniões', 'M3 7h13v10H3zM16 11l5-3v8l-5-3'),
+  item('reunioes', 'Reuniões', 'M3 7h13v10H3zM16 11l5-3v8l-5-3'),
   item('em-breve/pmes', 'PMEs e ciclos', 'M12 3a9 9 0 1 0 9 9M12 7v5l3 2', 'Em breve'),
   item(
     'em-breve/linha-do-tempo',

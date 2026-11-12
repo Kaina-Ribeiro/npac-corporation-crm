@@ -10,11 +10,8 @@ export function userCookieName(prefix: string, userId: string) {
   return `${prefix}_${(h >>> 0).toString(36)}`;
 }
 
-/** Lê o cookie no navegador. */
-export function readPreference(name: string) {
-  const hit = document.cookie.split('; ').find((c) => c.startsWith(`${name}=`));
-  return hit?.slice(name.length + 1);
-}
+// Leitura em módulo próprio: quem só lê não leva o resto para o JS da página (limite de /leads).
+export { readPreference } from './read-preference';
 
 /** Grava o cookie no navegador; valor vazio apaga. */
 export function savePreference(name: string, value: string, path: string) {

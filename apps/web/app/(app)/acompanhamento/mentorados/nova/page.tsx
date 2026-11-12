@@ -1,3 +1,4 @@
+import type { Responsavel } from '@npac/shared/mentoria';
 import { notFound } from 'next/navigation';
 import { NovaInscricao } from '@/components/acompanhamento/nova-inscricao';
 import { lerEu, podeCadastrar, sessaoDoModulo } from '@/lib/acompanhamento';
@@ -9,7 +10,10 @@ export default async function NovaInscricaoPage() {
   const me = await sessaoDoModulo();
   if (!me) return null;
   if (!podeCadastrar(await lerEu())) notFound();
-  const responsaveis = await apiGet<{ id: string; nome: string }[]>('/api/mentoria/responsaveis');
+  const todos = await apiGet<Responsavel[]>('/api/mentoria/responsaveis');
+  // Responsável pelo acompanhamento: só o perfil Acompanhamento. Quem cadastra (ex.: Operação)
+  // só vira padrão se puder ser responsável.
+  const responsaveis = todos.filter((r) => r.elegivel);
   return (
     <NovaInscricao
       responsaveis={responsaveis}

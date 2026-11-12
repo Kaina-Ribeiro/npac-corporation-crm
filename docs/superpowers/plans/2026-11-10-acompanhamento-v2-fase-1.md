@@ -22,8 +22,8 @@
 | 1 | Base: protótipo, limpeza, perfis, inscrição, ficha, Mentorados | ✅ |
 | 2 | Onboarding + importação | ✅ |
 | 3 | Plano por mentoria + pausa | ✅ |
-| 4 | Reuniões + IDR inicia a jornada | ⏳ |
-| 5 | Fila do dia, avisos, WhatsApp, exportação, fechamento | ⏳ |
+| 4 | Reuniões + IDR inicia a jornada | ✅ |
+| 5 | Fila do dia, avisos, WhatsApp, exportação, fechamento | ✅ |
 
 ## Global Constraints
 
@@ -51,6 +51,22 @@
 3. **Pausar e retomar no mesmo dia** (0 dias) e pausar no dia exato de uma ação: datas não andam à toa, e a ação do dia é adiada. → Tarefa 3.2.
 4. **Casal em que uma pessoa não tem WhatsApp, e inscrição sem link do grupo:** o botão correspondente some, sem quebrar nem abrir link vazio. → Tarefa 5.2.
 5. **Responsável desativado no CRM e Diretoria sem perfil:** o item cai na Fila do perfil, e a Diretoria vê tudo sem repetir item. → Tarefa 5.1.
+
+## Auditoria de 11/11/2026 (branch `fix/NPAC-43-auditoria-fase-1`)
+
+Fase 1 inteira conferida contra o PDF e o SPEC, com suítes e fluxo real por perfil.
+
+Corrigido:
+- **Transferir carteira de quem saiu:** "De" só listava contas ativas; a carteira de quem foi desativado (o caso do §5) não podia ser escolhida. Agora lista quem tem inscrição em andamento, com "(desativado)" e a contagem.
+- **Responsável fora da regra:** a lista oferecia Carla (sem perfil), Leo, Manu, Operação e Diretoria, e o cadastro feito pela Operação a punha como responsável. Agora só perfil Acompanhamento ativo (mesma regra de quem recebe carteira), com 400 na API; o atual que saiu continua visível na ficha.
+- **Status financeiro "Em dia" inventado:** o cadastro já vinha com "Em dia"; agora começa "Não informado".
+- **"Antes da IDR" no 2M e 6M:** eles podem começar sem IDR (D15); agora "Antes do início".
+- **Etiqueta do rodapé:** Operação, Especialista e Mentor apareciam como "Acompanhamento"; agora o cargo real.
+
+Suposições ainda sem validação da Eduarda (ficam editáveis em Configurações > Plano-modelo):
+- Ações RDV de gatilho "fim do PME" (meses 2, 4, 5, 8, 10 e 12) vencem no **dia 25** do mês da jornada: número não está no PDF. A Fase 2 troca pelo fechamento real do PME.
+- Mês 1 do RDV tem responsável só Acompanhamento; o PDF diz "Operação e Duda".
+- Valores do status financeiro (Em dia, Em atraso, Quitado), §12.
 
 ---
 
@@ -367,7 +383,7 @@ Status: ✅
 ## Parte 4 — Reuniões
 
 ### Tarefa 4.1: Reuniões e contatos na API
-Status: ⏳
+Status: ✅ (migration `0052_acompanhamento_v2_reunioes`)
 
 **Files:** Create: migration `00NN_acompanhamento_v2_reunioes.sql`, `api/mentoria/reunioes.controller.ts`, `reunioes.service.ts`, `contatos.controller.ts`. Test: `apps/api/test/mentoria-v2-reunioes.e2e.test.ts`, `packages/db/test/mentoria-v2-especialista.test.ts`.
 
@@ -401,7 +417,7 @@ it('sem reunião há 30 dias conta da importação quando não há reunião')
 - [ ] **Step 5:** Commit `feat(NPAC-43): reuniões e contatos`.
 
 ### Tarefa 4.2: IDR inicia a jornada e reunião conclui ação
-Status: ⏳
+Status: ✅
 
 **Files:** Modify: `reunioes.service.ts`, `plano.service.ts`, `onboarding.service.ts`. Test: `apps/api/test/mentoria-v2-idr.e2e.test.ts`.
 
@@ -422,7 +438,7 @@ it('CARTOES_MILHAS realizada conclui a ação FLEXIVEL; segunda reunião não d�
 - [ ] **Step 5:** Commit `feat(NPAC-43): idr inicia a jornada`.
 
 ### Tarefa 4.3: Aba Reuniões
-Status: ⏳
+Status: ✅
 
 **Files:** Create: `web/app/(app)/acompanhamento/reunioes/page.tsx`, `web/components/acompanhamento/{reunioes-agenda,reuniao-registro,controle-mensal,sem-reuniao}.tsx`. Modify: `ficha.tsx`, `mentorados-lista.tsx` (coluna último contato: contato ou reunião realizada), `inscricoes.service.ts`. Test: `web/e2e/acompanhamento-v2-reunioes.spec.ts`.
 
@@ -436,7 +452,7 @@ Status: ⏳
 ## Parte 5 — Fila, avisos e fechamento
 
 ### Tarefa 5.1: Fila do dia na API
-Status: ⏳
+Status: ✅ (migration `0053_acompanhamento_v2_fila`; `formulario_preenchido_em` guarda a base do "Enviar a Caixa")
 
 **Files:** Create: migration `00NN_acompanhamento_v2_fila.sql`, `api/mentoria/fila.controller.ts`, `fila.service.ts`, `sh/mentoria/fila.ts`. Test: `apps/api/test/mentoria-v2-fila.e2e.test.ts`.
 
@@ -475,7 +491,7 @@ it('"hoje" muda à meia-noite de Brasília, não à de UTC')
 - [ ] **Step 5:** Commit `feat(NPAC-43): fila do dia`.
 
 ### Tarefa 5.2: Aba Fila, mensagens-modelo e WhatsApp
-Status: ⏳
+Status: ✅ (migration `0054_acompanhamento_v2_mensagens`; `/acompanhamento` abre a Fila)
 
 **Files:** Create: migration `00NN_acompanhamento_v2_mensagens.sql`, `api/mentoria/mensagens.controller.ts`, `web/app/(app)/acompanhamento/fila/page.tsx`, `web/components/acompanhamento/{fila,whatsapp-botoes,mensagens-admin}.tsx`, `sh/mentoria/mensagens.ts`. Modify: `web/app/(app)/acompanhamento/page.tsx` (redirect `/acompanhamento/fila`). Test: `packages/shared/test/mentoria-mensagens.test.ts`, `web/e2e/acompanhamento-v2-fila.spec.ts`.
 
@@ -499,7 +515,7 @@ test('Leo não tem Fila')
 - [ ] **Step 5:** Commit `feat(NPAC-43): aba fila e mensagens-modelo`.
 
 ### Tarefa 5.3: Avisos no celular
-Status: ⏳
+Status: ✅ (migration `0055_acompanhamento_v2_avisos`; o rearme é o interceptor `AvisosRearme` do `MentoriaController`, em toda escrita do módulo)
 
 **Files:** Create: migration `00NN_acompanhamento_v2_avisos.sql`, `api/mentoria/avisos.scheduler.ts`. Modify (**as 2 mudanças do D12**): `api/push/push.module.ts` (`@AllRoles()` em `PushController`), `web/app/(app)/mais/page.tsx` (link para quem tem `me.modules.mentoria` ou comercial); `apps/api/test/acompanhamento-sem-comercial.e2e.test.ts` (`LIBERADAS` ganha `/^\/api\/push\//`); serviços que mudam datas chamam `rearm()`. Test: `apps/api/test/mentoria-v2-avisos.e2e.test.ts`.
 
@@ -525,7 +541,7 @@ it('cargo Acompanhamento se inscreve no push; SDR continua igual')
 - [ ] **Step 5:** Commit `feat(NPAC-43): avisos no celular`.
 
 ### Tarefa 5.4: Exportação, exclusão, LGPD, transferência e fechamento
-Status: ⏳
+Status: ✅ (migration `0056_acompanhamento_v2_exclusao`; Step 7, backup e worker de mídia antes do deploy, fica com o Gabriel)
 
 **Files:** Create: migration `00NN_acompanhamento_v2_exclusao.sql`, `api/mentoria/exportacao.controller.ts`, `carteira.controller.ts`, `web/components/acompanhamento/{exportar-botao,transferir-carteira}.tsx`. Modify: `CLAUDE.md` (mapa do Acompanhamento, regras, `mentoria_pode` → `mentoria_perfil`/`mentoria_admin`). Test: `apps/api/test/mentoria-v2-exclusao.e2e.test.ts`.
 

@@ -380,6 +380,24 @@ class Registro {
     this.entradas.splice(this.entradas.indexOf(b), 1);
   }
 
+  /**
+   * A aba PROCESSOS e a CANCELAMENTOS escrevem nomes mais curtos que o formulário ("Ana Souza" para
+   * "Ana Fictícia Souza"). Junta só com a única entrada que `aceita` e que parece a mesma pessoa,
+   * com nome de 2+ palavras; ambíguo continua separado e vai para a prévia decidir.
+   */
+  acharParecido(nome: string, aceita: (e: Entrada) => boolean): Entrada | undefined {
+    const n = nomeNormalizado(nome);
+    if (tokens(n).length < 2) return undefined;
+    const achadas = this.entradas.filter(
+      (e) => aceita(e) && [...e.aliases].some((a) => parecem(a, n)),
+    );
+    if (achadas.length !== 1) return undefined;
+    const e = achadas[0]!;
+    e.aliases.add(n);
+    if (!this.indice.has(n)) this.indice.set(n, e);
+    return e;
+  }
+
   /** Acha ou cria pelo nome; "A e B" sugere duas pessoas, salvo quando a fonte diz individual. */
   obter(nome: string, individual = false): Entrada {
     const achada = this.achar(nome);
@@ -433,12 +451,12 @@ function lerPlanilhaNoRegistro(r: Registro, p: PlanilhaLida): void {
     e.fontes.add('planilha');
   }
   for (const x of p.processos) {
-    const e = r.obter(x.nome);
+    const e = r.achar(x.nome) ?? r.acharParecido(x.nome, (y) => !y.processo) ?? r.obter(x.nome);
     e.processo = x;
     e.fontes.add('planilha');
   }
   for (const x of p.cancelamentos) {
-    const e = r.obter(x.nome);
+    const e = r.achar(x.nome) ?? r.acharParecido(x.nome, (y) => !y.cancelado) ?? r.obter(x.nome);
     e.cancelado = true;
     e.rotuloCancelamento = x.mentoria;
     e.fontes.add('planilha');

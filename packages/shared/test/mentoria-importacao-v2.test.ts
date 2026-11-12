@@ -489,6 +489,75 @@ describe('montarCarteira: as duas fontes', () => {
     expect(c.novos).toHaveLength(1);
   });
 
+  it('processo com nome mais curto junta com a resposta do formulário', () => {
+    const c = montarCarteira(
+      so({
+        respostas: [
+          resposta({
+            nome: 'Ana Fictícia Souza',
+            conjuge: 'Bruno Fictício Lima',
+            conjugeParticipa: true,
+            telefone: '11900000001',
+          }),
+          resposta({ nome: 'Carla Fictícia Dias', telefone: '11900000003' }),
+        ],
+        processos: [
+          {
+            nome: 'Ana Souza e Bruno Lima',
+            dataInicio: '2026-02-01',
+            mentoria: '2M',
+            status: null,
+          },
+          { nome: 'Carla Dias', dataInicio: '2026-03-01', mentoria: '6M', status: null },
+        ],
+      }),
+    );
+    expect(c.parecidos).toEqual([]);
+    expect(c.novos).toHaveLength(2);
+    const casal = c.novos.find((n) => n.tipo === 'CASAL')!;
+    expect(casal).toMatchObject({
+      nome: 'Ana Fictícia Souza e Bruno Fictício Lima',
+      mentoria: '2M',
+      inicioJornada: '2026-02-01',
+    });
+    expect(casal.apelidos).toContain('ana souza e bruno lima');
+    expect(c.novos.find((n) => n.tipo === 'INDIVIDUAL')).toMatchObject({
+      mentoria: '6M',
+      pessoas: [{ whatsapp: '11900000003' }],
+    });
+  });
+
+  it('cancelamento com nome mais curto marca a inscrição que já existe', () => {
+    const c = montarCarteira(
+      so({
+        respostas: [resposta({ nome: 'Carla Fictícia Dias' })],
+        processos: [
+          { nome: 'Carla Fictícia Dias', dataInicio: '2026-03-01', mentoria: '6M', status: null },
+        ],
+        cancelamentos: [{ nome: 'Carla Dias', mentoria: null }],
+      }),
+    );
+    expect(c.novos).toHaveLength(1);
+    expect(c.novos[0]).toMatchObject({ status: 'CANCELADO', mentoria: '6M' });
+  });
+
+  it('nome curto que serve para duas pessoas não junta sozinho', () => {
+    const c = montarCarteira(
+      so({
+        respostas: [
+          resposta({ nome: 'Carla Fictícia Dias' }),
+          resposta({ nome: 'Carla Dias Fictícia' }),
+        ],
+        processos: [
+          { nome: 'Carla Dias', dataInicio: '2026-03-01', mentoria: '6M', status: null },
+          { nome: 'Carla', dataInicio: '2026-03-01', mentoria: '6M', status: null },
+        ],
+      }),
+    );
+    expect(c.novos).toHaveLength(4);
+    expect(c.parecidos.length).toBeGreaterThan(0);
+  });
+
   it('processo "A e B" une duas respostas soltas num casal', () => {
     const c = montarCarteira(
       so({

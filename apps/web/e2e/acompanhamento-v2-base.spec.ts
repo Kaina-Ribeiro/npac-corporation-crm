@@ -5,6 +5,8 @@ import { E2E_DB, E2E_PASSWORD } from './env.js';
 const owner = ownerSql(E2E_DB);
 /** Ficha individual do seed (`seedInscricaoId(1)`): "Mentorado Fictício 01". */
 const FICHA_01 = '00000000-0000-4000-8000-000000000001';
+/** `seedInscricaoId(5)`: "Mentorada Fictícia 06", sem reunião da Manu. */
+const FICHA_06 = '00000000-0000-4000-8000-000000000005';
 /** Importada, com o momento inicial ainda em aberto. */
 const FICHA_ABERTA = '00000000-0000-4000-8000-000000000003';
 /** Casal do seed, no mês 10. */
@@ -39,7 +41,8 @@ async function abrirPessoa(browser: Browser, usuario: string) {
 
 test('Duda: menu → Mentorados → cria casal → edita → salvo', async ({ page }) => {
   await entrar(page, 'duda');
-  await page.waitForURL(/\/acompanhamento\/mentorados/);
+  await page.waitForURL(/\/acompanhamento\/fila/);
+  await page.goto('/acompanhamento/mentorados');
   await lateral(page).getByRole('link', { name: 'Mentorados', exact: true }).click();
   await page.getByRole('link', { name: 'Nova inscrição' }).filter({ visible: true }).click();
   await page.waitForURL(/\/acompanhamento\/mentorados\/nova/);
@@ -128,17 +131,21 @@ test('cargo sem perfil vê "Peça ao Admin"', async ({ page }) => {
   await expect(page.getByRole('navigation', { name: 'Navegação lateral' })).toHaveCount(0);
 });
 
+// No seed, a Manu conduz só a reunião de posicionamento do "Mentorado Fictício 01" (Parte 4).
 test('Manu não abre ficha de quem não é dela (404)', async ({ page }) => {
   await entrar(page, 'manu');
-  await page.waitForURL(/\/acompanhamento\/mentorados/);
-  await expect(page.getByText('Mentorado Fictício 01')).toHaveCount(0);
-  const res = await page.goto(`/acompanhamento/ficha/${FICHA_01}`);
+  await page.waitForURL(/\/acompanhamento\/fila/);
+  await page.goto('/acompanhamento/mentorados');
+  await expect(page.getByText('Mentorada Fictícia 06')).toHaveCount(0);
+  const res = await page.goto(`/acompanhamento/ficha/${FICHA_06}`);
   expect(res?.status()).toBe(404);
+  expect((await page.goto(`/acompanhamento/ficha/${FICHA_01}`))?.status()).toBe(200);
 });
 
 test('as 5 abas futuras mostram "em breve"', async ({ page }) => {
   await entrar(page, 'duda');
-  await page.waitForURL(/\/acompanhamento\/mentorados/);
+  await page.waitForURL(/\/acompanhamento\/fila/);
+  await page.goto('/acompanhamento/mentorados');
   for (const nome of [
     'PMEs e ciclos',
     'Linha do tempo e conquistas',
@@ -158,7 +165,8 @@ test('as 5 abas futuras mostram "em breve"', async ({ page }) => {
 
 test('busca no topo acha por nome e o termo não aparece na URL', async ({ page }) => {
   await entrar(page, 'duda');
-  await page.waitForURL(/\/acompanhamento\/mentorados/);
+  await page.waitForURL(/\/acompanhamento\/fila/);
+  await page.goto('/acompanhamento/mentorados');
   const urls: string[] = [];
   page.on('request', (r) => urls.push(r.url()));
   await page.getByRole('searchbox', { name: 'Buscar mentorados' }).fill('Fictícia 06');
@@ -172,7 +180,8 @@ test('busca no topo acha por nome e o termo não aparece na URL', async ({ page 
 
 test('Configurações: só Admin vê e define o perfil', async ({ page, browser }) => {
   await entrar(page, 'duda');
-  await page.waitForURL(/\/acompanhamento\/mentorados/);
+  await page.waitForURL(/\/acompanhamento\/fila/);
+  await page.goto('/acompanhamento/mentorados');
   await lateral(page).getByRole('link', { name: 'Configurações', exact: true }).click();
   await page.waitForURL(/\/acompanhamento\/configuracoes/);
   // Conta antiga sem perfil: pede a escolha; depois a aba só troca, sem "sem perfil" (C7).
@@ -202,7 +211,8 @@ test('Configurações: só Admin vê e define o perfil', async ({ page, browser 
   const ctx = await browser.newContext();
   const outra = await ctx.newPage();
   await entrar(outra, 'operacao');
-  await outra.waitForURL(/\/acompanhamento\/mentorados/);
+  await outra.waitForURL(/\/acompanhamento\/fila/);
+  await outra.goto('/acompanhamento/mentorados');
   await expect(lateral(outra).getByRole('link', { name: 'Configurações' })).toHaveCount(0);
   expect((await outra.goto('/acompanhamento/configuracoes'))?.status()).toBe(404);
   await ctx.close();
@@ -210,7 +220,8 @@ test('Configurações: só Admin vê e define o perfil', async ({ page, browser 
 
 test('filtros por status e Completar a ficha mudam a lista', async ({ page }) => {
   await entrar(page, 'duda');
-  await page.waitForURL(/\/acompanhamento\/mentorados/);
+  await page.waitForURL(/\/acompanhamento\/fila/);
+  await page.goto('/acompanhamento/mentorados');
   await page.getByLabel('Status', { exact: true }).selectOption('PAUSADO');
   await expect(page.getByRole('link', { name: /Mentorado Fictício 07/ })).toBeVisible();
   await expect(page.getByRole('link', { name: /Mentorado Fictício 01/ })).toHaveCount(0);
@@ -228,7 +239,8 @@ test('375 px: lista e ficha sem rolagem lateral, item aberto é página própria
 }) => {
   await page.setViewportSize({ width: 375, height: 812 });
   await entrar(page, 'duda');
-  await page.waitForURL(/\/acompanhamento\/mentorados/);
+  await page.waitForURL(/\/acompanhamento\/fila/);
+  await page.goto('/acompanhamento/mentorados');
   const abas = page.getByRole('navigation', { name: 'Abas do acompanhamento' });
   await expect(abas).toBeVisible();
   await page.getByRole('link', { name: /Mentorado Fictício 01/ }).click();
@@ -249,7 +261,8 @@ test('375 px: lista e ficha sem rolagem lateral, item aberto é página própria
 test('1440x900: cada aba da ficha cabe sem rolar', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await entrar(page, 'duda');
-  await page.waitForURL(/\/acompanhamento\/mentorados/);
+  await page.waitForURL(/\/acompanhamento\/fila/);
+  await page.goto('/acompanhamento/mentorados');
   for (const [id, pessoas] of [
     [FICHA_01, 'Pessoa'],
     [FICHA_CASAL, 'Pessoas'],
@@ -272,7 +285,8 @@ test('1440: endereço da aba Inscrição, que vira coluna, mostra a Jornada ao l
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await entrar(page, 'duda');
-  await page.waitForURL(/\/acompanhamento\/mentorados/);
+  await page.waitForURL(/\/acompanhamento\/fila/);
+  await page.goto('/acompanhamento/mentorados');
   await page.goto(`/acompanhamento/ficha/${FICHA_01}?aba=inscricao`);
   await expect(page.getByRole('tabpanel', { name: 'Jornada' })).toBeVisible();
   await page.setViewportSize({ width: 1024, height: 768 });
@@ -282,7 +296,8 @@ test('1440: endereço da aba Inscrição, que vira coluna, mostra a Jornada ao l
 
 test('Operação: menu → ficha, edita a inscrição e vê o momento sem editar', async ({ page }) => {
   await entrar(page, 'operacao');
-  await page.waitForURL(/\/acompanhamento\/mentorados/);
+  await page.waitForURL(/\/acompanhamento\/fila/);
+  await page.goto('/acompanhamento/mentorados');
   await lateral(page).getByRole('link', { name: 'Mentorados', exact: true }).click();
   await page.getByRole('link', { name: /Mentorado Fictício 01/ }).click();
   await page.waitForURL(/\/acompanhamento\/ficha\//);
@@ -293,25 +308,49 @@ test('Operação: menu → ficha, edita a inscrição e vê o momento sem editar
   await expect(page.getByRole('button', { name: 'Destravar' })).toHaveCount(0);
 });
 
-test('Manu: menu sem Configurações, lista vazia e sem cadastro', async ({ page }) => {
+test('Manu: menu sem Configurações, só quem é dela e sem cadastro', async ({ page }) => {
   await entrar(page, 'manu');
-  await page.waitForURL(/\/acompanhamento\/mentorados/);
+  await page.waitForURL(/\/acompanhamento\/fila/);
+  await page.goto('/acompanhamento/mentorados');
   await expect(lateral(page).getByRole('link', { name: 'Configurações' })).toHaveCount(0);
   await lateral(page).getByRole('link', { name: 'Mentorados', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Nenhum mentorado por aqui' })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Mentorado Fictício 01/ }).first()).toBeVisible();
+  await expect(page.getByText('Mentorada Fictícia 06')).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Nova inscrição' })).toHaveCount(0);
   expect((await page.goto('/acompanhamento/mentorados/nova'))?.status()).toBe(404);
+});
+
+test('menu "Ficha do mentorado" mostra para onde leva', async ({ page }) => {
+  await entrar(page, 'duda');
+  const item = lateral(page).getByRole('link', { name: /^Ficha do mentorado/ });
+  await page.goto('/acompanhamento/mentorados');
+  await expect(item).toContainText('Escolha em Mentorados');
+  await page.getByRole('link', { name: /Mentorado Fictício 01/ }).click();
+  await page.waitForURL(/\/acompanhamento\/ficha\//);
+  // Sem recarregar: o menu acompanha a ficha que acabou de abrir.
+  await expect(item).toContainText('Última: Mentorado Fictício 01');
+  await lateral(page).getByRole('link', { name: 'Mentorados', exact: true }).click();
+  await page.waitForURL(/\/acompanhamento\/mentorados/);
+  await item.click();
+  await page.waitForURL(new RegExp(`/acompanhamento/ficha/${FICHA_01}`));
+  await page.reload();
+  await expect(item).toContainText('Última: Mentorado Fictício 01');
 });
 
 test('Diretoria: menu do módulo abre Mentorados, ficha e Configurações', async ({ page }) => {
   await entrar(page, 'diretor');
   await page.waitForURL(/\/dashboard/);
   await lateral(page).getByRole('link', { name: 'Acompanhamento', exact: true }).click();
+  await page.waitForURL(/\/acompanhamento\/fila/);
+  await lateral(page).getByRole('link', { name: 'Mentorados', exact: true }).click();
   await page.waitForURL(/\/acompanhamento\/mentorados/);
   await page.getByRole('link', { name: /Mentorado Fictício 01/ }).click();
   await page.waitForURL(/\/acompanhamento\/ficha\//);
   await page.getByRole('tab', { name: 'Momento inicial', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Destravar' })).toBeVisible();
+  await expect(lateral(page).getByRole('link', { name: /^Ficha do mentorado/ })).toContainText(
+    'Última: Mentorado Fictício 01',
+  );
   await lateral(page).getByRole('link', { name: 'Configurações', exact: true }).click();
   await page.waitForURL(/\/acompanhamento\/configuracoes/);
   await expect(page.getByLabel('Perfil de Duda')).toHaveValue('ACOMPANHAMENTO');

@@ -12,7 +12,8 @@ import { useEffect, useRef, useState } from 'react';
 import { button, control, quietButton } from '@/components/crm-ui';
 import { clientApi } from '@/lib/client-api';
 import { Dialogo } from './dialogo';
-import { ICONES, Icone, Rostos, rotuloMes, TagStatus, Trilha } from './ui';
+import { dataBR, ICONES, Icone, Rostos, rotuloMes, TagStatus, Trilha } from './ui';
+import { ExportarBotao } from './exportar-botao';
 
 type Filtros = {
   mes?: number;
@@ -25,7 +26,7 @@ type Pessoa = { id: string; nome: string };
 const MESES = Array.from({ length: 12 }, (_, i) => i + 1);
 
 function Linha({ r, primeira }: { r: InscricaoItem; primeira: boolean }) {
-  const ultimo = r.ultimoContato ?? '—';
+  const ultimo = r.ultimoContato ? dataBR(r.ultimoContato) : '—';
   return (
     <Link className={`row ${primeira ? 'primeira' : ''}`} href={`/acompanhamento/ficha/${r.id}`}>
       <div className="cell-n">
@@ -40,7 +41,9 @@ function Linha({ r, primeira }: { r: InscricaoItem; primeira: boolean }) {
       </div>
       <span className="tp tag justify-self-start">{r.mentoria}</span>
       <div className="jm">
-        <b className={r.mesJornada === null ? 'antes' : ''}>{rotuloMes(r.mesJornada)}</b>
+        <b className={r.mesJornada === null ? 'antes' : ''}>
+          {rotuloMes(r.mesJornada, r.mentoria)}
+        </b>
         {r.mesJornada !== null && <Trilha mes={r.mesJornada} alerta={r.completar} />}
       </div>
       <TagStatus status={r.status} className="st-tag justify-self-start" />
@@ -115,10 +118,12 @@ export function MentoradosLista({
   pagina,
   responsaveis,
   podeCriar,
+  exportar = false,
 }: {
   pagina: PaginaInscricoes;
   responsaveis: Pessoa[];
   podeCriar: boolean;
+  exportar?: boolean;
 }) {
   const [f, setF] = useState<Filtros>({});
   const [dados, setDados] = useState(pagina);
@@ -186,11 +191,22 @@ export function MentoradosLista({
             {resumo.pausados === 1 ? 'pausado' : 'pausados'}.
           </p>
         </div>
-        {podeCriar && (
+        {(podeCriar || exportar) && (
           <div className="acts so-desk">
-            <Link className={button} href="/acompanhamento/mentorados/nova">
-              Nova inscrição
-            </Link>
+            {exportar && (
+              <ExportarBotao
+                aba="MENTORADOS"
+                filtros={{
+                  ...(f.status ? { status: f.status } : {}),
+                  ...(f.responsavelId ? { responsavelId: f.responsavelId } : {}),
+                }}
+              />
+            )}
+            {podeCriar && (
+              <Link className={button} href="/acompanhamento/mentorados/nova">
+                Nova inscrição
+              </Link>
+            )}
           </div>
         )}
       </div>

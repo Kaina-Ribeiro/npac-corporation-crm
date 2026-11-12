@@ -1,4 +1,11 @@
-import { INSCRICAO_STATUS_LABEL, type InscricaoStatus } from '@npac/shared/mentoria';
+import {
+  INSCRICAO_STATUS_LABEL,
+  REUNIAO_STATUS_LABEL,
+  type InscricaoStatus,
+  type Mentoria,
+  type Responsavel,
+  type ReuniaoStatus,
+} from '@npac/shared/mentoria';
 
 /** Peças visuais do módulo, sem estado: servem a telas de servidor e de cliente. */
 
@@ -143,8 +150,74 @@ export function Rostos({ pessoas }: { pessoas: Rosto[] }) {
 export const dataBR = (iso: string | null | undefined) =>
   iso ? iso.slice(0, 10).split('-').reverse().join('/') : '';
 
+/**
+ * Antes de a jornada começar. RDV começa na IDR; 2M e 6M podem começar sem ela (D15: no dia em
+ * que o onboarding fecha, ou na data de início importada).
+ */
+export const rotuloAntesDoInicio = (mentoria: Mentoria) =>
+  mentoria === 'RDV' ? 'Antes da IDR' : 'Antes do início';
+
 /** Rótulo do mês da jornada na lista e na ficha. */
-export function rotuloMes(mes: number | null) {
-  if (mes === null) return 'Antes da IDR';
+export function rotuloMes(mes: number | null, mentoria: Mentoria) {
+  if (mes === null) return rotuloAntesDoInicio(mentoria);
   return mes > 12 ? 'Jornada concluída' : `Mês ${mes}`;
+}
+
+/** Nome do responsável, marcando quem saiu ou perdeu o perfil (não pode ser escolhido de novo). */
+export const rotuloResponsavel = (r: Responsavel) =>
+  r.elegivel ? r.nome : `${r.nome} (${r.ativo ? 'sem o perfil Acompanhamento' : 'desativado'})`;
+
+/**
+ * Opções do campo Responsável: quem pode ser escolhido e, se for o caso, o atual que não pode mais
+ * (fica visível e desativado até alguém trocar ou transferir a carteira).
+ */
+export function opcoesResponsavel(lista: Responsavel[], atual: string | null) {
+  return lista
+    .filter((r) => r.elegivel || r.id === atual)
+    .map((r) => ({ valor: r.id, rotulo: rotuloResponsavel(r), desativada: !r.elegivel }));
+}
+
+const BRASILIA = 'America/Sao_Paulo';
+const formato = (o: Intl.DateTimeFormatOptions) =>
+  new Intl.DateTimeFormat('pt-BR', { timeZone: BRASILIA, ...o });
+const HORA = formato({ hour: '2-digit', minute: '2-digit' });
+const DIA_MES = formato({ day: '2-digit', month: '2-digit' });
+const DIA_ISO = new Intl.DateTimeFormat('en-CA', {
+  timeZone: BRASILIA,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+
+/** Hora de Brasília de um instante ISO (`21:00`). */
+export const horaBR = (iso: string) => HORA.format(new Date(iso));
+/** Data de Brasília de um instante ISO, em `AAAA-MM-DD`. */
+export const diaBR = (iso: string) => DIA_ISO.format(new Date(iso));
+/** `10/03, 21:00`, em Brasília. */
+export const diaHoraBR = (iso: string) =>
+  `${DIA_MES.format(new Date(iso))}, ${HORA.format(new Date(iso))}`;
+/** Instante ISO → `AAAA-MM-DDTHH:mm` de Brasília, o valor do `datetime-local`. */
+export const paraCampoBR = (iso: string) => `${diaBR(iso)}T${horaBR(iso)}`;
+
+const CLASSE_REUNIAO: Record<ReuniaoStatus, string> = {
+  AGENDADA: '',
+  CONFIRMADA: 'onb',
+  LINK_ENVIADO: 'onb',
+  REALIZADA: 'ativo',
+  FALTOU: 'canc',
+  REMARCADA: 'pausa',
+};
+
+export function TagReuniao({ status }: { status: ReuniaoStatus }) {
+  return <span className={`tag ${CLASSE_REUNIAO[status]}`}>{REUNIAO_STATUS_LABEL[status]}</span>;
+}
+
+/** Selo dos campos que nunca aparecem ao mentorado (tabela do PDF). */
+export function TagInterno() {
+  return (
+    <span className="tag rn-interno" title="Não aparece para o mentorado">
+      <Icone d={ICONES.cadeado} className="size-3" />
+      Interno
+    </span>
+  );
 }

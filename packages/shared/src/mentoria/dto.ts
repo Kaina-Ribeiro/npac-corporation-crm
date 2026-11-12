@@ -12,11 +12,25 @@ import type {
 } from './enums.js';
 import type { EnvioStatus, Etapa, EtapaStatus } from './onboarding.js';
 import type { AcaoStatus, Gatilho, PerfilAcao, ReuniaoTipo } from './plano.js';
+import type { CanalContato, Plataforma, ReuniaoStatus } from './reunioes.js';
 
 /** `GET mentoria/eu`: o perfil operacional e o selo de Admin de quem está logado. */
 export type EuMentoria = { perfil: Perfil | null; admin: boolean };
 
 export type PerfilLinha = { id: string; nome: string; perfil: Perfil | null; admin: boolean };
+
+/**
+ * Responsável pelo acompanhamento (`GET mentoria/responsaveis`). `elegivel`: pode ser escolhido
+ * (perfil Acompanhamento, conta ativa). Os demais ainda respondem por alguma inscrição (saíram ou
+ * perderam o perfil); `carteira` conta as inscrições em andamento.
+ */
+export type Responsavel = {
+  id: string;
+  nome: string;
+  ativo: boolean;
+  elegivel: boolean;
+  carteira: number;
+};
 
 export type PessoaResumo = { nome: string; apelido: string | null; fotoMidiaId: string | null };
 
@@ -29,6 +43,7 @@ export type InscricaoItem = {
   status: InscricaoStatus;
   mesJornada: number | null;
   responsavel: { id: string; nome: string } | null;
+  /** Último contato ou reunião realizada (data de Brasília, `AAAA-MM-DD`). */
   ultimoContato: string | null;
   completar: boolean;
   pessoas: PessoaResumo[];
@@ -304,6 +319,9 @@ export type FichaDTO = {
   completarCampos: string[];
   /** Ações do plano, em ordem de mês e data. */
   acoes: AcaoItem[];
+  /** Reuniões (as que a pessoa logada vê) e contatos, mais recentes primeiro. */
+  reunioes: ReuniaoItem[];
+  contatos: ContatoDTO[];
   /** A pausa em curso, se houver. `dias`: parados até hoje. */
   pausa: { inicio: string; dias: number; motivo: string | null } | null;
   pode: {
@@ -312,6 +330,8 @@ export type FichaDTO = {
     anotacao: boolean;
     onboarding: boolean;
     plano: boolean;
+    reuniao: boolean;
+    contato: boolean;
     admin: boolean;
   };
 };
@@ -334,3 +354,100 @@ export type MidiaDTO = {
   mime: string | null;
   tamanhoBytes: number | null;
 };
+
+/** Linha da agenda e do histórico: sem os textos do registro, que só a página da reunião decifra. */
+export type ReuniaoItem = {
+  id: string;
+  version: number;
+  inscricaoId: string;
+  nome: string;
+  pessoas: PessoaResumo[];
+  mentoria: Mentoria;
+  tipo: ReuniaoTipo;
+  conduzidaPor: { id: string; nome: string } | null;
+  /** Mentorado experiente que conduz (sem login). */
+  condutorInscricao: { id: string; nome: string } | null;
+  /** ISO em UTC; a tela mostra em Brasília. */
+  inicio: string;
+  duracaoMin: number;
+  plataforma: Plataforma | null;
+  link: string | null;
+  status: ReuniaoStatus;
+  remarcadaParaId: string | null;
+  /** Já passou do horário: pode virar REALIZADA ou FALTOU. */
+  jaComecou: boolean;
+  temRegistro: boolean;
+  podeEditar: boolean;
+  podeExcluir: boolean;
+};
+
+/** `GET mentoria/reunioes/:id`: a página da reunião, com o registro decifrado. */
+export type ReuniaoDTO = ReuniaoItem & {
+  resumo: string | null;
+  metas: string | null;
+  combinado: string | null;
+  cobrar: string | null;
+  trava: string | null;
+  anotacaoInterna: string | null;
+  humor: number | null;
+  interesseRenovar: boolean | null;
+};
+
+/** `POST mentoria/reunioes/agenda`: de segunda a domingo, em Brasília. */
+export type AgendaSemana = {
+  hoje: string;
+  inicio: string;
+  fim: string;
+  reunioes: ReuniaoItem[];
+};
+
+export type LinhaControle = {
+  inscricaoId: string;
+  nome: string;
+  pessoas: PessoaResumo[];
+  mentoria: Mentoria;
+  /** Reuniões realizadas no mês. */
+  realizadas: number;
+  /** Próxima reunião em aberto no mês, se houver. */
+  agendada: string | null;
+  /** Última reunião realizada, em qualquer mês (data de Brasília). */
+  ultimaRealizada: string | null;
+};
+
+/** `POST mentoria/reunioes/controle-mensal`: quem teve reunião realizada no mês e quem falta. */
+export type ControleMensal = {
+  mes: string;
+  fizeram: LinhaControle[];
+  faltam: LinhaControle[];
+  comparecimento: { realizadas: number; faltas: number; taxa: number | null };
+};
+
+/** De onde conta o "sem reunião": a última realizada, a IDR, o início ou a importação. */
+export type BaseSemReuniao = 'REUNIAO' | 'IDR' | 'INICIO' | 'IMPORTACAO' | 'CADASTRO';
+
+export type LinhaSemReuniao = {
+  inscricaoId: string;
+  nome: string;
+  pessoas: PessoaResumo[];
+  mentoria: Mentoria;
+  responsavel: string | null;
+  desde: string;
+  base: BaseSemReuniao;
+  dias: number;
+};
+
+export type SemReuniao = { itens: LinhaSemReuniao[] };
+
+export type ContatoDTO = {
+  id: string;
+  quando: string;
+  canal: CanalContato;
+  motivo: string | null;
+  respondeu: boolean | null;
+  tempoRespostaMin: number | null;
+  observacao: string | null;
+  feitoPor: string;
+};
+
+/** Quem pode conduzir: qualquer usuário ativo (D4, §3), com o perfil do módulo se tiver. */
+export type Condutor = { id: string; nome: string; perfil: Perfil | null };
