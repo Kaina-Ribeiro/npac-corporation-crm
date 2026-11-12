@@ -71,6 +71,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <SidebarShell initialCollapsed={(await cookies()).get(SIDEBAR_COOKIE)?.value === '1'}>
       <Suspense>
         <NavProgress />
+        {/* Aviso "Salvo" (`showToast` em components/toast.ts): a região vem do servidor, sem JS. */}
+        <div role="status" className="toast-region" />
       </Suspense>
       <LiveUpdates revision={me.revision} />
       {commercial && <TabTitle />}

@@ -24,7 +24,7 @@ Next 16 App Router + React 19 + Tailwind 4 (`apps/web`).
 | 1 | Banco: permissão por consulta | ✅ feita (12/11/2026, PR #95, `65d7135`; ITODEV `v0.15.2-rc` 22/22 por cargo) |
 | 2 | Web: navegação, carregamento e erro | ✅ feita (12/11/2026, PR #96, `a3c5e75`; no ar no ITODEV `v0.15.2-rc`) |
 | 3 | API: canal ao vivo, relatórios, índices | ✅ feita (12/11/2026, PR #98, `a3bf7fd`; ITODEV `v0.15.4-rc` 18/18) |
-| 4 | Interface: movimento e resposta | ⏳ pendente (depois da Fase 2; Gabriel escolhe a opção em T4.1) |
+| 4 | Interface: movimento e resposta | ✅ PR para `release/v0.15` (Gabriel escolheu a opção B em T4.1) |
 | 5 | Varredura de fluxos por cargo e sobras | ⏳ pendente (por último) |
 
 ## Decisões do Gabriel (12/11/2026)
@@ -442,35 +442,44 @@ linha; função de gatilho `app_revision_bump()`; `RevisionService.changes$: Obs
 
 ## Fase 4 — Interface: movimento e resposta
 
-**Status:** ⏳ pendente (D3) · **Feito quando:** capturas em 375 / 768 / 1024 / 1440 px conferidas e
-e2e verde.
+**Status:** ✅ feito (12/11/2026, D3; opção **B** escolhida pelo Gabriel) · **Feito quando:** capturas em
+375 / 768 / 1024 / 1440 px conferidas e e2e verde.
+
+Medido (`document.getAnimations()`, entrada pelo menu, build de dev com 20.618 leads): a última animação de
+entrada termina em **280 ms** em Leads, Pipeline, Dashboard e Hoje (antes: 1.220, 2.230 e 1.950 ms); o
+Pipeline caiu de 215 para 12 animações. Janelinhas: entrada 200 ms, saída 140 ms. JS de `/leads`:
+149,8 KB gzip (o aviso "Salvo" não usa React para não pesar). Capturas e GIFs na pasta de notas da
+coordenação (`capturas-fase-4/`).
 
 ### T4.1 Três opções de movimento para o Gabriel escolher
 
-- [ ] Página só de dev com a mesma tela (Leads) em três variantes e um vídeo ou sequência de
+- [x] Página só de dev com a mesma tela (Leads) em três variantes e um vídeo ou sequência de
   capturas de cada: **A** só opacidade, 160 ms, sem cascata · **B** sobe 6 px + opacidade, 220 ms,
   cascata de 3 blocos × 30 ms · **C** a atual encurtada (12 px, 320 ms, sem desfoque). Nenhuma usa
-  `filter: blur`. Esperar a escolha antes de T4.2.
+  `filter: blur`. Esperar a escolha antes de T4.2. *(Feito sem página nova: as variantes foram
+  aplicadas só no navegador, por cima da tela real, e mostradas em GIF; medido: A 160 ms, B 280 ms,
+  C 740 ms. Gabriel escolheu B.)*
 
 ### T4.2 Entrada de página e tokens
 
 **Arquivos:** `app/globals.css:859-909`.
 
-- [ ] Aplicar a variante escolhida em `.page-reveal`, `.reveal`, `.reveal-grid`. Cards do Pipeline
+- [x] Aplicar a variante escolhida em `.page-reveal`, `.reveal`, `.reveal-grid`. Cards do Pipeline
   não animam um a um (só as colunas). Meta: última animação de entrada termina em ≤ 300 ms em
   Leads, Pipeline e Dashboard (medir com `document.getAnimations()`; os gráficos do Dashboard
   ficam de fora da meta).
-- [ ] Caso 6 do Foco: e2e com `reducedMotion: 'reduce'` não encontra animação em andamento.
+- [x] Caso 6 do Foco: e2e com `reducedMotion: 'reduce'` não encontra animação em andamento
+  (`e2e/resposta-imediata.spec.ts`; o movimento reduzido também zera os atrasos da cascata).
 
 ### T4.3 Diálogos, abas e linhas do Acompanhamento
 
 **Arquivos:** `acompanhamento/modulo.css`, `components/acompanhamento/dialogo.tsx`,
 `components/stage-move-dialog.tsx`.
 
-- [ ] `.ac-dialogo` e o diálogo de mover etapa: entrada e saída com `@starting-style` e
+- [x] `.ac-dialogo` e o diálogo de mover etapa: entrada e saída com `@starting-style` e
   `transition … allow-discrete` (como o `::picker(select)` em `globals.css:1444`), `--dur` e
   `--ease-out`.
-- [ ] Linhas clicáveis, abas (`.tabs a`), botões e cartões do módulo: estado de hover e de toque
+- [x] Linhas clicáveis, abas (`.tabs a`), botões e cartões do módulo: estado de hover e de toque
   usando os tokens `--dur-fast` / `--dur-press`.
 
 ### T4.4 Resposta imediata nas ações
@@ -478,19 +487,21 @@ e2e verde.
 **Arquivos:** criar `components/toast.tsx`; `components/acompanhamento/fila.tsx`,
 `plano-mentorado.tsx` (`BotaoFeita`), `components/pipeline.tsx`, `components/shell/nav-progress.tsx`.
 
-- [ ] `toast.tsx`: um aviso por vez, `role="status"`, some em 2,5 s; textos de D3.
-- [ ] Concluir item da Fila, marcar ação feita no Plano e mover card no Pipeline: a tela muda no
+- [x] `toast.tsx`: um aviso por vez, `role="status"`, some em 2,5 s; textos de D3. *(Virou
+  `components/toast.ts`, sem React: a região vem do layout e o aviso é montado no DOM.)*
+- [x] Concluir item da Fila, marcar ação feita no Plano e mover card no Pipeline: a tela muda no
   clique (`useOptimistic`), o `router.refresh()` vai dentro de `startTransition`, e erro desfaz e
   mostra a mensagem da API.
-- [ ] `NavProgress` expõe `startNavProgress()` e os `router.push` de busca, Ctrl+K, criar lead e
+- [x] `NavProgress` expõe `startNavProgress()` e os `router.push` de busca, Ctrl+K, criar lead e
   nova inscrição o chamam.
-- [ ] e2e: com a rota da ação atrasada em 1 s, o item já aparece concluído antes da resposta; com
+- [x] e2e: com a rota da ação atrasada em 1 s, o item já aparece concluído antes da resposta; com
   erro 409, volta ao estado anterior.
 
 ### T4.5 Conferência visual
 
-- [ ] Capturas 375 / 768 / 1024 / 1440 px de Leads, Pipeline, Dashboard, Fila, Plano e ficha, nos
-  dois temas; rever toda tela que usa `.page-reveal`. PR, ITODEV.
+- [x] Capturas 375 / 768 / 1024 / 1440 px de Leads, Pipeline, Dashboard, Fila, Plano e ficha, nos
+  dois temas; rever toda tela que usa `.page-reveal`. PR. *(Sem rolagem lateral em nenhuma; Hoje,
+  Relatórios, Equipe, Admin e Mentorados revistos a 1440. ITODEV fica para o roteiro da coordenação.)*
 
 ## Fase 5 — Varredura de fluxos por cargo e sobras
 

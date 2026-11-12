@@ -1,9 +1,15 @@
 'use client';
 import { PERFIL_LABEL, type AcaoItem, type FichaDTO } from '@npac/shared/mentoria';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useOptimistic, useState, useTransition } from 'react';
 import { keep, recall } from '@/lib/screen-memory';
-import { filaDeSalvamento, registrarVersion, salvarCampo } from '@/lib/acompanhamento-saver';
+import { showToast } from '@/components/toast';
+import {
+  filaDeSalvamento,
+  ouvirCampo,
+  registrarVersion,
+  salvarCampo,
+} from '@/lib/acompanhamento-saver';
 import { dataBR, ICONES, Icone } from './ui';
 
 export const chaveAcao = (a: Pick<AcaoItem, 'id' | 'inscricaoId'>) =>
@@ -11,19 +17,53 @@ export const chaveAcao = (a: Pick<AcaoItem, 'id' | 'inscricaoId'>) =>
 export const linkAcao = (a: Pick<AcaoItem, 'id'>) => `/acompanhamento/plano/acao/${a.id}`;
 export const responsavelDe = (a: AcaoItem) => a.responsavel ?? PERFIL_LABEL[a.responsavelPerfil];
 
+/**
+ * Feita/pendente da ação na hora do clique (NPAC-47). Salva pela fila de salvamento (409: ela
+ * reaplica ou mantém o valor de quem mudou antes e avisa); erro volta ao anterior, e a mensagem da
+ * API aparece no aviso da tela. O valor confirmado fica até a tela recarregar, sem piscar.
+ */
+export function useAcaoFeita(a: AcaoItem, aoMudar: () => void) {
+  const [confirmado, setConfirmado] = useState<AcaoItem['status'] | null>(null);
+  const [status, setStatus] = useOptimistic(confirmado ?? a.status);
+  const [, startTransition] = useTransition();
+  useEffect(() => {
+    registrarVersion(chaveAcao(a), a.version);
+    setConfirmado(null);
+  }, [a]);
+  const alternar = () => {
+    const novo = status === 'FEITA' ? 'PENDENTE' : 'FEITA';
+    const visto = status;
+    startTransition(async () => {
+      setStatus(novo);
+      const chave = chaveAcao(a);
+      let falhou = false;
+      const off = ouvirCampo(chave, 'status', {
+        mudou: () => (falhou = true),
+        erro: () => (falhou = true),
+      });
+      salvarCampo(chave, 'status', novo, visto);
+      await filaDeSalvamento().idle();
+      off();
+      if (!falhou) {
+        setConfirmado(novo);
+        showToast();
+      }
+      aoMudar();
+    });
+  };
+  return { acao: status === a.status ? a : { ...a, status }, alternar };
+}
+
 /** Marca e desmarca a ação. Sem permissão, é só o sinal de feita. */
 export function BotaoFeita({
   a,
-  aoMudar,
+  alternar,
   rotulo,
 }: {
   a: AcaoItem;
-  aoMudar: () => void;
+  alternar: () => void;
   rotulo: string;
 }) {
-  useEffect(() => {
-    registrarVersion(chaveAcao(a), a.version);
-  }, [a]);
   const feita = a.status === 'FEITA';
   return (
     <button
@@ -32,10 +72,7 @@ export function BotaoFeita({
       aria-pressed={feita}
       aria-label={`${feita ? 'Reabrir' : 'Marcar feita'}: ${rotulo}`}
       disabled={!a.podeEditar}
-      onClick={() => {
-        salvarCampo(chaveAcao(a), 'status', feita ? 'PENDENTE' : 'FEITA', a.status);
-        void filaDeSalvamento().idle().then(aoMudar);
-      }}
+      onClick={alternar}
     >
       <Icone d={ICONES.check} largura={3} />
     </button>
@@ -104,19 +141,26 @@ export function PlanoMentorado({
         })}
       </div>
       {doMes.map((a) => (
-        <div className="acao" key={a.id}>
-          <BotaoFeita a={a} aoMudar={atualizar} rotulo={a.foco} />
-          <Link href={linkAcao(a)} className="min-w-0">
-            <b>{a.foco}</b>
-            <span>{a.acao}</span>
-            <span className="meta">
-              {dataBR(a.dataPrevista)}, {responsavelDe(a)}
-              {a.itens.length > 0 && `, ${a.itensFeitos.length} de ${a.itens.length} passos`}
-            </span>
-          </Link>
-          <TagAcao a={a} />
-        </div>
+        <AcaoDoMes key={a.id} a={a} aoMudar={atualizar} />
       ))}
+    </div>
+  );
+}
+
+function AcaoDoMes({ a: inicial, aoMudar }: { a: AcaoItem; aoMudar: () => void }) {
+  const { acao: a, alternar } = useAcaoFeita(inicial, aoMudar);
+  return (
+    <div className="acao">
+      <BotaoFeita a={a} alternar={alternar} rotulo={a.foco} />
+      <Link href={linkAcao(a)} className="min-w-0">
+        <b>{a.foco}</b>
+        <span>{a.acao}</span>
+        <span className="meta">
+          {dataBR(a.dataPrevista)}, {responsavelDe(a)}
+          {a.itens.length > 0 && `, ${a.itensFeitos.length} de ${a.itens.length} passos`}
+        </span>
+      </Link>
+      <TagAcao a={a} />
     </div>
   );
 }

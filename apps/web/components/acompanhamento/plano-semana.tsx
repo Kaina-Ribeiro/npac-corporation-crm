@@ -11,16 +11,40 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { quietButton } from '@/components/crm-ui';
 import { clientApi } from '@/lib/client-api';
-import { BotaoFeita, linkAcao, responsavelDe, TagAcao } from './plano-mentorado';
+import { useFieldSaver } from '@/lib/acompanhamento-saver';
+import { BotaoFeita, linkAcao, responsavelDe, TagAcao, useAcaoFeita } from './plano-mentorado';
 import { dataBR, ICONES, Icone, Rostos, rotuloMes, Trilha } from './ui';
 
 const DIAS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const diaSemana = (iso: string) => DIAS[new Date(`${iso}T12:00:00Z`).getUTCDay()]!;
 
-function Linha({ a, aoMudar, comData }: { a: AcaoItem; aoMudar: () => void; comData: boolean }) {
+/** Erro ou conflito ao marcar uma ação (a ficha mostra o mesmo no indicador do cabeçalho). */
+function AvisoSalvamento() {
+  const { aviso, limparAviso } = useFieldSaver();
+  if (!aviso) return null;
+  return (
+    <p role="alert" className="aviso-campo">
+      {aviso}
+      <button type="button" onClick={limparAviso}>
+        Ok
+      </button>
+    </p>
+  );
+}
+
+function Linha({
+  a: inicial,
+  aoMudar,
+  comData,
+}: {
+  a: AcaoItem;
+  aoMudar: () => void;
+  comData: boolean;
+}) {
+  const { acao: a, alternar } = useAcaoFeita(inicial, aoMudar);
   return (
     <li className="pl-r">
-      <BotaoFeita a={a} aoMudar={aoMudar} rotulo={`${a.nome}, ${a.foco}`} />
+      <BotaoFeita a={a} alternar={alternar} rotulo={`${a.nome}, ${a.foco}`} />
       <Link className="pl-id" href={linkAcao(a)} prefetch={false}>
         <Rostos pessoas={a.pessoas} />
         <div className="nm">
@@ -46,6 +70,7 @@ export function PlanoSemana({ dados }: { dados: Semana }) {
   const dias = [...new Set(dados.semana.map((a) => a.dataPrevista))];
   return (
     <div className="pl-corpo">
+      <AvisoSalvamento />
       <section className="card overflow-hidden" aria-label="Vence esta semana">
         <h2 className="ob-h">
           Vence esta semana<span>{dados.semana.length}</span>
@@ -116,6 +141,7 @@ export function PlanoMes({ mes, inicial }: { mes: number; inicial: PaginaAcoes }
 
   return (
     <>
+      <AvisoSalvamento />
       <div className="pl-meses" role="group" aria-label="Mês da jornada">
         {MESES.map((m) => (
           <Link

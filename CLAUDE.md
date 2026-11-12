@@ -61,6 +61,13 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   rápida do Hoje `today-quick-action.tsx` · closer completa o pagamento `payment-complete.tsx` · menu de CSV `csv-export.tsx` (API: `api/common/csv.ts`) ·
   avisos compartilhados (selo do chat, `(N)` na aba, lembretes) `lib/alerts.ts`, `meeting-reminder.tsx` ·
   push no aparelho `lib/push.ts`, `public/sw.js`, `/conta/avisos`
+- **Movimento e resposta** (NPAC-47, Fase 4): entrada de página em `globals.css` (`.page-reveal`, `.reveal`,
+  `.reveal-grid`; opção B do Gabriel: sobe 6 px, `--dur-enter` 220 ms, cascata de 3 blocos × `--stagger` 30 ms,
+  tudo pronto em 280 ms, sem desfoque; cards do Pipeline não animam um a um) · janelinhas `<dialog class="dlg">`
+  entram por `@starting-style` e saem por `closeWithMotion` (`lib/dialog-motion.ts`: anima com a janela ainda
+  modal, depois `close()`) · aviso "Salvo" `components/toast.ts` (`showToast()`, sem React: região `role="status"` do layout, um por vez, 2,5 s;
+  único texto aprovado, D3) · `startNavProgress(href)` (`shell/nav-progress.tsx`) antes de `router.push` ·
+  movimento reduzido zera duração e atraso (`globals.css`, `prefers-reduced-motion`) · e2e `e2e/resposta-imediata.spec.ts`
 - **Acompanhamento (mentorados), v2 em 5 partes** (plano `docs/superpowers/plans/2026-11-10-acompanhamento-v2-fase-1.md`, protótipo `docs/acompanhamento/prototipo/canvas/`):
   API `api/mentoria/*` (guarda 404 + MFA: `MentoriaController` em `mentoria.guard.ts`; perfil `perfil.guard.ts`,
   `perfis.*`; inscrição e ficha `inscricoes.*`, `ficha.service.ts`, `historico.ts`; mídia `midia.controller.ts`,
@@ -349,6 +356,9 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
   período, filtro atual ou tudo (`period: 'ALL'` só no CSV). `POST /reports/export` = relatório do
   período em CSV (resumo + por SDR/closer/produto, sem contato), para todos; SDR sem venda. As
   exportações dos Relatórios leem o formulário na tela, não o último "Atualizar".
+- Ação de um clique (concluir na Fila, marcar feita no Plano, mover card no Pipeline): `useOptimistic` +
+  `startTransition`, a tela muda no clique; erro desfaz e mostra a mensagem da API; sucesso chama `showToast()`.
+  Ação nova do mesmo tipo segue o padrão.
 - Erros da API em português para o usuário final (`BadRequestException('…')`); o `clientApi` mostra a
   mensagem, as padrão do Nest viram texto genérico. `clientApi` aceita 204.
 

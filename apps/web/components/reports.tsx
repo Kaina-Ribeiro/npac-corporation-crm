@@ -19,7 +19,7 @@ import {
 import { money } from '@npac/shared/money';
 import { dashboardRules, readPrefs, reportRules, writePrefs } from '@npac/shared/screen-prefs';
 import Link from 'next/link';
-import { type CSSProperties, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { clientApi } from '@/lib/client-api';
 import { DASH_CARDS } from '@/lib/dashboard-layout';
 import { presetFilters, type Preset } from '@/lib/report-presets';
@@ -733,10 +733,7 @@ export function Reports({
       )}
       <FormError message={error} />
       {dashboard ? (
-        <DashboardBoard
-          cards={dashCards.filter((c) => !hiddenCards.has(c.id))}
-          style={{ '--d': '80ms' } as CSSProperties}
-        />
+        <DashboardBoard cards={dashCards.filter((c) => !hiddenCards.has(c.id))} />
       ) : (
         <>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 4xl:grid-cols-6">
