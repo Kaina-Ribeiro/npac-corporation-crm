@@ -138,7 +138,7 @@ export function LeadsBrowser({
     const restore = (next?: Record<string, string>) => {
       if (next || memory) void search(memory?.q ?? '', memory?.page ?? 1, next);
     };
-    const saved = readPreference(cookie) ?? '';
+    const saved = readPreference(cookie, prefs) ?? '';
     if (forcePrefs) remember(() => prefs);
     if (forcePrefs || saved === prefs) return restore();
     leadsPrefs()
