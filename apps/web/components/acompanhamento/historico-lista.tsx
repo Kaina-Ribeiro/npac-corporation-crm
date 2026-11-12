@@ -12,7 +12,10 @@ import {
 } from '@npac/shared/mentoria';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { readPrefs } from '@npac/shared/screen-prefs';
 import { useCallback, useEffect, useState } from 'react';
+import { FICHA_REGRAS, atualizarAc } from '@/lib/acompanhamento-prefs';
+import { useLatestPrefs } from '@/lib/use-latest-prefs';
 import { control, quietButton } from '@/components/crm-ui';
 import { clientApi } from '@/lib/client-api';
 import { Dialogo } from './dialogo';
@@ -308,10 +311,27 @@ function Evento({ e }: { e: HistoricoItem }) {
 }
 
 /** Aba Histórico: alterações (só nomes de campos) e anotações. */
-export function HistoricoLista({ ficha }: { ficha: FichaDTO }) {
+export function HistoricoLista({
+  ficha,
+  lembrar,
+}: {
+  ficha: FichaDTO;
+  /** Cookie da ficha (NPAC-46): o filtro fica na chave `historico`. */
+  lembrar: { cookie: string; valor: string };
+}) {
   const [itens, setItens] = useState<HistoricoItem[] | null>(null);
   const [erro, setErro] = useState('');
-  const [filtro, setFiltro] = useState<Filtro>('TUDO');
+  const salvo = (valor: string) =>
+    (readPrefs(valor, FICHA_REGRAS).historico as Filtro | undefined) ?? 'TUDO';
+  const [filtro, setFiltroState] = useState<Filtro>(() => salvo(lembrar.valor));
+  const setFiltro = (f: Filtro) => {
+    setFiltroState(f);
+    atualizarAc('ficha', lembrar.cookie, FICHA_REGRAS, {
+      historico: f === 'TUDO' ? undefined : f,
+    });
+  };
+  // Voltar à aba ou do navegador: vale o filtro mais novo do cookie.
+  useLatestPrefs(lembrar.cookie, lembrar.valor, (valor) => setFiltroState(salvo(valor)));
   const [anotando, setAnotando] = useState(false);
   const [contato, setContato] = useState(false);
   const [texto, setTexto] = useState('');
@@ -349,12 +369,13 @@ export function HistoricoLista({ ficha }: { ficha: FichaDTO }) {
   return (
     <section className="card pa" role="tabpanel" aria-label="Histórico">
       <div className="hh">
-        <div className="hf">
+        <div className="hf" role="group" aria-label="Filtrar o histórico">
           {FILTROS.map(([id, rotulo]) => (
             <button
               key={id}
               type="button"
               className={filtro === id ? 'on' : ''}
+              aria-pressed={filtro === id}
               onClick={() => setFiltro(id)}
             >
               {rotulo}
