@@ -23,6 +23,8 @@ import { PlanoController } from './plano.controller.js';
 import { PlanoService } from './plano.service.js';
 import { CiclosController } from './ciclos.controller.js';
 import { CiclosService } from './ciclos.service.js';
+import { MetasController } from './metas.controller.js';
+import { MetasService } from './metas.service.js';
 import { ContatosController } from './contatos.controller.js';
 import { PmesController, PmesService } from './pmes.controller.js';
 import { FilaController, Pme1Controller } from './fila.controller.js';
@@ -54,6 +56,7 @@ import { ReunioesService } from './reunioes.service.js';
     CarteiraController,
     PmesController,
     CiclosController,
+    MetasController,
   ],
   providers: [
     MentoriaGuard,
@@ -74,6 +77,7 @@ import { ReunioesService } from './reunioes.service.js';
     CarteiraService,
     PmesService,
     CiclosService,
+    MetasService,
     { provide: MENTORIA_CLOCK, useValue: systemClock },
     {
       provide: MentoriaCrypto,

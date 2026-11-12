@@ -13,6 +13,7 @@ import type {
 import type { EnvioStatus, Etapa, EtapaStatus } from './onboarding.js';
 import type { AcaoStatus, Gatilho, PerfilAcao, ReuniaoTipo } from './plano.js';
 import type { CanalContato, Plataforma, ReuniaoStatus } from './reunioes.js';
+import type { MetaStatus, Pilar } from './metas.js';
 import type { CicloStatus, TarefaOrigem, TarefaStatus } from './pmes.js';
 
 /** `GET mentoria/eu`: o perfil operacional e o selo de Admin de quem está logado. */
@@ -328,6 +329,10 @@ export type FichaDTO = {
   /** Ciclos de PME, do mais recente ao mais antigo (Fase 2). `hoje`: o dia de Brasília do cálculo. */
   ciclos: CicloDTO[];
   hoje: string;
+  /** Metas (Parte 2): vazias para quem não as vê (Especialista). Mais recentes primeiro. */
+  metas: MetaDTO[];
+  /** Tarefas combinadas nas reuniões (as que a pessoa logada vê), mais recentes primeiro. */
+  tarefasReuniao: TarefaDTO[];
   pode: {
     inscricao: boolean;
     momento: boolean;
@@ -340,6 +345,8 @@ export type FichaDTO = {
     pme: boolean;
     /** Marcar as tarefas do ciclo e fechar à mão (Admin, Acompanhamento). */
     tarefa: boolean;
+    /** Criar e editar metas (Admin, Acompanhamento). */
+    meta: boolean;
     admin: boolean;
   };
 };
@@ -373,6 +380,34 @@ export type TarefaDTO = {
   comprovanteTipo: MidiaDTO['tipo'] | null;
   cobradaEm: string | null;
   cobradaPor: string | null;
+  /** Meta a que a tarefa da reunião serve (Parte 2). */
+  metaId: string | null;
+  /** Número do PME do ciclo, se a tarefa está num ciclo. */
+  cicloNumero: number | null;
+  /** Reunião onde foi combinada (ISO em UTC) e o tipo dela. */
+  reuniaoInicio: string | null;
+  reuniaoTipo: ReuniaoTipo | null;
+  podeEditar: boolean;
+};
+
+/** Meta (Parte 2, S3). `pessoaId` nulo = do casal ou do individual. */
+export type MetaDTO = {
+  id: string;
+  version: number;
+  inscricaoId: string;
+  cicloId: string | null;
+  cicloNumero: number | null;
+  reuniaoId: string | null;
+  pessoaId: string | null;
+  pilar: Pilar | null;
+  /** Nula só depois da anonimização (LGPD). */
+  descricao: string | null;
+  valorAlvo: number | null;
+  valorAtual: number | null;
+  unidade: string | null;
+  prazo: string | null;
+  status: MetaStatus;
+  criadoEm: string;
   podeEditar: boolean;
 };
 
@@ -390,6 +425,9 @@ export type CicloDTO = {
   status: CicloStatus;
   /** Dias depois do prazo, só enquanto aberto (0 antes do prazo). */
   diasAtraso: number;
+  /** % do PME (E5), do banco: tarefas FEITA ÷ total e progresso das metas. Nulo sem tarefas/metas. */
+  pctTarefas: number | null;
+  pctMetas: number | null;
   tarefas: TarefaDTO[];
 };
 
@@ -448,6 +486,20 @@ export type ReuniaoDTO = ReuniaoItem & {
   anotacaoInterna: string | null;
   humor: number | null;
   interesseRenovar: boolean | null;
+  /** Tarefas da semana combinadas nesta reunião (até 3). */
+  tarefas: TarefaDTO[];
+  /** Cobrança: a reunião anterior mais recente com tarefas visíveis a quem abre. */
+  cobranca: {
+    reuniao: { id: string; inicio: string; tipo: ReuniaoTipo };
+    tarefas: TarefaDTO[];
+  } | null;
+  /** Metas da inscrição (vazias para a Especialista). `metas` é o texto livre da Fase 1. */
+  metasInscricao: MetaDTO[];
+  /** Pessoas da inscrição, para a meta de uma pessoa do casal. */
+  pessoasDaInscricao: { id: string; nome: string }[];
+  /** Combinar tarefas nesta reunião (quem marca tarefas) e definir metas (Admin, Acompanhamento). */
+  podeTarefa: boolean;
+  podeMeta: boolean;
 };
 
 /** `POST mentoria/reunioes/agenda`: de segunda a domingo, em Brasília. */
