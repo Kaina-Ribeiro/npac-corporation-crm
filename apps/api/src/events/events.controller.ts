@@ -1,14 +1,16 @@
 import { Controller, Header, Inject, Req, Sse } from '@nestjs/common';
-import { withUser, type Db } from '@npac/db';
-import { sql } from 'drizzle-orm';
 import type { FastifyRequest } from 'fastify';
-import { exhaustMap, interval, startWith, takeWhile } from 'rxjs';
+import { exhaustMap, filter, map, merge, takeWhile, tap, timer } from 'rxjs';
 import { AllRoles } from '../auth/all-roles.decorator.js';
 import { AUTH, type Auth } from '../auth/auth.js';
 import { toHeaders } from '../auth/headers.js';
-import { DB } from '../common/db/db.module.js';
+import { RevisionService } from './revision.service.js';
 
 type Signal = 'ready' | 'invalidate' | 'heartbeat' | 'session-ended' | 'access-required';
+const END: Signal[] = ['session-ended', 'access-required'];
+
+/** Intervalo da checagem de sessão por conexão (antes: a cada 2 s, junto com o resumo). */
+export const SESSION_CHECK_MS = 10_000;
 
 // O cargo Acompanhamento também precisa do aviso de sessão encerrada.
 @AllRoles()
@@ -16,44 +18,35 @@ type Signal = 'ready' | 'invalidate' | 'heartbeat' | 'session-ended' | 'access-r
 export class EventsController {
   constructor(
     @Inject(AUTH) private readonly auth: Auth,
-    @Inject(DB) private readonly db: Db,
+    private readonly revision: RevisionService,
   ) {}
 
   @Sse('events')
   @Header('Cache-Control', 'no-store')
   @Header('X-Accel-Buffering', 'no')
   events(@Req() req: FastifyRequest) {
-    let previous: string | undefined;
-    // O banco é a fonte dos eventos: funciona com mais de um processo da API.
-    // Só sai um sinal vazio; cada consumidor refaz a consulta sujeita à RLS.
-    return interval(2000).pipe(
-      startWith(0),
-      exhaustMap(async () => {
+    // Só sai um sinal vazio: qualquer escrita (contador global, D2) vira `invalidate` para todas
+    // as abas, que refazem a consulta sujeita à RLS. A sessão é conferida ao abrir e a cada 10 s;
+    // nesse intervalo vai `heartbeat`.
+    let ready = false;
+    const status$ = timer(0, SESSION_CHECK_MS).pipe(
+      exhaustMap(async (tick): Promise<Signal> => {
         const current = await this.auth.api.getSession({ headers: toHeaders(req) });
-        let type: Signal;
-        if (!current || !current.user.active) type = 'session-ended';
-        else if (current.user.mustChangePassword) type = 'access-required';
-        else {
-          const digest = await withUser(this.db, current.user.id, async (tx) => {
-            const rows = await tx.execute<{ revision: string }>(sql`
-            select md5(
-              coalesce((select string_agg(id::text || ':' || version::text, ',' order by id) from leads where deleted_at is null), '') || '/' ||
-              coalesce((select string_agg(id::text || ':' || version::text, ',' order by id) from lead_tasks), '') || '/' ||
-              coalesce((select count(*)::text || ':' || max(at)::text from lead_timeline), '') || '/' ||
-              coalesce((select max(id)::text from chat_messages), '') || '/' ||
-              coalesce((select count(*)::text from chat_channels), '') || '/' ||
-              coalesce((select string_agg(channel_id::text || ':' || last_read_id::text, ',' order by channel_id) from chat_reads), '') || '/' ||
-              coalesce((select count(*)::text || ':' || count(read_at)::text from notifications), '')
-            ) as revision`);
-            return rows[0]!.revision;
-          });
-          type =
-            previous === undefined ? 'ready' : previous !== digest ? 'invalidate' : 'heartbeat';
-          previous = digest;
-        }
-        return { data: { type } };
+        if (!current || !current.user.active) return 'session-ended';
+        if (current.user.mustChangePassword) return 'access-required';
+        return tick === 0 ? 'ready' : 'heartbeat';
       }),
-      takeWhile((event) => !['session-ended', 'access-required'].includes(event.data.type), true),
+      tap((type) => {
+        if (type === 'ready') ready = true;
+      }),
+    );
+    const changes$ = this.revision.changes$.pipe(
+      filter(() => ready),
+      map((): Signal => 'invalidate'),
+    );
+    return merge(status$, changes$).pipe(
+      map((type) => ({ data: { type } })),
+      takeWhile((event) => !END.includes(event.data.type), true),
     );
   }
 }

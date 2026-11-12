@@ -1,6 +1,15 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
-import { afterAll, beforeAll, expect, it } from 'vitest';
-import { api, closeTestApp, createTestApp, deactivate, resetAuthState } from './helpers.js';
+import { afterAll, beforeAll, expect, it, vi } from 'vitest';
+import { RevisionService } from '../src/events/revision.service.js';
+import {
+  api,
+  closeTestApp,
+  createTestApp,
+  deactivate,
+  owner,
+  resetAuthState,
+  type Cookie,
+} from './helpers.js';
 
 let app: NestFastifyApplication;
 let h: ReturnType<typeof api>;
@@ -11,21 +20,19 @@ beforeAll(async () => {
 });
 afterAll(async () => closeTestApp(app));
 
-it('stream não expõe PII, detecta mudanças e encerra usuário desativado', async () => {
-  await resetAuthState();
-  const cookie = await h.signIn('ale@npac.com.br');
-  const abort = new AbortController();
-  const timeout = setTimeout(() => abort.abort(), 12_000);
-  try {
-    const res = await fetch(`${await app.getUrl()}/api/events`, {
-      headers: { cookie },
-      signal: abort.signal,
-    });
-    expect(res.status).toBe(200);
-    expect(res.headers.get('cache-control')).toContain('no-store');
-    const reader = res.body!.getReader();
-    let buffer = '';
-    async function nextType() {
+/** Abre `/api/events` e lê os sinais um a um (cada `data:` só pode ter `type`). */
+async function openStream(cookie: Cookie, abort: AbortController) {
+  const res = await fetch(`${await app.getUrl()}/api/events`, {
+    headers: { cookie },
+    signal: abort.signal,
+  });
+  expect(res.status).toBe(200);
+  expect(res.headers.get('cache-control')).toContain('no-store');
+  const reader = res.body!.getReader();
+  let buffer = '';
+  return {
+    reader,
+    async next(): Promise<string> {
       while (true) {
         const split = buffer.indexOf('\n\n');
         if (split >= 0) {
@@ -43,8 +50,18 @@ it('stream não expõe PII, detecta mudanças e encerra usuário desativado', as
           buffer += new TextDecoder().decode(chunk.value);
         }
       }
-    }
-    expect(await nextType()).toBe('ready');
+    },
+  };
+}
+
+it('stream não expõe PII, detecta mudanças e encerra usuário desativado', async () => {
+  await resetAuthState();
+  const cookie = await h.signIn('ale@npac.com.br');
+  const abort = new AbortController();
+  const timeout = setTimeout(() => abort.abort(), 25_000);
+  try {
+    const s = await openStream(cookie, abort);
+    expect(await s.next()).toBe('ready');
     await h.post(
       '/api/leads',
       {
@@ -56,18 +73,75 @@ it('stream não expõe PII, detecta mudanças e encerra usuário desativado', as
       },
       cookie,
     );
-    expect(await nextType()).toBe('invalidate');
+    expect(await s.next()).toBe('invalidate');
     const murilo = await h.signIn('murilo@npac.com.br');
     const channels = await h.get('/api/chat/channels', murilo);
     const general = channels.body.find((c: { kind: string }) => c.kind === 'GENERAL');
     await h.post(`/api/chat/channels/${general.id}/messages`, { body: 'mensagem nova' }, murilo);
-    expect(await nextType()).toBe('invalidate');
+    expect(await s.next()).toBe('invalidate');
+    // A sessão é conferida a cada 10 s: o usuário desativado sai em até 10 s.
     await deactivate('ale@npac.com.br');
-    expect(await nextType()).toBe('session-ended');
-    await reader.cancel();
+    const t0 = Date.now();
+    let type = await s.next();
+    while (type === 'invalidate') type = await s.next();
+    expect(type).toBe('session-ended');
+    expect(Date.now() - t0).toBeLessThanOrEqual(10_500);
+    await s.reader.cancel();
     expect((await h.get('/api/events', cookie)).status).toBe(401);
   } finally {
     abort.abort();
     clearTimeout(timeout);
+  }
+});
+
+it('uma escrita avisa cada conexão uma vez; o contador é lido uma vez a cada 2 s no processo', async () => {
+  await resetAuthState();
+  const ale = await h.signIn('ale@npac.com.br');
+  const igor = await h.signIn('igor@npac.com.br');
+  const lead = await h.post(
+    '/api/leads',
+    { name: 'Sinal contador', instagram: '@evento.contador', incomeBand: 'R5_8K', source: 'BIO' },
+    ale,
+  );
+  expect(lead.status).toBe(201);
+  // O Chat aberto grava "lido até" a cada recarga, com o mesmo valor: isso não pode virar aviso.
+  const channels = await h.get('/api/chat/channels', ale);
+  const general = channels.body.find((c: { kind: string }) => c.kind === 'GENERAL');
+  const sent = await h.post(`/api/chat/channels/${general.id}/messages`, { body: 'oi' }, igor);
+  expect(sent.status).toBe(201);
+  const readUpTo = () =>
+    h.post(`/api/chat/channels/${general.id}/read`, { lastReadId: sent.body.id }, ale);
+  expect((await readUpTo()).status).toBeLessThan(300);
+  const revision = app.get(RevisionService);
+  const reads = vi.spyOn(revision, 'read');
+  const abort = new AbortController();
+  const timeout = setTimeout(() => abort.abort(), 25_000);
+  try {
+    // Três abas (duas pessoas): o contador é um só, não uma consulta por aba.
+    const a = await openStream(ale, abort);
+    const b = await openStream(igor, abort);
+    const c = await openStream(ale, abort);
+    expect(await a.next()).toBe('ready');
+    expect(await b.next()).toBe('ready');
+    expect(await c.next()).toBe('ready');
+    await vi.waitFor(() => expect(reads).toHaveBeenCalled());
+    reads.mockClear();
+    const t0 = Date.now();
+    // Uma transação (de outra pessoa, num lead que o Igor não vê): todas as abas são avisadas.
+    await owner`update leads set name = 'Sinal contador 2' where id = ${lead.body.id}`;
+    expect(await a.next()).toBe('invalidate');
+    expect(await b.next()).toBe('invalidate');
+    expect(await c.next()).toBe('invalidate');
+    expect((await readUpTo()).status).toBeLessThan(300);
+    // Sem outra escrita, o próximo sinal é o heartbeat da checagem de sessão (aos 10 s): o aviso
+    // saiu uma vez só.
+    expect(await a.next()).toBe('heartbeat');
+    const elapsed = Date.now() - t0;
+    expect(reads.mock.calls.length).toBeLessThanOrEqual(Math.ceil(elapsed / 2000) + 1);
+    expect(reads.mock.calls.length).toBeGreaterThanOrEqual(3);
+  } finally {
+    abort.abort();
+    clearTimeout(timeout);
+    reads.mockRestore();
   }
 });
