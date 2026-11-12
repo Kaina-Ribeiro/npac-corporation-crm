@@ -1,5 +1,5 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
-import { withUser, type Db } from '@npac/db';
+import { withUser, type Db, type Tx } from '@npac/db';
 import { spDayRange, TIER_LABELS, TIERS, type AuthUser, type Tier } from '@npac/shared';
 import { MEETING_VALUE_CENTS } from '@npac/shared/money';
 import { sql, type SQL } from 'drizzle-orm';
@@ -103,6 +103,108 @@ const SALE_FIELDS = new Set([
 const dropSales = <T extends Record<string, unknown>>(o: T) =>
   Object.fromEntries(Object.entries(o).filter(([k]) => !SALE_FIELDS.has(k))) as T;
 
+/**
+ * CTEs comuns da busca. `scope` leva só as colunas que as métricas usam (antes era `l.*`, e cada
+ * consulta relia a linha inteira de todos os leads); `calls` e `sales` idem.
+ */
+function baseCtes(q: ReportQuery, start: Date, end: Date) {
+  const s = start.toISOString();
+  const e = end.toISOString();
+  const sdr = q.sdrId ?? null;
+  const closer = q.closerId ?? null;
+  const product = q.productId ?? null;
+  return sql`with scope as(select l.id,l.sdr_id,l.tier,l.created_at from leads l join pipeline_stages s on s.id=l.stage_id where ${scope(q)}),
+    sales as(select d.id,d.sdr_id,d.closer_id,d.product_id,d.total_cents,d.closed_at from deals d where d.lead_id in(select id from scope) and d.reversed_at is null and d.closed_at>=${s} and d.closed_at<${e}
+      and (${sdr}::text is null or d.sdr_id=${sdr}) and (${closer}::text is null or d.closer_id=${closer}) and (${product}::uuid is null or d.product_id=${product}::uuid)),
+    calls as(select m.lead_id,m.closer_id,m.origin,m.created_at,m.outcome,m.outcome_at from meetings m where m.lead_id in(select id from scope) and m.canceled_at is null and (${closer}::text is null or m.closer_id=${closer})),
+    paid as(select p.amount_cents, p.paid_at from payments p join deals d on d.id=p.deal_id where d.lead_id in(select id from scope) and d.reversed_at is null and (${sdr}::text is null or d.sdr_id=${sdr}) and (${closer}::text is null or d.closer_id=${closer}) and (${product}::uuid is null or d.product_id=${product}::uuid) and p.paid_at>=${s} and p.paid_at<${e})`;
+}
+
+/** Métricas, conversão e taxas numa consulta só (cada CTE é lido uma vez, com `filter`). */
+function metricsSql(base: SQL, start: Date, end: Date) {
+  const s = start.toISOString();
+  const e = end.toISOString();
+  return sql`${base},
+    lm as(select count(*) as leads,count(*) filter(where tier='P0') as p0,count(*) filter(where tier='P1') as p1,count(*) filter(where tier='P2') as p2,count(*) filter(where tier::text='DESCOBRINDO') as descobrindo
+      from scope where created_at>=${s} and created_at<${e}),
+    cm as(select count(*) filter(where m.created_at>=${s} and m.created_at<${e}) as meetings,
+      count(*) filter(where m.origin='DIRETO' and m.created_at>=${s} and m.created_at<${e}) as direct,
+      count(*) filter(where m.origin='FOLLOW' and m.created_at>=${s} and m.created_at<${e}) as follow,
+      count(*) filter(where m.outcome='DONE' and m.outcome_at>=${s} and m.outcome_at<${e}) as done,
+      count(*) filter(where m.outcome='NO_SHOW' and m.outcome_at>=${s} and m.outcome_at<${e}) as no_show,
+      count(*) filter(where m.outcome='RESCHEDULED' and m.outcome_at>=${s} and m.outcome_at<${e}) as rescheduled,
+      coalesce(sum(${meetingValue}) filter(where m.outcome='DONE' and m.outcome_at>=${s} and m.outcome_at<${e}),0) as value
+      from calls m join scope l on l.id=m.lead_id),
+    sm as(select count(*) as sales,coalesce(sum(total_cents),0) as cents from sales),
+    pm as(select coalesce(sum(amount_cents),0) as cents from paid),
+    om as(select coalesce(sum(p.amount_cents),0) as cents from payments p join sales d on d.id=p.deal_id where p.paid_at is null)
+    select lm.leads,lm.p0,lm.p1,lm.p2,lm.descobrindo,cm.meetings,cm.direct,cm.follow,cm.done,cm.no_show as "noShow",cm.rescheduled,
+      cm.value as "meetingValueCents",sm.sales,sm.cents as "soldCents",pm.cents as "receivedCents",om.cents as "outstandingCents",
+      coalesce(round(10000.0*sm.sales/nullif(cm.done,0)),0) as "conversionBps",
+      coalesce(round(10000.0*cm.no_show/nullif(cm.done+cm.no_show,0)),0) as "noShowBps",
+      coalesce(round(10000.0*cm.done/nullif(cm.done+cm.no_show,0)),0) as "attendanceBps"
+    from lm,cm,sm,pm,om`;
+}
+
+/** Linhas por SDR e por closer (busca e `GET /team`). */
+async function people(tx: Tx, base: SQL, start: Date, end: Date) {
+  const s = start.toISOString();
+  const e = end.toISOString();
+  const bySdr = await tx.execute<Record<string, unknown>>(
+    sql`${base}, a as(select sdr_id as id,count(*) as leads,count(*) filter(where tier='P0') as p0,count(*) filter(where tier='P1') as p1,count(*) filter(where tier='P2') as p2,count(*) filter(where tier::text='DESCOBRINDO') as descobrindo from scope where created_at>=${s} and created_at<${e} group by sdr_id),
+    b as(select l.sdr_id as id,count(*) filter(where m.created_at>=${s} and m.created_at<${e}) as meetings,
+      count(*) filter(where m.origin='DIRETO' and m.created_at>=${s} and m.created_at<${e}) as direct,count(*) filter(where m.origin='FOLLOW' and m.created_at>=${s} and m.created_at<${e}) as follow,
+      count(*) filter(where m.outcome='DONE' and m.outcome_at>=${s} and m.outcome_at<${e}) as done,
+      count(*) filter(where m.outcome='NO_SHOW' and m.outcome_at>=${s} and m.outcome_at<${e}) as no_show
+      from calls m join scope l on l.id=m.lead_id where (m.created_at>=${s} and m.created_at<${e}) or (m.outcome_at>=${s} and m.outcome_at<${e}) group by l.sdr_id),
+    c as(select sdr_id as id,count(*) as sales,sum(total_cents) as cents from sales group by sdr_id), actors as(select id from a union select id from b union select id from c)
+    select u.id,u.name,coalesce(a.leads,0) as leads,coalesce(a.p0,0) as p0,coalesce(a.p1,0) as p1,coalesce(a.p2,0) as p2,coalesce(a.descobrindo,0) as descobrindo,coalesce(b.direct,0) as direct,coalesce(b.follow,0) as follow,coalesce(b.meetings,0) as meetings,coalesce(b.done,0) as done,coalesce(b.no_show,0) as "noShow",coalesce(c.sales,0) as sales,coalesce(c.cents,0) as "soldCents"
+    from actors x join "user" u on u.id=x.id left join a on a.id=x.id left join b on b.id=x.id left join c on c.id=x.id order by coalesce(c.cents,0) desc,u.name`,
+  );
+  const byCloser = await tx.execute<Record<string, unknown>>(
+    sql`${base}, a as(select closer_id as id,count(*) filter(where created_at>=${s} and created_at<${e}) as meetings,
+     count(*) filter(where outcome='DONE' and outcome_at>=${s} and outcome_at<${e}) as done,
+     count(*) filter(where outcome='NO_SHOW' and outcome_at>=${s} and outcome_at<${e}) as no_show from calls
+     where (created_at>=${s} and created_at<${e}) or (outcome_at>=${s} and outcome_at<${e}) group by closer_id),
+    b as(select closer_id as id,count(*) as sales,sum(total_cents) as cents from sales group by closer_id),actors as(select id from a union select id from b)
+    select u.id,u.name,coalesce(a.meetings,0) as meetings,coalesce(a.done,0) as done,coalesce(a.no_show,0) as "noShow",coalesce(b.sales,0) as sales,coalesce(b.cents,0) as "soldCents",coalesce(round(10000.0*b.sales/nullif(a.done,0)),0) as "conversionBps",coalesce(round(10000.0*a.no_show/nullif(a.done+a.no_show,0)),0) as "noShowBps"
+    from actors x join "user" u on u.id=x.id left join a on a.id=x.id left join b on b.id=x.id order by coalesce(b.cents,0) desc,u.name`,
+  );
+  return { bySdr: bySdr.map(numeric), byCloser: byCloser.map(numeric) };
+}
+
+/**
+ * Um ponto por dia (Brasília) para os gráficos; dias sem movimento entram zerados. Agrega com
+ * `group by` do dia e junta na série (antes: uma subconsulta por dia). Cada linha leva também o
+ * dia de mesma posição do período anterior e o vendido nele (`prevDate`, `prevSoldCents`).
+ */
+function dailySql(base: SQL, q: ReportQuery, w: ReturnType<typeof window>) {
+  const s = w.start.toISOString();
+  const e = w.end.toISOString();
+  const sdr = q.sdrId ?? null;
+  const closer = q.closerId ?? null;
+  const product = q.productId ?? null;
+  const day = (col: SQL) => sql`(${col} at time zone 'America/Sao_Paulo')::date`;
+  const prevFirst = sql`(${w.prevStart.toISOString()}::timestamptz at time zone 'America/Sao_Paulo')::date`;
+  return sql`${base},
+    prev as(select d.total_cents,d.closed_at from deals d where d.lead_id in(select id from scope) and d.reversed_at is null and d.closed_at>=${w.prevStart.toISOString()} and d.closed_at<${w.prevEnd.toISOString()}
+      and (${sdr}::text is null or d.sdr_id=${sdr}) and (${closer}::text is null or d.closer_id=${closer}) and (${product}::uuid is null or d.product_id=${product}::uuid)),
+    days as(select g.day::date as day, g.i from generate_series((${s}::timestamptz at time zone 'America/Sao_Paulo')::date,
+      ((${e}::timestamptz - interval '1 millisecond') at time zone 'America/Sao_Paulo')::date, interval '1 day') with ordinality as g(day, i)),
+    dl as(select ${day(sql`created_at`)} as day,count(*) as n from scope where created_at>=${s} and created_at<${e} group by 1),
+    dm as(select ${day(sql`created_at`)} as day,count(*) as n from calls where created_at>=${s} and created_at<${e} group by 1),
+    ds as(select ${day(sql`closed_at`)} as day,sum(total_cents) as n from sales group by 1),
+    dp as(select ${day(sql`paid_at`)} as day,sum(amount_cents) as n from paid group by 1),
+    dv as(select ${day(sql`m.outcome_at`)} as day,sum(${meetingValue}) as n from calls m join scope l on l.id=m.lead_id where m.outcome='DONE' and m.outcome_at>=${s} and m.outcome_at<${e} group by 1),
+    dq as(select ${day(sql`closed_at`)} as day,sum(total_cents) as n from prev group by 1)
+    select to_char(x.day, 'YYYY-MM-DD') as date,coalesce(dl.n,0) as leads,coalesce(dm.n,0) as meetings,coalesce(ds.n,0) as "soldCents",
+      coalesce(dp.n,0) as "receivedCents",coalesce(dv.n,0) as "meetingValueCents",
+      to_char(${prevFirst} + (x.i - 1)::int, 'YYYY-MM-DD') as "prevDate",coalesce(dq.n,0) as "prevSoldCents"
+    from days x left join dl on dl.day=x.day left join dm on dm.day=x.day left join ds on ds.day=x.day
+      left join dp on dp.day=x.day left join dv on dv.day=x.day left join dq on dq.day=${prevFirst} + (x.i - 1)::int
+    order by x.day`;
+}
+
 @Injectable()
 export class ReportsService {
   constructor(
@@ -125,94 +227,31 @@ export class ReportsService {
     });
   }
   async search(u: AuthUser, q: ReportQuery, opts: { audit?: boolean } = {}) {
-    const { start, end, prevStart, prevEnd } = window(q);
+    const w = window(q);
+    const { start, end } = w;
     const result = await withUser(
       this.db,
       u.id,
       async (tx) => {
-        const base = sql`with scope as(select l.* from leads l join pipeline_stages s on s.id=l.stage_id where ${scope(q)}),
-    sales as(select d.* from deals d where d.lead_id in(select id from scope) and d.reversed_at is null and d.closed_at>=${start.toISOString()} and d.closed_at<${end.toISOString()}
-      and (${q.sdrId ?? null}::text is null or d.sdr_id=${q.sdrId ?? null}) and (${q.closerId ?? null}::text is null or d.closer_id=${q.closerId ?? null}) and (${q.productId ?? null}::uuid is null or d.product_id=${q.productId ?? null}::uuid)),
-    calls as(select m.* from meetings m where m.lead_id in(select id from scope) and m.canceled_at is null and (${q.closerId ?? null}::text is null or m.closer_id=${q.closerId ?? null})),
-    paid as(select p.amount_cents, p.paid_at from payments p join deals d on d.id=p.deal_id where d.lead_id in(select id from scope) and d.reversed_at is null and (${q.sdrId ?? null}::text is null or d.sdr_id=${q.sdrId ?? null}) and (${q.closerId ?? null}::text is null or d.closer_id=${q.closerId ?? null}) and (${q.productId ?? null}::uuid is null or d.product_id=${q.productId ?? null}::uuid) and p.paid_at>=${start.toISOString()} and p.paid_at<${end.toISOString()})`;
-        const metrics = await tx.execute<Record<string, unknown>>(sql`${base} select
-   (select count(*) from scope where created_at>=${start.toISOString()} and created_at<${end.toISOString()}) as "leads",
-   (select count(*) from scope where tier='P0' and created_at>=${start.toISOString()} and created_at<${end.toISOString()}) as "p0",
-   (select count(*) from scope where tier='P1' and created_at>=${start.toISOString()} and created_at<${end.toISOString()}) as "p1",
-   (select count(*) from scope where tier='P2' and created_at>=${start.toISOString()} and created_at<${end.toISOString()}) as "p2",
-   (select count(*) from scope where tier::text='DESCOBRINDO' and created_at>=${start.toISOString()} and created_at<${end.toISOString()}) as "descobrindo",
-   (select count(*) from calls where true and created_at>=${start.toISOString()} and created_at<${end.toISOString()} and canceled_at is null) as "meetings",
-   (select count(*) from calls where true and origin='DIRETO' and created_at>=${start.toISOString()} and created_at<${end.toISOString()} and canceled_at is null) as "direct",
-   (select count(*) from calls where true and origin='FOLLOW' and created_at>=${start.toISOString()} and created_at<${end.toISOString()} and canceled_at is null) as "follow",
-   (select count(*) from calls where true and outcome='DONE' and outcome_at>=${start.toISOString()} and outcome_at<${end.toISOString()} and canceled_at is null) as "done",
-   (select count(*) from calls where true and outcome='NO_SHOW' and outcome_at>=${start.toISOString()} and outcome_at<${end.toISOString()} and canceled_at is null) as "noShow",
-   (select count(*) from calls where true and outcome='RESCHEDULED' and outcome_at>=${start.toISOString()} and outcome_at<${end.toISOString()}) as "rescheduled",
-   (select coalesce(sum(${meetingValue}),0) from calls m join scope l on l.id=m.lead_id where m.outcome='DONE' and m.outcome_at>=${start.toISOString()} and m.outcome_at<${end.toISOString()}) as "meetingValueCents",
-   (select count(*) from sales) as "sales",(select coalesce(sum(total_cents),0) from sales) as "soldCents",
-   (select coalesce(sum(p.amount_cents),0) from payments p join deals d on d.id=p.deal_id where d.lead_id in(select id from scope) and d.reversed_at is null and (${q.sdrId ?? null}::text is null or d.sdr_id=${q.sdrId ?? null}) and (${q.closerId ?? null}::text is null or d.closer_id=${q.closerId ?? null}) and (${q.productId ?? null}::uuid is null or d.product_id=${q.productId ?? null}::uuid) and p.paid_at>=${start.toISOString()} and p.paid_at<${end.toISOString()}) as "receivedCents",
-   (select coalesce(sum(p.amount_cents),0) from payments p join sales d on d.id=p.deal_id where p.paid_at is null) as "outstandingCents"`);
-        const conversion = await tx.execute<Record<string, unknown>>(
-          sql`${base} select coalesce(round(10000.0*(select count(*) from sales)/nullif((select count(*) from calls where true and outcome='DONE' and outcome_at>=${start.toISOString()} and outcome_at<${end.toISOString()} and canceled_at is null),0)),0) as "conversionBps"`,
-        );
+        const base = baseCtes(q, start, end);
+        const metrics = await tx.execute<Record<string, unknown>>(metricsSql(base, start, end));
         const byProduct = await tx.execute<Record<string, unknown>>(
           // Pelo nome atual do catálogo: a venda guarda o nome da época e renomear dividiria a linha.
           sql`${base} select s.product_id as id, p.name as name,count(*) as sales,sum(s.total_cents) as "soldCents",round(avg(s.total_cents)) as "ticketCents" from sales s join products p on p.id=s.product_id group by s.product_id,p.name order by sum(s.total_cents) desc`,
         );
-        const rates = await tx.execute<Record<string, unknown>>(
-          sql`${base}, outcomes as(select count(*) filter(where outcome='DONE') as done,count(*) filter(where outcome='NO_SHOW') as no_show from calls where outcome_at>=${start.toISOString()} and outcome_at<${end.toISOString()}) select coalesce(round(10000.0*no_show/nullif(done+no_show,0)),0) as "noShowBps",coalesce(round(10000.0*done/nullif(done+no_show,0)),0) as "attendanceBps" from outcomes`,
-        );
-        const bySdr = await tx.execute<Record<string, unknown>>(
-          sql`${base}, a as(select sdr_id as id,count(*) as leads,count(*) filter(where tier='P0') as p0,count(*) filter(where tier='P1') as p1,count(*) filter(where tier='P2') as p2,count(*) filter(where tier::text='DESCOBRINDO') as descobrindo from scope where created_at>=${start.toISOString()} and created_at<${end.toISOString()} group by sdr_id),
-        b as(select l.sdr_id as id,count(*) filter(where m.created_at>=${start.toISOString()} and m.created_at<${end.toISOString()}) as meetings,
-          count(*) filter(where m.origin='DIRETO' and m.created_at>=${start.toISOString()} and m.created_at<${end.toISOString()}) as direct,count(*) filter(where m.origin='FOLLOW' and m.created_at>=${start.toISOString()} and m.created_at<${end.toISOString()}) as follow,
-          count(*) filter(where m.outcome='DONE' and m.outcome_at>=${start.toISOString()} and m.outcome_at<${end.toISOString()}) as done,
-          count(*) filter(where m.outcome='NO_SHOW' and m.outcome_at>=${start.toISOString()} and m.outcome_at<${end.toISOString()}) as no_show
-          from calls m join scope l on l.id=m.lead_id where (m.created_at>=${start.toISOString()} and m.created_at<${end.toISOString()}) or (m.outcome_at>=${start.toISOString()} and m.outcome_at<${end.toISOString()}) group by l.sdr_id),
-        c as(select sdr_id as id,count(*) as sales,sum(total_cents) as cents from sales group by sdr_id), actors as(select id from a union select id from b union select id from c)
-        select u.id,u.name,coalesce(a.leads,0) as leads,coalesce(a.p0,0) as p0,coalesce(a.p1,0) as p1,coalesce(a.p2,0) as p2,coalesce(a.descobrindo,0) as descobrindo,coalesce(b.direct,0) as direct,coalesce(b.follow,0) as follow,coalesce(b.meetings,0) as meetings,coalesce(b.done,0) as done,coalesce(b.no_show,0) as "noShow",coalesce(c.sales,0) as sales,coalesce(c.cents,0) as "soldCents"
-        from actors x join "user" u on u.id=x.id left join a on a.id=x.id left join b on b.id=x.id left join c on c.id=x.id order by coalesce(c.cents,0) desc,u.name`,
-        );
-        const byCloser = await tx.execute<Record<string, unknown>>(
-          sql`${base}, a as(select closer_id as id,count(*) filter(where created_at>=${start.toISOString()} and created_at<${end.toISOString()}) as meetings,
-         count(*) filter(where outcome='DONE' and outcome_at>=${start.toISOString()} and outcome_at<${end.toISOString()}) as done,
-         count(*) filter(where outcome='NO_SHOW' and outcome_at>=${start.toISOString()} and outcome_at<${end.toISOString()}) as no_show from calls
-         where (created_at>=${start.toISOString()} and created_at<${end.toISOString()}) or (outcome_at>=${start.toISOString()} and outcome_at<${end.toISOString()}) group by closer_id),
-        b as(select closer_id as id,count(*) as sales,sum(total_cents) as cents from sales group by closer_id),actors as(select id from a union select id from b)
-        select u.id,u.name,coalesce(a.meetings,0) as meetings,coalesce(a.done,0) as done,coalesce(a.no_show,0) as "noShow",coalesce(b.sales,0) as sales,coalesce(b.cents,0) as "soldCents",coalesce(round(10000.0*b.sales/nullif(a.done,0)),0) as "conversionBps",coalesce(round(10000.0*a.no_show/nullif(a.done+a.no_show,0)),0) as "noShowBps"
-        from actors x join "user" u on u.id=x.id left join a on a.id=x.id left join b on b.id=x.id order by coalesce(b.cents,0) desc,u.name`,
-        );
-        // Um ponto por dia (Brasília) para os gráficos; dias sem movimento entram zerados.
-        const daily = await tx.execute<Record<string, unknown>>(
-          sql`${base}, days as(select generate_series((${start.toISOString()}::timestamptz at time zone 'America/Sao_Paulo')::date,
-            ((${end.toISOString()}::timestamptz - interval '1 millisecond') at time zone 'America/Sao_Paulo')::date, interval '1 day')::date as day)
-          select to_char(x.day, 'YYYY-MM-DD') as date,
-            (select count(*) from scope where (created_at at time zone 'America/Sao_Paulo')::date = x.day and created_at>=${start.toISOString()} and created_at<${end.toISOString()}) as leads,
-            (select count(*) from calls where (created_at at time zone 'America/Sao_Paulo')::date = x.day and created_at>=${start.toISOString()} and created_at<${end.toISOString()}) as meetings,
-            (select coalesce(sum(total_cents),0) from sales where (closed_at at time zone 'America/Sao_Paulo')::date = x.day) as "soldCents",
-            (select coalesce(sum(amount_cents),0) from paid where (paid_at at time zone 'America/Sao_Paulo')::date = x.day) as "receivedCents",
-            (select coalesce(sum(${meetingValue}),0) from calls m join scope l on l.id=m.lead_id where m.outcome='DONE' and (m.outcome_at at time zone 'America/Sao_Paulo')::date = x.day and m.outcome_at>=${start.toISOString()} and m.outcome_at<${end.toISOString()}) as "meetingValueCents"
-          from days x order by x.day`,
-        );
-        // Vendido por dia no período anterior equivalente (mesmo escopo e filtros).
-        const previousDaily = await tx.execute<Record<string, unknown>>(
-          sql`with scope as(select l.* from leads l join pipeline_stages s on s.id=l.stage_id where ${scope(q)}),
-          prev as(select d.* from deals d where d.lead_id in(select id from scope) and d.reversed_at is null and d.closed_at>=${prevStart.toISOString()} and d.closed_at<${prevEnd.toISOString()}
-            and (${q.sdrId ?? null}::text is null or d.sdr_id=${q.sdrId ?? null}) and (${q.closerId ?? null}::text is null or d.closer_id=${q.closerId ?? null}) and (${q.productId ?? null}::uuid is null or d.product_id=${q.productId ?? null}::uuid)),
-          days as(select generate_series(0, ${daily.length - 1}) as i)
-          select to_char((${prevStart.toISOString()}::timestamptz at time zone 'America/Sao_Paulo')::date + x.i, 'YYYY-MM-DD') as date,
-            (select coalesce(sum(total_cents),0) from prev where (closed_at at time zone 'America/Sao_Paulo')::date = (${prevStart.toISOString()}::timestamptz at time zone 'America/Sao_Paulo')::date + x.i) as "soldCents"
-          from days x order by x.i`,
-        );
+        const { bySdr, byCloser } = await people(tx, base, start, end);
+        const days = await tx.execute<Record<string, unknown>>(dailySql(base, q, w));
         const rows = await tx.execute<{ id: string; name: string; stage: string; tier: string }>(
-          sql`${base} select l.id,l.name,s.label as stage,l.tier from scope l join pipeline_stages s on s.id=l.stage_id where l.created_at>=${start.toISOString()} and l.created_at<${end.toISOString()} order by l.created_at desc,l.id limit ${q.pageSize ?? 20} offset ${((q.page ?? 1) - 1) * (q.pageSize ?? 20)}`,
+          sql`select l.id,l.name,s.label as stage,l.tier from leads l join pipeline_stages s on s.id=l.stage_id where ${scope(q)} and l.created_at>=${start.toISOString()} and l.created_at<${end.toISOString()} order by l.created_at desc,l.id limit ${q.pageSize ?? 20} offset ${((q.page ?? 1) - 1) * (q.pageSize ?? 20)}`,
         );
         return {
-          metrics: { ...numeric(metrics[0]!), ...numeric(conversion[0]!), ...numeric(rates[0]!) },
+          metrics: numeric(metrics[0]!),
           byProduct: byProduct.map(numeric),
-          daily: daily.map(numeric),
-          previousDaily: previousDaily.map(numeric),
-          bySdr: bySdr.map(numeric),
-          byCloser: byCloser.map(numeric),
+          daily: days.map(({ prevDate: _date, prevSoldCents: _sold, ...day }) => numeric(day)),
+          // Vendido por dia no período anterior equivalente (mesmo escopo e filtros).
+          previousDaily: days.map((d) => numeric({ date: d.prevDate, soldCents: d.prevSoldCents })),
+          bySdr,
+          byCloser,
           leads: [...rows],
           page: q.page ?? 1,
           pageSize: q.pageSize ?? 20,
@@ -240,6 +279,15 @@ export class ReportsService {
       bySdr: result.bySdr.map(dropSales),
       byCloser: result.byCloser.map(dropSales),
     };
+  }
+  /**
+   * Só as linhas por SDR e por closer do mês (o que `GET /team` usa), com as mesmas consultas da
+   * busca: sem métricas, série diária, produtos nem página.
+   */
+  async peopleOfMonth(tx: Tx) {
+    const { start, end } = window({ period: 'MONTH' });
+    const r = await people(tx, baseCtes({ period: 'MONTH' }, start, end), start, end);
+    return { ...r, from: start.toISOString(), to: end.toISOString() };
   }
   async csv(u: AuthUser, q: ReportQuery) {
     // "Tudo": sem recorte de data de criação (filtros continuam valendo).
