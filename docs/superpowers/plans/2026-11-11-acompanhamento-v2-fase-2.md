@@ -25,7 +25,7 @@ da Fase 1 (`docs/superpowers/plans/2026-11-10-acompanhamento-v2-design.md`) e o 
 | Parte | Entrega | Status |
 |---|---|---|
 | 1 | Catálogo de PMEs, ciclos e tarefas do ciclo (envio, extras, encerramento, status derivado) + Configurações > PMEs + card "PME atual" na ficha | ✅ 11/11 (PR na `release/v0.14`) |
-| 2 | Metas, tarefas da reunião (até 3, prazo), cobrança da reunião anterior, % do PME (tarefas e metas) | 🚧 em andamento |
+| 2 | Metas, tarefas da reunião (até 3, prazo), cobrança da reunião anterior, % do PME (tarefas e metas) | ✅ 12/11 (PR na `release/v0.14`) |
 | 3 | Check-ins lançados pela equipe, semáforo (função, histórico semanal, sequência), colunas em Mentorados | ⏳ |
 | 4 | Fila (COBRANCA, SEMAFORO, ENVIAR_PME, PME_ATRASADO, FIM_PME espera o ciclo), push, aba 7 "PMEs e ciclos", CSV, fechamento | ⏳ |
 | 5 | Depois da Eduarda: P1, P2, P3 da spec §9 (pequenas) | aguardando respostas |
@@ -167,7 +167,7 @@ Execução nativa (sem subagentes). Migration `0058`.
 - Histórico: `meta.criada`, `meta.editada`, `meta.excluida`, `tarefa.criada`, `tarefa.editada`, `tarefa.excluida`
   (nomes de campos). `meta.excluida` e `tarefa.excluida` só pelas funções.
 
-### Tarefa 2.1: Banco (0058) — Status: ⏳
+### Tarefa 2.1: Banco (0058) — Status: ✅
 **Files:** Modify `db/src/schema/mentoria.ts` · Create `db/drizzle/0058_acompanhamento_v2_metas.sql` + snapshot + journal ·
 Test `db/test/mentoria-v2-metas.test.ts`
 - Tabela `mentoria_metas` (inscricao_id, ciclo_id, reuniao_id `SET NULL`, pessoa_id `SET NULL`, pilar, descricao,
@@ -180,12 +180,12 @@ Test `db/test/mentoria-v2-metas.test.ts`
   policy do histórico (+ `meta.excluida`, `tarefa.excluida`).
 - RLS + grants: metas (SELECT `mentoria_ve_meta`, INSERT/UPDATE área META), tarefas (UPDATE de descricao, prazo, meta_id).
   Sem DELETE.
-- [ ] Testes RED: RLS de metas por perfil (Operação lê sem escrever, Manu e Leo não veem, sem DELETE); Manu cria tarefa só
+- [x] Testes RED: RLS de metas por perfil (Operação lê sem escrever, Manu e Leo não veem, sem DELETE); Manu cria tarefa só
   na própria reunião; 4ª tarefa; texto/prazo só em REUNIAO; meta de outra inscrição recusada; excluir tarefa (só pendente
   REUNIAO) e meta; reunião com tarefa não exclui; % de tarefas e de metas (com e sem alvo, ATINGIDA, sem metas); LGPD.
-- [ ] Schema + `generate` + SQL manual; `pnpm --filter @npac/db test` verde. Commit.
+- [x] Schema + `generate` + SQL manual; `pnpm --filter @npac/db test` verde. Commit.
 
-### Tarefa 2.2: API — Status: ⏳
+### Tarefa 2.2: API — Status: ✅
 **Files:** Create `api/mentoria/metas.service.ts`, `metas.controller.ts`, `sh/mentoria/metas.ts` · Modify
 `sh/schemas/mentoria.ts`, `sh/mentoria/dto.ts`, `ciclos.service.ts`, `ciclos.controller.ts`, `reunioes.service.ts`,
 `ficha.service.ts`, `historico.ts`, `mentoria.module.ts` · Test `api/test/mentoria-v2-metas.e2e.test.ts`
@@ -195,22 +195,26 @@ Test `db/test/mentoria-v2-metas.test.ts`
 - DTOs: `MetaDTO`; `TarefaDTO` + `metaId`, `reuniaoInicio`, `reuniaoTipo`; `CicloDTO` + `pctTarefas`, `pctMetas`;
   `ReuniaoDTO` + `tarefas`, `cobranca`, `metas`, `pessoasDaInscricao`, `podeTarefa`, `podeMeta`;
   `FichaDTO` + `metas`, `tarefasReuniao`, `pode.meta`.
-- [ ] Testes RED (spec §8 da parte): 3 tarefas e 400 na 4ª; prazo obrigatório e ≥ reunião; tarefa no ciclo aberto;
+- [x] Testes RED (spec §8 da parte): 3 tarefas e 400 na 4ª; prazo obrigatório e ≥ reunião; tarefa no ciclo aberto;
   cobrança traz a reunião anterior com tarefas (a da Manu, só as dela); Manu sem metas (404) e só nas próprias reuniões;
   Operação lê e não cria (404); metas CRUD + histórico; % de tarefas (PARCIAL não conta) e de metas; REMARCADA recusa;
   excluir tarefa marcada recusa; reunião com tarefa não exclui; LGPD zera metas.
-- [ ] Implementar; suítes do módulo verdes. Commit.
+- [x] Implementar; suítes do módulo verdes. Commit.
 
-### Tarefa 2.3: Telas — Status: ⏳
+### Tarefa 2.3: Telas — Status: ✅
 **Files:** Create `components/acompanhamento/metas.tsx`, `tarefas-reuniao.tsx`, `web/e2e/acompanhamento-v2-metas.spec.ts` ·
 Modify `reuniao-registro.tsx` (3 blocos), `pme-atual.tsx` (barras; `Tarefa` exportada), `ficha.tsx` (seções Tarefas e
-Metas), `lib/acompanhamento-saver.ts` (`meta:<inscricaoId>:<id>`), `historico-lista.tsx` (títulos), `modulo.css`,
-`db/src/seed-mentoria.ts` (meta e tarefa fictícias na demo)
-- [ ] Playwright por perfil: Duda combina 3 tarefas (4ª bloqueada), cria meta, cobra na reunião seguinte, vê as barras;
+Metas), `lib/acompanhamento-saver.ts` (`meta:<inscricaoId>:<id>`), `historico-lista.tsx` (títulos), `modulo.css`
+(o seed não ganhou meta nem tarefa: ele não cifra texto; a demo cria pela tela)
+- [x] Playwright por perfil: Duda combina 3 tarefas (4ª bloqueada), cria meta, cobra na reunião seguinte, vê as barras;
   Operação vê sem editar; Manu cobra só a própria reunião e não vê metas. Capturas 375/768/1024/1440. Commit.
 
-### Tarefa 2.4: Fechamento — Status: ⏳
-- [ ] `pnpm lint && pnpm typecheck`, `@npac/db`, `@npac/api`, Playwright completo; `CLAUDE.md`; Status acima; PR.
+### Tarefa 2.4: Fechamento — Status: ✅
+- [x] `pnpm lint && pnpm typecheck`, `@npac/db`, `@npac/api`, Playwright completo; `CLAUDE.md`; Status acima; PR.
+
+**Para a Parte 3:** `mentoria_tarefas` REUNIAO já têm `prazo`/`data_cobranca`, `status` e `cobrada_em` (base do motivo `TAREFA_1/2`
+do semáforo e da COBRANCA da Parte 4); `mentoria_pct_tarefas`/`_metas` servem a coluna "% do PME" de Mentorados. Pergunta aberta
+ao Gabriel: o texto livre da Fase 1 "Metas definidas ou ajustadas" (registro) agora tem o mesmo nome do bloco novo.
 
 ## Parte 3 — Check-in e semáforo
 

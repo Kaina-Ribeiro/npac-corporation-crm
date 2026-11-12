@@ -79,7 +79,10 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   anonimizar e transferir carteira `carteira.controller.ts` (0056); **Fase 2** (cobrança, plano
   `docs/superpowers/plans/2026-11-11-acompanhamento-v2-fase-2.md`, spec `docs/superpowers/specs/2026-11-11-acompanhamento-v2-fase-2-design.md`),
   Parte 1 (0057): catálogo `mentoria_pmes` em Configurações > PMEs (`pmes.controller.ts`, só Admin; a migration traz o 1º e o 2º do PDF),
-  ciclos e tarefas do ciclo `ciclos.*` + `sh/mentoria/pmes.ts`, card "PME atual" na Jornada (`components/acompanhamento/pme-atual.tsx`)
+  ciclos e tarefas do ciclo `ciclos.*` + `sh/mentoria/pmes.ts`, card "PME atual" na Jornada (`components/acompanhamento/pme-atual.tsx`);
+  Parte 2 (0058): metas `metas.*` + `sh/mentoria/metas.ts`, tarefas da reunião (`POST reunioes/:id/tarefas`, `DELETE tarefas/:id` em
+  `ciclos.*`), cobrança e blocos do registro (`components/acompanhamento/tarefas-reuniao.tsx`, `metas.tsx`), % do PME em SQL
+  (`mentoria_pct_tarefas`/`_metas`, barras no card)
   · banco `db/src/schema/mentoria.ts`
   - 0044–0045 (`mentoria_perfil()`, `mentoria_admin()`, `mentoria_ve()`, `mentoria_edita()`, funções `mentoria_*`) ·
     seed `db/src/seed-mentoria.ts` · lógica pura `sh/mentoria/*` (cliente: `@npac/shared/mentoria`, sem zod) ·
@@ -172,6 +175,17 @@ nao_concluido, prazo, hoje)` com o `hoje` do `MENTORIA_CLOCK`: até 9 dias de at
   comprovante foto/vídeo/PDF em `tarefa-comprovante/:id/midia`): Admin e Acompanhamento; Especialista só as REUNIAO das próprias
   reuniões (`mentoria_ve_tarefa`/`mentoria_edita_tarefa`); Operação envia mas não marca. Até 3 tarefas por reunião (gatilho, para a
   Parte 2). Pausa não estica o prazo do PME (pergunta aberta à Eduarda).
+  **Metas e tarefas da reunião** (Fase 2, Parte 2, 12/11/2026): metas (`mentoria_metas`, casal ou de uma pessoa, pilar, alvo/atual
+  `numeric`, status Em andamento/Atingida/Não atingida, descrição cifrada) leem Admin, Acompanhamento e Operação (`mentoria_ve_meta`);
+  escrevem Admin e Acompanhamento (área `META`); a **Especialista não vê metas**. Meta nasce no ciclo aberto; sem ciclo, entra no
+  próximo enviado (gatilho). Registro da reunião: "Cobrança da reunião anterior" (tarefas REUNIAO da reunião anterior mais recente que
+  tenha tarefas visíveis a quem abre), "Tarefas da semana" (até 3, prazo obrigatório e ≥ dia da reunião, meta opcional, entra no ciclo
+  aberto; REMARCADA/FALTOU recusam) e "Metas definidas ou ajustadas"; os textos da Fase 1 continuam. Só a tarefa REUNIAO muda texto,
+  prazo e meta; excluir só pendente, por `mentoria_excluir_tarefa`; meta por `mentoria_excluir_meta`; reunião com tarefa/meta não se
+  exclui. Vínculos (ciclo, reunião, pessoa, meta) da mesma inscrição por gatilho. % do PME (E5, duas medidas): tarefas FEITA ÷ total do
+  ciclo (PARCIAL não conta) e média das metas (min(atual ÷ alvo, 1); sem alvo pelo status; ATINGIDA = 100 %), `SECURITY DEFINER`
+  (a Especialista vê o número inteiro). Ficha > Jornada: card do PME (extras e encerramento + barras), Tarefas (as da reunião por PME)
+  e Metas.
 - **Siglas das mentorias** (Gabriel, 04/11/2026): RDV = Rico de Verdade · IDR = Introdução da
   Riqueza · PME = Plano Mensal de Enriquecimento · 2M = Marco e Mudança · 6M = sem definição ainda.
   Nas telas vale o texto literal do PDF, exceto IDR: "Introdução da Riqueza" (o PDF diz "à"; corrigido).
