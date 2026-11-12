@@ -19,7 +19,7 @@ import {
 import { money } from '@npac/shared/money';
 import { dashboardRules, readPrefs, reportRules, writePrefs } from '@npac/shared/screen-prefs';
 import Link from 'next/link';
-import { type CSSProperties, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { clientApi } from '@/lib/client-api';
 import { DASH_CARDS } from '@/lib/dashboard-layout';
 import { presetFilters, type Preset } from '@/lib/report-presets';
@@ -735,7 +735,6 @@ export function Reports({
       {dashboard ? (
         <DashboardBoard
           cards={dashCards.filter((c) => !hiddenCards.has(c.id))}
-          style={{ '--d': '80ms' } as CSSProperties}
         />
       ) : (
         <>

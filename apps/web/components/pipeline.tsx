@@ -349,8 +349,9 @@ export function Pipeline({
             <section
               key={c.stage.id}
               aria-label={c.stage.label}
-              // Entrada em cascata (globals.css `.reveal`): coluna por coluna, depois os cards.
-              style={{ '--delay': `${200 + col * 90}ms` } as CSSProperties}
+              // Entrada (globals.css `.reveal`): só as colunas, na cascata curta da página (0, 30
+              // e 60 ms); os cards entram junto com a coluna, nunca um a um.
+              style={{ '--delay': `${Math.min(col, 2) * 30}ms` } as CSSProperties}
               className={`reveal glass-card scroll-thin min-w-0 flex-col gap-3 p-3 md:max-h-[min(70vh,720px)] md:overflow-y-auto ${current === c.stage.key ? 'flex' : 'hidden md:flex'}`}
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => {
@@ -364,15 +365,12 @@ export function Pipeline({
                 {c.stage.label}
                 <span className="text-ink2">{c.total}</span>
               </h2>
-              {c.items.map((l, i) => (
+              {c.items.map((l) => (
                 <article
                   key={l.id}
                   draggable={!busy}
                   onDragStart={(e) => e.dataTransfer.setData('text/plain', l.id)}
-                  style={
-                    { '--delay': `${360 + col * 90 + Math.min(i, 8) * 55}ms` } as CSSProperties
-                  }
-                  className="reveal rounded-2xl border border-line bg-[var(--gl2)] p-3"
+                  className="rounded-2xl border border-line bg-[var(--gl2)] p-3"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <Link

@@ -1,4 +1,3 @@
-import type { CSSProperties } from 'react';
 import type { Role } from '@npac/shared';
 import { ATUA_COMO, temCaixas } from '@npac/shared/cargos';
 import { money } from '@npac/shared/money';
@@ -31,7 +30,6 @@ export default async function EquipePage() {
       </div>
       <ul
         className="reveal-grid grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 4xl:grid-cols-6"
-        style={{ '--d': '140ms' } as CSSProperties}
       >
         {members.map((m) => (
           <li key={m.id} className="glass-card flex flex-col gap-3 p-5">
