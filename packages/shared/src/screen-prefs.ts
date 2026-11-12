@@ -156,3 +156,35 @@ export function writeTabUrls(saved: TabUrls, tab: string, query: string, today: 
   params.set('d', today);
   return stringify(params);
 }
+
+/** Consulta canônica da aba: só as chaves da tela, na ordem dada, sem vazio. */
+export function tabQuery(params: Record<string, string | undefined>, keys: readonly string[]) {
+  const map = new Map<string, string>();
+  for (const key of keys) {
+    const value = params[key];
+    if (value) map.set(key, value);
+  }
+  return stringify(map);
+}
+
+/**
+ * Telas com estado na URL: com alguma chave da tela na URL, vale a URL (e vira a lembrada); sem
+ * nenhuma (clique no menu), vale a última aba salva.
+ */
+export function pickTabUrl(
+  url: Record<string, string | undefined>,
+  keys: readonly string[],
+  saved: TabUrls,
+): { fromMenu: boolean; params: Record<string, string> } {
+  const pick = (source: Map<string, string> | Record<string, string | undefined>) => {
+    const out: Record<string, string> = {};
+    for (const key of keys) {
+      const value = source instanceof Map ? source.get(key) : source[key];
+      if (value) out[key] = value;
+    }
+    return out;
+  };
+  if (keys.some((k) => url[k])) return { fromMenu: false, params: pick(url) };
+  const query = saved.last ? saved.tabs[saved.last] : undefined;
+  return { fromMenu: true, params: query ? pick(parse(query)) : {} };
+}
