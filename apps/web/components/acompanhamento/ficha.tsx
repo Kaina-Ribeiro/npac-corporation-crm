@@ -31,6 +31,7 @@ import { FichaPessoas } from './ficha-pessoas';
 import { HistoricoLista } from './historico-lista';
 import { IndicadorSalvo } from './indicador-salvo';
 import { PlanoMentorado } from './plano-mentorado';
+import { PmeAtual } from './pme-atual';
 import {
   abaValida,
   dataBR,
@@ -85,6 +86,11 @@ function Jornada({
       <OnboardingFicha
         ficha={ficha}
         atualizar={atualizar}
+        pme={
+          ficha.ciclos.length > 0 || ficha.status === 'ATIVO' ? (
+            <PmeAtual ficha={ficha} atualizar={atualizar} />
+          ) : null
+        }
         plano={
           ficha.acoes.length > 0 ? (
             <PlanoMentorado ficha={ficha} atualizar={atualizar} memoria={memoria} />

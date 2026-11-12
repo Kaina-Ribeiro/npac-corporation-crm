@@ -5,7 +5,9 @@ import {
   type AcaoDTO,
   type FichaDTO,
   type PlanoModeloLinha,
+  type PmeDTO,
   type ReuniaoDTO,
+  type TarefaDTO,
   type StatusFila,
 } from '@npac/shared/mentoria';
 import { useEffect, useState } from 'react';
@@ -15,7 +17,7 @@ import { useEffect, useState } from 'react';
  * status do 409. Uma fila por aba; nada vai para storage. Chaves do registro:
  * `inscricao:<id>`, `pessoa:<inscricaoId>:<pessoaId>`, `etapa:<inscricaoId>:<etapaId>`,
  * `endereco:<id>`, `momento:<id>`, `acao:<inscricaoId>:<acaoId>`, `reuniao:<inscricaoId>:<id>`,
- * `modelo:<id>` e
+ * `modelo:<id>`, `pme:<id>`, `tarefa:<inscricaoId>:<id>` e
  * `avaliacao:<pessoaId>:<tipo>` (esta sem version: uma coluna por envio, não colide).
  */
 type Alvo = { url: string; method: 'PATCH' | 'PUT'; corpo: (v: number) => object };
@@ -47,6 +49,10 @@ function alvo(key: string): Alvo {
         method: 'PUT',
         corpo: (version) => ({ id: a, version }),
       };
+    case 'pme':
+      return { url: `${base}/pmes`, method: 'PUT', corpo: (version) => ({ id: a, version }) };
+    case 'tarefa':
+      return { url: `${base}/tarefas/${b}`, method: 'PATCH', corpo: comVersion };
     default:
       throw new Error(`Registro desconhecido: ${key}`);
   }
@@ -87,6 +93,24 @@ async function recarregar(key: string) {
       version: l?.version ?? 0,
       valores: { ...l, itens: JSON.stringify(l?.itens ?? []) } as Record<string, unknown>,
     };
+  }
+  if (tipo === 'pme') {
+    const res = await fetch('/api/mentoria/pmes', { cache: 'no-store' });
+    if (!res.ok) throw new ErroDeEnvio('Não foi possível recarregar', res.status);
+    const p = ((await res.json()) as PmeDTO[]).find((x) => x.id === a);
+    return {
+      version: p?.version ?? 0,
+      valores: {
+        ...p,
+        atividadesExtras: JSON.stringify(p?.atividadesExtras ?? []),
+      } as Record<string, unknown>,
+    };
+  }
+  if (tipo === 'tarefa') {
+    const res = await fetch(`/api/mentoria/tarefas/${b}`, { cache: 'no-store' });
+    if (!res.ok) throw new ErroDeEnvio('Não foi possível recarregar', res.status);
+    const x = (await res.json()) as TarefaDTO;
+    return { version: x.version, valores: x as unknown as Record<string, unknown> };
   }
   if (tipo === 'reuniao') {
     const res = await fetch(`/api/mentoria/reunioes/${b}`, { cache: 'no-store' });
