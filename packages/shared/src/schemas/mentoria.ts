@@ -18,6 +18,7 @@ import { FILA_TIPOS } from '../mentoria/fila.js';
 import { MOMENTOS_MENSAGEM } from '../mentoria/mensagens.js';
 import { ENVIO_STATUS } from '../mentoria/onboarding.js';
 import { ACAO_STATUS, GATILHOS, PERFIS_ACAO, REUNIAO_TIPOS } from '../mentoria/plano.js';
+import { TAREFA_STATUS } from '../mentoria/pmes.js';
 import {
   CANAIS_CONTATO,
   dataHoraValida,
@@ -294,6 +295,50 @@ export const planoModeloPutSchema = z
   })
   .strict();
 export type PlanoModeloPut = z.output<typeof planoModeloPutSchema>;
+
+// PMEs, ciclos e tarefas (Fase 2, Parte 1).
+const atividade = z.string().trim().min(1).max(500);
+
+/** Sem `id` cria o número do catálogo; com `id` e `version`, muda só os campos enviados. */
+export const pmePutSchema = z
+  .object({
+    id: z.uuid().optional(),
+    version: z.number().int().min(1).optional(),
+    numero: z.number().int().min(0).max(12).optional(),
+    titulo: texto(120),
+    foco: texto(500),
+    linkMaterial: linkPasta,
+    atividadesExtras: z.array(atividade).max(20).optional(),
+    encerramento: texto(500),
+    ativo: z.boolean().optional(),
+  })
+  .strict();
+export type PmePut = z.output<typeof pmePutSchema>;
+
+/** Envio do próximo PME. Sem data: hoje. */
+export const envioPmeSchema = z.object({ enviadoEm: dataIso.optional() }).strict();
+export type EnvioPme = z.output<typeof envioPmeSchema>;
+
+/** Ciclo de antes do sistema (carteira importada): número e datas escolhidos, sem tarefas. */
+export const cicloAnteriorSchema = z
+  .object({
+    numero: z.number().int().min(1).max(12),
+    enviadoEm: dataIso,
+    concluidoEm: data,
+  })
+  .strict();
+export type CicloAnterior = z.output<typeof cicloAnteriorSchema>;
+
+/** Corrigir a data de envio; fechar ou reabrir à mão o ciclo sem tarefa de encerramento. */
+export const cicloPatchSchema = z
+  .object({ version, enviadoEm: dataIso.optional(), concluidoEm: data })
+  .strict();
+export type CicloPatch = z.output<typeof cicloPatchSchema>;
+
+export const tarefaPatchSchema = z
+  .object({ version, status: z.enum(TAREFA_STATUS).optional(), motivo: texto(2000) })
+  .strict();
+export type TarefaPatch = z.output<typeof tarefaPatchSchema>;
 
 export const dataIdrSchema = z.object({ version, dataIdr: dataIso }).strict();
 export type DataIdrPut = z.output<typeof dataIdrSchema>;

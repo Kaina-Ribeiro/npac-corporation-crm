@@ -2,9 +2,11 @@ import type { AgendaSemana, Condutor, ControleMensal, SemReuniao } from '@npac/s
 import Link from 'next/link';
 import { ControleMensalTela } from '@/components/acompanhamento/controle-mensal';
 import { ExportarBotao } from '@/components/acompanhamento/exportar-botao';
+import { LembrarUrl } from '@/components/acompanhamento/lembrar-url';
 import { ReunioesAgenda } from '@/components/acompanhamento/reunioes-agenda';
 import { SemReuniaoTela } from '@/components/acompanhamento/sem-reuniao';
 import { lerEu, podeExportar, sessaoDoModulo } from '@/lib/acompanhamento';
+import { abasLembradas } from '@/lib/acompanhamento-abas';
 import { apiGet, apiPost } from '@/lib/api';
 
 export const metadata = { title: 'Reuniões' };
@@ -14,6 +16,10 @@ const ABAS = [
   ['controle', 'Controle mensal'],
   ['sem', 'Sem reunião'],
 ] as const;
+
+/** Filtros de cada aba, lembrados (NPAC-46); semana e mês só no mesmo dia. */
+const CHAVES = { agenda: ['dia', 'condutor'], controle: ['mes', 'mentoria'], sem: ['mentoria'] };
+const DIARIAS = ['dia', 'mes'];
 
 const DIA = /^\d{4}-\d{2}-\d{2}$/;
 const MES = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -63,15 +69,23 @@ async function Conteudo({ aba, q, podeAgendar }: { aba: string; q: Busca; podeAg
 }
 
 export default async function ReunioesPage({ searchParams }: { searchParams: Promise<Busca> }) {
-  if (!(await sessaoDoModulo())) return null;
-  const q = await searchParams;
+  const me = await sessaoDoModulo();
+  if (!me) return null;
+  const url = await searchParams;
   const eu = await lerEu();
   // A Especialista também agenda as próprias reuniões (a API recusa as que não são dela).
   const podeAgendar = !!eu && (eu.admin || eu.perfil !== 'MENTOR');
   // Controle mensal e Sem reunião são painéis da equipe: a Especialista só vê as reuniões dela.
   const equipe = !!eu && (eu.admin || eu.perfil === 'ACOMPANHAMENTO' || eu.perfil === 'OPERACAO');
   const abas = equipe ? ABAS : ABAS.filter(([id]) => id === 'agenda');
-  const aba = abas.some(([id]) => id === q.aba) ? q.aba! : 'agenda';
+  const ids = abas.map(([id]) => id);
+  const lembradas = await abasLembradas('reunioes', me.id, url, {
+    abas: ids,
+    padrao: 'agenda',
+    chaves: CHAVES,
+    daily: DIARIAS,
+  });
+  const { aba, q } = lembradas;
   return (
     <section className="view">
       <div className="hrow">
@@ -87,16 +101,22 @@ export default async function ReunioesPage({ searchParams }: { searchParams: Pro
       </div>
       <div className="tabs">
         {abas.map(([id, rotulo]) => (
-          <Link
-            key={id}
-            className={aba === id ? 'on' : ''}
-            href={`/acompanhamento/reunioes?aba=${id}`}
-          >
+          <Link key={id} className={aba === id ? 'on' : ''} href={lembradas.href(id)}>
             {rotulo}
           </Link>
         ))}
       </div>
       <Conteudo aba={aba} q={q} podeAgendar={podeAgendar} />
+      <LembrarUrl
+        screen="reunioes"
+        cookie={lembradas.cookie}
+        valor={lembradas.valor}
+        abas={ids}
+        aba={aba}
+        consulta={lembradas.consulta}
+        daily={DIARIAS}
+        doMenu={lembradas.doMenu}
+      />
     </section>
   );
 }

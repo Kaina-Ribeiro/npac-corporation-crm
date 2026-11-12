@@ -14,5 +14,6 @@ export * from './fila.js';
 export * from './mensagens.js';
 export * from './importacao.js';
 export * from './plano.js';
+export * from './pmes.js';
 // Pura, sem zod: a ficha grava o telefone já no formato do servidor.
 export { normalizePhoneBR } from '../normalize.js';

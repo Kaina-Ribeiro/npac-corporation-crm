@@ -15,9 +15,12 @@ import {
 } from '@npac/shared/mentoria';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { readPrefs } from '@npac/shared/screen-prefs';
 import { useEffect, useRef, useState } from 'react';
 import { button, control, quietButton } from '@/components/crm-ui';
+import { FICHA_REGRAS, atualizarAc } from '@/lib/acompanhamento-prefs';
 import { clientApi } from '@/lib/client-api';
+import { useLatestPrefs } from '@/lib/use-latest-prefs';
 import { filaDeSalvamento, registrarVersion } from '@/lib/acompanhamento-saver';
 import { EVENTO_ULTIMA_FICHA } from '@/lib/ultima-ficha';
 import { CampoPr, DINHEIRO } from './campo';
@@ -28,7 +31,9 @@ import { FichaPessoas } from './ficha-pessoas';
 import { HistoricoLista } from './historico-lista';
 import { IndicadorSalvo } from './indicador-salvo';
 import { PlanoMentorado } from './plano-mentorado';
+import { PmeAtual } from './pme-atual';
 import {
+  abaValida,
   dataBR,
   FOCOS_RDV,
   ICONES,
@@ -48,10 +53,12 @@ function Jornada({
   ficha,
   soLargo,
   atualizar,
+  memoria,
 }: {
   ficha: FichaDTO;
   soLargo: boolean;
   atualizar: () => void;
+  memoria: string;
 }) {
   const mes = ficha.mesJornada;
   const focos = ficha.mentoria === 'RDV' ? FOCOS_RDV : null;
@@ -79,8 +86,15 @@ function Jornada({
       <OnboardingFicha
         ficha={ficha}
         atualizar={atualizar}
+        pme={
+          ficha.ciclos.length > 0 || ficha.status === 'ATIVO' ? (
+            <PmeAtual ficha={ficha} atualizar={atualizar} />
+          ) : null
+        }
         plano={
-          ficha.acoes.length > 0 ? <PlanoMentorado ficha={ficha} atualizar={atualizar} /> : null
+          ficha.acoes.length > 0 ? (
+            <PlanoMentorado ficha={ficha} atualizar={atualizar} memoria={memoria} />
+          ) : null
         }
       />
     </section>
@@ -505,13 +519,27 @@ export function Ficha({
   ficha,
   responsaveis,
   abaInicial,
+  lembrar,
 }: {
   ficha: FichaDTO;
   responsaveis: Responsavel[];
   abaInicial: Aba;
+  /** Cookie da aba e do filtro do histórico (NPAC-46); `abaDaUrl`: o link pediu a aba. */
+  lembrar: { cookie: string; valor: string; abaDaUrl: boolean };
 }) {
   const router = useRouter();
   const [aba, setAba] = useState<Aba>(abaInicial);
+  const lembrarAba = (a: Aba) =>
+    atualizarAc('ficha', lembrar.cookie, FICHA_REGRAS, { aba: a === 'jornada' ? undefined : a });
+  const pedida = useRef(lembrar.abaDaUrl ? abaInicial : null);
+  // Voltar do navegador traz a página de antes: sem aba no link, vale a mais nova do cookie.
+  useLatestPrefs(lembrar.cookie, lembrar.valor, (valor) => {
+    if (!pedida.current) setAba(abaValida(readPrefs(valor, FICHA_REGRAS).aba));
+  });
+  // A aba pedida no link vira a lembrada (depois de `useLatestPrefs`, que semeia a memória).
+  useEffect(() => {
+    if (pedida.current) lembrarAba(pedida.current);
+  }, []);
   const [mudarTipo, setMudarTipo] = useState(false);
   const [dialogo, setDialogo] = useState<
     'pausar' | 'retomar' | 'idr' | 'excluir' | 'anonimizar' | null
@@ -538,6 +566,7 @@ export function Ficha({
   function trocarAba(a: Aba) {
     setAba(a);
     window.history.replaceState(null, '', `?aba=${a}`);
+    lembrarAba(a);
   }
 
   const mes = ficha.mesJornada;
@@ -655,11 +684,16 @@ export function Ficha({
           </div>
           {/* A partir de 1280 px a Inscrição é coluna: a aba dela mostra a Jornada ao lado. */}
           {(aba === 'jornada' || aba === 'inscricao') && (
-            <Jornada ficha={ficha} soLargo={aba === 'inscricao'} atualizar={atualizar} />
+            <Jornada
+              ficha={ficha}
+              soLargo={aba === 'inscricao'}
+              atualizar={atualizar}
+              memoria={lembrar.cookie}
+            />
           )}
           {aba === 'pessoas' && <FichaPessoas ficha={ficha} atualizar={atualizar} />}
           {aba === 'momento' && <FichaMomento ficha={ficha} atualizar={atualizar} />}
-          {aba === 'historico' && <HistoricoLista ficha={ficha} />}
+          {aba === 'historico' && <HistoricoLista ficha={ficha} lembrar={lembrar} />}
         </div>
         <Inscricao
           ficha={ficha}

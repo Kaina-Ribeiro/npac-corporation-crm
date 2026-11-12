@@ -5,6 +5,7 @@ import { eq, sql } from 'drizzle-orm';
 import type { Db } from './client.js';
 import {
   account,
+  mentoriaCiclos,
   mentoriaEnviosFisicos,
   mentoriaInscricoes,
   mentoriaMomentoInicial,
@@ -258,6 +259,29 @@ export async function seedMentoria(db: Db): Promise<void> {
           pausadaPor: duda,
         });
     }
+
+    // PMEs de antes do sistema (Fase 2): o casal no 9º mês já fechou o 8º e está no 9º. Sem
+    // tarefas: as do envio têm texto cifrado pela API, e o seed não tem a chave.
+    await tx
+      .insert(mentoriaCiclos)
+      .values(
+        [
+          { numero: 8, enviadoHa: 40, concluidoHa: 12 },
+          { numero: 9, enviadoHa: 12, concluidoHa: null },
+        ].map((c) => ({
+          id: `00000000-0000-4000-a000-${String(c.numero).padStart(12, '0')}`,
+          inscricaoId: seedInscricaoId(2),
+          numero: c.numero,
+          enviadoEm: sql`(now() at time zone 'America/Sao_Paulo')::date - ${c.enviadoHa}::int`,
+          concluidoEm:
+            c.concluidoHa === null
+              ? null
+              : sql`(now() at time zone 'America/Sao_Paulo')::date - ${c.concluidoHa}::int`,
+          anteriorAoSistema: true,
+          criadoPor: duda,
+        })),
+      )
+      .onConflictDoNothing();
 
     // Reuniões de exemplo: a semana tem de tudo, e a Manu conduz uma (é o que lhe dá acesso).
     const quando = (dias: number, hora: string) =>

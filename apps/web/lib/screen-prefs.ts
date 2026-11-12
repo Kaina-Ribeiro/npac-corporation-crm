@@ -13,7 +13,7 @@ export const PREFS = {
   chat: { prefix: 'npac_f_chat', path: '/chat' },
   /** Só memória (busca): sem cookie. */
   playbook: { prefix: 'npac_m_playbook', path: '' },
-  // Acompanhamento: PR 2 do NPAC-46.
+  // Acompanhamento: `lib/acompanhamento-prefs.ts` (fora daqui para não pesar no JS de /leads).
 } as const;
 
 export type Screen = keyof typeof PREFS;
@@ -23,8 +23,10 @@ export const prefsCookie = (screen: Screen, userId: string) =>
   userCookieName(PREFS[screen].prefix, userId);
 
 /** Grava no navegador; vazio apaga; acima de 1 KB não grava (defesa). */
-export function rememberPrefs(screen: Screen, cookie: string, value: string) {
-  const { path } = PREFS[screen];
+export function rememberAt(path: string, cookie: string, value: string) {
   if (!path || value.length > 1024) return;
   savePreference(cookie, value, path);
 }
+
+export const rememberPrefs = (screen: Screen, cookie: string, value: string) =>
+  rememberAt(PREFS[screen].path, cookie, value);

@@ -258,7 +258,9 @@ test('375 px: lista e ficha sem rolagem lateral, item aberto é página própria
   await expect(page.getByRole('button', { name: 'Sair' })).toBeVisible();
 });
 
-test('1440x900: cada aba da ficha cabe sem rolar', async ({ page }) => {
+// A Jornada fica de fora desde a Fase 2: a spec (§7) põe nela o PME atual com as tarefas, metas e
+// check-ins, e um ciclo com tarefas já passa de uma tela. As outras abas continuam cabendo.
+test('1440x900: cada aba da ficha, fora a Jornada, cabe sem rolar', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await entrar(page, 'duda');
   await page.waitForURL(/\/acompanhamento\/fila/);
@@ -269,7 +271,7 @@ test('1440x900: cada aba da ficha cabe sem rolar', async ({ page }) => {
     [FICHA_ABERTA, 'Pessoa'],
   ] as const) {
     await page.goto(`/acompanhamento/ficha/${id}`);
-    for (const aba of ['Jornada', pessoas, 'Momento inicial', 'Histórico']) {
+    for (const aba of [pessoas, 'Momento inicial', 'Histórico']) {
       await page.getByRole('tab', { name: aba, exact: true }).click();
       await expect(page.getByRole('tabpanel')).toBeVisible();
       const sobra = await page.evaluate(

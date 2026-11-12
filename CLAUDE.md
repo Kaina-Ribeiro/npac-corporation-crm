@@ -76,7 +76,11 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   (0054; `{nome}`/`{nomes}`, WhatsApp copia e abre `wa.me/<número>` sem texto); push da Fila `avisos.scheduler.ts`
   (0055: um timer, `mentoria_aviso_proximo`/`_reclamar`, `mentoria_avisos_enviados`; `AvisosRearme` no
   `MentoriaController` rearma depois de toda escrita do módulo); CSV `exportacao.controller.ts`; excluir,
-  anonimizar e transferir carteira `carteira.controller.ts` (0056) · banco `db/src/schema/mentoria.ts`
+  anonimizar e transferir carteira `carteira.controller.ts` (0056); **Fase 2** (cobrança, plano
+  `docs/superpowers/plans/2026-11-11-acompanhamento-v2-fase-2.md`, spec `docs/superpowers/specs/2026-11-11-acompanhamento-v2-fase-2-design.md`),
+  Parte 1 (0057): catálogo `mentoria_pmes` em Configurações > PMEs (`pmes.controller.ts`, só Admin; a migration traz o 1º e o 2º do PDF),
+  ciclos e tarefas do ciclo `ciclos.*` + `sh/mentoria/pmes.ts`, card "PME atual" na Jornada (`components/acompanhamento/pme-atual.tsx`)
+  · banco `db/src/schema/mentoria.ts`
   - 0044–0045 (`mentoria_perfil()`, `mentoria_admin()`, `mentoria_ve()`, `mentoria_edita()`, funções `mentoria_*`) ·
     seed `db/src/seed-mentoria.ts` · lógica pura `sh/mentoria/*` (cliente: `@npac/shared/mentoria`, sem zod) ·
     telas `web/app/(app)/acompanhamento/*` (`fila` é a entrada, `mentorados`, `mentorados/nova`, `ficha/[id]`, `configuracoes`, `mais`,
@@ -157,6 +161,17 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   (`mentoria.csv`), contato só para Admin, nunca dor, sonho, meta, anotações ou textos de reunião. Excluir e
   anonimizar (LGPD) só Admin, pela ficha; anonimizar mantém inscrição, reuniões e ações para as contagens.
   Salvar ao sair do campo: em 409 a fila reaplica se o outro não mexeu naquele campo; se mexeu, avisa e mantém o dele (`resolverConflito`).
+  **PMEs e ciclos** (Fase 2, Parte 1, 11/11/2026): cada PME dura 30 dias do envio (`prazo` e `data_cobranca` são colunas
+  geradas); o envio (`POST inscricoes/:id/ciclos`, Admin, Acompanhamento e Operação, área `PME` de `mentoria_edita`) cria o
+  ciclo do número seguinte (1 a 12) com uma tarefa EXTRA por atividade do catálogo e uma ENCERRAMENTO (texto cifrado; sem texto
+  no catálogo, "Encerramento do Nº PME"); só ATIVO, antes do término; ciclo aberto vira `nao_concluido_em`; o 1º preenche
+  `pme1_enviado_em`, e o "Enviado" do 1º PME na Fila também abre o ciclo 1. Status derivado em `mentoria_ciclo_status(concluido,
+nao_concluido, prazo, hoje)` com o `hoje` do `MENTORIA_CLOCK`: até 9 dias de atraso em andamento, 10–16 segunda chance, 17+ não
+  concluído. Encerramento FEITA fecha o ciclo por gatilho; voltar reabre (recusa se o seguinte já saiu). Ciclo anterior ao sistema
+  (`ciclos/anterior`) sem tarefas, fecha à mão (área `TAREFA`). Marcar tarefa (resultado, motivo só em parcial/não feita,
+  comprovante foto/vídeo/PDF em `tarefa-comprovante/:id/midia`): Admin e Acompanhamento; Especialista só as REUNIAO das próprias
+  reuniões (`mentoria_ve_tarefa`/`mentoria_edita_tarefa`); Operação envia mas não marca. Até 3 tarefas por reunião (gatilho, para a
+  Parte 2). Pausa não estica o prazo do PME (pergunta aberta à Eduarda).
 - **Siglas das mentorias** (Gabriel, 04/11/2026): RDV = Rico de Verdade · IDR = Introdução da
   Riqueza · PME = Plano Mensal de Enriquecimento · 2M = Marco e Mudança · 6M = sem definição ainda.
   Nas telas vale o texto literal do PDF, exceto IDR: "Introdução da Riqueza" (o PDF diz "à"; corrigido).
@@ -177,6 +192,18 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   "Filtrar Hoje", "Buscar" do Pipeline, "Atualizar relatório"); o texto da busca segue no Enter; "Limpar
   filtros" aparece com filtro ativo. `CsvExport` de `/leads` vem sob demanda (`next/dynamic`) pelo limite
   de 150 KB.
+  **Acompanhamento** (PR 2): mapa à parte `AC_PREFS` em `lib/acompanhamento-prefs.ts` (cookies `npac_f_ac_*`,
+  fora de `PREFS` para não pesar em `/leads`), com as regras de Fila (`ver` Minha/Equipe, grupo), Mentorados
+  (mês, status, responsável, completar; "Limpar filtros"), Onboarding (etapa, painel) e Ficha (aba para qualquer
+  ficha, filtro do histórico; `?aba=` do link vence e vira a lembrada; mês do plano só na memória, por ficha).
+  Reuniões, Plano e Configurações guardam a **última URL por aba** (`lib/acompanhamento-abas.ts` no servidor,
+  `components/acompanhamento/lembrar-url.tsx` no navegador): URL com chave da tela vence; sem nenhuma (menu),
+  abre a última aba com os filtros dela; links das abas levam a consulta salva de cada uma; semana (`dia`) e
+  mês do Controle (`mes`) só no mesmo dia de Brasília. O valor vai codificado (o `cookies()` do Next decodifica).
+  **Leitura no navegador** (`readPreference` em `lib/read-preference.ts`): o JS só enxerga cookies do caminho
+  em que a página foi _carregada_; depois de navegar pelo menu, o cookie da tela fica invisível ao `document.cookie`
+  (mas vai nas requisições). Por isso `savePreference` espelha o valor na memória da aba e `readPreference(nome,
+valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda reconciliação passa o valor do servidor.
 
 ## Segurança e privacidade (não negociável)
 
