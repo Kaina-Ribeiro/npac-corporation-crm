@@ -422,7 +422,13 @@ linha; função de gatilho `app_revision_bump()`; `RevisionService.changes$: Obs
   A closer fica em 339 ms porque cada uma das 6 consultas paga a política de `leads` (`id = any`
   da lista do closer, varrida linha a linha); sem meta nesta fase. Contagem do canal com
   `log_min_duration_statement = 0` só para `npac_app` no `npac_e2e_perf` (desligado depois).
-- [ ] Revisor independente (dinheiro: totais do relatório; gatilho do contador). PR, ITODEV.
+- [x] Revisor independente (somente leitura): relatório e `/team` conferidos campo a campo contra a
+  cópia congelada, sem achado (filtros, janelas, ordem das chaves, corte do SDR). Gatilho: dedupe,
+  deadlock, SECURITY DEFINER e laço de avisos sem achado; pediu medir a fila no commit (todo commit
+  que escreve nas 7 tabelas atualiza a mesma linha): 20 escritores simultâneos, 3.000 commits no
+  `npac_e2e_perf`, **456–467/s com o gatilho × 467–475/s sem** (≤ 4%). TRUNCATE e
+  `session_replication_role = replica` (seeds) não avisam: fora do caminho do app.
+- [ ] PR, ITODEV.
 
 ## Fase 4 — Interface: movimento e resposta
 
