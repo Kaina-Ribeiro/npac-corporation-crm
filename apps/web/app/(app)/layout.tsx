@@ -8,6 +8,7 @@ import { paletteItems } from '@/components/shell/nav-menu';
 import { LiveUpdates } from '@/components/shell/live-updates';
 import { TabTitle } from '@/components/inbox';
 import { NavProgress } from '@/components/shell/nav-progress';
+import { Toaster } from '@/components/toast';
 import { PageSkeleton } from '@/components/shell/page-skeleton';
 import { ThemeToggle } from '@/components/shell/theme-toggle';
 import { BottomNav } from '@/components/shell/bottom-nav';
@@ -71,6 +72,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <SidebarShell initialCollapsed={(await cookies()).get(SIDEBAR_COOKIE)?.value === '1'}>
       <Suspense>
         <NavProgress />
+        <Toaster />
       </Suspense>
       <LiveUpdates revision={me.revision} />
       {commercial && <TabTitle />}

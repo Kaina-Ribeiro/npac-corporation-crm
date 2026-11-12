@@ -3979,6 +3979,11 @@
   :is(.row, .fc-menu button, .busca-item, .pl-p, .pl-mod):active {
     transition-duration: var(--dur-press);
   }
+  /* Aviso de erro ao marcar ação no Plano: linha inteira, acima das duas colunas. */
+  .pl-corpo > .aviso-campo {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
   @media (hover: hover) {
     :is(.tabs a, .tabs button, .seg button, .hf button):not(.on):hover {
       color: var(--ink);

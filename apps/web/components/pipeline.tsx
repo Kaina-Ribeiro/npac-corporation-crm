@@ -20,8 +20,10 @@ import Link from 'next/link';
 import {
   useEffect,
   useLayoutEffect,
+  useOptimistic,
   useRef,
   useState,
+  useTransition,
   type CSSProperties,
   type FormEvent,
 } from 'react';
@@ -36,6 +38,20 @@ import { LeadFilters, readFilters } from './lead-filters';
 import { PipelineColumnsEditor } from './pipeline-columns-editor';
 import { StageMoveDialog } from './stage-move-dialog';
 import { useCrmRefresh } from './shell/live-updates';
+import { showToast } from './toast';
+
+/** O card na coluna nova: na hora do clique e de novo quando a API confirma (idempotente). */
+function moveCard(cols: PipelineDTO, lead: PipelineLead, target: string): PipelineDTO {
+  return cols.map((c) => {
+    const had = c.items.some((l) => l.id === lead.id);
+    if (c.stage.key === target) {
+      if (had) return c;
+      const moved = { ...lead, stageKey: target as PipelineLead['stageKey'] };
+      return { ...c, total: c.total + 1, items: [moved, ...c.items] };
+    }
+    return had ? { ...c, total: c.total - 1, items: c.items.filter((l) => l.id !== lead.id) } : c;
+  });
+}
 
 export function Pipeline({
   initial,
@@ -65,6 +81,12 @@ export function Pipeline({
   canEditColumns?: boolean;
 }) {
   const [columns, setColumns] = useState(initial);
+  // Mover sem janelinha: o card muda de coluna no clique; erro da API desfaz e mostra a mensagem.
+  const [board, moveOnBoard] = useOptimistic(
+    columns,
+    (cols, m: { lead: PipelineLead; target: string }) => moveCard(cols, m.lead, m.target),
+  );
+  const [, startTransition] = useTransition();
   const canRegister = can({ role }, 'sale:register');
   const [active, setActive] = useState<StageKey>((initialCol as StageKey) ?? 'SONDAGEM');
   // Etapas vivas (o editor de colunas muda a lista) e as ocultas pela pessoa: coluna nova aparece.
@@ -127,13 +149,17 @@ export function Pipeline({
       return;
     }
     setBusy(true);
-    try {
-      await save(lead, target);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
+    startTransition(async () => {
+      moveOnBoard({ lead, target });
+      try {
+        await save(lead, target);
+        showToast();
+      } catch (e) {
+        setError((e as Error).message);
+      } finally {
+        setBusy(false);
+      }
+    });
   }
   async function save(lead: PipelineLead, target: string, fields: StageFieldsBody = {}) {
     await clientApi(`/api/leads/${lead.id}`, 'PATCH', {
@@ -141,6 +167,8 @@ export function Pipeline({
       stageKey: target,
       ...fields,
     });
+    // Salvo: o card fica na coluna nova enquanto a lista recarrega.
+    setColumns((cols) => moveCard(cols, lead, target));
     await load();
   }
   // Ao montar: voltar do navegador (cookie mais novo que a página) e texto buscado na memória.
@@ -236,7 +264,7 @@ export function Pipeline({
     }
   }
   // No celular aparece uma etapa por vez: se a escolhida estiver oculta, vale a primeira visível.
-  const shown = columns.filter((c) => !hidden.includes(c.stage.key));
+  const shown = board.filter((c) => !hidden.includes(c.stage.key));
   const current = shown.some((c) => c.stage.key === active) ? active : shown[0]?.stage.key;
   return (
     <div className="flex flex-col gap-4">
@@ -315,13 +343,16 @@ export function Pipeline({
           lead={pending.lead}
           team={catalog.team}
           role={role}
-          onSubmit={(fields) => save(pending.lead, pending.target, fields)}
+          onSubmit={async (fields) => {
+            await save(pending.lead, pending.target, fields);
+            showToast();
+          }}
           // Cancelar não muda nada: o card continua na etapa antiga.
           onClose={() => setPending(null)}
         />
       )}
       <nav aria-label="Etapas do Pipeline" className="flex gap-2 overflow-x-auto pb-2 md:hidden">
-        {columns
+        {board
           .filter((c) => !hidden.includes(c.stage.key))
           .map((c) => (
             <button
@@ -343,7 +374,7 @@ export function Pipeline({
         data-own-motion
         className="grid items-start gap-4 pb-4 md:grid-cols-[repeat(auto-fill,minmax(260px,1fr))]"
       >
-        {columns
+        {board
           .filter((c) => !hidden.includes(c.stage.key))
           .map((c, col) => (
             <section
@@ -357,7 +388,7 @@ export function Pipeline({
               onDrop={(e) => {
                 e.preventDefault();
                 const id = e.dataTransfer.getData('text/plain');
-                const lead = columns.flatMap((col) => col.items).find((l) => l.id === id);
+                const lead = board.flatMap((col) => col.items).find((l) => l.id === id);
                 if (lead) void move(lead, c.stage.key);
               }}
             >

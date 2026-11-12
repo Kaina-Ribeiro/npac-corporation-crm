@@ -1544,6 +1544,69 @@ html[data-nav-pending] .ac > :not(.top, nav, .nav-skeleton) {
   animation: dash-pop 0.35s var(--ease-spring) both;
 }
 
+/* Aviso "Salvo" (`components/toast.tsx`, NPAC-47): pílula escura no pé da tela, acima da barra
+   inferior do celular. Entra subindo 8 px em `--dur`, sai em `--dur-fast`; não pega clique. */
+.toast-region {
+  position: fixed;
+  inset-inline: 0;
+  bottom: calc(max(16px, env(safe-area-inset-bottom)) + 80px);
+  z-index: 70;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+@media (min-width: 768px) {
+  .toast-region {
+    bottom: 28px;
+  }
+}
+.toast {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px 9px 12px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--bg);
+  background: color-mix(in srgb, var(--ink) 90%, transparent);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  box-shadow:
+    0 0 0 0.5px rgba(0, 0, 0, 0.08),
+    0 14px 34px -14px rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  translate: 0 8px;
+  scale: 0.98;
+  transition:
+    opacity var(--dur-fast) var(--ease-out),
+    translate var(--dur) var(--ease-out),
+    scale var(--dur) var(--ease-out);
+}
+.toast[data-on] {
+  opacity: 1;
+  translate: 0 0;
+  scale: 1;
+}
+@starting-style {
+  .toast[data-on] {
+    opacity: 0;
+    translate: 0 8px;
+    scale: 0.98;
+  }
+}
+.toast svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  color: var(--ok);
+}
+
 /* Janelinhas (`<dialog>` modal com `.dlg`, NPAC-47): entram em `--dur` subindo 8 px de um leve
    recuo e saem em `--dur-fast`. A entrada é `@starting-style`; a saída é `[data-closing]`, posto
    por `closeWithMotion` (`lib/dialog-motion.ts`) antes do `close()`, com a janela ainda modal.

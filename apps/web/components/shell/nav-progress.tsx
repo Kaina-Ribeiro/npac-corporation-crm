@@ -8,9 +8,19 @@ const SHOW_AFTER = 150;
 /** Marca no `<html>` que troca a tela pelo esqueleto (`.nav-skeleton` em `globals.css`). */
 const PENDING = 'navPending';
 
+let begin: ((url: URL) => void) | undefined;
+
+/**
+ * Para `router.push` (busca, Ctrl+K, criar lead, nova inscrição): a mesma barra e o mesmo esqueleto
+ * do clique num link. Chamar logo antes do `push`.
+ */
+export function startNavProgress(href: string) {
+  begin?.(new URL(href, location.href));
+}
+
 /**
  * Barrinha fina no topo enquanto uma página carrega. Começa no clique de um link interno e termina
- * quando a URL muda; avança devagar até 85% e completa. Link para outra tela mostra na hora o
+ * quando a URL muda (ou em `startNavProgress`); avança devagar até 85% e completa. Link para outra tela mostra na hora o
  * esqueleto (`PageSkeleton`, já na casca) no lugar da página; mudar só a consulta (abas, filtros)
  * mantém a página.
  */
@@ -23,12 +33,7 @@ export function NavProgress() {
   const fallback = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => {
-    function onClick(e: MouseEvent) {
-      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)
-        return;
-      const a = (e.target as Element).closest('a');
-      if (!a || a.target === '_blank' || a.hasAttribute('download')) return;
-      const url = new URL(a.href, location.href);
+    function start(url: URL) {
       if (url.origin !== location.origin) return;
       if (url.pathname === location.pathname && url.search === location.search) return;
       // Arquivo da API (CSV) não troca de tela: nada de esqueleto.
@@ -45,8 +50,17 @@ export function NavProgress() {
       clearTimeout(timer.current);
       timer.current = setTimeout(() => started.current && setState('loading'), SHOW_AFTER);
     }
+    function onClick(e: MouseEvent) {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)
+        return;
+      const a = (e.target as Element).closest('a');
+      if (!a || a.target === '_blank' || a.hasAttribute('download')) return;
+      start(new URL(a.href, location.href));
+    }
+    begin = start;
     document.addEventListener('click', onClick, true);
     return () => {
+      begin = undefined;
       document.removeEventListener('click', onClick, true);
       // Saiu da casca (ex.: Trocar senha, em outro layout): a marca não pode ficar no <html>.
       delete document.documentElement.dataset[PENDING];
