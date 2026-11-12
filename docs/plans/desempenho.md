@@ -264,11 +264,16 @@ pg_temp`, `execute` só para `npac_app`).
   (404 em outra ficha) e não vê o comercial; Operação vê as 362 inscrições como a Diretoria, abre
   Plano e Fila; closer não vê o módulo. Tempos da minha máquina (com rede): SDR 149/183/166 ms,
   closer 164/179/169 ms (leads/pipeline/hoje), Plano 221 ms (Operação) e 191 ms (Diretoria).
-- [ ] ⚠️ Achado do e2e (PR #95, 2 tentativas): o `ready` do canal ao vivo chega agora em ~30 ms e o
-  `LiveUpdates` o trata como `crm:invalidate`; a ficha faz `router.refresh()` e lista/Pipeline
-  refazem a busca logo ao abrir (carga dupla) e o `goto` seguinte do `mobile-layout` do iPhone
-  pode ser interrompido. Correção a decidir (proposta: na Fase 3, T3.1, o `ready` leva a revisão e
-  o cliente só recarrega se ela mudou).
+- [x] ⚠️ Falha do `[iphone] mobile-layout.spec.ts:31` no e2e do PR #95 (2 tentativas, "Navigation to
+  /pipeline is interrupted by another navigation to /leads/<id>"). Causa: o canal ao vivo manda
+  `ready` ao conectar e o `LiveUpdates` o trata como `crm:invalidate`; a ficha faz `router.refresh()`
+  (lead-detail.tsx:118) e lista/Pipeline refazem a busca. Antes da Fase 1 o 1º `ready` do SDR levava
+  4–6 s e chegava depois de o teste sair da tela; agora chega em ~30 ms e interrompe o `goto`
+  seguinte. Efeito colateral: carga dupla ao abrir ficha, lista e Pipeline. O e2e do PR #96 (release
+  com #95 e #96) passou, e o spec sozinho no topo da release (`a3c5e75`) passou 5/5 localmente
+  (`--repeat-each=5`, iPhone). **Correção na Fase 3, T3.1 (opção A, coordenação 12/11):** o cliente informa
+  a revisão que o render entregou ao conectar e o servidor responde `ready` ou `invalidate`; o
+  evento continua só `{ type }`.
 
 ## Fase 2 — Web: navegação, carregamento e erro
 
