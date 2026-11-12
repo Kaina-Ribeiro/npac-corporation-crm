@@ -177,6 +177,18 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   "Filtrar Hoje", "Buscar" do Pipeline, "Atualizar relatório"); o texto da busca segue no Enter; "Limpar
   filtros" aparece com filtro ativo. `CsvExport` de `/leads` vem sob demanda (`next/dynamic`) pelo limite
   de 150 KB.
+  **Acompanhamento** (PR 2): mapa à parte `AC_PREFS` em `lib/acompanhamento-prefs.ts` (cookies `npac_f_ac_*`,
+  fora de `PREFS` para não pesar em `/leads`), com as regras de Fila (`ver` Minha/Equipe, grupo), Mentorados
+  (mês, status, responsável, completar; "Limpar filtros"), Onboarding (etapa, painel) e Ficha (aba para qualquer
+  ficha, filtro do histórico; `?aba=` do link vence e vira a lembrada; mês do plano só na memória, por ficha).
+  Reuniões, Plano e Configurações guardam a **última URL por aba** (`lib/acompanhamento-abas.ts` no servidor,
+  `components/acompanhamento/lembrar-url.tsx` no navegador): URL com chave da tela vence; sem nenhuma (menu),
+  abre a última aba com os filtros dela; links das abas levam a consulta salva de cada uma; semana (`dia`) e
+  mês do Controle (`mes`) só no mesmo dia de Brasília. O valor vai codificado (o `cookies()` do Next decodifica).
+  **Leitura no navegador** (`readPreference` em `lib/read-preference.ts`): o JS só enxerga cookies do caminho
+  em que a página foi *carregada*; depois de navegar pelo menu, o cookie da tela fica invisível ao `document.cookie`
+  (mas vai nas requisições). Por isso `savePreference` espelha o valor na memória da aba e `readPreference(nome,
+  valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda reconciliação passa o valor do servidor.
 
 ## Segurança e privacidade (não negociável)
 

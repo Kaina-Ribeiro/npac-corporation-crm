@@ -227,7 +227,7 @@ Props novas de `Reports`: `prefs: { screen: 'dashboard' | 'reports'; cookie: str
 
 ## PR 2 — Acompanhamento (branch nova a partir da release com o PR 1)
 
-### Task 9: Reuniões — última URL por aba — Status: ⏳
+### Task 9: Reuniões — última URL por aba — Status: ✅
 
 **Files:** Create `apps/web/components/acompanhamento/lembrar-url.tsx`; Modify `apps/web/app/(app)/acompanhamento/reunioes/page.tsx`; Test `apps/web/e2e/acompanhamento-v2-preferencias.spec.ts`.
 
@@ -242,19 +242,19 @@ Página: chaves lembradas `aba, dia, condutor, mes, mentoria`; sem nenhuma na UR
 - [ ] **Step 2:** FAIL. **Step 3:** implementar. **Step 4:** PASS; `e2e/acompanhamento-v2-reunioes.spec.ts` → PASS.
 - [ ] **Step 5:** Commit `feat(NPAC-46): reunioes lembram aba e filtros`.
 
-### Task 10: Plano e Configurações — Status: ⏳
+### Task 10: Plano e Configurações — Status: ✅
 
 **Files:** Modify `apps/web/app/(app)/acompanhamento/plano/page.tsx` (chaves `aba, mes`; sem `daily`), `apps/web/app/(app)/acompanhamento/configuracoes/page.tsx` (chaves `aba, mentoria`); Test o spec do Task 9.
 
 - [ ] **Step 1:** e2e `plano lembra aba e mês`, `configurações lembram a aba` → FAIL. **Step 2:** implementar com `LembrarUrl`. **Step 3:** PASS + `acompanhamento-v2-plano.spec.ts`. **Step 4:** Commit `feat(NPAC-46): plano e configuracoes lembram a aba`.
 
-### Task 11: Fila e Mentorados — Status: ⏳
+### Task 11: Fila e Mentorados — Status: ✅
 
 **Files:** Modify `apps/web/app/(app)/acompanhamento/fila/page.tsx`, `components/acompanhamento/fila.tsx` (cookie `ver` = `oneOf(['minha','equipe'])` e `grupo` = `oneOf(FILA_GRUPOS chaves)`; `ver` da URL vence; prop `inicialGrupo`), `apps/web/app/(app)/acompanhamento/mentorados/page.tsx`, `components/acompanhamento/mentorados-lista.tsx` (cookie `mes` 1–13, `status` em `InscricaoStatus` — exportar a lista em `@npac/shared/mentoria` se não existir —, `responsavelId` em `responsaveis`, `completar=1`; página busca filtrada; prop `inicial: Filtros`; "Limpar filtros" se a tela ainda não tiver).
 
 - [ ] **Step 1:** e2e `fila lembra Equipe e grupo`, `mentorados lembram os filtros` → FAIL. **Step 2:** implementar. **Step 3:** PASS + `acompanhamento-v2-fila.spec.ts`. **Step 4:** Commit `feat(NPAC-46): fila e mentorados lembram filtros`.
 
-### Task 12: Onboarding e Ficha — Status: ⏳
+### Task 12: Onboarding e Ficha — Status: ✅
 
 **Files:** Modify `apps/web/app/(app)/acompanhamento/onboarding/page.tsx`, `components/acompanhamento/onboarding-funil.tsx` (cookie `etapa` e `painel` = `oneOf(['funil','caixas','idrs'])`), `apps/web/app/(app)/acompanhamento/ficha/[id]/page.tsx` (`aba` da URL vence; senão a do cookie; senão a padrão), `components/acompanhamento/ficha.tsx` (grava `aba` ao trocar), `components/acompanhamento/historico-lista.tsx` (filtro no mesmo cookie, chave `historico`), `components/acompanhamento/plano-mentorado.tsx` (mês em `keep/recall`, chave `<cookie da ficha>:plano:<fichaId>`).
 
