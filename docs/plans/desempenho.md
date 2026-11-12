@@ -23,7 +23,7 @@ Next 16 App Router + React 19 + Tailwind 4 (`apps/web`).
 |---|---|---|
 | 1 | Banco: permissão por consulta | ✅ feita (12/11/2026, PR #95, `65d7135`; ITODEV `v0.15.2-rc` 22/22 por cargo) |
 | 2 | Web: navegação, carregamento e erro | ✅ feita (12/11/2026, PR #96, `a3c5e75`; no ar no ITODEV `v0.15.2-rc`) |
-| 3 | API: canal ao vivo, relatórios, índices | ✅ código e metas (12/11/2026, migrations 0062–0063) · ⏳ ITODEV |
+| 3 | API: canal ao vivo, relatórios, índices | ✅ feita (12/11/2026, PR #98, `a3bf7fd`; ITODEV `v0.15.4-rc` 18/18) |
 | 4 | Interface: movimento e resposta | ⏳ pendente (depois da Fase 2; Gabriel escolhe a opção em T4.1) |
 | 5 | Varredura de fluxos por cargo e sobras | ⏳ pendente (por último) |
 
@@ -342,7 +342,7 @@ Desvios decididos por evidência (detalhes na descrição do PR #96):
 
 ## Fase 3 — API: canal ao vivo, relatórios, índices
 
-**Status:** ✅ código e metas (12/11/2026, migrations 0062–0063) · ⏳ ITODEV · **Feito quando:** metas de T3.4 batidas e suítes verdes.
+**Status:** ✅ feita (12/11/2026, PR #98, migrations 0062–0063; ITODEV `v0.15.4-rc` 18/18) · **Feito quando:** metas de T3.4 batidas e suítes verdes.
 
 ### T3.1 Canal ao vivo por contador (opção A de D2)
 
@@ -430,7 +430,15 @@ linha; função de gatilho `app_revision_bump()`; `RevisionService.changes$: Obs
   que escreve nas tabelas vigiadas atualiza a mesma linha): 20 escritores simultâneos, 3.000 commits no
   `npac_e2e_perf`, **456–467/s com o gatilho × 467–475/s sem** (≤ 4%). TRUNCATE e
   `session_replication_role = replica` (seeds) não avisam: fora do caminho do app.
-- [ ] PR, ITODEV.
+- [x] PR #98 (squash `a3bf7fd`, CI verde: verify, e2e, pr-checks).
+- [x] ITODEV `v0.15.4-rc`, roteiro pela API com contas próprias `tcf3*` (desativadas no fim, lead
+  apagado): **18/18**. `/api/me` traz a revisão; closer conecta com ela e recebe `ready`; revisão
+  diferente ou ausente recebe `invalidate`; o lead que o SDR cadastra com reunião para o closer
+  avisa o canal dele em ~1,5 s e ele abre a ficha; o sinal só leva `type`. Relatório do mês da
+  Diretoria com vendas e série diária fechando com as métricas; SDR sem nenhum valor de venda no
+  relatório e só os próprios números na Equipe; feed e Pipeline abrem. Tempos da minha máquina (com
+  rede): relatório 200 ms, Equipe 151 ms, feed 137 ms, Pipeline 185 ms (Diretoria); relatório do
+  SDR 203 ms e do closer 201 ms.
 
 ## Fase 4 — Interface: movimento e resposta
 
