@@ -4,6 +4,7 @@ import {
   type Mentoria,
   type PerfilLinha,
   type PlanoModeloLinha,
+  type PmeDTO,
   type Responsavel,
 } from '@npac/shared/mentoria';
 import Link from 'next/link';
@@ -13,6 +14,7 @@ import { ImportarCarteira } from '@/components/acompanhamento/importar-carteira'
 import { MensagensAdmin } from '@/components/acompanhamento/mensagens-admin';
 import { PerfisAdmin } from '@/components/acompanhamento/perfis-admin';
 import { PlanoModeloAdmin } from '@/components/acompanhamento/plano-modelo-admin';
+import { PmesAdmin } from '@/components/acompanhamento/pmes-admin';
 import { TransferirCarteira } from '@/components/acompanhamento/transferir-carteira';
 import { ICONES, Icone } from '@/components/acompanhamento/ui';
 import { lerEu, sessaoDoModulo } from '@/lib/acompanhamento';
@@ -24,17 +26,26 @@ export const metadata = { title: 'Configurações' };
 const SUB = {
   perfis: 'Quem usa o Acompanhamento e o que cada pessoa pode fazer.',
   plano: 'A ação de cada mês, por mentoria.',
+  pmes: 'O material, as atividades extras e o encerramento de cada PME.',
   importacao: 'Traga a carteira atual do gerenciador e da planilha, sem redigitar.',
   mensagens: 'O texto que os botões de WhatsApp copiam, por momento.',
   carteira: 'Passe as inscrições de uma pessoa para outra do Acompanhamento.',
 };
-const ABAS = ['perfis', 'plano', 'mensagens', 'importacao', 'carteira'] as const;
+const ABAS = ['perfis', 'plano', 'pmes', 'mensagens', 'importacao', 'carteira'] as const;
 type AbaConfig = (typeof ABAS)[number];
 /** Aba e mentoria do plano-modelo lembradas (NPAC-46). */
-const CHAVES = { perfis: [], plano: ['mentoria'], mensagens: [], importacao: [], carteira: [] };
+const CHAVES = {
+  perfis: [],
+  plano: ['mentoria'],
+  pmes: [],
+  mensagens: [],
+  importacao: [],
+  carteira: [],
+};
 const ROTULOS: Record<AbaConfig, string> = {
   perfis: 'Perfis',
   plano: 'Plano-modelo',
+  pmes: 'PMEs',
   mensagens: 'Mensagens-modelo',
   importacao: 'Importação',
   carteira: 'Transferir carteira',
@@ -60,6 +71,7 @@ export default async function ConfiguracoesPage({
     aba === 'carteira' ? await apiGet<Responsavel[]>('/api/mentoria/responsaveis') : [];
   const modelo =
     aba === 'plano' ? await apiGet<PlanoModeloLinha[]>('/api/mentoria/plano-modelo') : [];
+  const pmes = aba === 'pmes' ? await apiGet<PmeDTO[]>('/api/mentoria/pmes') : [];
   const mensagens =
     aba === 'mensagens' ? await apiGet<MensagemModelo[]>('/api/mentoria/mensagens') : [];
   return (
@@ -83,6 +95,7 @@ export default async function ConfiguracoesPage({
       {aba === 'mensagens' && <MensagensAdmin mensagens={mensagens} />}
       {aba === 'carteira' && <TransferirCarteira responsaveis={responsaveis} />}
       {aba === 'plano' && <PlanoModeloAdmin linhas={modelo} mentoria={mentoria} />}
+      {aba === 'pmes' && <PmesAdmin pmes={pmes} />}
       <LembrarUrl
         screen="configuracoes"
         cookie={lembradas.cookie}

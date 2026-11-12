@@ -400,6 +400,13 @@
       "when": 1794414364090,
       "tag": "0056_acompanhamento_v2_exclusao",
       "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "7",
+      "when": 1794447719637,
+      "tag": "0057_acompanhamento_v2_pmes",
+      "breakpoints": true
     }
   ]
 }

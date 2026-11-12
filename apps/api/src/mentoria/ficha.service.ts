@@ -36,6 +36,7 @@ import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { DB } from '../common/db/db.module.js';
 import { conflitoDeVersao, erroDoBanco } from './erros.js';
 import { exigirEdicao, registrarHistorico } from './historico.js';
+import { CiclosService } from './ciclos.service.js';
 import { aad, MentoriaCrypto } from './mentoria-crypto.js';
 import { PlanoService } from './plano.service.js';
 import { ReunioesService } from './reunioes.service.js';
@@ -49,12 +50,14 @@ export class FichaService {
     private readonly crypto: MentoriaCrypto,
     private readonly plano: PlanoService,
     private readonly reunioes: ReunioesService,
+    private readonly ciclos: CiclosService,
   ) {}
 
   /** Monta a ficha dentro da transação; RLS decide: invisível = 404. */
   async montar(tx: Tx, id: string): Promise<FichaDTO> {
     const [i] = await tx.select().from(mentoriaInscricoes).where(eq(mentoriaInscricoes.id, id));
     if (!i) throw new NotFoundException();
+    const hoje = this.ciclos.hoje();
     const pessoas = await tx
       .select()
       .from(mentoriaPessoas)
@@ -102,6 +105,8 @@ export class FichaService {
       plano: boolean;
       reuniao: boolean;
       contato: boolean;
+      pme: boolean;
+      tarefa: boolean;
       admin: boolean;
       travado_por: string | null;
       pausa_dias: number | null;
@@ -114,6 +119,8 @@ export class FichaService {
         mentoria_edita('PLANO', ${id}::uuid) as plano,
         mentoria_edita('REUNIAO', ${id}::uuid) as reuniao,
         mentoria_edita('CONTATO', ${id}::uuid) as contato,
+        mentoria_edita('PME', ${id}::uuid) as pme,
+        mentoria_edita('TAREFA', ${id}::uuid) as tarefa,
         mentoria_admin() as admin,
         (select name from "user" where id = ${momento?.travadoPor ?? null}) as travado_por,
         (select (now() at time zone 'America/Sao_Paulo')::date - p.inicio
@@ -242,6 +249,8 @@ export class FichaService {
       acoes: await this.plano.daInscricao(tx, id),
       reunioes: await this.reunioes.daInscricao(tx, id),
       contatos: await this.reunioes.contatosDaInscricao(tx, id),
+      ciclos: await this.ciclos.daInscricao(tx, id, hoje),
+      hoje,
       pausa: pausa
         ? {
             inicio: pausa.inicio,
@@ -260,6 +269,8 @@ export class FichaService {
         plano: extra?.plano === true,
         reuniao: extra?.reuniao === true,
         contato: extra?.contato === true,
+        pme: extra?.pme === true,
+        tarefa: extra?.tarefa === true,
         admin: extra?.admin === true,
       },
     };
