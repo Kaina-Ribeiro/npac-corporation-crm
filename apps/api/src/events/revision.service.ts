@@ -20,7 +20,7 @@ export const REVISION_POLL_MS = 2000;
 
 /**
  * Canal ao vivo por contador global (desempenho, Fase 3, D2): o gatilho da migration 0062 soma 1 a
- * `app_revision.n` a cada transação que escreve em leads, tarefas, timeline, chat ou avisos. Este
+ * `app_revision.n` a cada transação que escreve em leads, tarefas, timeline, chat, avisos, reuniões ou vendas. Este
  * serviço lê `n` com UM temporizador para o processo inteiro (não por aba) e emite quando muda.
  * O temporizador só corre enquanto há alguém ouvindo (`share` desliga com zero conexões).
  * Funciona com mais de um processo da API: cada um lê o mesmo contador.

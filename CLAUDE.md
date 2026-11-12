@@ -108,7 +108,8 @@ de link para outra tela (CSS `.nav-skeleton` em `globals.css`); sai quando a URL
 
 **Canal ao vivo** (desempenho, Fase 3, D2, 12/11/2026): contador global `app_revision` (0062, uma linha). Gatilho
 adiado para o commit (`CONSTRAINT TRIGGER … DEFERRABLE INITIALLY DEFERRED`, por linha, soma 1 por transação; UPDATE que
-não muda nada não soma) em `leads`, `lead_tasks`, `lead_timeline`, `chat_*` e `notifications`. `RevisionService` lê `n`
+não muda nada não soma) em `leads`, `lead_tasks`, `lead_timeline`, `chat_*`, `notifications`, `meetings` e `deals` (as duas últimas mudam o que
+o closer vê). `RevisionService` lê `n`
 com um temporizador de 2 s por processo (não por aba) e qualquer escrita vira `invalidate` para todas as abas; a sessão é
 conferida ao abrir e a cada 10 s (`heartbeat`). `/api/me` traz `revision`; o layout a passa ao `LiveUpdates`, que abre
 `/api/events?rev=`: igual à atual sai `ready` (a aba não recarrega: ficha, lista e Pipeline não carregam duas vezes),

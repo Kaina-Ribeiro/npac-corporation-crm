@@ -113,7 +113,7 @@ describe('app_revision', () => {
     expect(await n()).toBe(antes + 1);
   });
 
-  it('o gatilho fica nas sete tabelas, adiado para o commit', async () => {
+  it('o gatilho fica nas nove tabelas, adiado para o commit', async () => {
     const rows = await owner<{ tabela: string }[]>`
       select tgrelid::regclass::text as tabela from pg_trigger
       where tgfoid = 'app_revision_bump'::regproc and tgdeferrable and tginitdeferred
@@ -122,9 +122,11 @@ describe('app_revision', () => {
       'chat_channels',
       'chat_messages',
       'chat_reads',
+      'deals',
       'lead_tasks',
       'lead_timeline',
       'leads',
+      'meetings',
       'notifications',
     ]);
   });

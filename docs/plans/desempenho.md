@@ -352,8 +352,10 @@ Desvios decididos por evidência (detalhes na descrição do PR #96):
 **Produz:** tabela `app_revision (id boolean primary key default true, n bigint not null)` com uma
 linha; função de gatilho `app_revision_bump()`; `RevisionService.changes$: Observable<void>`.
 
-- [x] Gatilho nas sete tabelas do resumo antigo (`leads`, `lead_tasks`, `lead_timeline`,
-  `chat_messages`, `chat_channels`, `chat_reads`, `notifications`), migration **0062**. `npac_app` só
+- [x] Gatilho nas tabelas do resumo antigo (`leads`, `lead_tasks`, `lead_timeline`,
+  `chat_messages`, `chat_channels`, `chat_reads`, `notifications`) e também em `meetings` e `deals`,
+  que mudam quais leads o closer vê (o resumo antigo, sob a RLS, pegava isso; o e2e `login.spec.ts`
+  "revogam acesso sem recarregar" pegou a falta), migration **0062**. `npac_app` só
   lê `app_revision` (RLS `using (true)`, sem UPDATE). **Mudança de forma:** em vez de `FOR EACH
   STATEMENT` imediato, é `CONSTRAINT TRIGGER … DEFERRABLE INITIALLY DEFERRED FOR EACH ROW` com
   `set_config` local para somar uma vez por transação. Motivo: o gatilho por instrução trava a linha
@@ -425,7 +427,7 @@ linha; função de gatilho `app_revision_bump()`; `RevisionService.changes$: Obs
 - [x] Revisor independente (somente leitura): relatório e `/team` conferidos campo a campo contra a
   cópia congelada, sem achado (filtros, janelas, ordem das chaves, corte do SDR). Gatilho: dedupe,
   deadlock, SECURITY DEFINER e laço de avisos sem achado; pediu medir a fila no commit (todo commit
-  que escreve nas 7 tabelas atualiza a mesma linha): 20 escritores simultâneos, 3.000 commits no
+  que escreve nas tabelas vigiadas atualiza a mesma linha): 20 escritores simultâneos, 3.000 commits no
   `npac_e2e_perf`, **456–467/s com o gatilho × 467–475/s sem** (≤ 4%). TRUNCATE e
   `session_replication_role = replica` (seeds) não avisam: fora do caminho do app.
 - [ ] PR, ITODEV.

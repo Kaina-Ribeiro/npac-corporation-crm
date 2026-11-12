@@ -1,7 +1,9 @@
 -- Desempenho, Fase 3 (docs/plans/desempenho.md, T3.1, decisão D2): o canal ao vivo deixa de
 -- resumir (md5) todos os leads, tarefas, timeline, chat e avisos a cada 2 s por aba. Agora há um
--- contador global de uma linha: toda transação que escreve nessas tabelas soma 1, e a API lê `n`
--- a cada 2 s, uma vez por processo. Qualquer escrita avisa todas as abas (sem dado nenhum).
+-- contador global de uma linha: toda transação que escreve nessas tabelas (e em `meetings` e
+-- `deals`, que decidem quais leads o closer vê: o resumo antigo, sob a RLS, pegava essa troca)
+-- soma 1, e a API lê `n` a cada 2 s, uma vez por processo. Qualquer escrita avisa todas as abas
+-- (sem dado nenhum).
 --
 -- O gatilho é CONSTRAINT TRIGGER adiado para o commit (e não FOR EACH STATEMENT imediato), por dois
 -- motivos: (1) a linha do contador fica travada só no fim da transação, então uma transação longa
@@ -64,4 +66,10 @@ CREATE CONSTRAINT TRIGGER app_revision_chat_reads AFTER INSERT OR UPDATE OR DELE
   DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION app_revision_bump();
 --> statement-breakpoint
 CREATE CONSTRAINT TRIGGER app_revision_notifications AFTER INSERT OR UPDATE OR DELETE ON notifications
+  DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION app_revision_bump();
+--> statement-breakpoint
+CREATE CONSTRAINT TRIGGER app_revision_meetings AFTER INSERT OR UPDATE OR DELETE ON meetings
+  DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION app_revision_bump();
+--> statement-breakpoint
+CREATE CONSTRAINT TRIGGER app_revision_deals AFTER INSERT OR UPDATE OR DELETE ON deals
   DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION app_revision_bump();
