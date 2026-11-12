@@ -517,6 +517,8 @@ pendência abaixo.)*
   e2e de 404 para `/qualquer-coisa`.
 - [x] T5.3 Aplicar D4 no menu do Acompanhamento. *(D4: nada a fazer; os 5 "Em breve" abrem ✅.)*
 - [x] T5.4 Rodar o Playwright completo e o roteiro de celular (não rodados na auditoria).
+  *(Local, `npac_e2e_f5`: 197 passaram, 4 pulados (MFA ligado), 0 falhas, em 6,5 min; o celular é o
+  projeto `iphone` (`mobile-layout.spec.ts`, WebKit) mais as telas a 375 px da varredura.)*
 
 ### Resultado da varredura (ITODEV `v0.15.6-rc`, 12/11/2026)
 
