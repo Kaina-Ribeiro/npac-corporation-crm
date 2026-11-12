@@ -58,14 +58,15 @@ calendário em `date`, fuso de Brasília.
 | `pmes` | `numero` (0 = aquecimento, 1 a 12, **único**), `titulo` (opcional; a tela mostra "Nº PME" quando vazio), `foco`, `link_material` (pasta no Drive), `atividades_extras` (lista de textos), `encerramento` (texto da tarefa de encerramento; opcional), `ativo`. Não é cifrado: é catálogo, sem dado pessoal |
 | `ciclos` | `inscricao_id`, `pme_id`, `numero` (cópia do número do PME, **único por inscrição**), `enviado_em` (date), `prazo` (= envio + 30 dias, E2; guardado), `concluido_em` (date, nulo até o encerramento), `nao_concluido_em` (date: quando um ciclo seguinte foi enviado sem este fechar), `anterior_ao_sistema` (bool, para a carteira importada). **Um ciclo aberto por inscrição** (índice parcial) |
 | `tarefas` | `inscricao_id`, `origem` (REUNIAO, PME, EXTRA, ENCERRAMENTO), `reuniao_id`, `ciclo_id`, `meta_id`, `descricao` (cifrada), `prazo` (date; obrigatório em REUNIAO), `status` (PENDENTE, FEITA, PARCIAL, NAO_FEITA), `motivo` (cifrado, quando NAO_FEITA ou PARCIAL), `comprovante_midia_id` (mídia do módulo; FOTO, VIDEO ou PDF), `data_cobranca` (= prazo), `cobrada_em`/`cobrada_por` (quando a equipe registrou o resultado), `marcada_por_mentorado_em` (Fase 3; nulo na Fase 2), `visivel_ao_mentorado` (padrão sim) |
-| `metas` | `inscricao_id`, `ciclo_id` (opcional), `reuniao_id` (onde nasceu, opcional), `pessoa_id` (nulo = do casal ou do individual; preenchido = de uma pessoa do casal), `pilar` (FE, SAUDE, DINHEIRO, RELACIONAMENTOS; opcional), `descricao` (cifrada), `valor_alvo`, `valor_atual` (numéricos, opcionais), `unidade` (texto curto), `prazo`, `status` (EM_ANDAMENTO, ATINGIDA, NAO_ATINGIDA), `visivel_ao_mentorado` (padrão sim) |
+| `metas` | `inscricao_id`, `ciclo_id` (opcional), `reuniao_id` (onde nasceu, opcional), `pessoa_id` (nulo = do casal ou do individual; preenchido = de uma pessoa do casal), `pilar` (FE, SAUDE, DINHEIRO, RELACIONAMENTOS; opcional), `descricao` (cifrada), `valor_alvo`, `valor_atual` (numéricos, opcionais), `unidade` (texto curto), `prazo`, `status` (**pendente com a Eduarda**, S3: sem campo até a resposta), `visivel_ao_mentorado` (padrão sim) |
 | `checkins` | `inscricao_id`, `semana` (segunda-feira da semana, Brasília; **único por inscrição**), `enviado_em`, `respondido_em` (timestamptz), `respondeu` (bool), `avanco`, `travou`, `proximo_passo` (cifrados, opcionais: o resumo da resposta nos campos do PDF) |
 | `semaforo_historico` | `inscricao_id`, `semana` (segunda-feira), `cor` (VERDE, AMARELO, VERMELHO), `motivos` (lista de códigos, §5), **único por inscrição e semana** |
 
 Regras de dados:
 - **Ciclo derivado, não editado à mão:**
-  `CONCLUIDO` se `concluido_em`; senão `NAO_CONCLUIDO` se `nao_concluido_em`; senão pelo atraso
-  (hoje − `prazo`): até 9 dias `EM_ANDAMENTO`, de 10 a 16 `SEGUNDA_CHANCE` (7 dias), 17 ou mais `NAO_CONCLUIDO`.
+  `CONCLUIDO` se `concluido_em`; senão `NAO_CONCLUIDO` se `nao_concluido_em` (o ciclo seguinte foi enviado sem
+  este fechar); senão `EM_ANDAMENTO`, com "N dias de atraso" depois do prazo. A segunda chance (S1) está
+  **pendente com a Eduarda**: até a resposta não há degrau por dias de atraso (Gabriel, 12/11; migration 0059).
   Uma implementação só, em SQL (`mentoria_ciclo_status`).
 - **Encerramento:** a tarefa ENCERRAMENTO marcada FEITA grava `concluido_em` na mesma transação;
   desfazer (voltar para PENDENTE) limpa. Ciclo sem tarefa de encerramento (anterior ao sistema) fecha à mão.
@@ -80,8 +81,9 @@ Regras de dados:
 - **Até 3 tarefas por reunião** (origem REUNIAO, mesmo `reuniao_id`): 400 na API e gatilho no banco.
 - **% do PME (E5)**, calculado em SQL para a lista e a ficha:
   - tarefas = FEITA ÷ total das tarefas do ciclo (PARCIAL não conta como feita; o PDF diz "feitas");
-  - metas = média, nas metas do ciclo, de `min(valor_atual ÷ valor_alvo, 1)` quando há alvo numérico, e
-    de ATINGIDA = 100 % / demais = 0 % quando não há. Sem metas no ciclo: "sem metas".
+  - metas: **pendente com a Eduarda** como juntar as metas num número único. Até a resposta, cada meta com
+    alvo numérico mostra a própria barra, `min(valor_atual ÷ valor_alvo, 1)`; meta sem alvo (S4) não entra em
+    nenhum %. O % agregado do PME mostra só tarefas (Gabriel, 12/11).
 - Histórico (nomes de campos, nunca valores) em toda escrita, na mesma transação. LGPD: anonimizar apaga
   os textos cifrados das tabelas novas e enfileira os comprovantes; excluir a inscrição apaga tudo.
 
@@ -178,11 +180,16 @@ Novos tipos, calculados na leitura em `mentoria_fila` como os da Fase 1 (só ONB
 
 ## 10. Suposições (validar com a Eduarda quando der)
 
-- **S1** A segunda chance começa com **10 dias de atraso** e dura 7 (escada da página 19). A tabela de
-  regras da página 17 diz "PME não fechado no prazo abre a segunda chance"; a escada é mais específica.
+- **S1** (**pendente com a Eduarda**; não implementada) A segunda chance começaria com **10 dias de atraso**
+  e duraria 7 (escada da página 19). A tabela de regras da página 17 diz "PME não fechado no prazo abre a
+  segunda chance". Até a resposta, o ciclo aberto fica "Em andamento" com os dias de atraso.
 - **S2** Semana sem check-in enviado não conta para o semáforo.
-- **S3** Status da meta: Em andamento, Atingida, Não atingida (o PDF só diz "status").
-- **S4** Meta sem alvo numérico conta pelo status no % de metas.
+- **S3** (**pendente com a Eduarda**; não implementada) Status da meta: Em andamento, Atingida, Não
+  atingida? O PDF só diz "status". Até a resposta, a meta não tem status.
+- **S4** (**pendente com a Eduarda**; não implementada) Meta sem alvo numérico contaria pelo status no %
+  de metas. Até a resposta, não entra em nenhum %.
+- **Gabriel, 12/11:** tudo o que é suposição vai para a Eduarda e não entra até ela responder. Também
+  pendente com ela: como juntar as metas num % do PME (§3).
 - **S5** "Tarefa não feita" no semáforo é só NAO_FEITA registrada; PENDENTE vencida ainda não conta (vira
   cobrança na Fila).
 - **S6** Os "10 maiores erros" do 1º PME continuam no campo da Fase 1 (`erros_pme1_concluidos_em`); a

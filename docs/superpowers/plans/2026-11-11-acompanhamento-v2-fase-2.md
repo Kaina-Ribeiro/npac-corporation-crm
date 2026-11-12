@@ -152,22 +152,29 @@ alvo no %) ficam de fora até a decisão dele; ponto sem base no PDF ou na spec 
   (cifrada) e prazo obrigatórios, meta opcional; entra no ciclo aberto, se houver (§4).
 - **Metas** (§3): casal ou de uma pessoa, pilar, descrição (cifrada), alvo e atual (`numeric(14,2)`), unidade, prazo; nasce no
   ciclo aberto e com a reunião onde foi definida. **Sem status** (S3).
-- **% do PME** (E5, em SQL, duas medidas): `mentoria_pct_tarefas` = FEITA ÷ total do ciclo (PARCIAL não conta);
-  `mentoria_pct_metas` = média de min(atual ÷ alvo, 1) **só nas metas com alvo** (S4 fora). Nulos sem itens.
-- Ficha > Jornada: card do PME (extras e encerramento + as duas barras), seção Tarefas (as da reunião, por PME) e seção Metas.
+- **% do PME** (E5, em SQL): só tarefas, `mentoria_pct_tarefas` = FEITA ÷ total do ciclo (PARCIAL não conta); nulo sem
+  tarefas. Juntar as metas num número único está **pendente com a Eduarda**: cada meta com alvo mostra a própria barra
+  (`pct` = min(atual ÷ alvo, 1), na leitura das metas); meta sem alvo (S4) não entra em nenhum %.
+- **S1 (código da Parte 1), commit à parte:** sem "segunda chance". Migration `0059` refaz `mentoria_ciclo_status`: ciclo
+  aberto fica EM_ANDAMENTO com "N dias de atraso"; NAO_CONCLUIDO só quando o seguinte é enviado. `SEGUNDA_CHANCE` saiu de
+  `CICLO_STATUS` (`sh/mentoria/pmes.ts`). Testes de db e api da Parte 1 ajustados (9/10/16/17/50 dias = em andamento).
+- Ficha > Jornada: card do PME (extras e encerramento + barra de tarefas), seção Tarefas (as da reunião, por PME) e seção
+  Metas (barra por meta com alvo).
 - Técnico: só a tarefa REUNIAO muda texto, prazo e meta (as do ciclo vêm do catálogo); ciclo, reunião, pessoa e meta ligados
   são da mesma inscrição (gatilho); reunião com tarefa ou meta não se exclui (a FK apagaria as tarefas em cascata); pessoa 2
   removida devolve a meta ao casal (`SET NULL`); alvo > 0 (divisão) e atual ≥ 0; % `SECURITY DEFINER` (número agregado);
   histórico `meta.criada`, `meta.editada`, `tarefa.criada`, `tarefa.editada`.
 
-**Pendências para o Gabriel** (nada disso está implementado):
+**Pendentes com a Eduarda** (decisão do Gabriel, 12/11: nada disso entra até ela responder):
 1. **S3** Status da meta (Em andamento / Atingida / Não atingida?). Hoje a meta não tem status.
-2. **S4** Meta sem alvo numérico no % de metas (contar pelo status?). Hoje fica fora do %.
-3. Excluir tarefa ou meta lançada por engano: a spec não prevê. Hoje só se edita.
-4. Prazo da tarefa antes do dia da reunião: aceitar ou recusar? Hoje aceita.
-5. Reunião com falta (FALTOU) ou remarcada pode receber tarefa e meta? Hoje recebe.
-6. Meta criada sem PME aberto (antes do 1º PME) fica fora de qualquer ciclo e não conta no %. Levar para o próximo PME?
-7. O texto livre da Fase 1 "Metas definidas ou ajustadas" (registro) tem o mesmo nome do bloco novo: renomear ou tirar?
+2. **S4** Meta sem alvo numérico no % de metas (contar pelo status?). Hoje fica fora de qualquer %.
+3. **% de metas do PME**: como juntar as metas num número (média? só as com alvo?). Hoje não há; só a barra de cada meta.
+4. **S1** Segunda chance (10 a 16 dias de atraso). Hoje o ciclo aberto fica "Em andamento" com os dias de atraso.
+5. Excluir tarefa ou meta lançada por engano: a spec não prevê. Hoje só se edita.
+6. Prazo da tarefa antes do dia da reunião: aceitar ou recusar? Hoje aceita.
+7. Reunião com falta (FALTOU) ou remarcada pode receber tarefa e meta? Hoje recebe.
+8. Meta criada sem PME aberto (antes do 1º PME) fica fora de qualquer ciclo e não conta no %. Levar para o próximo PME?
+9. O texto livre da Fase 1 "Metas definidas ou ajustadas" (registro) tem o mesmo nome do bloco novo: renomear ou tirar?
 
 ### Tarefa 2.1: Banco (0058) — Status: ✅
 **Files:** Modify `db/src/schema/mentoria.ts` · Create `db/drizzle/0058_acompanhamento_v2_metas.sql` + snapshot + journal ·
@@ -175,13 +182,13 @@ Test `db/test/mentoria-v2-metas.test.ts`
 - Tabela `mentoria_metas` (inscricao_id, ciclo_id, reuniao_id `SET NULL`, pessoa_id `SET NULL`, pilar, descricao, valor_alvo,
   valor_atual, unidade, prazo, visivel_ao_mentorado, version, autoria). `mentoria_tarefas.meta_id` (FK `SET NULL`).
 - Funções: `mentoria_edita` (+ `META`), `mentoria_ve_meta`, `mentoria_vinculos_inscricao` (gatilho nas duas tabelas),
-  `mentoria_tarefa_guarda` refeita, `mentoria_meta_guarda`, `mentoria_pct_tarefas`, `mentoria_pct_metas`,
+  `mentoria_tarefa_guarda` refeita, `mentoria_meta_guarda`, `mentoria_pct_tarefas`,
   `mentoria_excluir_reuniao` (recusa com tarefa/meta), `mentoria_anonimizar_inscricao` (zera a descrição das metas).
 - RLS + grants: metas (SELECT `mentoria_ve_meta`, INSERT/UPDATE área META), tarefas (UPDATE de descricao, prazo, meta_id).
   Sem DELETE.
 - [x] Testes: RLS de metas por perfil (Operação lê sem escrever, Manu e Leo não veem, sem DELETE); Manu cria tarefa só na
   própria reunião; 4ª tarefa; texto/prazo só em REUNIAO; vínculos de outra inscrição recusados; reunião com tarefa não exclui;
-  % de tarefas e de metas (com e sem alvo); sem coluna de status; LGPD.
+  % de tarefas; sem função de % de metas; sem coluna de status; LGPD. 0059: status do ciclo sem segunda chance.
 - [x] Schema + `generate` + SQL manual; `pnpm --filter @npac/db test` verde. Commit.
 
 ### Tarefa 2.2: API — Status: ✅
@@ -191,12 +198,12 @@ Test `db/test/mentoria-v2-metas.test.ts`
 - Rotas: `POST reunioes/:id/tarefas` (`{descricao, prazo, metaId?}`); `PATCH tarefas/:id` ganha `descricao`, `prazo`,
   `metaId`; `POST inscricoes/:id/metas` (`{descricao, pilar?, pessoaId?, valorAlvo?, valorAtual?, unidade?, prazo?,
   reuniaoId?}`); `GET/PATCH metas/:id`.
-- DTOs: `MetaDTO`; `TarefaDTO` + `metaId`, `cicloNumero`, `reuniaoInicio`, `reuniaoTipo`; `CicloDTO` + `pctTarefas`,
-  `pctMetas`; `ReuniaoDTO` + `tarefas`, `cobranca`, `metasInscricao`, `pessoasDaInscricao`, `podeTarefa`, `podeMeta`;
+- DTOs: `MetaDTO` (com `pct` da meta); `TarefaDTO` + `metaId`, `cicloNumero`, `reuniaoInicio`, `reuniaoTipo`;
+  `CicloDTO` + `pctTarefas`; `ReuniaoDTO` + `tarefas`, `cobranca`, `metasInscricao`, `pessoasDaInscricao`, `podeTarefa`, `podeMeta`;
   `FichaDTO` + `metas`, `tarefasReuniao`, `pode.meta`.
 - [x] Testes (spec §8 da parte): 3 tarefas e 400 na 4ª; prazo obrigatório; tarefa no ciclo aberto; cobrança da última
   realizada (FALTOU não conta; a da Manu, só as dela); Manu sem metas (404) e só nas próprias reuniões; Operação lê e não
-  cria (404); metas + histórico; status recusado (400); % de tarefas (PARCIAL não conta) e de metas; reunião com tarefa não
+  cria (404); metas + histórico; status recusado (400); % de tarefas (PARCIAL não conta) e `pct` por meta (sem alvo = nulo); reunião com tarefa não
   exclui; LGPD zera metas.
 - [x] Implementar; suítes do módulo verdes. Commit.
 
@@ -213,7 +220,8 @@ Metas), `lib/acompanhamento-saver.ts` (`meta:<inscricaoId>:<id>`), `historico-li
 - [ ] PR: na próxima linha `release/*` (a v0.14 foi para produção; pedido do Gabriel, 12/11). Branch pushada.
 
 **Para a Parte 3:** `mentoria_tarefas` REUNIAO já têm `prazo`/`data_cobranca`, `status` e `cobrada_em` (base do motivo
-`TAREFA_1/2` do semáforo e da COBRANCA da Parte 4); `mentoria_pct_tarefas`/`_metas` servem a coluna "% do PME" de Mentorados.
+`TAREFA_1/2` do semáforo e da COBRANCA da Parte 4); `mentoria_pct_tarefas` serve a coluna "% do PME" de Mentorados. O
+motivo `PME_7`/`PME_15` do semáforo usa os dias de atraso (o status não tem mais segunda chance).
 
 ## Parte 3 — Check-in e semáforo
 
