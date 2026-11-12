@@ -21,7 +21,7 @@ Next 16 App Router + React 19 + Tailwind 4 (`apps/web`).
 
 | Fase | Assunto | Status |
 |---|---|---|
-| 1 | Banco: permissão por consulta | ⏳ pendente |
+| 1 | Banco: permissão por consulta | ✅ código e metas (12/11/2026, migrations 0060–0061) · ⏳ ITODEV e roteiro por cargo |
 | 2 | Web: navegação, carregamento e erro | ⏳ pendente |
 | 3 | API: canal ao vivo, relatórios, índices | ⏳ pendente (depois da Fase 1) |
 | 4 | Interface: movimento e resposta | ⏳ pendente (depois da Fase 2; Gabriel escolhe a opção em T4.1) |
@@ -111,46 +111,61 @@ Casos que os testes de cada tarefa precisam cobrir (cada um está na tarefa dona
 
 ## Fase 1 — Banco: permissão por consulta
 
-**Status:** ⏳ pendente · **Feito quando:** T1.5 bate as metas e `pnpm --filter @npac/db test` e
-`pnpm --filter @npac/api test` passam.
+**Status:** ✅ código e metas (12/11/2026) · ⏳ ITODEV e roteiro por cargo · **Feito quando:** T1.5 bate as metas e `pnpm --filter @npac/db test` e
+`pnpm --filter @npac/api test` passam. db 256/256, API 582/582 (1 pulado: MFA ligado), lint e
+typecheck verdes; todas as metas de T1.5 batidas.
 
 ### T1.1 Ferramenta de medição (um comando)
 
 **Arquivos:** criar `scripts/perf/seed.mjs`, `scripts/perf/volume.sql`, `scripts/perf/medir.sh`;
 alterar `package.json` (raiz) com `perf:seed` e `perf:api`; `CLAUDE.md` (Comandos).
 
-- [ ] `perf:seed`: recria `npac_e2e_perf` com `resetTestDb` + `seed` + `seedMentoria` (senha
+- [x] `perf:seed`: recria `npac_e2e_perf` com `resetTestDb` + `seed` + `seedMentoria` (senha
   `senha-do-e2e-123`, `must_change_password = false`), roda `dist/dev/mock-prototype.js` com
   `DATABASE_URL` apontando para esse banco e aplica `volume.sql`.
-- [ ] `volume.sql` (com `session_replication_role = replica` durante as cargas e `analyze` no fim):
+- [x] `volume.sql` (com `session_replication_role = replica` durante as cargas e `analyze` no fim):
   clona os leads `legacy_id like 'mock-%'` 60 vezes (instagram `clone<g>_<8 primeiros do id>`,
   `created_at` recuado `g` horas); clona as reuniões para os clones; 10 eventos por lead na
   timeline com `kind` em (`lead.created`, `lead.updated`); clona cada inscrição 25 vezes com
   `mentoria_pessoas`, `mentoria_acoes` **e `mentoria_onboarding_etapas`** (`importacao_chave`,
   `whatsapp_idx` e `email_idx` nulos nos clones).
-- [ ] `perf:api`: sobe `apps/api/dist/main.js` em produção na porta 4150 com `APP_DATABASE_URL` do
+- [x] `perf:api`: sobe `apps/api/dist/main.js` em produção na porta 4150 com `APP_DATABASE_URL` do
   `npac_e2e_perf` e `MEDIA_DIR` temporário.
-- [ ] `medir.sh <usuario> <metodo> <caminho> [corpo]`: loga em `:4150/api/auth/sign-in/username`,
+- [x] `medir.sh <usuario> <metodo> <caminho> [corpo]`: loga em `:4150/api/auth/sign-in/username`,
   repete 5 vezes e imprime a mediana em ms.
-- [ ] Rodar e anotar aqui a linha de base de `igor`, `sonia`, `operacao` nos endpoints de T1.5.
-- [ ] Commit.
+- [x] Rodar e anotar aqui a linha de base de `igor`, `sonia`, `operacao` nos endpoints de T1.5
+  (coluna "Antes (12/11)" da tabela de T1.5).
+  Notas: `perf:api` aceita `PERF_API_PORT` e `medir.sh` aceita `PERF_API` — em 12/11 a 4150 estava
+  ocupada por uma API antiga da auditoria (PID 53224), e a medição rodou na 4151. `medir.sh` faz 1
+  chamada de aquecimento antes das 5. O volume dá o mesmo da auditoria (20.618 leads, 11.651
+  reuniões, 206.180 eventos, 364 inscrições, 1.716 ações); das gerações 3 a 60 o closer dos clones é
+  o Ronaldo (Head), e a Sônia fica com 483 leads. `node scripts/perf/medir-sql.mjs <usuario>` mede
+  `count(*)` e o canal ao vivo direto no banco.
+- [x] Commit.
 
 ### T1.2 Testes primeiro (RED)
 
 **Arquivos:** `packages/db/test/rls.test.ts`, `mentoria-v2-rls.test.ts`, criar
 `packages/db/test/rls-por-consulta.test.ts`.
 
-- [ ] Teste-guarda `nenhuma política de leitura chama função por linha`: em `pg_policies`, espera
+- [x] Teste-guarda `nenhuma política de leitura chama função por linha` (em
+  `rls-por-consulta.test.ts`; mais amplo que o descrito: pega qualquer `closer_has_lead(`,
+  `mentoria_*(`, `app_role(` ou `app_user_id(` fora de `( SELECT f() AS f)`, também no `WITH CHECK` de
+  política ALL; apontou 24 políticas, as 18 da v0.14 mais `mentoria_ciclos`, `mentoria_metas`,
+  `mentoria_pmes` e `mentoria_tarefas` da v0.15). O mesmo arquivo compara, linha a linha e para cada
+  perfil, `closer_has_lead` × `closer_lead_ids` e `mentoria_ve`/`_reuniao`/`_meta` × a expressão nova: em `pg_policies`, espera
   zero linhas com `cmd in ('SELECT','ALL')` cujo `qual` case com
   `(closer_has_lead|mentoria_ve|mentoria_ve_reuniao)\(` ou com `mentoria_(admin|perfil)\(\)` fora
   de `( SELECT …)` (o Postgres imprime o subselect como `( SELECT mentoria_admin() AS …)`); e que
   o `qual` de `leads_update` não contenha `closer_has_lead(`. Exceção nomeada no teste:
   `mentoria_midia_leitura` (mídia é lida uma linha por vez, pelo id).
-- [ ] Conferir se `rls.test.ts` já cobre os quatro caminhos do closer (reunião não cancelada;
+- [x] (Os casos que faltavam — `leads.closer_id` em Agendou Pagamento, venda ativa, venda estornada,
+  venda de outro closer, closer sem reunião e lead excluído para o closer — entraram em
+  `rls-por-consulta.test.ts`, para não editar os testes antigos.) Conferir se `rls.test.ts` já cobre os quatro caminhos do closer (reunião não cancelada;
   `leads.closer_id` em Agendou Pagamento; venda ativa dele; reunião cancelada não conta) e os casos
   1 e 2 do Foco da revisão. Acrescentar os que faltarem.
-- [ ] Rodar `pnpm --filter @npac/db test`: o teste-guarda falha, os demais passam.
-- [ ] Commit.
+- [x] Rodar `pnpm --filter @npac/db test`: o teste-guarda falha, os demais passam.
+- [x] Commit.
 
 ### T1.3 Migration comercial
 
@@ -160,10 +175,10 @@ snapshot.
 **Produz:** `closer_lead_ids() returns uuid[]` (`STABLE SECURITY DEFINER`, `search_path = public,
 pg_temp`, `execute` só para `npac_app`).
 
-- [ ] Função: união de `meetings.lead_id` (do closer, não canceladas) com `leads.id` em que
+- [x] Função: união de `meetings.lead_id` (do closer, não canceladas) com `leads.id` em que
   `closer_id = app_user_id()` e (etapa `AGENDOU_PAGAMENTO` ou venda ativa do mesmo closer);
   devolve `'{}'` quando vazio. Mesmas condições de `closer_has_lead`.
-- [ ] `alter policy leads_select` e `leads_update` (mesma expressão no `USING`):
+- [x] `alter policy leads_select` e `leads_update` (mesma expressão no `USING`):
 
   ```sql
   (select app_role()) = 'HEAD'::role
@@ -171,9 +186,10 @@ pg_temp`, `execute` só para `npac_app`).
       or id = any ((select closer_lead_ids())::uuid[])))
   ```
 
-- [ ] `closer_has_lead` continua existindo (gatilhos e outras funções a usam).
-- [ ] Teste do caso 3 do Foco em `apps/api/test/leads.e2e.test.ts` (se não existir).
-- [ ] `pnpm --filter @npac/db build && pnpm --filter @npac/db test` verde. Commit.
+- [x] `closer_has_lead` continua existindo (gatilhos e outras funções a usam).
+- [x] Teste do caso 3 do Foco: já existia em `apps/api/test/pagamento-sdr.e2e.test.ts` ("closer sem
+  reunião tira o lead da etapa: fica gravado na timeline").
+- [x] `pnpm --filter @npac/db build && pnpm --filter @npac/db test` verde. Commit.
 
 ### T1.4 Migration do Acompanhamento
 
@@ -182,11 +198,11 @@ pg_temp`, `execute` só para `npac_app`).
 **Produz:** `mentoria_ve_todas() returns boolean` e `mentoria_ids_especialista() returns uuid[]`
 (mesmos atributos de T1.3).
 
-- [ ] `mentoria_ve_todas`: `mentoria_admin() or coalesce(mentoria_perfil() in ('ACOMPANHAMENTO',
+- [x] `mentoria_ve_todas`: `mentoria_admin() or coalesce(mentoria_perfil() in ('ACOMPANHAMENTO',
   'OPERACAO'), false)`.
-- [ ] `mentoria_ids_especialista`: `inscricao_id` distintos de `mentoria_reunioes` com
+- [x] `mentoria_ids_especialista`: `inscricao_id` distintos de `mentoria_reunioes` com
   `conduzida_por = app_user_id()`, só quando `mentoria_perfil() = 'ESPECIALISTA'`; senão `'{}'`.
-- [ ] Reescrever o `USING` das 11 políticas `*_leitura` que hoje são `mentoria_ve(<chave>)`
+- [x] Reescrever o `USING` das 11 políticas `*_leitura` que hoje são `mentoria_ve(<chave>)`
   (`mentoria_inscricoes` com chave `id`; `mentoria_pessoas`, `mentoria_acoes`,
   `mentoria_anotacoes`, `mentoria_contatos`, `mentoria_enderecos`, `mentoria_envios_fisicos`,
   `mentoria_historico`, `mentoria_momento_inicial`, `mentoria_onboarding_etapas`,
@@ -197,38 +213,52 @@ pg_temp`, `execute` só para `npac_app`).
   or <chave> = any ((select mentoria_ids_especialista())::uuid[])
   ```
 
-- [ ] `mentoria_avaliacoes_leitura`: mesmo `exists` em `mentoria_pessoas`, trocando
+- [x] `mentoria_avaliacoes_leitura`: mesmo `exists` em `mentoria_pessoas`, trocando
   `mentoria_ve(p.inscricao_id)` pela expressão acima com `p.inscricao_id`.
-- [ ] `mentoria_reunioes_leitura` (hoje `mentoria_ve_reuniao(conduzida_por, inscricao_id)`):
+- [x] `mentoria_reunioes_leitura` (hoje `mentoria_ve_reuniao(conduzida_por, inscricao_id)`):
   `(select mentoria_ve_todas()) or ((select mentoria_perfil()) = 'ESPECIALISTA' and conduzida_por
   = (select app_user_id()))`.
-- [ ] Políticas com `mentoria_admin()` / `mentoria_perfil()` soltos (`mentoria_legado_admin`,
+- [x] Políticas com `mentoria_admin()` / `mentoria_perfil()` soltos (`mentoria_legado_admin`,
   `mentoria_fila_feitos_leitura`, `mentoria_mensagens_leitura`, `mentoria_perfis_leitura`,
   `mentoria_plano_leitura`): mesma expressão, com cada chamada dentro de `(select …)`.
-- [ ] `mentoria_midia_leitura` não muda (exceção do teste-guarda).
+- [x] `mentoria_midia_leitura` não muda (exceção do teste-guarda).
+- [x] Tabelas da v0.15 na mesma migration: `mentoria_ciclos_leitura` (como as 11), `mentoria_metas_leitura`
+  (`mentoria_ve_meta` = `(select mentoria_ve_todas())`), `mentoria_pmes_leitura` (como o plano) e
+  `mentoria_tarefas_leitura` (`mentoria_ve_todas()` ou, para a Especialista, `exists` da reunião dela
+  pela chave).
 
-- [ ] `mentoria_ve` continua existindo (as funções `mentoria_edita*` a usam). Políticas de
+- [x] `mentoria_ve` continua existindo (as funções `mentoria_edita*` a usam). Políticas de
   `INSERT`/`UPDATE` com `mentoria_edita` ficam como estão: valem para uma linha por vez.
-- [ ] Teste do caso 4 do Foco em `mentoria-v2-especialista.test.ts`.
-- [ ] Suítes db e API verdes, teste-guarda verde. Commit.
+- [x] Teste do caso 4 do Foco em `mentoria-v2-especialista.test.ts`.
+- [x] Suítes db e API verdes, teste-guarda verde. Commit.
 
 ### T1.5 Medir e fechar
 
-- [ ] `pnpm perf:seed && pnpm perf:api` e medir. Metas no `npac_e2e_perf`:
+- [x] `pnpm perf:seed && pnpm perf:api` e medir. Metas no `npac_e2e_perf`:
 
-  | Quem | Medida | Antes | Meta |
-  |---|---|---|---|
-  | igor (SDR) | `select count(*) from leads` (psql, `set role npac_app`) | 1.250 ms | ≤ 50 ms |
-  | igor | consulta do canal ao vivo (`events.controller.ts:38`) | 5.914 ms | ≤ 100 ms |
-  | igor | `GET /api/leads?page=1` | página 2.184 ms | ≤ 150 ms |
-  | igor | `GET /api/leads/pipeline` | página 4.822 ms | ≤ 200 ms |
-  | igor | `POST /api/today/search {}` | página 824 ms | ≤ 200 ms |
-  | sonia (closer) | os três endpoints acima, com no máximo 500 leads dela (ajustar o clone) | 2,4–5,1 s | ≤ 300 ms |
-  | operacao | `POST /api/mentoria/plano/semana {}` | página 1.355 ms | ≤ 200 ms |
-  | diretor | `POST /api/mentoria/plano/semana {}` | página 649 ms | ≤ 150 ms |
+  | Quem | Medida | Auditoria | Antes (12/11) | Depois (12/11) | Meta |
+  |---|---|---|---|---|---|
+  | igor (SDR) | `select count(*) from leads` (npac_app) | 1.250 ms | 1.639 ms | **4 ms** ✅ | ≤ 50 ms |
+  | igor | consulta do canal ao vivo (`events.controller.ts:38`) | 5.914 ms | 4.397 ms | **30 ms** ✅ | ≤ 100 ms |
+  | igor | `GET /api/leads?page=1` | página 2.184 ms | 3.135 ms | **28 ms** ✅ | ≤ 150 ms |
+  | igor | `GET /api/leads/pipeline` | página 4.822 ms | 6.486 ms | **42 ms** ✅ | ≤ 200 ms |
+  | igor | `POST /api/today/search {}` | página 824 ms | 1.408 ms | **41 ms** ✅ | ≤ 200 ms |
+  | sonia (closer, 483 leads) | `GET /api/leads?page=1` | 2,4–5,1 s | 4.384 ms | **56 ms** ✅ | ≤ 300 ms |
+  | sonia | `GET /api/leads/pipeline` | | 9.690 ms | **92 ms** ✅ | ≤ 300 ms |
+  | sonia | `POST /api/today/search {}` | | 4.180 ms | **70 ms** ✅ | ≤ 300 ms |
+  | sonia | `count(*)` / canal ao vivo | | 2.325 / 6.308 ms | **18 / 66 ms** | — |
+  | operacao | `POST /api/mentoria/plano/semana {}` | página 1.355 ms | 1.883 ms | **121 ms** ✅ | ≤ 200 ms |
+  | diretor | `POST /api/mentoria/plano/semana {}` | página 649 ms | 1.103 ms | **63 ms** ✅ | ≤ 150 ms |
 
-- [ ] Anotar os números aqui. Revisor independente lê as duas migrations (foco: vazamento de
-  linha). PR, ITODEV, roteiro por cargo (SDR, closer, Especialista, Operação).
+  Mediana de 5 (`scripts/perf/medir.sh`, `medir-sql.mjs`), API em produção local na 4151. "Antes" =
+  mesmo banco com as 24 políticas antigas reaplicadas à mão, medido com a suíte da API rodando ao
+  lado (um pouco inflado); "Depois" sem carga paralela. A auditoria media a página inteira; aqui é o
+  endpoint.
+
+- [x] Anotar os números aqui. Revisor independente leu as duas migrations (foco: vazamento de linha):
+  nenhum vazamento; conferiu as 24 políticas contra as antigas, NULLs, inativo, sem `app.user_id`,
+  atributos e grants das funções novas. PR para a `release/v0.15`.
+- [ ] ITODEV e roteiro por cargo (SDR, closer, Especialista, Operação): depois do merge, com o rc.
 
 ## Fase 2 — Web: navegação, carregamento e erro
 

@@ -365,6 +365,14 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
   lido da tabela de dentro e a contagem dá zero.
 - RLS, grants, triggers e SECURITY DEFINER são SQL manual: revise além do schema. `npac_app` sem
   UPDATE numa tabela não pode `SELECT … FOR UPDATE` nela.
+- **Política de leitura sem função por linha** (desempenho, Fase 1, 0060–0061): no `USING` de
+  SELECT/ALL (e de `leads_update`), toda função vai dentro de `(select f())`, calculada uma vez por
+  consulta; o que depende da linha compara com uma lista: `id = any ((select closer_lead_ids())::uuid[])`
+  (comercial), `(select mentoria_ve_todas()) or inscricao_id = any ((select mentoria_ids_especialista())::uuid[])`
+  (Acompanhamento). Nunca `closer_has_lead(id)`/`mentoria_ve(inscricao_id)` direto: com 20 mil leads o
+  Dashboard do SDR levava 20 s. O teste-guarda de `db/test/rls-por-consulta.test.ts` varre `pg_policies`
+  (única exceção: `mentoria_midia_leitura`). INSERT/UPDATE com `mentoria_edita*` seguem por linha.
+  Tabela nova do módulo: política de leitura nesse formato e caso no teste de equivalência.
 - Valor novo de enum não vale na mesma transação da migration (compare como texto).
 - Aplicar no dev: `pnpm --filter @npac/db build && pnpm --filter @npac/db migrate`.
   psql: `docker exec npac-corporation-postgres-1 psql -U npac_owner -d npac`.
@@ -384,7 +392,14 @@ pnpm --filter @npac/shared test
 pnpm --filter @npac/api exec vitest run test/leads.e2e.test.ts -t "nome"   # focado
 pnpm --filter @npac/web e2e [e2e/admin.spec.ts]   # Playwright (~2 min)
 pnpm exec prettier --write <arquivos>
+pnpm perf:seed                       # recria npac_e2e_perf com ~20 mil leads e ~360 inscrições (~2 min)
+pnpm perf:api                        # API de medição na porta 4150 (produção, npac_e2e_perf)
+scripts/perf/medir.sh igor GET /api/leads?page=1          # mediana de 5, em ms (bash)
+node scripts/perf/medir-sql.mjs igor sonia                # count(*) e canal ao vivo sob a RLS
 ```
+
+- **Medição** só no `npac_e2e_perf` (nunca no dev `npac`); senha de todos `senha-do-e2e-123`. Plano,
+  metas e números de antes/depois em `docs/plans/desempenho.md`.
 
 - **Dev só pelo painel**: `preview_start` `npac-dev` (`.claude/launch.json`), nunca `pnpm dev` em
   segundo plano (porta 3000). e2e e dev disputam portas e `.next`: antes do e2e, `preview_stop` e

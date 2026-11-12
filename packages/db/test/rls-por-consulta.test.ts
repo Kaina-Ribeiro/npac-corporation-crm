@@ -2,6 +2,7 @@
 // chamam função por linha; as listas (`closer_lead_ids`, `mentoria_ids_especialista`) são
 // calculadas uma vez por consulta e dão exatamente o mesmo resultado das funções antigas.
 import { sql } from 'drizzle-orm';
+import type { TransactionSql } from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { appDb, closeTestConnections, ownerSql } from '../src/testing.js';
 import { withUser } from '../src/with-user.js';
@@ -14,14 +15,11 @@ const q = <T extends Record<string, unknown>>(id: string, s: ReturnType<typeof s
   withUser(db, id, async (tx) => [...(await tx.execute<T>(s))]);
 
 /** Roda como owner (sem RLS) com `app.user_id` definido: compara função antiga e nova em todas as linhas. */
-const comoOwner = <T extends readonly Record<string, unknown>[]>(
-  userId: string,
-  fn: (s: Parameters<Parameters<typeof owner.begin>[0]>[0]) => Promise<T>,
-) =>
-  owner.begin(async (s) => {
+const comoOwner = async <T>(userId: string, fn: (s: TransactionSql) => Promise<T>): Promise<T> =>
+  (await owner.begin(async (s) => {
     await s`select set_config('app.user_id', ${userId}, true)`;
     return fn(s);
-  }) as Promise<T>;
+  })) as T;
 
 describe('teste-guarda', () => {
   it('nenhuma política de leitura chama função por linha', async () => {
