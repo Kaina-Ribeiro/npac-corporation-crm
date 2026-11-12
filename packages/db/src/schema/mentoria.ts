@@ -12,6 +12,7 @@ import {
   date,
   index,
   integer,
+  numeric,
   pgTable,
   smallint,
   text,
@@ -803,6 +804,10 @@ export const mentoriaTarefas = pgTable(
     origem: text('origem').notNull(),
     reuniaoId: uuid('reuniao_id').references(() => mentoriaReunioes.id, { onDelete: 'cascade' }),
     cicloId: uuid('ciclo_id').references(() => mentoriaCiclos.id, { onDelete: 'cascade' }),
+    /** Meta a que a tarefa da reunião serve (Parte 2); some com a meta. */
+    metaId: uuid('meta_id').references((): AnyPgColumn => mentoriaMetas.id, {
+      onDelete: 'set null',
+    }),
     ordem: smallint('ordem').notNull().default(0),
     /** Nulo só depois da anonimização (LGPD); a API exige. */
     descricao: text('descricao'),
@@ -822,6 +827,7 @@ export const mentoriaTarefas = pgTable(
     index('mentoria_tarefas_inscricao').on(t.inscricaoId, t.prazo),
     index('mentoria_tarefas_ciclo').on(t.cicloId, t.ordem),
     index('mentoria_tarefas_reuniao').on(t.reuniaoId),
+    index('mentoria_tarefas_meta').on(t.metaId),
     uniqueIndex('mentoria_tarefas_encerramento')
       .on(t.cicloId)
       .where(sql`${t.origem} = 'ENCERRAMENTO'`),
@@ -848,5 +854,51 @@ export const mentoriaTarefas = pgTable(
     check('mentoria_tarefas_descricao', cifradoCabe(t.descricao)),
     check('mentoria_tarefas_motivo', cifradoCabe(t.motivo)),
     check('mentoria_tarefas_ordem', sql`${t.ordem} between 0 and 100`),
+  ],
+);
+
+/**
+ * Metas (Fase 2, Parte 2, S3): do casal ou individual (`pessoa_id` nulo) ou de uma pessoa do casal.
+ * Descrição cifrada. Nasce no ciclo aberto, se houver, e conta no % de metas dele (E5).
+ */
+export const mentoriaMetas = pgTable(
+  'mentoria_metas',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    inscricaoId: uuid('inscricao_id')
+      .notNull()
+      .references(() => mentoriaInscricoes.id, { onDelete: 'cascade' }),
+    cicloId: uuid('ciclo_id').references(() => mentoriaCiclos.id, { onDelete: 'cascade' }),
+    /** Reunião onde foi definida (opcional). */
+    reuniaoId: uuid('reuniao_id').references(() => mentoriaReunioes.id, { onDelete: 'set null' }),
+    /** Nulo = do casal ou do individual; a pessoa 2 removida devolve a meta ao casal. */
+    pessoaId: uuid('pessoa_id').references(() => mentoriaPessoas.id, { onDelete: 'set null' }),
+    pilar: text('pilar'),
+    /** Nulo só depois da anonimização (LGPD); a API exige. */
+    descricao: text('descricao'),
+    valorAlvo: numeric('valor_alvo', { precision: 14, scale: 2 }),
+    valorAtual: numeric('valor_atual', { precision: 14, scale: 2 }),
+    unidade: text('unidade'),
+    prazo: date('prazo'),
+    status: text('status').notNull().default('EM_ANDAMENTO'),
+    visivelAoMentorado: boolean('visivel_ao_mentorado').notNull().default(true),
+    version: integer('version').notNull().default(1),
+    ...autoria,
+  },
+  (t) => [
+    index('mentoria_metas_inscricao').on(t.inscricaoId, t.criadoEm),
+    index('mentoria_metas_ciclo').on(t.cicloId),
+    check(
+      'mentoria_metas_pilar',
+      sql`${t.pilar} in ('FE', 'SAUDE', 'DINHEIRO', 'RELACIONAMENTOS')`,
+    ),
+    check(
+      'mentoria_metas_status',
+      sql`${t.status} in ('EM_ANDAMENTO', 'ATINGIDA', 'NAO_ATINGIDA')`,
+    ),
+    check('mentoria_metas_alvo', sql`${t.valorAlvo} > 0`),
+    check('mentoria_metas_atual', sql`${t.valorAtual} >= 0`),
+    check('mentoria_metas_unidade', sql`char_length(${t.unidade}) between 1 and 20`),
+    check('mentoria_metas_descricao', cifradoCabe(t.descricao)),
   ],
 );
