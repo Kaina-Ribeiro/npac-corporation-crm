@@ -176,16 +176,16 @@ nao_concluido, prazo, hoje)` com o `hoje` do `MENTORIA_CLOCK`: até 9 dias de at
   reuniões (`mentoria_ve_tarefa`/`mentoria_edita_tarefa`); Operação envia mas não marca. Até 3 tarefas por reunião (gatilho, para a
   Parte 2). Pausa não estica o prazo do PME (pergunta aberta à Eduarda).
   **Metas e tarefas da reunião** (Fase 2, Parte 2, 12/11/2026): metas (`mentoria_metas`, casal ou de uma pessoa, pilar, alvo/atual
-  `numeric`, status Em andamento/Atingida/Não atingida, descrição cifrada) leem Admin, Acompanhamento e Operação (`mentoria_ve_meta`);
-  escrevem Admin e Acompanhamento (área `META`); a **Especialista não vê metas**. Meta nasce no ciclo aberto; sem ciclo, entra no
-  próximo enviado (gatilho). Registro da reunião: "Cobrança da reunião anterior" (tarefas REUNIAO da reunião anterior mais recente que
-  tenha tarefas visíveis a quem abre), "Tarefas da semana" (até 3, prazo obrigatório e ≥ dia da reunião, meta opcional, entra no ciclo
-  aberto; REMARCADA/FALTOU recusam) e "Metas definidas ou ajustadas"; os textos da Fase 1 continuam. Só a tarefa REUNIAO muda texto,
-  prazo e meta; excluir só pendente, por `mentoria_excluir_tarefa`; meta por `mentoria_excluir_meta`; reunião com tarefa/meta não se
-  exclui. Vínculos (ciclo, reunião, pessoa, meta) da mesma inscrição por gatilho. % do PME (E5, duas medidas): tarefas FEITA ÷ total do
-  ciclo (PARCIAL não conta) e média das metas (min(atual ÷ alvo, 1); sem alvo pelo status; ATINGIDA = 100 %), `SECURITY DEFINER`
-  (a Especialista vê o número inteiro). Ficha > Jornada: card do PME (extras e encerramento + barras), Tarefas (as da reunião por PME)
-  e Metas.
+  `numeric`, unidade, prazo, descrição cifrada) leem Admin, Acompanhamento e Operação (`mentoria_ve_meta`); escrevem Admin e
+  Acompanhamento (área `META`); a **Especialista não vê metas**. Meta nasce no ciclo aberto (se houver). **Sem status da meta (S3) e
+  sem exclusão de meta ou tarefa**: esperam decisão do Gabriel (pendências no plano da Fase 2, Parte 2). Registro da reunião:
+  "Cobrança da reunião anterior" (tarefas REUNIAO da última reunião REALIZADA antes desta, entre as que quem abre vê), "Tarefas da
+  semana" (até 3, prazo obrigatório, meta opcional, entra no ciclo aberto) e "Metas definidas ou ajustadas"; os textos da Fase 1
+  continuam. Só a tarefa REUNIAO muda texto, prazo e meta; reunião com tarefa/meta não se exclui (a FK apagaria as tarefas).
+  Vínculos (ciclo, reunião, pessoa, meta) da mesma inscrição por gatilho. % do PME (E5, duas medidas, `SECURITY DEFINER`, a
+  Especialista vê o número inteiro): tarefas FEITA ÷ total do ciclo (PARCIAL não conta) e média de min(atual ÷ alvo, 1) só nas
+  metas com alvo (meta sem alvo, S4, fica fora). Ficha > Jornada: card do PME (extras e encerramento + barras), Tarefas (as da
+  reunião por PME) e Metas.
 - **Siglas das mentorias** (Gabriel, 04/11/2026): RDV = Rico de Verdade · IDR = Introdução da
   Riqueza · PME = Plano Mensal de Enriquecimento · 2M = Marco e Mudança · 6M = sem definição ainda.
   Nas telas vale o texto literal do PDF, exceto IDR: "Introdução da Riqueza" (o PDF diz "à"; corrigido).
