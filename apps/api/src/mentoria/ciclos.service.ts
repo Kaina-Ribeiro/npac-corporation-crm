@@ -103,7 +103,7 @@ export class CiclosService {
         mentoria_ciclo_status(c.concluido_em, c.nao_concluido_em, c.prazo, ${hoje}::date) as status,
         case when c.concluido_em is null and c.nao_concluido_em is null
           then greatest(${hoje}::date - c.prazo, 0) else 0 end as "diasAtraso",
-        mentoria_pct_tarefas(c.id) as "pctTarefas", mentoria_pct_metas(c.id) as "pctMetas"
+        mentoria_pct_tarefas(c.id) as "pctTarefas"
       from mentoria_ciclos c left join mentoria_pmes p on p.id = c.pme_id
       where c.inscricao_id = ${inscricaoId}::uuid
       order by c.numero desc`);

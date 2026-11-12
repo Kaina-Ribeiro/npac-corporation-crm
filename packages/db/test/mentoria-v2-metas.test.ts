@@ -65,10 +65,7 @@ const criarMeta = (quem: string, campos = sql`'cifrado'`) =>
   );
 const pct = async (cicloId: string, quem = ADMIN) =>
   (
-    await como<{ t: number | null; m: number | null }>(
-      quem,
-      sql`select mentoria_pct_tarefas(${cicloId}::uuid) as t, mentoria_pct_metas(${cicloId}::uuid) as m`,
-    )
+    await como<{ t: number | null }>(quem, sql`select mentoria_pct_tarefas(${cicloId}::uuid) as t`)
   )[0]!;
 
 beforeAll(async () => {
@@ -238,17 +235,10 @@ describe('% do PME', () => {
     expect((await pct(c)).t).toBe(33);
   });
 
-  it('metas: média de min(atual ÷ alvo, 1) nas metas com alvo; sem alvo fica fora (S4)', async () => {
-    const c = await ciclo();
-    expect((await pct(c)).m).toBeNull();
-    await owner`insert into mentoria_metas (inscricao_id, ciclo_id, descricao, valor_alvo, valor_atual)
-      values (${inscricao}, ${c}, 'x', null, null)`;
-    expect((await pct(c)).m).toBeNull();
-    await owner`insert into mentoria_metas (inscricao_id, ciclo_id, descricao, valor_alvo, valor_atual)
-      values (${inscricao}, ${c}, 'x', 10, 5), (${inscricao}, ${c}, 'x', 10, 30),
-        (${inscricao}, ${c}, 'x', 8, null)`;
-    // (0,5 + 1 + 0) ÷ 3 = 50 %
-    expect((await pct(c)).m).toBe(50);
+  it('metas não viram um número único (pendente com a Eduarda): sem função de % de metas', async () => {
+    const [f] = await owner<{ n: number }[]>`
+      select count(*)::int as n from pg_proc where proname = 'mentoria_pct_metas'`;
+    expect(f!.n).toBe(0);
   });
 
   it('a Especialista vê o mesmo número; o Mentor, nulo', async () => {

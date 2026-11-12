@@ -404,6 +404,8 @@ export type MetaDTO = {
   descricao: string | null;
   valorAlvo: number | null;
   valorAtual: number | null;
+  /** min(atual ÷ alvo, 1) em %, do banco; nulo sem alvo numérico (S4 pendente com a Eduarda). */
+  pct: number | null;
   unidade: string | null;
   prazo: string | null;
   criadoEm: string;
@@ -424,9 +426,11 @@ export type CicloDTO = {
   status: CicloStatus;
   /** Dias depois do prazo, só enquanto aberto (0 antes do prazo). */
   diasAtraso: number;
-  /** % do PME (E5), do banco: tarefas FEITA ÷ total e progresso das metas. Nulo sem tarefas/metas. */
+  /**
+   * % do PME (E5), do banco: tarefas FEITA ÷ total do ciclo; nulo sem tarefas. Juntar as metas num
+   * número único está pendente com a Eduarda: cada meta traz o próprio `pct`.
+   */
   pctTarefas: number | null;
-  pctMetas: number | null;
   tarefas: TarefaDTO[];
 };
 

@@ -31,6 +31,8 @@ export class MetasService {
       select m.id, m.version, m.inscricao_id as "inscricaoId", m.ciclo_id as "cicloId",
         c.numero as "cicloNumero", m.reuniao_id as "reuniaoId", m.pessoa_id as "pessoaId", m.pilar,
         m.descricao, m.valor_alvo::float8 as "valorAlvo", m.valor_atual::float8 as "valorAtual",
+        case when m.valor_alvo is not null
+          then round(100 * least(coalesce(m.valor_atual, 0) / m.valor_alvo, 1))::int end as pct,
         m.unidade, to_char(m.prazo, 'YYYY-MM-DD') as prazo, m.criado_em as "criadoEm",
         mentoria_edita('META', m.inscricao_id) as "podeEditar"
       from mentoria_metas m left join mentoria_ciclos c on c.id = m.ciclo_id

@@ -11,6 +11,7 @@ import { button, control, FormError, quietButton } from '@/components/crm-ui';
 import { clientApi } from '@/lib/client-api';
 import { registrarVersion } from '@/lib/acompanhamento-saver';
 import { CampoPr, type Conversao } from './campo';
+import { Barra } from './pme-atual';
 import { dataBR, ICONES, Icone } from './ui';
 
 const sm = `${quietButton} sm`;
@@ -39,6 +40,18 @@ const primeiroNome = (nome: string) => nome.split(' ')[0] ?? nome;
 const dono = (m: MetaDTO, pessoas: PessoaMeta[]) =>
   m.pessoaId ? primeiroNome(pessoas.find((p) => p.id === m.pessoaId)?.nome ?? '') : null;
 
+/** Progresso de uma meta com alvo numérico: atual ÷ alvo, do banco (sem alvo, sem barra). */
+function BarraMeta({ m }: { m: MetaDTO }) {
+  return (
+    <Barra
+      rotulo={progressoMetaTexto(m) ?? 'Progresso'}
+      nome={`Progresso da meta: ${m.descricao ?? 'meta'}`}
+      pct={m.pct}
+      vazio=""
+    />
+  );
+}
+
 /** Uma meta: no campo para quem edita (salva ao sair); resumo para quem só lê. */
 function MetaItem({
   m,
@@ -54,7 +67,6 @@ function MetaItem({
   useEffect(() => {
     registrarVersion(chave, m.version);
   }, [chave, m.version]);
-  const progresso = progressoMetaTexto(m);
   const de = dono(m, pessoas);
   const descricao = m.descricao ?? 'Texto apagado (LGPD)';
 
@@ -67,10 +79,10 @@ function MetaItem({
         <div className="mt-chips">
           {m.pilar && <span>{PILAR_LABEL[m.pilar]}</span>}
           {de && <span>De {de}</span>}
-          {progresso && <span>{progresso}</span>}
           {m.prazo && <span>Até {dataBR(m.prazo)}</span>}
           {m.cicloNumero !== null && <span>{nomePme(m.cicloNumero)}</span>}
         </div>
+        {m.pct !== null && <BarraMeta m={m} />}
       </li>
     );
 
@@ -141,6 +153,7 @@ function MetaItem({
         />
         <CampoPr chave={chave} rotulo="Prazo" campo="prazo" valor={m.prazo} tipo="date" />
       </div>
+      {m.pct !== null && <BarraMeta m={m} />}
       <div className="mt-pe">
         <span>
           {m.cicloNumero !== null ? `Conta no ${nomePme(m.cicloNumero)}` : 'Fora de um PME'}

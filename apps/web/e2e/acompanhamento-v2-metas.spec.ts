@@ -146,17 +146,18 @@ test('Duda combina 3 tarefas, define a meta, cobra na reunião seguinte e vê as
     await expect(cobranca.getByText('1 a cobrar')).toBeVisible();
   });
 
-  // Ficha: seções Tarefas e Metas e as duas barras do PME (1 feita de 6; meta em 25 %).
+  // Ficha: seções Tarefas e Metas; barra do PME só com tarefas (1 feita de 6), meta em 25 %.
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(`/acompanhamento/ficha/${inscricao}?aba=jornada`);
   await expect(card.getByRole('meter', { name: 'Tarefas do 1º PME' })).toHaveAttribute(
     'aria-valuetext',
     '17%',
   );
-  await expect(card.getByRole('meter', { name: 'Metas do 1º PME' })).toHaveAttribute(
-    'aria-valuetext',
-    '25%',
-  );
+  // Sem % de metas agregado (pendente com a Eduarda): a meta mostra a própria barra.
+  await expect(card.getByRole('meter', { name: 'Metas do 1º PME' })).toHaveCount(0);
+  await expect(
+    page.getByRole('meter', { name: 'Progresso da meta: Juntar a reserva de emergência' }),
+  ).toHaveAttribute('aria-valuetext', '25%');
   const tarefas = page.getByRole('region', { name: 'Tarefas', exact: true });
   await expect(tarefas.getByText('1 de 3 feitas')).toBeVisible();
   await expect(tarefas.getByText('Meta: Juntar a reserva de emergência')).toHaveCount(0);
