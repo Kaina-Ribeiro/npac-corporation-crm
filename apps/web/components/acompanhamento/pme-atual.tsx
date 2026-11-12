@@ -210,28 +210,60 @@ function Ciclo({
           <b className="pme-nome">{nomePme(c.numero, c.titulo)}</b>
           {c.titulo && <span className="pme-num">{nomePme(c.numero)}</span>}
         </div>
-        <TagCiclo c={c} />
+        <div className="pme-tags">
+          {c.anteriorAoSistema && (
+            <span className="tag" title="Registrado sem tarefas automáticas">
+              Antes do sistema
+            </span>
+          )}
+          <TagCiclo c={c} />
+        </div>
       </div>
       <dl className="pme-datas">
         <div>
           <dt>Enviado</dt>
-          <dd>{dataBR(c.enviadoEm)}</dd>
+          <dd>
+            {dataBR(c.enviadoEm)}
+            {ficha.pode.pme && (
+              <button
+                type="button"
+                className="pl-link"
+                aria-label={`Corrigir a data de envio do ${nomePme(c.numero)}`}
+                onClick={() => abrir({ tipo: 'data', c })}
+              >
+                Corrigir
+              </button>
+            )}
+          </dd>
         </div>
         <div>
           <dt>Prazo</dt>
           <dd>{dataBR(c.prazo)}</dd>
         </div>
-        {c.concluidoEm ? (
+        {(c.concluidoEm || fechavel) && (
           <div>
             <dt>Concluído</dt>
-            <dd>{dataBR(c.concluidoEm)}</dd>
+            <dd>
+              {c.concluidoEm ? dataBR(c.concluidoEm) : '—'}
+              {fechavel && (
+                <button
+                  type="button"
+                  className="pl-link"
+                  aria-label={`${c.concluidoEm ? 'Reabrir' : 'Concluir'} o ${nomePme(c.numero)}`}
+                  onClick={() => abrir({ tipo: 'fechar', c })}
+                >
+                  {c.concluidoEm ? 'Reabrir' : 'Informar'}
+                </button>
+              )}
+            </dd>
           </div>
-        ) : c.naoConcluidoEm ? (
+        )}
+        {!c.concluidoEm && c.naoConcluidoEm && (
           <div>
             <dt>Encerrado</dt>
             <dd>{dataBR(c.naoConcluidoEm)}</dd>
           </div>
-        ) : null}
+        )}
         {c.tarefas.length > 0 && (
           <div>
             <dt>Tarefas</dt>
@@ -240,35 +272,23 @@ function Ciclo({
             </dd>
           </div>
         )}
+        {c.linkMaterial && (
+          <div>
+            <dt>Material</dt>
+            <dd>
+              <a className="pl-link" href={c.linkMaterial} target="_blank" rel="noreferrer">
+                Abrir
+              </a>
+            </dd>
+          </div>
+        )}
       </dl>
-      {c.anteriorAoSistema && (
-        <p className="pme-nota">Registrado como anterior ao sistema, sem tarefas automáticas.</p>
-      )}
       {c.tarefas.length > 0 && (
         <ul className="pme-tarefas">
           {c.tarefas.map((t) => (
             <Tarefa key={t.id} t={t} atualizar={atualizar} />
           ))}
         </ul>
-      )}
-      {(c.linkMaterial || ficha.pode.pme || fechavel) && (
-        <div className="pme-acoes">
-          {c.linkMaterial && (
-            <a className={sm} href={c.linkMaterial} target="_blank" rel="noreferrer">
-              Material
-            </a>
-          )}
-          {ficha.pode.pme && (
-            <button type="button" className={sm} onClick={() => abrir({ tipo: 'data', c })}>
-              Corrigir data de envio
-            </button>
-          )}
-          {fechavel && (
-            <button type="button" className={sm} onClick={() => abrir({ tipo: 'fechar', c })}>
-              {c.concluidoEm ? 'Reabrir' : 'Marcar concluído'}
-            </button>
-          )}
-        </div>
       )}
     </div>
   );

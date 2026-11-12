@@ -24,7 +24,7 @@ da Fase 1 (`docs/superpowers/plans/2026-11-10-acompanhamento-v2-design.md`) e o 
 
 | Parte | Entrega | Status |
 |---|---|---|
-| 1 | Catálogo de PMEs, ciclos e tarefas do ciclo (envio, extras, encerramento, status derivado) + Configurações > PMEs + card "PME atual" na ficha | ⏳ |
+| 1 | Catálogo de PMEs, ciclos e tarefas do ciclo (envio, extras, encerramento, status derivado) + Configurações > PMEs + card "PME atual" na ficha | ✅ 11/11 (PR na `release/v0.14`) |
 | 2 | Metas, tarefas da reunião (até 3, prazo), cobrança da reunião anterior, % do PME (tarefas e metas) | ⏳ |
 | 3 | Check-ins lançados pela equipe, semáforo (função, histórico semanal, sequência), colunas em Mentorados | ⏳ |
 | 4 | Fila (COBRANCA, SEMAFORO, ENVIAR_PME, PME_ATRASADO, FIM_PME espera o ciclo), push, aba 7 "PMEs e ciclos", CSV, fechamento | ⏳ |
@@ -66,7 +66,7 @@ Branch `feat/NPAC-43-fase-2-parte-1-pmes`. Execução nativa (sem subagentes). M
   prazo, hoje)` IMMUTABLE.
 - Em aberto, para perguntar à Eduarda (não implementado): o prazo do PME anda durante a pausa? Hoje não anda.
 
-### Tarefa 1.1: Banco (0057) — Status: ⏳
+### Tarefa 1.1: Banco (0057) — Status: ✅
 **Files:** Modify `db/src/schema/mentoria.ts` · Create `db/drizzle/0057_acompanhamento_v2_pmes.sql` + snapshot +
 journal · Test `db/test/mentoria-v2-pmes.test.ts`
 - Tabelas `mentoria_pmes` (numero 0–12 único, titulo ≤120, foco ≤500, link_material `LINK_PERMITIDO`,
@@ -87,11 +87,11 @@ journal · Test `db/test/mentoria-v2-pmes.test.ts`
   tarefas (leitura/edição pelas funções novas; INSERT de EXTRA/ENCERRAMENTO pela área PME). Sem DELETE.
 - Catálogo: 1º PME (2 extras: erros no Millionaire Book com 3 soluções; livro "Comece pelo Porquê"; encerramento:
   queimar as folhas dos erros) e 2º PME (4 extras do PDF, sem encerramento próprio).
-- [ ] Testes RED: RLS por perfil (Manu, Leo, Operação sem marcar tarefa), unicidades, 4ª tarefa, um aberto,
+- [x] Testes RED: RLS por perfil (Manu, Leo, Operação sem marcar tarefa), unicidades, 4ª tarefa, um aberto,
   status nos dias 9/10/16/17, encerramento fecha/reabre/recusa, prazo segue, sem DELETE.
-- [ ] Schema + `generate` + SQL manual; `pnpm --filter @npac/db test` verde. Commit.
+- [x] Schema + `generate` + SQL manual; `pnpm --filter @npac/db test` verde. Commit.
 
-### Tarefa 1.2: API — Status: ⏳
+### Tarefa 1.2: API — Status: ✅
 **Files:** Create `api/mentoria/pmes.controller.ts` (controller + `PmesService`), `ciclos.service.ts`,
 `ciclos.controller.ts`, `sh/mentoria/pmes.ts` · Modify `sh/schemas/mentoria.ts`, `sh/mentoria/dto.ts`,
 `ficha.service.ts`, `fila.service.ts`, `midia.controller.ts`, `historico.ts`, `mentoria.module.ts` · Test
@@ -104,12 +104,12 @@ journal · Test `db/test/mentoria-v2-pmes.test.ts`
   `pode.pme`/`pode.tarefa`.
 - Erros: 400 "Cadastre o Nº PME em Configurações", "Só mentorado ativo recebe PME", "A jornada já terminou",
   "Os 12 PMEs já foram enviados", data no futuro ou antes do PME anterior.
-- [ ] Testes RED (spec §8 da parte): envio cria ciclo e tarefas; encerramento fecha e desfazer reabre; status
+- [x] Testes RED (spec §8 da parte): envio cria ciclo e tarefas; encerramento fecha e desfazer reabre; status
   9/10/16/17; envio com aberto → NAO_CONCLUIDO; catálogo só Admin; Operação e Manu sem marcar tarefa (404);
   anterior ao sistema; corrigir data move os prazos; comprovante PDF; `pme1-enviado` cria o ciclo 1; LGPD.
-- [ ] Implementar; suíte do módulo verde. Commit.
+- [x] Implementar; suíte do módulo verde. Commit.
 
-### Tarefa 1.3: Telas — Status: ⏳
+### Tarefa 1.3: Telas — Status: ✅
 **Files:** Create `components/acompanhamento/pme-atual.tsx`, `pmes-admin.tsx`,
 `app/(app)/acompanhamento/configuracoes/pmes/[id]/page.tsx`, `web/e2e/acompanhamento-v2-pmes.spec.ts` ·
 Modify `configuracoes/page.tsx` (aba PMEs), `etapa-card.tsx`/`ficha.tsx` (card antes das ações),
@@ -118,11 +118,15 @@ Modify `configuracoes/page.tsx` (aba PMEs), `etapa-card.tsx`/`ficha.tsx` (card a
 - Card "PME atual": número e título, envio, prazo, status com atraso, link do material, tarefas do ciclo
   (status, motivo, comprovante), botão do encerramento, ações "Registrar envio do Nº PME", "Corrigir data",
   "PME anterior ao sistema"; ciclos anteriores recolhidos.
-- [ ] Playwright por perfil (Duda edita catálogo e fecha o ciclo; Operação registra envio sem marcar tarefa;
+- [x] Playwright por perfil (Duda edita catálogo e fecha o ciclo; Operação registra envio sem marcar tarefa;
   Manu sem ações); capturas 375/768/1024/1440. Commit.
 
-### Tarefa 1.4: Fechamento — Status: ⏳
-- [ ] `pnpm lint && pnpm typecheck`, `@npac/db`, `@npac/api`, Playwright completo; `CLAUDE.md`; Status acima; PR.
+### Tarefa 1.4: Fechamento — Status: ✅
+- [x] `pnpm lint && pnpm typecheck`, `@npac/db`, `@npac/api`, Playwright completo; `CLAUDE.md`; Status acima; PR.
+
+**Para a Parte 2:** `meta_id` em `mentoria_tarefas` ainda não existe (nasce com `mentoria_metas`); o gatilho das 3 tarefas
+por reunião e a RLS da Especialista nas tarefas REUNIAO já estão prontos; tarefa da reunião entra no ciclo aberto
+(`ciclo_id`). O card da ficha (`pme-atual.tsx`) mostra "N de M feitas"; as duas barras de E5 entram aqui.
 
 ## Parte 2 — Metas e tarefas da reunião
 

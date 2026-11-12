@@ -100,7 +100,7 @@ test('Duda edita o catálogo em Configurações > PMEs', async ({ page }) => {
 });
 
 test('Operação registra o envio, Duda fecha pelo encerramento, Manu só vê', async ({ page }) => {
-  const id = await ativa('Mentorado Fictício 81', true);
+  const id = await ativa('Mentorado Fictício 76', true);
   const ficha = `/acompanhamento/ficha/${id}?aba=jornada`;
   const card = page.getByRole('region', { name: 'PME atual' });
 
