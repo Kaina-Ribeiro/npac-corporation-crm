@@ -21,8 +21,8 @@ Next 16 App Router + React 19 + Tailwind 4 (`apps/web`).
 
 | Fase | Assunto | Status |
 |---|---|---|
-| 1 | Banco: permissão por consulta | ✅ código e metas (12/11/2026, migrations 0060–0061) · ⏳ ITODEV e roteiro por cargo |
-| 2 | Web: navegação, carregamento e erro | ⏳ pendente |
+| 1 | Banco: permissão por consulta | ✅ feita (12/11/2026, PR #95, `65d7135`; ITODEV `v0.15.2-rc` 22/22 por cargo) |
+| 2 | Web: navegação, carregamento e erro | ✅ feita (12/11/2026, PR #96, `a3c5e75`; no ar no ITODEV `v0.15.2-rc`) |
 | 3 | API: canal ao vivo, relatórios, índices | ⏳ pendente (depois da Fase 1) |
 | 4 | Interface: movimento e resposta | ⏳ pendente (depois da Fase 2; Gabriel escolhe a opção em T4.1) |
 | 5 | Varredura de fluxos por cargo e sobras | ⏳ pendente (por último) |
@@ -111,7 +111,7 @@ Casos que os testes de cada tarefa precisam cobrir (cada um está na tarefa dona
 
 ## Fase 1 — Banco: permissão por consulta
 
-**Status:** ✅ código e metas (12/11/2026) · ⏳ ITODEV e roteiro por cargo · **Feito quando:** T1.5 bate as metas e `pnpm --filter @npac/db test` e
+**Status:** ✅ feita (12/11/2026, PR #95) · **Feito quando:** T1.5 bate as metas e `pnpm --filter @npac/db test` e
 `pnpm --filter @npac/api test` passam. db 256/256, API 582/582 (1 pulado: MFA ligado), lint e
 typecheck verdes; todas as metas de T1.5 batidas.
 
@@ -258,30 +258,57 @@ pg_temp`, `execute` só para `npac_app`).
 - [x] Anotar os números aqui. Revisor independente leu as duas migrations (foco: vazamento de linha):
   nenhum vazamento; conferiu as 24 políticas contra as antigas, NULLs, inativo, sem `app.user_id`,
   atributos e grants das funções novas. PR para a `release/v0.15`.
-- [ ] ITODEV e roteiro por cargo (SDR, closer, Especialista, Operação): depois do merge, com o rc.
+- [x] ITODEV `v0.15.2-rc` (Fases 1 e 2), roteiro pela API com contas próprias `tcperf*` (desativadas
+  no fim, dados apagados): **22/22**. SDR vê os dois leads dele; closer vê só o da reunião (404 no
+  outro), abre Pipeline e Hoje; Especialista sem reunião vê 0 inscrições, com reunião vê só a dela
+  (404 em outra ficha) e não vê o comercial; Operação vê as 362 inscrições como a Diretoria, abre
+  Plano e Fila; closer não vê o módulo. Tempos da minha máquina (com rede): SDR 149/183/166 ms,
+  closer 164/179/169 ms (leads/pipeline/hoje), Plano 221 ms (Operação) e 191 ms (Diretoria).
+- [x] ⚠️ Falha do `[iphone] mobile-layout.spec.ts:31` no e2e do PR #95 (2 tentativas, "Navigation to
+  /pipeline is interrupted by another navigation to /leads/<id>"). Causa: o canal ao vivo manda
+  `ready` ao conectar e o `LiveUpdates` o trata como `crm:invalidate`; a ficha faz `router.refresh()`
+  (lead-detail.tsx:118) e lista/Pipeline refazem a busca. Antes da Fase 1 o 1º `ready` do SDR levava
+  4–6 s e chegava depois de o teste sair da tela; agora chega em ~30 ms e interrompe o `goto`
+  seguinte. Efeito colateral: carga dupla ao abrir ficha, lista e Pipeline. O e2e do PR #96 (release
+  com #95 e #96) passou, e o spec sozinho no topo da release (`a3c5e75`) passou 5/5 localmente
+  (`--repeat-each=5`, iPhone). **Correção na Fase 3, T3.1 (opção A, coordenação 12/11):** o cliente informa
+  a revisão que o render entregou ao conectar e o servidor responde `ready` ou `invalidate`; o
+  evento continua só `{ type }`.
 
 ## Fase 2 — Web: navegação, carregamento e erro
 
-**Status:** ⏳ pendente · **Feito quando:** T2.5 passa e `pnpm --filter @npac/web e2e` fica verde.
+**Status:** ✅ feita (12/11/2026, PR #96, `a3c5e75`, relatado pela sessão da Fase 2; no ar no ITODEV) ·
+**Feito quando:** T2.5 passa e `pnpm --filter @npac/web e2e` fica verde. e2e local: 187 passaram, 4
+pulados (MFA ligado); JS de `/leads` 149,7 KB gzip.
+
+Desvios decididos por evidência (detalhes na descrição do PR #96):
+
+1. **Sem `loading.tsx`.** Com ele a carga direta começa em 200 antes de a página decidir:
+   `notFound()` virava 200 e `redirect()` virava redirecionamento no navegador (quebrou 15 e2e). O
+   esqueleto vem escondido na casca (`main` e `.ac`); o `NavProgress` marca `data-nav-pending` no
+   `<html>` e o CSS troca a tela pelo esqueleto até a URL mudar. Carga direta segue com 404/307.
+2. **`retry()` em vez de `reset()`** no botão: no Next 16 `reset()` só redesenha o mesmo erro.
+3. **150 KB de `/leads`:** a `BottomNav` virou componente de servidor para caber a tela de erro.
 
 ### T2.1 Menu sem pré-carga completa
 
 **Arquivos:** `components/shell/nav-link.tsx`, `nav-items.tsx`, `nav-menu.tsx`.
 
-- [ ] Ler a doc de prefetch do Next 16 e registrar aqui, em uma linha, o que o modo padrão baixa
-  com e sem `loading.tsx`.
-- [ ] Tirar `prefetch={item.ready && !item.semPrefetch}` (fica o padrão); `semPrefetch` vira
-  `prefetch={false}`.
+- [x] Ler a doc de prefetch do Next 16 e registrar aqui, em uma linha, o que o modo padrão baixa
+  com e sem `loading.tsx`: rota dinâmica (todas aqui) sem `loading.tsx` não pré-carrega a página,
+  só a árvore da rota; com `loading.tsx`, baixa os layouts até o esqueleto, nunca a página.
+- [x] Tirar `prefetch={item.ready && !item.semPrefetch}` (fica o padrão); `semPrefetch` vira
+  `prefetch={false}` (Ficha do mentorado e os 5 itens "Em breve").
 
 ### T2.2 Esqueleto e erro
 
 **Arquivos:** criar `app/(app)/(comercial)/loading.tsx`, `app/(app)/acompanhamento/loading.tsx`,
 `app/(app)/error.tsx`, `components/shell/page-skeleton.tsx`; `e2e/interacao.spec.ts`.
 
-- [ ] `PageSkeleton`: título + 3 blocos com o vidro do CRM, brilho suave em laço, sem texto.
+- [x] `PageSkeleton`: título + 3 blocos com o vidro do CRM, brilho suave em laço, sem texto.
   Componente de servidor, sem JS.
-- [ ] `error.tsx` (cliente): texto e botão de D3; o botão chama `reset()`.
-- [ ] e2e do caso 5 do Foco: rota da API interceptada com atraso mostra o esqueleto; resposta 500
+- [x] `error.tsx` (cliente): texto e botão de D3; o botão chama `retry()` (desvio 2).
+- [x] e2e do caso 5 do Foco (esqueleto com a tabela do Playbook travada; erro com o SELECT revogado): rota da API interceptada com atraso mostra o esqueleto; resposta 500
   mostra a tela de erro e o botão recarrega.
 
 ### T2.3 Tirar o recarregar-ao-abrir
@@ -289,9 +316,9 @@ pg_temp`, `execute` só para `npac_app`).
 **Arquivos:** `components/acompanhamento/plano-semana.tsx:46-49`, `reunioes-agenda.tsx:119-122`,
 `onboarding-funil.tsx:123-126`.
 
-- [ ] Remover os três `useEffect(() => router.refresh(), [router])`. O `router.refresh()` depois
+- [x] Remover os três `useEffect(() => router.refresh(), [router])`. O `router.refresh()` depois
   de uma ação fica.
-- [ ] `e2e/acompanhamento-v2-plano.spec.ts`: marcar uma ação como feita em outra aba do navegador
+- [x] `e2e/acompanhamento-v2-plano.spec.ts`: marcar uma ação como feita em outra aba do navegador
   e abrir o Plano pelo menu mostra o estado novo (prova que o dado vem fresco sem o efeito).
 
 ### T2.4 Listas longas sem pré-carga por linha
@@ -299,18 +326,19 @@ pg_temp`, `execute` só para `npac_app`).
 **Arquivos:** `plano-semana.tsx`, `fila.tsx`, `mentorados-lista.tsx`, `leads-browser.tsx`,
 `pipeline.tsx`, `today.tsx`.
 
-- [ ] `prefetch={false}` nos `<Link>` de linha e de card.
+- [x] `prefetch={false}` nos `<Link>` de linha e de card (também `reunioes-agenda` e
+  `onboarding-funil`).
 
 ### T2.5 Prova
 
 **Arquivos:** criar `e2e/navegacao-leve.spec.ts`.
 
-- [ ] Abrir `/avisos`, esperar 3 s: nenhuma linha nova em `audit_log` com `action` em
+- [x] Abrir `/avisos`, esperar 3 s: nenhuma linha nova em `audit_log` com `action` em
   (`report.view`, `today.view`, `lead.list`).
-- [ ] Abrir `/acompanhamento/plano`, esperar 3 s: nenhuma requisição `_rsc` para a própria rota
+- [x] Abrir `/acompanhamento/plano`, esperar 3 s: nenhuma requisição `_rsc` para a própria rota
   depois da carga e no máximo 20 requisições `_rsc` no total (eram 67).
-- [ ] `pnpm lint && pnpm typecheck`, e2e verde, conferir o limite de 150 KB de `/leads`. PR,
-  ITODEV.
+- [x] `pnpm lint && pnpm typecheck`, e2e verde, conferir o limite de 150 KB de `/leads`. PR #96.
+- [x] ITODEV: `v0.15.2-rc` no ar (api e web), roteiro da Fase 1 passou nele.
 
 ## Fase 3 — API: canal ao vivo, relatórios, índices
 

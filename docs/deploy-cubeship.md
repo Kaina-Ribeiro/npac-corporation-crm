@@ -109,7 +109,7 @@ Mesmo projeto `npac`, ambiente `itodev` (criado em 04/11/2026). É o **test stag
 | ----------- | --------------------------------------------------------------------- |
 | Datastore   | `npac-itodev-db` (Postgres 16, host `cubeship-db-npac-itodev-db`), separado da prod: as roles `npac_owner`/`npac_app` valem para o servidor inteiro, então dividir o Postgres daria à test as credenciais de prod |
 | Apps        | `api` e `web` (sem `retention`: o worker LGPD não entra no teste), fonte Dockerfile, **ref = a última rc** (ex.: `v0.2.2-rc`), trocada pelo job `deploy-test` a cada rc nova |
-| `web`       | build arg `API_INTERNAL_URL=http://cubeship-npac-itodev-api:4000`; domínio `crm-itodev.5-189-167-204.sslip.io` |
+| `web`       | build arg `API_INTERNAL_URL=http://cubeship-npac-itodev-api:4000`; domínio `crm-itodev.13-140-33-41.sslip.io` |
 | Variáveis   | do ambiente: `NODE_ENV`, `TRUST_PROXY`, `LOG_LEVEL`, `WEB_ORIGIN=https://crm-itodev.…`; do `api`: as mesmas cinco da seção 2, com valores próprios (nunca os de prod) |
 | Seed        | `SEED_INITIAL_PASSWORD=… node node_modules/@npac/db/dist/seed-cli.js` no shell do `api`: diretor (Diretoria), ana/ronaldo (Head), ale/murilo/igor (SDR), sonia (Closer) — todos os cargos para teste |
 
@@ -123,7 +123,7 @@ Conferência rápida, sem login (precisa responder `Not Found`, nunca `Cannot PO
 produção sem a rota):
 
 ```sh
-curl -s -X POST -H 'content-type: application/json' -d '{}' https://crm-itodev.5-189-167-204.sslip.io/api/mentoria/fila
+curl -s -X POST -H 'content-type: application/json' -d '{}' https://crm-itodev.13-140-33-41.sslip.io/api/mentoria/fila
 ```
 
 Fluxo: PR na `release/vX.Y` → rc `vX.Y.Z-rc` → ITODEV com essa tag (automático) → testar com
@@ -136,7 +136,7 @@ Configuração no GitHub (Settings → Secrets and variables → Actions):
 
 | Nome               | Tipo     | Valor                                                    |
 | ------------------ | -------- | -------------------------------------------------------- |
-| `CUBESHIP_URL`     | variável | `https://5-189-167-204.sslip.io/api`                     |
+| `CUBESHIP_URL`     | variável | `https://13-140-33-41.sslip.io/api`                      |
 | `DEPLOY_TEST_APPS` | variável | `npac/itodev/api npac/itodev/web`                        |
 | `DEPLOY_PROD_APPS` | variável | `npac/production/api npac/production/retention npac/production/web` |
 | `CUBESHIP_TOKEN`   | secret   | chave de API do Cubeship que gerencia esses apps         |
