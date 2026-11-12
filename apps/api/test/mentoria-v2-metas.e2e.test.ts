@@ -158,22 +158,17 @@ describe('tarefas da semana', () => {
     expect(rr.podeExcluir).toBe(false);
   });
 
-  it('prazo obrigatório e não antes da reunião; reunião remarcada ou com falta recusa', async () => {
+  it('prazo obrigatório; descrição obrigatória', async () => {
     const i = await inscricao();
     const s = await duda();
     const r = await reuniao(i, ids.diretor!);
     expect(
       (await h.post(`/api/mentoria/reunioes/${r}/tarefas`, { descricao: 'x' }, s)).status,
     ).toBe(400);
-    const antes = await combinar(s, r, { prazo: dia(-3) });
-    expect(antes.status).toBe(400);
-    expect(antes.body.message).toBe('O prazo não pode ser antes da reunião');
-    const faltou = await reuniao(i, ids.diretor!, 30, 'FALTOU');
-    expect((await combinar(s, faltou)).status).toBe(400);
-    expect((await novaMeta(s, i, { reuniaoId: faltou })).status).toBe(400);
+    expect((await combinar(s, r, { descricao: ' ' })).status).toBe(400);
   });
 
-  it('editar texto, prazo e meta; marcar com motivo; excluir só pendente', async () => {
+  it('editar texto, prazo e meta; marcar com motivo; sem rota de excluir', async () => {
     const i = await inscricao();
     const s = await duda();
     const r = await reuniao(i, ids.diretor!);
@@ -194,11 +189,7 @@ describe('tarefas da semana', () => {
       s,
     );
     expect(marcada.status).toBe(200);
-    const exc = await h.del(`/api/mentoria/tarefas/${t.id}`, {}, s);
-    expect(exc.status).toBe(400);
-    const outra = await combinarOk(s, r);
-    expect((await h.del(`/api/mentoria/tarefas/${outra.id}`, {}, s)).status).toBe(204);
-    expect((await h.get(`/api/mentoria/tarefas/${outra.id}`, s)).status).toBe(404);
+    expect((await h.del(`/api/mentoria/tarefas/${t.id}`, {}, s)).status).toBe(404);
   });
 
   it('tarefa do ciclo não muda texto nem prazo', async () => {
@@ -227,12 +218,12 @@ describe('tarefas da semana', () => {
 });
 
 describe('cobrança da reunião anterior', () => {
-  it('traz as tarefas da reunião anterior mais recente que tem tarefas', async () => {
+  it('traz as tarefas da última reunião realizada antes desta', async () => {
     const i = await inscricao();
     const s = await duda();
     const primeira = await reuniao(i, ids.diretor!, 72);
     const t1 = await combinarOk(s, primeira, { descricao: 'Caminhar' });
-    await reuniao(i, ids.diretor!, 48); // sem tarefas: não esconde a cobrança
+    await reuniao(i, ids.diretor!, 60, 'FALTOU'); // não realizada: não conta
     const atual = await reuniao(i, ids.diretor!, 1);
     const rr = await abrirReuniao(s, atual);
     expect(rr.cobranca?.reuniao.id).toBe(primeira);
@@ -242,6 +233,11 @@ describe('cobrança da reunião anterior', () => {
     // Cobrar: o resultado aparece na cobrança.
     await h.patch(`/api/mentoria/tarefas/${t1.id}`, { version: t1.version, status: 'PARCIAL' }, s);
     expect((await abrirReuniao(s, atual)).cobranca?.tarefas[0]!.status).toBe('PARCIAL');
+    // Uma realizada no meio, sem tarefas, passa a ser a anterior (spec §4, ao pé da letra).
+    const meio = await reuniao(i, ids.diretor!, 48);
+    const depois = await abrirReuniao(s, atual);
+    expect(depois.cobranca?.reuniao.id).toBe(meio);
+    expect(depois.cobranca?.tarefas).toEqual([]);
   });
 
   it('Especialista: só as tarefas e a cobrança das próprias reuniões, sem metas', async () => {
@@ -271,7 +267,7 @@ describe('cobrança da reunião anterior', () => {
 });
 
 describe('metas', () => {
-  it('Duda cria, edita e exclui; Operação lê sem escrever; Mentor fica de fora', async () => {
+  it('Duda cria e edita; Operação lê sem escrever; Mentor fica de fora', async () => {
     const i = await inscricao('CASAL');
     const s = await duda();
     const c = await enviarPme(s, i);
@@ -295,13 +291,12 @@ describe('metas', () => {
       pilar: 'DINHEIRO',
       valorAlvo: 10000,
       valorAtual: 2500.5,
-      status: 'EM_ANDAMENTO',
       descricao: 'Juntar a reserva',
       podeEditar: true,
     });
     const ed = await h.patch(
       `/api/mentoria/metas/${m.id}`,
-      { version: m.version, valorAtual: 5000, status: 'ATINGIDA' },
+      { version: m.version, valorAtual: 5000 },
       s,
     );
     expect(ed.status, ed.text).toBe(200);
@@ -314,6 +309,10 @@ describe('metas', () => {
       select id from mentoria_pessoas where inscricao_id = ${outra}`;
     expect((await novaMeta(s, i, { pessoaId: p!.id })).status).toBe(400);
     expect((await novaMeta(s, i, { valorAlvo: 0 })).status).toBe(400);
+    // Status da meta (S3) espera decisão: o campo não existe.
+    expect(
+      (await h.patch(`/api/mentoria/metas/${m.id}`, { version: 2, status: 'ATINGIDA' }, s)).status,
+    ).toBe(400);
 
     const so = await operacao();
     const lida = await h.get(`/api/mentoria/metas/${m.id}`, so);
@@ -323,24 +322,22 @@ describe('metas', () => {
     expect(
       (await h.patch(`/api/mentoria/metas/${m.id}`, { version: 2, unidade: 'x' }, so)).status,
     ).toBe(404);
-    expect((await h.del(`/api/mentoria/metas/${m.id}`, {}, so)).status).toBe(404);
     expect((await combinar(so, r)).status).toBe(404);
     expect((await ficha(so, i)).metas).toHaveLength(1);
     expect((await h.get(`/api/mentoria/metas/${m.id}`, await leo())).status).toBe(404);
 
-    const sd = await duda();
-    expect((await h.del(`/api/mentoria/metas/${m.id}`, {}, sd)).status).toBe(204);
+    expect((await h.del(`/api/mentoria/metas/${m.id}`, {}, await duda())).status).toBe(404);
     const hist = await historico(i);
     expect(hist.map((e) => e.tipo)).toEqual(
-      expect.arrayContaining(['meta.criada', 'meta.editada', 'meta.excluida']),
+      expect.arrayContaining(['meta.criada', 'meta.editada']),
     );
-    expect(hist.find((e) => e.tipo === 'meta.editada')!.campos).toEqual(['valorAtual', 'status']);
+    expect(hist.find((e) => e.tipo === 'meta.editada')!.campos).toEqual(['valorAtual']);
     expect(JSON.stringify(hist)).not.toContain('reserva');
   });
 });
 
 describe('% do PME', () => {
-  it('tarefas FEITA ÷ total (PARCIAL não conta) e metas pelo alvo ou pelo status', async () => {
+  it('tarefas FEITA ÷ total (PARCIAL não conta) e metas pelo alvo (sem alvo fica fora)', async () => {
     const i = await inscricao();
     const s = await duda();
     await enviarPme(s, i); // 1º PME: 2 extras + encerramento
@@ -353,10 +350,10 @@ describe('% do PME', () => {
     await h.patch(`/api/mentoria/tarefas/${t1.id}`, { version: t1.version, status: 'FEITA' }, s);
     await h.patch(`/api/mentoria/tarefas/${t2.id}`, { version: t2.version, status: 'PARCIAL' }, s);
     await novaMetaOk(s, i, { valorAlvo: 10, valorAtual: 5 });
-    await novaMetaOk(s, i); // sem alvo, em andamento = 0
+    await novaMetaOk(s, i); // sem alvo: fora do % até a decisão (S4)
     c = (await ficha(s, i)).ciclos[0]!;
     expect(c.pctTarefas).toBe(20); // 1 de 5
-    expect(c.pctMetas).toBe(25); // (50 + 0) ÷ 2
+    expect(c.pctMetas).toBe(50);
     // A Especialista vê o mesmo número, mesmo sem ler as tarefas.
     await reuniao(i, ids.carla!, 2);
     expect((await ficha(await manu(), i)).ciclos[0]!.pctTarefas).toBe(20);

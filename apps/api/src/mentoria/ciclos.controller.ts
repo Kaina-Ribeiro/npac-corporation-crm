@@ -1,4 +1,4 @@
-import { Body, Delete, Get, HttpCode, Param, Patch, Post } from '@nestjs/common';
+import { Body, Get, HttpCode, Param, Patch, Post } from '@nestjs/common';
 import {
   cicloAnteriorSchema,
   cicloPatchSchema,
@@ -56,12 +56,5 @@ export class CiclosController {
   @HttpCode(201)
   criarTarefa(@CurrentUser() u: SessionUser, @Param('id') id: string, @Body() body: unknown) {
     return this.ciclos.criarTarefa(u, entityId(id), validarComAviso(tarefaCriarSchema, body));
-  }
-
-  /** Só a tarefa da reunião ainda pendente (combinada por engano). */
-  @Delete('tarefas/:id')
-  @HttpCode(204)
-  async excluirTarefa(@CurrentUser() u: SessionUser, @Param('id') id: string) {
-    await this.ciclos.excluirTarefa(u, entityId(id));
   }
 }

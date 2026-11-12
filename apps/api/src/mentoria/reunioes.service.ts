@@ -260,13 +260,12 @@ export class ReunioesService {
         sql`t.reuniao_id = ${id}::uuid and t.origem = 'REUNIAO'`,
         POR_REUNIAO,
       );
-      // Cobrança (§4): a reunião anterior mais recente com tarefas que quem abre vê (RLS).
+      // Cobrança (§4): as tarefas da última reunião realizada antes desta (das que quem abre vê).
       const [ant] = await tx.execute<{ id: string; inicio: Date; tipo: ReuniaoTipo }>(sql`
         select a.id, a.inicio, a.tipo from mentoria_reunioes a
         where a.inscricao_id = ${r.inscricaoId}::uuid and a.id <> ${id}::uuid
+          and a.status = 'REALIZADA'
           and a.inicio < ${new Date(r.inicio).toISOString()}::timestamptz
-          and exists (select 1 from mentoria_tarefas t
-                      where t.reuniao_id = a.id and t.origem = 'REUNIAO')
         order by a.inicio desc, a.id limit 1`);
       const cobranca = ant
         ? {

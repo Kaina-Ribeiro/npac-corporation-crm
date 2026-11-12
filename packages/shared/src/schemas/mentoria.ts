@@ -18,7 +18,7 @@ import { FILA_TIPOS } from '../mentoria/fila.js';
 import { MOMENTOS_MENSAGEM } from '../mentoria/mensagens.js';
 import { ENVIO_STATUS } from '../mentoria/onboarding.js';
 import { ACAO_STATUS, GATILHOS, PERFIS_ACAO, REUNIAO_TIPOS } from '../mentoria/plano.js';
-import { META_STATUS, PILARES } from '../mentoria/metas.js';
+import { PILARES } from '../mentoria/metas.js';
 import { TAREFA_STATUS } from '../mentoria/pmes.js';
 import {
   CANAIS_CONTATO,
@@ -378,7 +378,6 @@ export const metaPatchSchema = z
     version,
     descricao: descricaoMeta.optional(),
     ...camposMeta,
-    status: z.enum(META_STATUS).optional(),
   })
   .strict();
 export type MetaPatch = z.output<typeof metaPatchSchema>;

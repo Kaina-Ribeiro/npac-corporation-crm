@@ -1,5 +1,5 @@
 {
-  "id": "a606218e-72c5-4b48-a091-155c7a9e54b6",
+  "id": "c34adfb1-42bc-4486-8fc6-27e27f524991",
   "prevId": "88345948-1ac6-4495-a3f0-b78d5585367b",
   "version": "7",
   "dialect": "postgresql",
@@ -95,12 +95,8 @@
           "name": "account_user_id_user_id_fk",
           "tableFrom": "account",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -147,9 +143,7 @@
         "rate_limit_key_unique": {
           "name": "rate_limit_key_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "key"
-          ]
+          "columns": ["key"]
         }
       },
       "policies": {},
@@ -217,12 +211,8 @@
           "name": "session_user_id_user_id_fk",
           "tableFrom": "session",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -232,9 +222,7 @@
         "session_token_unique": {
           "name": "session_token_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "token"
-          ]
+          "columns": ["token"]
         }
       },
       "policies": {},
@@ -296,12 +284,8 @@
           "name": "two_factor_user_id_user_id_fk",
           "tableFrom": "two_factor",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -423,16 +407,12 @@
         "user_email_unique": {
           "name": "user_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         },
         "user_username_unique": {
           "name": "user_username_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "username"
-          ]
+          "columns": ["username"]
         }
       },
       "policies": {},
@@ -542,9 +522,7 @@
         "pipeline_stages_key_unique": {
           "name": "pipeline_stages_key_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "key"
-          ]
+          "columns": ["key"]
         }
       },
       "policies": {},
@@ -871,12 +849,8 @@
           "name": "leads_stage_id_pipeline_stages_id_fk",
           "tableFrom": "leads",
           "tableTo": "pipeline_stages",
-          "columnsFrom": [
-            "stage_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["stage_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -884,12 +858,8 @@
           "name": "leads_sdr_id_user_id_fk",
           "tableFrom": "leads",
           "tableTo": "user",
-          "columnsFrom": [
-            "sdr_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["sdr_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -897,12 +867,8 @@
           "name": "leads_closer_id_user_id_fk",
           "tableFrom": "leads",
           "tableTo": "user",
-          "columnsFrom": [
-            "closer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["closer_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -910,12 +876,8 @@
           "name": "leads_payment_product_id_products_id_fk",
           "tableFrom": "leads",
           "tableTo": "products",
-          "columnsFrom": [
-            "payment_product_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["payment_product_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -923,12 +885,8 @@
           "name": "leads_sold_product_id_products_id_fk",
           "tableFrom": "leads",
           "tableTo": "products",
-          "columnsFrom": [
-            "sold_product_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["sold_product_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -936,12 +894,8 @@
           "name": "leads_created_by_user_id_fk",
           "tableFrom": "leads",
           "tableTo": "user",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -951,9 +905,7 @@
         "leads_legacy_id_unique": {
           "name": "leads_legacy_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "legacy_id"
-          ]
+          "columns": ["legacy_id"]
         }
       },
       "policies": {},
@@ -1103,12 +1055,8 @@
           "name": "meetings_lead_id_leads_id_fk",
           "tableFrom": "meetings",
           "tableTo": "leads",
-          "columnsFrom": [
-            "lead_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["lead_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1116,12 +1064,8 @@
           "name": "meetings_closer_id_user_id_fk",
           "tableFrom": "meetings",
           "tableTo": "user",
-          "columnsFrom": [
-            "closer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["closer_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1129,12 +1073,8 @@
           "name": "meetings_created_by_user_id_fk",
           "tableFrom": "meetings",
           "tableTo": "user",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1144,9 +1084,7 @@
         "meetings_legacy_id_unique": {
           "name": "meetings_legacy_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "legacy_id"
-          ]
+          "columns": ["legacy_id"]
         }
       },
       "policies": {},
@@ -1301,12 +1239,8 @@
           "name": "lead_notes_lead_id_leads_id_fk",
           "tableFrom": "lead_notes",
           "tableTo": "leads",
-          "columnsFrom": [
-            "lead_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["lead_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1314,12 +1248,8 @@
           "name": "lead_notes_created_by_user_id_fk",
           "tableFrom": "lead_notes",
           "tableTo": "user",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1442,12 +1372,8 @@
           "name": "lead_tasks_lead_id_leads_id_fk",
           "tableFrom": "lead_tasks",
           "tableTo": "leads",
-          "columnsFrom": [
-            "lead_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["lead_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1455,12 +1381,8 @@
           "name": "lead_tasks_assignee_id_user_id_fk",
           "tableFrom": "lead_tasks",
           "tableTo": "user",
-          "columnsFrom": [
-            "assignee_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["assignee_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1468,12 +1390,8 @@
           "name": "lead_tasks_created_by_user_id_fk",
           "tableFrom": "lead_tasks",
           "tableTo": "user",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1562,12 +1480,8 @@
           "name": "lead_timeline_lead_id_leads_id_fk",
           "tableFrom": "lead_timeline",
           "tableTo": "leads",
-          "columnsFrom": [
-            "lead_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["lead_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1575,12 +1489,8 @@
           "name": "lead_timeline_actor_id_user_id_fk",
           "tableFrom": "lead_timeline",
           "tableTo": "user",
-          "columnsFrom": [
-            "actor_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["actor_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1665,12 +1575,8 @@
           "name": "notifications_user_id_user_id_fk",
           "tableFrom": "notifications",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1678,12 +1584,8 @@
           "name": "notifications_timeline_id_lead_timeline_id_fk",
           "tableFrom": "notifications",
           "tableTo": "lead_timeline",
-          "columnsFrom": [
-            "timeline_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["timeline_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1759,12 +1661,8 @@
           "name": "saved_views_user_id_user_id_fk",
           "tableFrom": "saved_views",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1945,12 +1843,8 @@
           "name": "deals_lead_id_leads_id_fk",
           "tableFrom": "deals",
           "tableTo": "leads",
-          "columnsFrom": [
-            "lead_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["lead_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1958,12 +1852,8 @@
           "name": "deals_product_id_products_id_fk",
           "tableFrom": "deals",
           "tableTo": "products",
-          "columnsFrom": [
-            "product_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["product_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1971,12 +1861,8 @@
           "name": "deals_closer_id_user_id_fk",
           "tableFrom": "deals",
           "tableTo": "user",
-          "columnsFrom": [
-            "closer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["closer_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1984,12 +1870,8 @@
           "name": "deals_sdr_id_user_id_fk",
           "tableFrom": "deals",
           "tableTo": "user",
-          "columnsFrom": [
-            "sdr_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["sdr_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1997,12 +1879,8 @@
           "name": "deals_previous_stage_id_pipeline_stages_id_fk",
           "tableFrom": "deals",
           "tableTo": "pipeline_stages",
-          "columnsFrom": [
-            "previous_stage_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["previous_stage_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2010,12 +1888,8 @@
           "name": "deals_created_by_user_id_fk",
           "tableFrom": "deals",
           "tableTo": "user",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2023,12 +1897,8 @@
           "name": "deals_reversed_by_user_id_fk",
           "tableFrom": "deals",
           "tableTo": "user",
-          "columnsFrom": [
-            "reversed_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["reversed_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2038,16 +1908,12 @@
         "deals_request_key_unique": {
           "name": "deals_request_key_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "request_key"
-          ]
+          "columns": ["request_key"]
         },
         "deals_legacy_id_unique": {
           "name": "deals_legacy_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "legacy_id"
-          ]
+          "columns": ["legacy_id"]
         }
       },
       "policies": {},
@@ -2159,12 +2025,8 @@
           "name": "payments_deal_id_deals_id_fk",
           "tableFrom": "payments",
           "tableTo": "deals",
-          "columnsFrom": [
-            "deal_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["deal_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2172,12 +2034,8 @@
           "name": "payments_paid_by_user_id_fk",
           "tableFrom": "payments",
           "tableTo": "user",
-          "columnsFrom": [
-            "paid_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["paid_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2187,9 +2045,7 @@
         "payments_receipt_key_unique": {
           "name": "payments_receipt_key_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "receipt_key"
-          ]
+          "columns": ["receipt_key"]
         }
       },
       "policies": {},
@@ -2254,12 +2110,8 @@
           "name": "products_closer_id_user_id_fk",
           "tableFrom": "products",
           "tableTo": "user",
-          "columnsFrom": [
-            "closer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["closer_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2269,9 +2121,7 @@
         "products_code_unique": {
           "name": "products_code_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "code"
-          ]
+          "columns": ["code"]
         }
       },
       "policies": {},
@@ -2338,9 +2188,7 @@
         "chat_channels_dm_key_unique": {
           "name": "chat_channels_dm_key_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "dm_key"
-          ]
+          "columns": ["dm_key"]
         }
       },
       "policies": {},
@@ -2391,12 +2239,8 @@
           "name": "chat_members_channel_id_chat_channels_id_fk",
           "tableFrom": "chat_members",
           "tableTo": "chat_channels",
-          "columnsFrom": [
-            "channel_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["channel_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2404,12 +2248,8 @@
           "name": "chat_members_user_id_user_id_fk",
           "tableFrom": "chat_members",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2417,10 +2257,7 @@
       "compositePrimaryKeys": {
         "chat_members_channel_id_user_id_pk": {
           "name": "chat_members_channel_id_user_id_pk",
-          "columns": [
-            "channel_id",
-            "user_id"
-          ]
+          "columns": ["channel_id", "user_id"]
         }
       },
       "uniqueConstraints": {},
@@ -2498,12 +2335,8 @@
           "name": "chat_messages_channel_id_chat_channels_id_fk",
           "tableFrom": "chat_messages",
           "tableTo": "chat_channels",
-          "columnsFrom": [
-            "channel_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["channel_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2511,12 +2344,8 @@
           "name": "chat_messages_author_id_user_id_fk",
           "tableFrom": "chat_messages",
           "tableTo": "user",
-          "columnsFrom": [
-            "author_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["author_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2524,12 +2353,8 @@
           "name": "chat_messages_lead_id_leads_id_fk",
           "tableFrom": "chat_messages",
           "tableTo": "leads",
-          "columnsFrom": [
-            "lead_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["lead_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2575,12 +2400,8 @@
           "name": "chat_reads_channel_id_chat_channels_id_fk",
           "tableFrom": "chat_reads",
           "tableTo": "chat_channels",
-          "columnsFrom": [
-            "channel_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["channel_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2588,12 +2409,8 @@
           "name": "chat_reads_user_id_user_id_fk",
           "tableFrom": "chat_reads",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2601,10 +2418,7 @@
       "compositePrimaryKeys": {
         "chat_reads_channel_id_user_id_pk": {
           "name": "chat_reads_channel_id_user_id_pk",
-          "columns": [
-            "channel_id",
-            "user_id"
-          ]
+          "columns": ["channel_id", "user_id"]
         }
       },
       "uniqueConstraints": {},
@@ -2682,12 +2496,8 @@
           "name": "playbook_scripts_updated_by_user_id_fk",
           "tableFrom": "playbook_scripts",
           "tableTo": "user",
-          "columnsFrom": [
-            "updated_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["updated_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2697,10 +2507,7 @@
         "playbook_topic_title": {
           "name": "playbook_topic_title",
           "nullsNotDistinct": false,
-          "columns": [
-            "topic",
-            "title"
-          ]
+          "columns": ["topic", "title"]
         }
       },
       "policies": {},
@@ -2815,12 +2622,8 @@
           "name": "lgpd_requests_lead_id_leads_id_fk",
           "tableFrom": "lgpd_requests",
           "tableTo": "leads",
-          "columnsFrom": [
-            "lead_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["lead_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2828,12 +2631,8 @@
           "name": "lgpd_requests_created_by_user_id_fk",
           "tableFrom": "lgpd_requests",
           "tableTo": "user",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2841,12 +2640,8 @@
           "name": "lgpd_requests_resolved_by_user_id_fk",
           "tableFrom": "lgpd_requests",
           "tableTo": "user",
-          "columnsFrom": [
-            "resolved_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["resolved_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2924,9 +2719,7 @@
         "access_requests_username_unique": {
           "name": "access_requests_username_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "username"
-          ]
+          "columns": ["username"]
         }
       },
       "policies": {},
@@ -3146,12 +2939,8 @@
           "name": "mentoria_acoes_inscricao_id_mentoria_inscricoes_id_fk",
           "tableFrom": "mentoria_acoes",
           "tableTo": "mentoria_inscricoes",
-          "columnsFrom": [
-            "inscricao_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["inscricao_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3159,12 +2948,8 @@
           "name": "mentoria_acoes_plano_modelo_id_mentoria_plano_modelo_id_fk",
           "tableFrom": "mentoria_acoes",
           "tableTo": "mentoria_plano_modelo",
-          "columnsFrom": [
-            "plano_modelo_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["plano_modelo_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3172,12 +2957,8 @@
           "name": "mentoria_acoes_responsavel_id_user_id_fk",
           "tableFrom": "mentoria_acoes",
           "tableTo": "user",
-          "columnsFrom": [
-            "responsavel_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["responsavel_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3185,12 +2966,8 @@
           "name": "mentoria_acoes_feita_por_user_id_fk",
           "tableFrom": "mentoria_acoes",
           "tableTo": "user",
-          "columnsFrom": [
-            "feita_por"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["feita_por"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3200,10 +2977,7 @@
         "mentoria_acoes_modelo_unica": {
           "name": "mentoria_acoes_modelo_unica",
           "nullsNotDistinct": false,
-          "columns": [
-            "inscricao_id",
-            "plano_modelo_id"
-          ]
+          "columns": ["inscricao_id", "plano_modelo_id"]
         }
       },
       "policies": {},
@@ -3297,12 +3071,8 @@
           "name": "mentoria_anotacoes_inscricao_id_mentoria_inscricoes_id_fk",
           "tableFrom": "mentoria_anotacoes",
           "tableTo": "mentoria_inscricoes",
-          "columnsFrom": [
-            "inscricao_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["inscricao_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3310,12 +3080,8 @@
           "name": "mentoria_anotacoes_autor_id_user_id_fk",
           "tableFrom": "mentoria_anotacoes",
           "tableTo": "user",
-          "columnsFrom": [
-            "autor_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["autor_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3438,12 +3204,8 @@
           "name": "mentoria_avaliacoes_pessoa_id_mentoria_pessoas_id_fk",
           "tableFrom": "mentoria_avaliacoes",
           "tableTo": "mentoria_pessoas",
-          "columnsFrom": [
-            "pessoa_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pessoa_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3451,12 +3213,8 @@
           "name": "mentoria_avaliacoes_criado_por_user_id_fk",
           "tableFrom": "mentoria_avaliacoes",
           "tableTo": "user",
-          "columnsFrom": [
-            "criado_por"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["criado_por"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3466,11 +3224,7 @@
         "mentoria_avaliacoes_unica": {
           "name": "mentoria_avaliacoes_unica",
           "nullsNotDistinct": false,
-          "columns": [
-            "pessoa_id",
-            "tipo",
-            "momento"
-          ]
+          "columns": ["pessoa_id", "tipo", "momento"]
         }
       },
       "policies": {},
@@ -3647,12 +3401,8 @@
           "name": "mentoria_ciclos_inscricao_id_mentoria_inscricoes_id_fk",
           "tableFrom": "mentoria_ciclos",
           "tableTo": "mentoria_inscricoes",
-          "columnsFrom": [
-            "inscricao_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["inscricao_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3660,12 +3410,8 @@
           "name": "mentoria_ciclos_pme_id_mentoria_pmes_id_fk",
           "tableFrom": "mentoria_ciclos",
           "tableTo": "mentoria_pmes",
-          "columnsFrom": [
-            "pme_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pme_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3673,12 +3419,8 @@
           "name": "mentoria_ciclos_criado_por_user_id_fk",
           "tableFrom": "mentoria_ciclos",
           "tableTo": "user",
-          "columnsFrom": [
-            "criado_por"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["criado_por"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3688,10 +3430,7 @@
         "mentoria_ciclos_numero_unico": {
           "name": "mentoria_ciclos_numero_unico",
           "nullsNotDistinct": false,
-          "columns": [
-            "inscricao_id",
-            "numero"
-          ]
+          "columns": ["inscricao_id", "numero"]
         }
       },
       "policies": {},
@@ -3798,12 +3537,8 @@
           "name": "mentoria_contatos_inscricao_id_mentoria_inscricoes_id_fk",
           "tableFrom": "mentoria_contatos",
           "tableTo": "mentoria_inscricoes",
-          "columnsFrom": [
-            "inscricao_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["inscricao_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3811,12 +3546,8 @@
           "name": "mentoria_contatos_feito_por_user_id_fk",
           "tableFrom": "mentoria_contatos",
           "tableTo": "user",
-          "columnsFrom": [
-            "feito_por"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["feito_por"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3907,12 +3638,8 @@
           "name": "mentoria_enderecos_inscricao_id_mentoria_inscricoes_id_fk",
           "tableFrom": "mentoria_enderecos",
           "tableTo": "mentoria_inscricoes",
-          "columnsFrom": [
-            "inscricao_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["inscricao_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3920,12 +3647,8 @@
           "name": "mentoria_enderecos_criado_por_user_id_fk",
           "tableFrom": "mentoria_enderecos",
           "tableTo": "user",
-          "columnsFrom": [
-            "criado_por"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["criado_por"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4063,12 +3786,8 @@
           "name": "mentoria_envios_fisicos_inscricao_id_mentoria_inscricoes_id_fk",
           "tableFrom": "mentoria_envios_fisicos",
           "tableTo": "mentoria_inscricoes",
-          "columnsFrom": [
-            "inscricao_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["inscricao_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4076,12 +3795,8 @@
           "name": "mentoria_envios_fisicos_criado_por_user_id_fk",
           "tableFrom": "mentoria_envios_fisicos",
           "tableTo": "user",
-          "columnsFrom": [
-            "criado_por"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["criado_por"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4147,12 +3862,8 @@
           "name": "mentoria_fila_feitos_feito_por_user_id_fk",
           "tableFrom": "mentoria_fila_feitos",
           "tableTo": "user",
-          "columnsFrom": [
-            "feito_por"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["feito_por"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4239,12 +3950,8 @@
           "name": "mentoria_historico_inscricao_id_mentoria_inscricoes_id_fk",
           "tableFrom": "mentoria_historico",
           "tableTo": "mentoria_inscricoes",
-          "columnsFrom": [
-            "inscricao_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["inscricao_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4252,12 +3959,8 @@
           "name": "mentoria_historico_ator_id_user_id_fk",
           "tableFrom": "mentoria_historico",
           "tableTo": "user",
-          "columnsFrom": [
-            "ator_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["ator_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4503,12 +4206,8 @@
           "name": "mentoria_inscricoes_responsavel_id_user_id_fk",
           "tableFrom": "mentoria_inscricoes",
           "tableTo": "user",
-          "columnsFrom": [
-            "responsavel_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["responsavel_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -4516,12 +4215,8 @@
           "name": "mentoria_inscricoes_criado_por_user_id_fk",
           "tableFrom": "mentoria_inscricoes",
           "tableTo": "user",
-          "columnsFrom": [
-            "criado_por"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["criado_por"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4603,12 +4298,8 @@
           "name": "mentoria_legado_inscricao_id_mentoria_inscricoes_id_fk",
           "tableFrom": "mentoria_legado",
           "tableTo": "mentoria_inscricoes",
-          "columnsFrom": [
-            "inscricao_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["inscricao_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -4778,13 +4469,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "status": {
-          "name": "status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'EM_ANDAMENTO'"
-        },
         "visivel_ao_mentorado": {
           "name": "visivel_ao_mentorado",
           "type": "boolean",
@@ -4863,12 +4547,8 @@
           "name": "mentoria_metas_inscricao_id_mentoria_inscricoes_id_fk",
           "tableFrom": "mentoria_metas",
           "tableTo": "mentoria_inscricoes",
-          "columnsFrom": [
-            "inscricao_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["inscricao_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4876,12 +4556,8 @@
           "name": "mentoria_metas_ciclo_id_mentoria_ciclos_id_fk",
           "tableFrom": "mentoria_metas",
           "tableTo": "mentoria_ciclos",
-          "columnsFrom": [
-            "ciclo_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["ciclo_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4889,12 +4565,8 @@
           "name": "mentoria_metas_reuniao_id_mentoria_reunioes_id_fk",
           "tableFrom": "mentoria_metas",
           "tableTo": "mentoria_reunioes",
-          "columnsFrom": [
-            "reuniao_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["reuniao_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -4902,12 +4574,8 @@
           "name": "mentoria_metas_pessoa_id_mentoria_pessoas_id_fk",
           "tableFrom": "mentoria_metas",
           "tableTo": "mentoria_pessoas",
-          "columnsFrom": [
-            "pessoa_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pessoa_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -4915,12 +4583,8 @@
           "name": "mentoria_metas_criado_por_user_id_fk",
           "tableFrom": "mentoria_metas",
           "tableTo": "user",
-          "columnsFrom": [
-            "criado_por"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["criado_por"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4932,10 +4596,6 @@
         "mentoria_metas_pilar": {
           "name": "mentoria_metas_pilar",
           "value": "\"mentoria_metas\".\"pilar\" in ('FE', 'SAUDE', 'DINHEIRO', 'RELACIONAMENTOS')"
-        },
-        "mentoria_metas_status": {
-          "name": "mentoria_metas_status",
-          "value": "\"mentoria_metas\".\"status\" in ('EM_ANDAMENTO', 'ATINGIDA', 'NAO_ATINGIDA')"
         },
         "mentoria_metas_alvo": {
           "name": "mentoria_metas_alvo",
@@ -5029,12 +4689,8 @@
           "name": "mentoria_midia_criado_por_user_id_fk",
           "tableFrom": "mentoria_midia",
           "tableTo": "user",
-          "columnsFrom": [
-            "criado_por"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["criado_por"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -5225,12 +4881,8 @@
           "name": "mentoria_momento_inicial_inscricao_id_mentoria_inscricoes_id_fk",
           "tableFrom": "mentoria_momento_inicial",
           "tableTo": "mentoria_inscricoes",
-          "columnsFrom": [
-            "inscricao_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["inscricao_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5238,12 +4890,8 @@
           "name": "mentoria_momento_inicial_travado_por_user_id_fk",
           "tableFrom": "mentoria_momento_inicial",
           "tableTo": "user",
-          "columnsFrom": [
-            "travado_por"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["travado_por"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5251,12 +4899,8 @@
           "name": "mentoria_momento_inicial_criado_por_user_id_fk",
           "tableFrom": "mentoria_momento_inicial",
           "tableTo": "user",
-          "columnsFrom": [
-            "criado_por"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["criado_por"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -5420,12 +5064,8 @@
           "name": "mentoria_onboarding_etapas_inscricao_id_mentoria_inscricoes_id_fk",
           "tableFrom": "mentoria_onboarding_etapas",
           "tableTo": "mentoria_inscricoes",
-          "columnsFrom": [
-            "inscricao_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["inscricao_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5433,12 +5073,8 @@
           "name": "mentoria_onboarding_etapas_criado_por_user_id_fk",
           "tableFrom": "mentoria_onboarding_etapas",
           "tableTo": "user",
-          "columnsFrom": [
-            "criado_por"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["criado_por"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -5448,10 +5084,7 @@
         "mentoria_onboarding_etapa_unica": {
           "name": "mentoria_onboarding_etapa_unica",
           "nullsNotDistinct": false,
-          "columns": [
-            "inscricao_id",
-            "etapa"
-          ]
+          "columns": ["inscricao_id", "etapa"]
         }
       },
       "policies": {},
@@ -5572,12 +5205,8 @@
           "name": "mentoria_pausas_inscricao_id_mentoria_inscricoes_id_fk",
           "tableFrom": "mentoria_pausas",
           "tableTo": "mentoria_inscricoes",
-          "columnsFrom": [
-            "inscricao_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["inscricao_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5585,12 +5214,8 @@
           "name": "mentoria_pausas_pausada_por_user_id_fk",
           "tableFrom": "mentoria_pausas",
           "tableTo": "user",
-          "columnsFrom": [
-            "pausada_por"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pausada_por"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5598,12 +5223,8 @@
           "name": "mentoria_pausas_retomada_por_user_id_fk",
           "tableFrom": "mentoria_pausas",
           "tableTo": "user",
-          "columnsFrom": [
-            "retomada_por"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["retomada_por"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -5670,12 +5291,8 @@
           "name": "mentoria_perfis_user_id_user_id_fk",
           "tableFrom": "mentoria_perfis",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5683,12 +5300,8 @@
           "name": "mentoria_perfis_definido_por_user_id_fk",
           "tableFrom": "mentoria_perfis",
           "tableTo": "user",
-          "columnsFrom": [
-            "definido_por"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["definido_por"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -5942,12 +5555,8 @@
           "name": "mentoria_pessoas_inscricao_id_mentoria_inscricoes_id_fk",
           "tableFrom": "mentoria_pessoas",
           "tableTo": "mentoria_inscricoes",
-          "columnsFrom": [
-            "inscricao_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["inscricao_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5955,12 +5564,8 @@
           "name": "mentoria_pessoas_criado_por_user_id_fk",
           "tableFrom": "mentoria_pessoas",
           "tableTo": "user",
-          "columnsFrom": [
-            "criado_por"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["criado_por"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -5970,10 +5575,7 @@
         "mentoria_pessoas_ordem_unica": {
           "name": "mentoria_pessoas_ordem_unica",
           "nullsNotDistinct": false,
-          "columns": [
-            "inscricao_id",
-            "ordem"
-          ]
+          "columns": ["inscricao_id", "ordem"]
         }
       },
       "policies": {},
@@ -6276,9 +5878,7 @@
         "mentoria_pmes_numero_unico": {
           "name": "mentoria_pmes_numero_unico",
           "nullsNotDistinct": false,
-          "columns": [
-            "numero"
-          ]
+          "columns": ["numero"]
         }
       },
       "policies": {},
@@ -6523,12 +6123,8 @@
           "name": "mentoria_reunioes_inscricao_id_mentoria_inscricoes_id_fk",
           "tableFrom": "mentoria_reunioes",
           "tableTo": "mentoria_inscricoes",
-          "columnsFrom": [
-            "inscricao_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["inscricao_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -6536,12 +6132,8 @@
           "name": "mentoria_reunioes_conduzida_por_user_id_fk",
           "tableFrom": "mentoria_reunioes",
           "tableTo": "user",
-          "columnsFrom": [
-            "conduzida_por"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["conduzida_por"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6549,12 +6141,8 @@
           "name": "mentoria_reunioes_condutor_inscricao_id_mentoria_inscricoes_id_fk",
           "tableFrom": "mentoria_reunioes",
           "tableTo": "mentoria_inscricoes",
-          "columnsFrom": [
-            "condutor_inscricao_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["condutor_inscricao_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -6562,12 +6150,8 @@
           "name": "mentoria_reunioes_remarcada_para_id_mentoria_reunioes_id_fk",
           "tableFrom": "mentoria_reunioes",
           "tableTo": "mentoria_reunioes",
-          "columnsFrom": [
-            "remarcada_para_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["remarcada_para_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6575,12 +6159,8 @@
           "name": "mentoria_reunioes_criado_por_user_id_fk",
           "tableFrom": "mentoria_reunioes",
           "tableTo": "user",
-          "columnsFrom": [
-            "criado_por"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["criado_por"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -6889,12 +6469,8 @@
           "name": "mentoria_tarefas_inscricao_id_mentoria_inscricoes_id_fk",
           "tableFrom": "mentoria_tarefas",
           "tableTo": "mentoria_inscricoes",
-          "columnsFrom": [
-            "inscricao_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["inscricao_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -6902,12 +6478,8 @@
           "name": "mentoria_tarefas_reuniao_id_mentoria_reunioes_id_fk",
           "tableFrom": "mentoria_tarefas",
           "tableTo": "mentoria_reunioes",
-          "columnsFrom": [
-            "reuniao_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["reuniao_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -6915,12 +6487,8 @@
           "name": "mentoria_tarefas_ciclo_id_mentoria_ciclos_id_fk",
           "tableFrom": "mentoria_tarefas",
           "tableTo": "mentoria_ciclos",
-          "columnsFrom": [
-            "ciclo_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["ciclo_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -6928,12 +6496,8 @@
           "name": "mentoria_tarefas_meta_id_mentoria_metas_id_fk",
           "tableFrom": "mentoria_tarefas",
           "tableTo": "mentoria_metas",
-          "columnsFrom": [
-            "meta_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["meta_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -6941,12 +6505,8 @@
           "name": "mentoria_tarefas_cobrada_por_user_id_fk",
           "tableFrom": "mentoria_tarefas",
           "tableTo": "user",
-          "columnsFrom": [
-            "cobrada_por"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["cobrada_por"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6954,12 +6514,8 @@
           "name": "mentoria_tarefas_criado_por_user_id_fk",
           "tableFrom": "mentoria_tarefas",
           "tableTo": "user",
-          "columnsFrom": [
-            "criado_por"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["criado_por"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -7052,12 +6608,8 @@
           "name": "meeting_confirmations_meeting_id_meetings_id_fk",
           "tableFrom": "meeting_confirmations",
           "tableTo": "meetings",
-          "columnsFrom": [
-            "meeting_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["meeting_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -7065,12 +6617,8 @@
           "name": "meeting_confirmations_user_id_user_id_fk",
           "tableFrom": "meeting_confirmations",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -7080,11 +6628,7 @@
         "meeting_confirmations_once": {
           "name": "meeting_confirmations_once",
           "nullsNotDistinct": false,
-          "columns": [
-            "meeting_id",
-            "step",
-            "scheduled_at"
-          ]
+          "columns": ["meeting_id", "step", "scheduled_at"]
         }
       },
       "policies": {},
@@ -7132,12 +6676,8 @@
           "name": "meeting_reminders_sent_meeting_id_meetings_id_fk",
           "tableFrom": "meeting_reminders_sent",
           "tableTo": "meetings",
-          "columnsFrom": [
-            "meeting_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["meeting_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -7145,11 +6685,7 @@
       "compositePrimaryKeys": {
         "meeting_reminders_sent_meeting_id_step_scheduled_at_pk": {
           "name": "meeting_reminders_sent_meeting_id_step_scheduled_at_pk",
-          "columns": [
-            "meeting_id",
-            "step",
-            "scheduled_at"
-          ]
+          "columns": ["meeting_id", "step", "scheduled_at"]
         }
       },
       "uniqueConstraints": {},
@@ -7233,12 +6769,8 @@
           "name": "push_subscriptions_user_id_user_id_fk",
           "tableFrom": "push_subscriptions",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -7248,9 +6780,7 @@
         "push_subscriptions_endpoint_unique": {
           "name": "push_subscriptions_endpoint_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "endpoint"
-          ]
+          "columns": ["endpoint"]
         }
       },
       "policies": {},
@@ -7322,12 +6852,8 @@
           "name": "form_responses_lead_id_leads_id_fk",
           "tableFrom": "form_responses",
           "tableTo": "leads",
-          "columnsFrom": [
-            "lead_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["lead_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -7337,9 +6863,7 @@
         "form_responses_response_id_unique": {
           "name": "form_responses_response_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "response_id"
-          ]
+          "columns": ["response_id"]
         }
       },
       "policies": {},
@@ -7351,23 +6875,12 @@
     "public.income_band": {
       "name": "income_band",
       "schema": "public",
-      "values": [
-        "R5_8K",
-        "R8_15K",
-        "R15_50K",
-        "R50K_PLUS",
-        "DESCOBRINDO"
-      ]
+      "values": ["R5_8K", "R8_15K", "R15_50K", "R50K_PLUS", "DESCOBRINDO"]
     },
     "public.lead_lost_reason": {
       "name": "lead_lost_reason",
       "schema": "public",
-      "values": [
-        "SEM_RENDA",
-        "SEM_INTERESSE",
-        "NAO_RESPONDEU",
-        "OUTRO"
-      ]
+      "values": ["SEM_RENDA", "SEM_INTERESSE", "NAO_RESPONDEU", "OUTRO"]
     },
     "public.lead_source": {
       "name": "lead_source",
@@ -7408,49 +6921,27 @@
     "public.legal_basis": {
       "name": "legal_basis",
       "schema": "public",
-      "values": [
-        "LEGITIMATE_INTEREST",
-        "CONSENT",
-        "CONTRACT"
-      ]
+      "values": ["LEGITIMATE_INTEREST", "CONSENT", "CONTRACT"]
     },
     "public.meeting_origin": {
       "name": "meeting_origin",
       "schema": "public",
-      "values": [
-        "DIRETO",
-        "FOLLOW"
-      ]
+      "values": ["DIRETO", "FOLLOW"]
     },
     "public.meeting_outcome": {
       "name": "meeting_outcome",
       "schema": "public",
-      "values": [
-        "DONE",
-        "NO_SHOW",
-        "RESCHEDULED"
-      ]
+      "values": ["DONE", "NO_SHOW", "RESCHEDULED"]
     },
     "public.role": {
       "name": "role",
       "schema": "public",
-      "values": [
-        "DIRETOR",
-        "HEAD",
-        "SDR",
-        "CLOSER",
-        "ACOMPANHAMENTO"
-      ]
+      "values": ["DIRETOR", "HEAD", "SDR", "CLOSER", "ACOMPANHAMENTO"]
     },
     "public.tier": {
       "name": "tier",
       "schema": "public",
-      "values": [
-        "P0",
-        "P1",
-        "P2",
-        "DESCOBRINDO"
-      ]
+      "values": ["P0", "P1", "P2", "DESCOBRINDO"]
     }
   },
   "schemas": {},

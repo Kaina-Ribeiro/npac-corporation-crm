@@ -1,4 +1,4 @@
-import { Body, Delete, Get, HttpCode, Param, Patch, Post } from '@nestjs/common';
+import { Body, Get, HttpCode, Param, Patch, Post } from '@nestjs/common';
 import { metaCriarSchema, metaPatchSchema } from '@npac/shared';
 import { CurrentUser, type SessionUser } from '../auth/current-user.decorator.js';
 import { entityId } from '../common/validate.js';
@@ -32,12 +32,5 @@ export class MetasController {
   @Perfis('ACOMPANHAMENTO')
   atualizar(@CurrentUser() u: SessionUser, @Param('id') id: string, @Body() body: unknown) {
     return this.metas.atualizar(u, entityId(id), validarComAviso(metaPatchSchema, body));
-  }
-
-  @Delete('metas/:id')
-  @HttpCode(204)
-  @Perfis('ACOMPANHAMENTO')
-  async excluir(@CurrentUser() u: SessionUser, @Param('id') id: string) {
-    await this.metas.excluir(u, entityId(id));
   }
 }

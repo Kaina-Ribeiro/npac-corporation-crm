@@ -10,6 +10,8 @@ test.beforeEach(async () => {
   await owner`truncate rate_limit`;
 });
 test.afterAll(async () => {
+  // Sem sobra para as outras specs (a agenda da Manu, por exemplo).
+  if (inscricao) await owner`delete from mentoria_inscricoes where id = ${inscricao}`;
   await closeTestConnections();
 });
 
@@ -71,11 +73,12 @@ test.beforeAll(async () => {
   );
   inscricao = i!.id;
   await owner`insert into mentoria_pessoas (inscricao_id, ordem, nome, nome_norm) values
-    (${inscricao}, 1, 'Mentorada Fictícia 81', 'mentorada ficticia 81'),
-    (${inscricao}, 2, 'Mentorado Fictício 82', 'mentorado ficticio 82')`;
+    (${inscricao}, 1, 'Mentorada Fictícia 86', 'mentorada ficticia 86'),
+    (${inscricao}, 2, 'Mentorado Fictício 87', 'mentorado ficticio 87')`;
   anterior = await reuniao('duda', 24 * 7);
   atual = await reuniao('duda', 1);
-  daManu = await reuniao('manu', 3);
+  // A da Manu fica antes: a cobrança da Duda é a da última realizada (spec §4).
+  daManu = await reuniao('manu', 24 * 8);
 });
 
 test('Duda combina 3 tarefas, define a meta, cobra na reunião seguinte e vê as barras', async ({

@@ -9,15 +9,6 @@ export const PILAR_LABEL: Record<Pilar, string> = {
   RELACIONAMENTOS: 'Relacionamentos',
 };
 
-/** S3: o PDF só diz "status". */
-export const META_STATUS = ['EM_ANDAMENTO', 'ATINGIDA', 'NAO_ATINGIDA'] as const;
-export type MetaStatus = (typeof META_STATUS)[number];
-export const META_STATUS_LABEL: Record<MetaStatus, string> = {
-  EM_ANDAMENTO: 'Em andamento',
-  ATINGIDA: 'Atingida',
-  NAO_ATINGIDA: 'Não atingida',
-};
-
 /** Tarefas combinadas por reunião (§3): a 4ª dá 400 na API e no banco. */
 export const MAX_TAREFAS_REUNIAO = 3;
 
