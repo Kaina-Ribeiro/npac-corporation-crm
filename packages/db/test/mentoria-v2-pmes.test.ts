@@ -171,7 +171,7 @@ describe('ciclos', () => {
     expect((err as { code?: string }).code).toBe('23505');
   });
 
-  it('status derivado: 9 dias de atraso em andamento, 10 e 16 segunda chance, 17 não concluído', async () => {
+  it('status derivado: aberto fica em andamento com qualquer atraso (S1 pendente, 0059)', async () => {
     const st = async (hoje: string) =>
       (
         await owner<{ s: string }[]>`
@@ -179,9 +179,10 @@ describe('ciclos', () => {
       )[0]!.s;
     expect(await st('2026-10-20')).toBe('EM_ANDAMENTO');
     expect(await st('2026-11-09')).toBe('EM_ANDAMENTO');
-    expect(await st('2026-11-10')).toBe('SEGUNDA_CHANCE');
-    expect(await st('2026-11-16')).toBe('SEGUNDA_CHANCE');
-    expect(await st('2026-11-17')).toBe('NAO_CONCLUIDO');
+    expect(await st('2026-11-10')).toBe('EM_ANDAMENTO');
+    expect(await st('2026-11-16')).toBe('EM_ANDAMENTO');
+    expect(await st('2026-11-17')).toBe('EM_ANDAMENTO');
+    expect(await st('2027-03-01')).toBe('EM_ANDAMENTO');
     const [x] = await owner<{ a: string; b: string }[]>`
       select mentoria_ciclo_status('2026-11-20', null, '2026-10-31', '2026-12-31') as a,
         mentoria_ciclo_status(null, '2026-11-02', '2026-10-31', '2026-11-03') as b`;
