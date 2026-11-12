@@ -34,6 +34,7 @@ const AGORAS = [
   '2027-01-01T08:30:00-03:00', // dia 1º: agenda do mês e reuniões do 6M
   '2027-01-05T07:00:00-03:00', // antes das 8h
   '2026-11-20T10:00:00-03:00', // antes do fim de algumas pausas: os dias parados param em "hoje"
+  '2026-12-05T10:00:00-03:00', // dia em que a pausa da borda (abaixo) termina
 ];
 const TIPOS = [
   'BOAS_VINDAS',
@@ -95,7 +96,9 @@ async function gerar(n: number) {
       await owner`insert into mentoria_pausas (inscricao_id, inicio, fim, status_anterior)
         values (${id}, ${data(ini)}, ${data(Math.max(ini - int(0, 60), 0))}, 'ATIVO')`;
     }
-    if (i!.status === 'PAUSADO')
+    // Pausa aberta: a de quem está pausado e, às vezes, uma fora do normal (ativa com pausa
+    // aberta), que a conta dos dias parados também soma.
+    if (i!.status === 'PAUSADO' || chance(0.1))
       await owner`insert into mentoria_pausas (inscricao_id, inicio, status_anterior)
         values (${id}, ${data(int(0, 30))}, 'ATIVO')`;
 
@@ -209,6 +212,11 @@ beforeAll(async () => {
   await owner`analyze`;
   await owner.unsafe(filaDa0053());
   await owner`grant execute on function mentoria_fila_0053(timestamptz) to npac_app`;
+  // Um em cada seis itens, de todos os tipos, já concluído (some por `mentoria_fila_feitos`).
+  const feitos = (await fila(DIRETOR, AGORAS[0]!, 'mentoria_fila_0053'))
+    .filter((_, k) => k % 6 === 0)
+    .map((l) => ({ chave: l.chave, feito_por: DUDA }));
+  await owner`insert into mentoria_fila_feitos ${owner(feitos)} on conflict do nothing`;
 }, 120_000);
 
 afterAll(async () => {
@@ -252,6 +260,14 @@ describe('mentoria_fila da 0064 = a da 0053', () => {
         and i.inicio_jornada + interval '9 months' <= ${data(0)}::date
         and mentoria_dias_pausados(i.id, ${data(0)}::date) > 0`;
     expect(rdv!.n).toBeGreaterThan(0);
+    const [abertas] = await owner<{ n: number }[]>`
+      select count(*)::int as n from mentoria_pausas p
+      join mentoria_inscricoes i on i.id = p.inscricao_id
+      where p.fim is null and i.status in ('ONBOARDING', 'ATIVO')`;
+    expect(abertas!.n).toBeGreaterThan(0);
+    const [feitos] = await owner<{ n: number }[]>`
+      select count(distinct split_part(chave, ':', 1))::int as n from mentoria_fila_feitos`;
+    expect(feitos!.n).toBeGreaterThanOrEqual(8);
     const dia20 = await fila(DIRETOR, '2026-11-20T10:00:00-03:00', 'mentoria_fila');
     expect(dia20.map((l) => l.chave)).toContain(`foto-familia:${borda}`);
 

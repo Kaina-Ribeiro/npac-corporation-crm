@@ -26,6 +26,7 @@ Next 16 App Router + React 19 + Tailwind 4 (`apps/web`).
 | 3 | API: canal ao vivo, relatórios, índices | ✅ feita (12/11/2026, PR #98, `a3bf7fd`; ITODEV `v0.15.4-rc` 18/18) |
 | 4 | Interface: movimento e resposta | ✅ PR para `release/v0.15` (Gabriel escolheu a opção B em T4.1) |
 | 5 | Varredura de fluxos por cargo e sobras | ✅ feita (12/11/2026; 9 cargos no ITODEV; ⚠️ Fila lenta fica de pendência) |
+| 6 | Fila do dia e login de conta desativada (pendências da 5) | ⏳ PR para `release/v0.15` (Fila 622–1.029 → 83–91 ms; login 500 → 401) |
 
 ## Decisões do Gabriel (12/11/2026)
 
@@ -551,7 +552,99 @@ depois cada tela a 1024, 768 e 375 px): em cada tela, título, erro na tela, err
   para Admin/Diretoria (≈ 1,86 s com a rede; Especialista com fila vazia ≈ 0,03 s); a tela leva
   ~1,85 s a cada ida, e é a entrada do módulo. No `npac_e2e_perf` (364 inscrições),
   `mentoria_fila(now())` como Diretoria leva ~700 ms. A função (SECURITY INVOKER, RLS) não foi medida
-  na Fase 1; corrigir pede migration e revisor de permissão, fora do escopo desta fase.
+  na Fase 1; corrigir pede migration e revisor de permissão, fora do escopo desta fase. *(Resolvida
+  na Fase 6.)*
+- ⚠️ **Pendência: login de conta desativada responde 500.** *(Resolvida na Fase 6.)*
+
+## Fase 6 — Fila do dia e login de conta desativada
+
+**Status:** ⏳ PR para `release/v0.15` (NPAC-47, branch `perf/NPAC-47-fila-do-dia`) · **Feito quando:**
+a Fila fica abaixo de 500 ms no `npac_e2e_perf` para Admin e Diretoria (mediana de 5), o teste de
+equivalência por perfil passa, o login de conta desativada devolve o mesmo código da senha errada
+com teste cobrindo, PR mergeado com os quatro checks verdes e rc conferida no ITODEV.
+
+### T6.1 Medir antes e achar o gargalo
+
+- [x] `pnpm perf:seed`, `pnpm perf:api`, `scripts/perf/medir.sh <usuario> POST /api/mentoria/fila '{}'`
+  (coluna "Antes" abaixo). A API gasta o tempo todo na função: `select * from mentoria_fila(now())`
+  sozinho leva 580–640 ms (Diretoria, Admin) e ~1.050 ms (Operação).
+- [x] `auto_explain` com `log_nested_statements` (a função é SQL com `SET search_path`, não é
+  expandida no plano de fora): para 341 itens, **14.966 consultas aninhadas** ao `user`
+  (`app_user_id()`) e 2.138 a `mentoria_ve_todas()`. Origem: `mentoria_onboarding_base(e.id)` chamada
+  para cada uma das 1.872 etapas e `mentoria_mes_jornada` → `mentoria_dias_pausados` para cada RDV;
+  cada chamada é uma consulta nova que relê as pausas e reavalia a RLS do módulo. A Operação paga
+  mais porque `mentoria_ve_todas()` dela faz `mentoria_admin()` (falso) e depois `mentoria_perfil()`.
+
+### T6.2 Migration 0064
+
+- [x] `0064_fila_do_dia_desempenho.sql` (`CREATE OR REPLACE`, mesmos atributos: SQL, STABLE,
+  SECURITY INVOKER, `search_path`, dono e grants mantidos). Duas trocas, mesmas contas:
+  - `base_envio` = `mentoria_dia(greatest(enviada_em, retomada às 0h de Brasília))`, com a retomada
+    que `ins` já lia (pausa visível ⇔ inscrição visível: as duas políticas usam o mesmo predicado
+    na 0061).
+  - Mês da jornada da FOTO_FAMILIA: os dias parados vêm em `ins.dias_parados` (mesma conta de
+    `mentoria_dias_pausados`) e o mês é a conta de `mentoria_mes_jornada`, no corpo da função
+    (`OFFSET 0` para fazer uma vez por linha). `mentoria_data_ajustada` segue chamada só nas linhas
+    que entram na Fila.
+  - Sobram por linha só funções baratas, sem RLS em cascata (`mentoria_dia`, `mentoria_hora`,
+    `mentoria_acao_atrasada`, `mentoria_perfil_de`).
+- [x] Primeira versão com pré-filtro (`início + 9 meses <= hoje`) ainda chamava `mentoria_mes_jornada`
+  para todo RDV além do 9º mês: em datas futuras (52 RDV) subia a ~114 ms, ~1,5 ms por chamada.
+  Trocada pela conta no corpo: ~60 ms também no pior caso (964 itens em 10/06/2027).
+- [x] Teste `packages/db/test/fila-equivalencia.test.ts`: recria a função da 0053 a partir do texto da
+  migration (`mentoria_fila_0053`) e compara linha a linha, na mesma ordem, com a nova para 11
+  usuários (Diretoria, Head, SDR, Acompanhamento Admin e comum, Operação, duas Especialistas, Mentor,
+  sem perfil, desativado) em 6 horários (dia comum, 23h30 de Brasília, dia 1º, antes das 8h, um dia
+  anterior ao fim de pausas e o dia em que uma pausa termina), sobre 150 inscrições sorteadas com
+  semente fixa (pausas fechadas e abertas, inclusive aberta em inscrição ativa; etapas em todos os
+  estados; reuniões de todo tipo e estado; ações; um em cada seis itens, de todos os tipos, já
+  concluído) e um caso de borda escrito à mão. Exige que os 14 tipos de item apareçam. Como a cópia
+  da 0053 chama as funções vivas da 0051, o teste acusa se elas mudarem e a conta da 0064 ficar para
+  trás. Limite: compara com a 0053, que é a referência; a regra em si segue coberta pelos testes da
+  Fila na API (`mentoria-v2-fila.e2e.test.ts`).
+- [x] Mutações (cada uma aplicada e desfeita à mão): retomada ignorada, pré-filtro de 10 meses, dias
+  parados zerados, dias parados sem parar em "hoje", pausa antes do início da jornada contada
+  inteira: **as 5 falham o teste**; a 0064 passa.
+- [x] No `npac_e2e_perf` (364 inscrições): antiga × nova idênticas para diretor, ana, igor, sonia,
+  duda, operacao, manu, leo e carla em 6 horários (210 a 964 itens).
+
+### T6.3 Login de conta desativada
+
+- [x] RED: `apps/api/test/auth.e2e.test.ts` "conta desativada: recusa igual à senha errada…" deu
+  **500 `FAILED_TO_CREATE_SESSION`** (o gancho `session.create.before` devolvia `false`).
+- [x] Correção em `apps/api/src/auth/auth.ts`: o gancho lança
+  `APIError.from('UNAUTHORIZED', USERNAME_ERROR_CODES.INVALID_USERNAME_OR_PASSWORD)`, o mesmo erro
+  da senha errada do plugin `username`. Resposta: 401 com o mesmo corpo da senha errada e do usuário
+  inexistente, sem cookie de sessão, falha auditada. Só chega ao gancho quem acertou a senha, então o
+  tempo de resposta também não separa os casos (as três passam pelo argon2). A tela já mostrava
+  "Usuário ou senha inválidos" para qualquer erro; nada muda para quem usa. Limite de tentativas e
+  MFA seguem desligados.
+
+### T6.4 Medir depois e fechar
+
+| Quem | `POST /api/mentoria/fila` | Antes (12/11) | Depois (12/11) | Meta |
+|---|---|---|---|---|
+| duda (Acompanhamento Admin) | mediana de 5 | 622 ms | **83 ms** ✅ | < 500 ms |
+| diretor (Diretoria) | mediana de 5 | 664 ms | **86 ms** ✅ | < 500 ms |
+| operacao (Operação) | mediana de 5 | 1.029 ms | **91 ms** | — |
+| manu (Especialista) | mediana de 5 | 29 ms | **28 ms** | — |
+
+`npac_e2e_perf`, API em produção local na 4150, sem carga paralela (uma segunda rodada deu 97–104 ms
+para Admin/Diretoria). Só a função, mesma base: 556–633 → 55–57 ms (Diretoria/Admin), 991–1.043 →
+57–79 ms (Operação), 14 → 8 ms (Especialista).
+
+- [x] `pnpm lint && pnpm typecheck` verdes; `@npac/db` 274/274; `@npac/api` 586 + 1 pulado (MFA
+  ligado).
+- [x] e2e inteiro (local, `npac_e2e_f6`, portas 4160/3160): 197 passaram, 4 pulados (MFA ligado),
+  0 falhas, em 6,7 min.
+- [x] Revisor independente (somente leitura) da 0064 contra a RLS do módulo e do ajuste do login:
+  sem achado em equivalência, permissão (continua SECURITY INVOKER, dono e grants mantidos) e
+  login (todo `createSession` passa pelo gancho; os outros fluxos que abrem sessão passam a receber
+  401 em vez de 500). Apontou lacunas do teste; fechadas: pausa aberta em inscrição ativa, horário
+  no dia em que a pausa termina e itens concluídos de todos os tipos. Pré-existentes, fora do
+  escopo: AGENDA_MES/REUNIOES_6M saem da função para qualquer chamador (a API dá 404 antes) e a
+  mensagem do 401 é a do Better Auth, em inglês (a tela mostra a dela).
+- [ ] PR, checks verdes, squash; rc no ITODEV com `varredura-por-cargo.mjs` e o tempo da Fila lá.
 
 ## Brief para abrir cada fase
 
