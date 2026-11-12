@@ -247,7 +247,16 @@ export class ReportsService {
         return {
           metrics: numeric(metrics[0]!),
           byProduct: byProduct.map(numeric),
-          daily: days.map(({ prevDate: _date, prevSoldCents: _sold, ...day }) => numeric(day)),
+          daily: days.map((d) =>
+            numeric({
+              date: d.date,
+              leads: d.leads,
+              meetings: d.meetings,
+              soldCents: d.soldCents,
+              receivedCents: d.receivedCents,
+              meetingValueCents: d.meetingValueCents,
+            }),
+          ),
           // Vendido por dia no período anterior equivalente (mesmo escopo e filtros).
           previousDaily: days.map((d) => numeric({ date: d.prevDate, soldCents: d.prevSoldCents })),
           bySdr,

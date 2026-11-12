@@ -1,5 +1,6 @@
 // Contador global do canal ao vivo (plano docs/plans/desempenho.md, Fase 3, T3.1): toda transação
 // que escreve nas tabelas do resumo antigo soma 1 a `app_revision.n`, no commit, uma vez só.
+import type { Sql, TransactionSql } from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { appSql, closeTestConnections, ownerSql } from '../src/testing.js';
 
@@ -10,7 +11,7 @@ const U = 'rev-sdr';
 let stage = '';
 
 const n = async () => Number((await app<{ n: string }[]>`select n from app_revision`)[0]!.n);
-const novoLead = (s: typeof owner, nome: string) =>
+const novoLead = (s: Sql | TransactionSql, nome: string) =>
   s`insert into leads (name, income_band, source, stage_id, sdr_id, created_by)
     values (${nome}, 'R8_15K', 'INDICACAO', ${stage}, ${U}, ${U}) returning id`;
 

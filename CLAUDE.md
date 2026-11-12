@@ -38,7 +38,7 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   `api/finance/finance.service.ts` · relatórios/dashboard/CSV/feed `api/finance/reports.service.ts` ·
   Hoje `api/today/*` · avisos/filtros salvos `api/notifications/notifications.ts`, `views.ts` ·
   chat/handoff/equipe/playbook `api/collab/*` · admin `api/admin/users.ts`, `catalog.ts`, `lgpd.ts`,
-  `access-requests.ts` · SSE `api/events/events.controller.ts` · import Firebase `api/import/*` ·
+  `access-requests.ts` · SSE `api/events/events.controller.ts` + contador `revision.service.ts` · import Firebase `api/import/*` ·
   push (Web Push) e despertador dos lembretes `api/push/*` ·
   mock do protótipo `api/dev/mock-prototype.ts`
 - **Web:** layout/sidebar/bottom nav `web/app/(app)/layout.tsx`, `web/components/shell/*` (menu da
@@ -105,6 +105,17 @@ vem escondido na casca (`main` e `.ac`) e o `NavProgress` marca `data-nav-pendin
 de link para outra tela (CSS `.nav-skeleton` em `globals.css`); sai quando a URL muda. Erro de tela:
 `app/(app)/error.tsx`, "Não foi possível carregar." + "Tentar de novo" (`retry()`, que rebusca;
 `reset()` não). `BottomNav` é componente de servidor (ícones fora do JS). Prova: `e2e/navegacao-leve.spec.ts`.
+
+**Canal ao vivo** (desempenho, Fase 3, D2, 12/11/2026): contador global `app_revision` (0062, uma linha). Gatilho
+adiado para o commit (`CONSTRAINT TRIGGER … DEFERRABLE INITIALLY DEFERRED`, por linha, soma 1 por transação; UPDATE que
+não muda nada não soma) em `leads`, `lead_tasks`, `lead_timeline`, `chat_*` e `notifications`. `RevisionService` lê `n`
+com um temporizador de 2 s por processo (não por aba) e qualquer escrita vira `invalidate` para todas as abas; a sessão é
+conferida ao abrir e a cada 10 s (`heartbeat`). Tabela nova que deva avisar a tela: o mesmo gatilho na migration. Não
+grave em tabela vigiada ao recarregar (laço de avisos); se precisar, só quando o valor muda.
+**Relatório** (`reports.service.ts`): resposta travada byte a byte por `test/reports-legacy.ts` (cópia congelada) em
+`reports.e2e.test.ts`; mexeu na busca, esse teste diz se algum número mudou (mudança de número pedida: altere a
+cópia no mesmo PR). `GET /team` usa `peopleOfMonth(tx)` (só por
+SDR e por closer). Índices só com plano que os use (`explain` no `npac_e2e_perf`): 0063.
 
 Next 16 tem APIs incompatíveis: em dúvida, `web/node_modules/next/dist/docs/`. Valor exportado de
 módulo `'use client'` não é legível em server component: constantes compartilhadas ficam em arquivo

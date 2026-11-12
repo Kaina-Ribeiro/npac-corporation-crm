@@ -23,7 +23,7 @@ Next 16 App Router + React 19 + Tailwind 4 (`apps/web`).
 |---|---|---|
 | 1 | Banco: permissão por consulta | ✅ feita (12/11/2026, PR #95, `65d7135`; ITODEV `v0.15.2-rc` 22/22 por cargo) |
 | 2 | Web: navegação, carregamento e erro | ✅ feita (12/11/2026, PR #96, `a3c5e75`; no ar no ITODEV `v0.15.2-rc`) |
-| 3 | API: canal ao vivo, relatórios, índices | ⏳ pendente (depois da Fase 1) |
+| 3 | API: canal ao vivo, relatórios, índices | ✅ código e metas (12/11/2026, migrations 0062–0063) · ⏳ ITODEV |
 | 4 | Interface: movimento e resposta | ⏳ pendente (depois da Fase 2; Gabriel escolhe a opção em T4.1) |
 | 5 | Varredura de fluxos por cargo e sobras | ⏳ pendente (por último) |
 
@@ -342,7 +342,7 @@ Desvios decididos por evidência (detalhes na descrição do PR #96):
 
 ## Fase 3 — API: canal ao vivo, relatórios, índices
 
-**Status:** ⏳ pendente (D2) · **Feito quando:** metas de T3.4 batidas e suítes verdes.
+**Status:** ✅ código e metas (12/11/2026, migrations 0062–0063) · ⏳ ITODEV · **Feito quando:** metas de T3.4 batidas e suítes verdes.
 
 ### T3.1 Canal ao vivo por contador (opção A de D2)
 
@@ -352,41 +352,73 @@ Desvios decididos por evidência (detalhes na descrição do PR #96):
 **Produz:** tabela `app_revision (id boolean primary key default true, n bigint not null)` com uma
 linha; função de gatilho `app_revision_bump()`; `RevisionService.changes$: Observable<void>`.
 
-- [ ] Gatilho `AFTER INSERT OR UPDATE OR DELETE … FOR EACH STATEMENT` em `leads`, `lead_tasks`,
-  `lead_timeline`, `chat_messages`, `chat_channels`, `chat_reads`, `notifications` (as tabelas do
-  resumo atual). `npac_app` só lê `app_revision`.
-- [ ] `RevisionService`: **um** temporizador de 2 s para o processo inteiro lê `n` e emite quando
-  muda. `EventsController` assina `changes$`; a checagem de sessão por conexão passa para 10 s.
-- [ ] Testes: uma escrita gera um `invalidate` em duas conexões; sem escrita, só `heartbeat`;
-  sessão encerrada ainda fecha em até 10 s.
+- [x] Gatilho nas sete tabelas do resumo antigo (`leads`, `lead_tasks`, `lead_timeline`,
+  `chat_messages`, `chat_channels`, `chat_reads`, `notifications`), migration **0062**. `npac_app` só
+  lê `app_revision` (RLS `using (true)`, sem UPDATE). **Mudança de forma:** em vez de `FOR EACH
+  STATEMENT` imediato, é `CONSTRAINT TRIGGER … DEFERRABLE INITIALLY DEFERRED FOR EACH ROW` com
+  `set_config` local para somar uma vez por transação. Motivo: o gatilho por instrução trava a linha
+  do contador no meio da transação (uma transação longa seguraria as escritas de todos, e quem já
+  travou um lead e espera o contador fecha deadlock com quem segura o contador e espera o lead); no
+  commit, a trava dura milissegundos e o aviso só sai com a escrita pronta. UPDATE que não muda nada
+  não soma: o Chat regrava "lido até" com o mesmo valor a cada recarga, e isso virava um laço de
+  avisos a cada 2 s (o resumo antigo também não mudava nesse caso).
+- [x] `RevisionService`: um `timer(0, 2000)` com `share()` para o processo inteiro (só corre com
+  alguém conectado), lê `n` e emite quando muda; erro de leitura pula a rodada. `EventsController`
+  assina `changes$` (só depois do `ready`) e confere a sessão ao abrir e a cada 10 s (`heartbeat`).
+- [x] Testes: uma escrita gera um `invalidate` em cada uma de três conexões e o sinal seguinte é o
+  `heartbeat` (saiu uma vez só); sem escrita, só `heartbeat`; o contador é lido no máximo uma vez a
+  cada 2 s com três abas; "lido até" repetido não avisa; usuário desativado recebe `session-ended`
+  em até 10 s. No banco (`packages/db/test/app-revision.test.ts`): transação grande soma 1, rollback
+  não soma, invisível antes do commit, cada tabela soma, UPDATE igual não soma.
 
 ### T3.2 Relatório em menos consultas
 
 **Arquivos:** `api/src/finance/reports.service.ts`, `apps/api/test/reports.e2e.test.ts`.
 
-- [ ] Antes de mexer: teste que grava a resposta inteira de `search` para três filtros (mês,
-  `sdrId`, `closerId` + `productId`) sobre os dados do mock e compara igualdade profunda.
-- [ ] `scope` passa a trazer só `id, sdr_id, tier, created_at`; métricas, conversão e taxas viram
-  uma consulta; `daily` e `previousDaily` agregam com `group by` do dia de Brasília e `left join`
-  na série de dias; `bySdr`, `byCloser`, `byProduct` e a página ficam como consultas próprias.
-  Saída idêntica (o teste acima não muda).
-- [ ] Mesmo tratamento para o que `GET /api/team` reaproveita.
+- [x] Antes de mexer: teste que compara a resposta inteira (texto JSON, byte a byte) de `search` e
+  de `GET /team` com uma cópia congelada da versão antiga (`apps/api/test/reports-legacy.ts`), para 8
+  filtros (mês; `sdrId`; `closerId` + `productId`; hoje; intervalo; closer; perfil + página; etapa +
+  origem) × 4 papéis (Diretoria, Head, SDR, closer), com leads, reuniões, vendas parceladas,
+  estornadas e lead excluído espalhados por este mês e o anterior. Também gravei as 92 respostas
+  (search, summary e team, 11 filtros × 4 pessoas) no `npac_e2e_perf` antes e depois: **92 de 92
+  iguais**.
+- [x] `scope` traz só `id, sdr_id, tier, created_at`; `calls` e `sales` só as colunas usadas;
+  métricas, conversão e taxas numa consulta (`count(*) filter`); `daily` e `previousDaily` numa
+  consulta com `group by` do dia de Brasília e `left join` na série (o dia de mesma posição do
+  período anterior vai na mesma linha); `bySdr`, `byCloser`, `byProduct` e a página ficam como
+  consultas próprias (a página lê `leads` direto). De 9 consultas para 6; a série diária era 720 ms.
+- [x] `GET /team`: `peopleOfMonth(tx)` roda só `bySdr` e `byCloser` (sem métricas, série, produtos
+  e página), na mesma transação dos usuários e das vendas por pessoa.
 
 ### T3.3 Índices
 
 **Arquivos:** migration `00NN_indices_desempenho.sql`, `db/src/schema/*.ts`.
 
-- [ ] `lead_timeline (at desc, id)`, `leads (created_at) where deleted_at is null`,
-  `leads (stage_id) where deleted_at is null`.
-- [ ] `explain` do feed (`reports.service.ts:118`), do relatório e do Pipeline no `npac_e2e_perf`:
-  manter só o índice que aparece em algum plano.
+- [x] Testados os três no `npac_e2e_perf` com `auto_explain` (Pipeline, relatório, Leads, feed).
+- [x] Migration **0063** com os dois que entraram em plano: `lead_timeline (at desc, id)` (feed:
+  Index Scan, 78 → 14 ms) e `leads (stage_id) where deleted_at is null` (Pipeline: Bitmap Index
+  Scan em cada coluna, 38 → 35 ms). `leads (created_at) where deleted_at is null` **ficou de fora**:
+  não apareceu em nenhum plano.
 
 ### T3.4 Medir e fechar
 
-- [ ] Metas (Diretoria, `npac_e2e_perf`): `POST /api/reports/search {"period":"MONTH"}` 1.012 →
-  ≤ 200 ms; `GET /api/team` 1.073 → ≤ 200 ms; `GET /api/reports/activity` 83 → ≤ 20 ms; canal ao
-  vivo: uma consulta a cada 2 s no processo, qualquer que seja o número de abas.
-- [ ] Revisor independente (dinheiro: totais do relatório). PR, ITODEV.
+- [x] Metas (Diretoria, `npac_e2e_perf`, mediana de 5 com `scripts/perf/medir.sh`, API em produção
+  local na 4152):
+
+  | Medida | Auditoria | Antes (12/11) | Depois (12/11) | Meta |
+  |---|---|---|---|---|
+  | `POST /api/reports/search {"period":"MONTH"}` | 1.012 ms | 982 ms | **143 ms** ✅ | ≤ 200 ms |
+  | `GET /api/team` | 1.073 ms | 970 ms | **54 ms** ✅ | ≤ 200 ms |
+  | `GET /api/reports/activity` | 83 ms | 77 ms | **14 ms** ✅ | ≤ 20 ms |
+  | canal ao vivo, 10 abas por 20 s | por aba | 100 resumos md5 + 330 consultas de sessão | **10 leituras do contador** + 96 de sessão ✅ | 1 a cada 2 s no processo |
+  | `POST /api/reports/summary {"period":"MONTH"}` | 1.055 ms | 966 ms | 138 ms | — |
+  | igor (SDR) `POST /api/reports/search` | | 861 ms | 127 ms | — |
+  | sonia (closer) `POST /api/reports/search` | | 1.068 ms | 339 ms | — |
+
+  A closer fica em 339 ms porque cada uma das 6 consultas paga a política de `leads` (`id = any`
+  da lista do closer, varrida linha a linha); sem meta nesta fase. Contagem do canal com
+  `log_min_duration_statement = 0` só para `npac_app` no `npac_e2e_perf` (desligado depois).
+- [ ] Revisor independente (dinheiro: totais do relatório; gatilho do contador). PR, ITODEV.
 
 ## Fase 4 — Interface: movimento e resposta
 
