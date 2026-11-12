@@ -31,7 +31,9 @@ import { FichaPessoas } from './ficha-pessoas';
 import { HistoricoLista } from './historico-lista';
 import { IndicadorSalvo } from './indicador-salvo';
 import { PlanoMentorado } from './plano-mentorado';
+import { Metas } from './metas';
 import { PmeAtual } from './pme-atual';
+import { TarefasFicha } from './tarefas-reuniao';
 import {
   abaValida,
   dataBR,
@@ -62,6 +64,10 @@ function Jornada({
 }) {
   const mes = ficha.mesJornada;
   const focos = ficha.mentoria === 'RDV' ? FOCOS_RDV : null;
+  const ativo = ficha.status === 'ATIVO';
+  const comPme = ficha.ciclos.length > 0 || ativo;
+  const comTarefas = ficha.tarefasReuniao.length > 0 || ativo;
+  const comMetas = ficha.metas.length > 0 || (ficha.pode.meta && ativo);
   return (
     <section
       className={`card pa ${soLargo ? 'so-largo' : ''}`}
@@ -87,8 +93,27 @@ function Jornada({
         ficha={ficha}
         atualizar={atualizar}
         pme={
-          ficha.ciclos.length > 0 || ficha.status === 'ATIVO' ? (
-            <PmeAtual ficha={ficha} atualizar={atualizar} />
+          comPme || comTarefas || comMetas ? (
+            <>
+              {comPme && <PmeAtual ficha={ficha} atualizar={atualizar} />}
+              {comTarefas && (
+                <TarefasFicha
+                  tarefas={ficha.tarefasReuniao}
+                  metas={ficha.metas}
+                  atualizar={atualizar}
+                />
+              )}
+              {comMetas && (
+                <Metas
+                  inscricaoId={ficha.id}
+                  metas={ficha.metas}
+                  pessoas={ficha.pessoas.map((p) => ({ id: p.id, nome: p.nome }))}
+                  podeCriar={ficha.pode.meta}
+                  atualizar={atualizar}
+                  vazio="Nenhuma meta definida. As metas nascem na reunião ou aqui."
+                />
+              )}
+            </>
           ) : null
         }
         plano={
