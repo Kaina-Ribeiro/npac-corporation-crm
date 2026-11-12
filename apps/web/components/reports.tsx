@@ -263,7 +263,7 @@ export function Reports({
       rememberPrefs(dashboard ? 'dashboard' : 'reports', prefs.cookie, prefs.value);
       return;
     }
-    const saved = readPreference(prefs.cookie) ?? '';
+    const saved = readPreference(prefs.cookie, prefs.value) ?? '';
     if (saved === prefs.value) return;
     const f = readPrefs(saved, rules);
     if (f.period === 'RANGE' && !(f.from && f.to)) {
