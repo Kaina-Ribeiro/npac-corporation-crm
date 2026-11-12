@@ -232,7 +232,10 @@ export function Today({
   useEffect(() => {
     const { head, cookie, team, initialFilters, load } = mounted.current;
     if (!head) return;
-    const saved = parseTodayFilters(readPreference(cookie), team);
+    const saved = parseTodayFilters(
+      readPreference(cookie, serializeTodayFilters(initialFilters)),
+      team,
+    );
     if (serializeTodayFilters(saved) === serializeTodayFilters(initialFilters)) return;
     setFilters(saved);
     void load(saved).catch((e: Error) => setError(e.message));

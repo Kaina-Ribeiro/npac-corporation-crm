@@ -71,11 +71,11 @@ export function Pipeline({
   const [stages, setStages] = useState(catalog.stages);
   const [hidden, setHidden] = useState<StageKey[]>(initialHidden);
   // Voltar no navegador reaproveita a página antiga: ao montar, o cookie tem a escolha mais recente.
-  const mounted = useRef({ cookie, keys: catalog.stages.map((s) => s.key) });
+  const mounted = useRef({ cookie, keys: catalog.stages.map((s) => s.key), initialHidden });
   useLayoutEffect(() => {
-    const { cookie, keys } = mounted.current;
+    const { cookie, keys, initialHidden } = mounted.current;
     if (!cookie) return;
-    const now = parseHidden(readPreference(cookie), keys);
+    const now = parseHidden(readPreference(cookie, serializeHidden(initialHidden)), keys);
     setHidden((prev) => (serializeHidden(prev) === serializeHidden(now) ? prev : now));
   }, []);
   function toggleColumn(key: StageKey, visible: boolean) {
@@ -153,7 +153,7 @@ export function Pipeline({
     let changed = false;
     if (prefs.force) rememberPrefs('pipeline', prefs.cookie, prefs.value);
     else {
-      const saved = readPreference(prefs.cookie) ?? '';
+      const saved = readPreference(prefs.cookie, prefs.value) ?? '';
       if (saved !== prefs.value) {
         const { col, ...f } = readPipelinePrefs(saved, catalog);
         const value = writePrefs({ ...f, col }, pipelineRules(catalog));

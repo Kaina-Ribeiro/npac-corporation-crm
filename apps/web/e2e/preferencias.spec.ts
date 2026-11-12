@@ -197,6 +197,21 @@ test.describe('filtros lembrados: leads', () => {
     await expect(visible(page, `Medio ${id}`)).toHaveCount(0);
   });
 
+  test('leads aberto pelo menu (página carregada em outra tela) lembra ao voltar', async ({
+    page,
+  }) => {
+    // O navegador só deixa o JS ler cookies do caminho em que a página foi carregada.
+    await login(page, 'ale@npac.com.br');
+    await menu(page, 'Leads');
+    await page.waitForURL(/\/leads$/);
+    await pickFilter(page, 'Perfil do lead', 'P0', () => Promise.resolve());
+    await menu(page, 'Pipeline');
+    await page.waitForURL(/\/pipeline/);
+    await menu(page, 'Leads');
+    await page.waitForURL(/\/leads$/);
+    await expect(page.getByLabel('Perfil do lead', { exact: true })).toHaveValue('P0');
+  });
+
   test('limpar filtros vale também ao voltar', async ({ page, context }) => {
     await login(page, 'ale@npac.com.br');
     const id = rid();

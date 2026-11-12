@@ -11,10 +11,12 @@ export function userCookieName(prefix: string, userId: string) {
 }
 
 // Leitura em módulo próprio: quem só lê não leva o resto para o JS da página (limite de /leads).
+import { notePreference } from './read-preference';
 export { readPreference } from './read-preference';
 
 /** Grava o cookie no navegador; valor vazio apaga. */
 export function savePreference(name: string, value: string, path: string) {
   const secure = location.protocol === 'https:' ? '; Secure' : '';
   document.cookie = `${name}=${value}; Path=${path}; Max-Age=${value ? 31_536_000 : 0}; SameSite=Lax${secure}`;
+  notePreference(name, value);
 }
