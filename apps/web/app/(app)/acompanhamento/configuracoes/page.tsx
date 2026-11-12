@@ -8,6 +8,7 @@ import {
 } from '@npac/shared/mentoria';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { LembrarUrl } from '@/components/acompanhamento/lembrar-url';
 import { ImportarCarteira } from '@/components/acompanhamento/importar-carteira';
 import { MensagensAdmin } from '@/components/acompanhamento/mensagens-admin';
 import { PerfisAdmin } from '@/components/acompanhamento/perfis-admin';
@@ -15,6 +16,7 @@ import { PlanoModeloAdmin } from '@/components/acompanhamento/plano-modelo-admin
 import { TransferirCarteira } from '@/components/acompanhamento/transferir-carteira';
 import { ICONES, Icone } from '@/components/acompanhamento/ui';
 import { lerEu, sessaoDoModulo } from '@/lib/acompanhamento';
+import { abasLembradas } from '@/lib/acompanhamento-abas';
 import { apiGet } from '@/lib/api';
 
 export const metadata = { title: 'Configurações' };
@@ -28,16 +30,30 @@ const SUB = {
 };
 const ABAS = ['perfis', 'plano', 'mensagens', 'importacao', 'carteira'] as const;
 type AbaConfig = (typeof ABAS)[number];
+/** Aba e mentoria do plano-modelo lembradas (NPAC-46). */
+const CHAVES = { perfis: [], plano: ['mentoria'], mensagens: [], importacao: [], carteira: [] };
+const ROTULOS: Record<AbaConfig, string> = {
+  perfis: 'Perfis',
+  plano: 'Plano-modelo',
+  mensagens: 'Mensagens-modelo',
+  importacao: 'Importação',
+  carteira: 'Transferir carteira',
+};
 
 export default async function ConfiguracoesPage({
   searchParams,
 }: {
   searchParams: Promise<{ aba?: string; mentoria?: string }>;
 }) {
-  if (!(await sessaoDoModulo())) return null;
+  const me = await sessaoDoModulo();
+  if (!me) return null;
   if (!(await lerEu())?.admin) notFound();
-  const q = await searchParams;
-  const aba: AbaConfig = ABAS.includes(q.aba as AbaConfig) ? (q.aba as AbaConfig) : 'perfis';
+  const lembradas = await abasLembradas('configuracoes', me.id, await searchParams, {
+    abas: ABAS,
+    padrao: 'perfis',
+    chaves: CHAVES,
+  });
+  const { aba, q } = lembradas;
   const mentoria = MENTORIAS.includes(q.mentoria as Mentoria) ? (q.mentoria as Mentoria) : 'RDV';
   const perfis = aba === 'perfis' ? await apiGet<PerfilLinha[]>('/api/mentoria/perfis') : [];
   const responsaveis =
@@ -57,38 +73,25 @@ export default async function ConfiguracoesPage({
         <p className="sub">{SUB[aba]}</p>
       </div>
       <div className="tabs">
-        <Link className={aba === 'perfis' ? 'on' : ''} href="/acompanhamento/configuracoes">
-          Perfis
-        </Link>
-        <Link
-          className={aba === 'plano' ? 'on' : ''}
-          href="/acompanhamento/configuracoes?aba=plano"
-        >
-          Plano-modelo
-        </Link>
-        <Link
-          className={aba === 'mensagens' ? 'on' : ''}
-          href="/acompanhamento/configuracoes?aba=mensagens"
-        >
-          Mensagens-modelo
-        </Link>
-        <Link
-          className={aba === 'importacao' ? 'on' : ''}
-          href="/acompanhamento/configuracoes?aba=importacao"
-        >
-          Importação
-        </Link>
-        <Link
-          className={aba === 'carteira' ? 'on' : ''}
-          href="/acompanhamento/configuracoes?aba=carteira"
-        >
-          Transferir carteira
-        </Link>
+        {ABAS.map((id) => (
+          <Link key={id} className={aba === id ? 'on' : ''} href={lembradas.href(id)}>
+            {ROTULOS[id]}
+          </Link>
+        ))}
       </div>
       {aba === 'importacao' && <ImportarCarteira />}
       {aba === 'mensagens' && <MensagensAdmin mensagens={mensagens} />}
       {aba === 'carteira' && <TransferirCarteira responsaveis={responsaveis} />}
       {aba === 'plano' && <PlanoModeloAdmin linhas={modelo} mentoria={mentoria} />}
+      <LembrarUrl
+        screen="configuracoes"
+        cookie={lembradas.cookie}
+        valor={lembradas.valor}
+        abas={ABAS}
+        aba={aba}
+        consulta={lembradas.consulta}
+        doMenu={lembradas.doMenu}
+      />
       {aba === 'perfis' && (
         <>
           <PerfisAdmin inicial={perfis} />
