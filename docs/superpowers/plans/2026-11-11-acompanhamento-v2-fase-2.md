@@ -25,7 +25,7 @@ da Fase 1 (`docs/superpowers/plans/2026-11-10-acompanhamento-v2-design.md`) e o 
 | Parte | Entrega | Status |
 |---|---|---|
 | 1 | Catálogo de PMEs, ciclos e tarefas do ciclo (envio, extras, encerramento, status derivado) + Configurações > PMEs + card "PME atual" na ficha | ✅ 11/11 (PR na `release/v0.14`) |
-| 2 | Metas, tarefas da reunião (até 3, prazo), cobrança da reunião anterior, % do PME (tarefas e metas) | ✅ 12/11 (sem S3/S4; PR na próxima `release/*`) |
+| 2 | Metas, tarefas da reunião (até 3, prazo), cobrança da reunião anterior, % do PME (tarefas e metas) | ✅ 12/11 (sem S1/S3/S4; PR na `release/v0.15`) |
 | 3 | Check-ins lançados pela equipe, semáforo (função, histórico semanal, sequência), colunas em Mentorados | ⏳ |
 | 4 | Fila (COBRANCA, SEMAFORO, ENVIAR_PME, PME_ATRASADO, FIM_PME espera o ciclo), push, aba 7 "PMEs e ciclos", CSV, fechamento | ⏳ |
 | 5 | Depois da Eduarda: P1, P2, P3 da spec §9 (pequenas) | aguardando respostas |
@@ -136,7 +136,8 @@ reuniões; % do PME (tarefas e metas) em SQL e nas duas barras do card; seções
 
 ## Parte 2 — tarefas
 
-Branch `feat/NPAC-43-fase-2-parte-2-metas`, criada da `origin/release/v0.14` depois do merge do #91 (sem rebase).
+Branch `feat/NPAC-43-fase-2-parte-2-metas`, criada da `origin/release/v0.14` depois do merge do #91 e rebaseada na
+`origin/release/v0.15` (a v0.14 foi para produção antes do PR).
 Execução nativa (sem subagentes). Migration `0058`.
 
 **Regra do Gabriel (12/11):** não inventar nada nem fazer o que depende da Eduarda. S3 (status da meta) e S4 (meta sem
@@ -217,7 +218,7 @@ Metas), `lib/acompanhamento-saver.ts` (`meta:<inscricaoId>:<id>`), `historico-li
 
 ### Tarefa 2.4: Fechamento — Status: ✅
 - [x] `pnpm lint && pnpm typecheck`, `@npac/db`, `@npac/api`, Playwright completo; `CLAUDE.md`; Status acima.
-- [ ] PR: na próxima linha `release/*` (a v0.14 foi para produção; pedido do Gabriel, 12/11). Branch pushada.
+- [x] PR na `release/v0.15` (a v0.14 foi para produção antes; pedido do Gabriel, 12/11).
 
 **Para a Parte 3:** `mentoria_tarefas` REUNIAO já têm `prazo`/`data_cobranca`, `status` e `cobrada_em` (base do motivo
 `TAREFA_1/2` do semáforo e da COBRANCA da Parte 4); `mentoria_pct_tarefas` serve a coluna "% do PME" de Mentorados. O
