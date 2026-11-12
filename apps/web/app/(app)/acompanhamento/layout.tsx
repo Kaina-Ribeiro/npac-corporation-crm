@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { AbasMobile } from '@/components/acompanhamento/abas-mobile';
 import { BarraModulo } from '@/components/acompanhamento/barra-modulo';
+import { PageSkeleton } from '@/components/shell/page-skeleton';
 import { lerEu, podeCadastrar, precisaMfa } from '@/lib/acompanhamento';
 import { getSession } from '@/lib/session';
 import './modulo.css';
@@ -37,6 +38,7 @@ export default async function AcompanhamentoLayout({ children }: { children: Rea
     <div className="ac">
       <BarraModulo inicial={me.name.slice(0, 1)} />
       {children}
+      <PageSkeleton />
       <AbasMobile podeCriar={podeCadastrar(eu)} />
     </div>
   );

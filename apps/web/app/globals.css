@@ -908,6 +908,175 @@ html[data-dash-dragging] * {
   }
 }
 
+/* Esqueleto da tela (PageSkeleton): o mesmo vidro dos cards, barras neutras e um brilho que
+   atravessa cada bloco em laço, defasado entre os blocos. Movimento reduzido: sem brilho. Sem
+   texto: quem lê a tela ouve só `aria-busy`. */
+.page-skeleton {
+  --sk-fill: rgba(60, 60, 67, 0.09);
+  --sk-fill-faint: rgba(60, 60, 67, 0.055);
+  --sk-shine: rgba(255, 255, 255, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.dark .page-skeleton {
+  --sk-fill: rgba(235, 235, 245, 0.085);
+  --sk-fill-faint: rgba(235, 235, 245, 0.05);
+  --sk-shine: rgba(255, 255, 255, 0.055);
+}
+.sk-head {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-block: 4px 4px;
+}
+.sk-bar {
+  display: block;
+  height: 11px;
+  border-radius: 999px;
+  background: var(--sk-fill);
+}
+.sk-faint {
+  background: var(--sk-fill-faint);
+}
+.sk-title {
+  height: 28px;
+  width: min(240px, 62%);
+  border-radius: 10px;
+}
+.sk-sub {
+  width: min(340px, 84%);
+}
+.sk-block {
+  overflow: hidden;
+  isolation: isolate;
+}
+.sk-block::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(100deg, transparent 25%, var(--sk-shine) 50%, transparent 75%);
+  transform: translateX(-100%);
+  animation: sk-shine 1.9s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  animation-delay: calc(var(--i, 0) * 160ms);
+}
+.sk-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+}
+.sk-search {
+  flex: 1 1 auto;
+  max-width: 420px;
+  height: 36px;
+  border-radius: 12px;
+}
+.sk-chip {
+  flex: none;
+  width: 88px;
+  height: 32px;
+  border-radius: 999px;
+}
+.sk-chip + .sk-chip {
+  width: 64px;
+}
+.sk-list {
+  display: flex;
+  flex-direction: column;
+  padding: 6px 16px;
+}
+.sk-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 60px;
+}
+.sk-row + .sk-row {
+  border-top: 1px solid var(--line);
+}
+.sk-dot {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: var(--sk-fill);
+}
+.sk-lines {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+}
+.sk-pill {
+  flex: none;
+  width: 64px;
+  height: 22px;
+}
+@media (max-width: 480px) {
+  .sk-chip + .sk-chip,
+  .sk-pill {
+    display: none;
+  }
+}
+/* Fica escondido na casca; no clique de um link para outra tela, `NavProgress` marca
+   `data-nav-pending` no <html> e o esqueleto toma o lugar da página até a URL mudar. No módulo do
+   Acompanhamento, o de dentro de `.ac` (a busca do topo e as abas ficam). */
+.nav-skeleton {
+  display: none;
+}
+html[data-nav-pending] main:not(:has(> .ac)) > .nav-skeleton,
+html[data-nav-pending] .ac > .nav-skeleton {
+  display: flex;
+}
+html[data-nav-pending] main > :not(.nav-skeleton, .ac),
+html[data-nav-pending] .ac > :not(.top, nav, .nav-skeleton) {
+  display: none;
+}
+@keyframes sk-shine {
+  to {
+    transform: translateX(100%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sk-block::after {
+    animation: none;
+    display: none;
+  }
+}
+
+/* Tela de erro (`app/(app)/error.tsx`): card de vidro centralizado com o aviso e o botão. */
+.load-error {
+  display: grid;
+  place-items: start center;
+  padding-top: clamp(24px, 12vh, 120px);
+}
+.load-error-card {
+  display: flex;
+  width: min(100%, 400px);
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 32px 24px 28px;
+  text-align: center;
+}
+.load-error-icon {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--ink2);
+  background: color-mix(in oklab, var(--ink) 7%, transparent);
+}
+.load-error-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
 /* Barrinha de carregamento entre páginas (NavProgress): dourado da marca, avança devagar
    até 85% enquanto carrega e completa ao chegar. */
 .nav-progress {

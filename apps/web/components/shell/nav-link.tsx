@@ -10,7 +10,7 @@ export function NavLink({
   activeClassName,
   children,
 }: {
-  item: NavItem;
+  item: Pick<NavItem, 'href' | 'match' | 'semPrefetch'>;
   className: string;
   activeClassName: string;
   children: React.ReactNode;
@@ -22,13 +22,20 @@ export function NavLink({
   return (
     <Link
       href={item.href}
-      prefetch={item.ready && !item.semPrefetch}
+      // Padrão do Next: rota dinâmica (todas aqui) não pré-carrega a página, só a árvore da rota;
+      // o dado vem no clique, com o esqueleto na hora. `semPrefetch` não pré-carrega nada.
+      prefetch={item.semPrefetch ? false : undefined}
       aria-current={active ? (item.match ? 'true' : 'page') : undefined}
       className={`${className} ${active ? activeClassName : ''}`}
     >
       {children}
     </Link>
   );
+}
+
+/** Esconde o conteúdo nas telas do Acompanhamento (a barra inferior do comercial). */
+export function ForaDoModulo({ children }: { children: React.ReactNode }) {
+  return usePathname().startsWith('/acompanhamento') ? null : children;
 }
 
 /** Contador ao lado de um item de navegação (ex.: pedidos de acesso no Admin). */

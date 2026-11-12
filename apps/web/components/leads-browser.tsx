@@ -519,7 +519,11 @@ export function LeadsBrowser({
               <li key={l.id} className="glass-card flex flex-col gap-2 p-3.5">
                 <div className="flex items-center gap-2.5">
                   {checkbox(l)}
-                  <Link href={`/leads/${l.id}`} className="flex-1 truncate text-base font-semibold">
+                  <Link
+                    href={`/leads/${l.id}`}
+                    prefetch={false}
+                    className="flex-1 truncate text-base font-semibold"
+                  >
                     {l.name}
                   </Link>
                   <span className={`tier tier-${l.tier}`}>{TIER_LABELS[l.tier]}</span>
@@ -584,7 +588,9 @@ export function LeadsBrowser({
                   >
                     <td className="border-b border-line pl-3.5">{checkbox(l)}</td>
                     <td className="h-[46px] border-b border-line px-3.5 font-semibold whitespace-nowrap">
-                      <Link href={`/leads/${l.id}`}>{l.name}</Link>
+                      <Link href={`/leads/${l.id}`} prefetch={false}>
+                        {l.name}
+                      </Link>
                     </td>
                     <td className="border-b border-line px-2">{stageSelect(l, cell)}</td>
                     {/* Perfil vem da faixa de renda: muda trocando a faixa na ficha. */}

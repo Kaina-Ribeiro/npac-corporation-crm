@@ -83,6 +83,7 @@ function OpenLead({ href, name, onOpen }: { href: string; name: string; onOpen?:
   return (
     <Link
       href={href}
+      prefetch={false}
       onClick={onOpen}
       aria-label={`Abrir ficha de ${name}`}
       title="Abrir ficha"

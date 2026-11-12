@@ -21,7 +21,7 @@ function Linha({ a, aoMudar, comData }: { a: AcaoItem; aoMudar: () => void; comD
   return (
     <li className="pl-r">
       <BotaoFeita a={a} aoMudar={aoMudar} rotulo={`${a.nome}, ${a.foco}`} />
-      <Link className="pl-id" href={linkAcao(a)}>
+      <Link className="pl-id" href={linkAcao(a)} prefetch={false}>
         <Rostos pessoas={a.pessoas} />
         <div className="nm">
           {a.nome}
@@ -43,10 +43,6 @@ function Linha({ a, aoMudar, comData }: { a: AcaoItem; aoMudar: () => void; comD
 export function PlanoSemana({ dados }: { dados: Semana }) {
   const router = useRouter();
   const atualizar = () => router.refresh();
-  // O menu pré-carrega a aba com os dados daquele instante.
-  useEffect(() => {
-    router.refresh();
-  }, [router]);
   const dias = [...new Set(dados.semana.map((a) => a.dataPrevista))];
   return (
     <div className="pl-corpo">
@@ -181,7 +177,11 @@ export function PlanoMentorados({ inicial }: { inicial: PaginaInscricoes }) {
         <ul>
           {itens.map((r) => (
             <li key={r.id}>
-              <Link className="pl-p" href={`/acompanhamento/ficha/${r.id}?aba=jornada`}>
+              <Link
+                className="pl-p"
+                href={`/acompanhamento/ficha/${r.id}?aba=jornada`}
+                prefetch={false}
+              >
                 <div className="pl-id">
                   <Rostos pessoas={r.pessoas} />
                   <div className="nm">
