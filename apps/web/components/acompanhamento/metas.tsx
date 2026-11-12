@@ -1,28 +1,19 @@
 'use client';
 import {
-  META_STATUS,
-  META_STATUS_LABEL,
   nomePme,
   PILAR_LABEL,
   PILARES,
   progressoMetaTexto,
   type MetaDTO,
-  type MetaStatus,
 } from '@npac/shared/mentoria';
 import { useEffect, useState } from 'react';
 import { button, control, FormError, quietButton } from '@/components/crm-ui';
 import { clientApi } from '@/lib/client-api';
-import { filaDeSalvamento, registrarVersion } from '@/lib/acompanhamento-saver';
+import { registrarVersion } from '@/lib/acompanhamento-saver';
 import { CampoPr, type Conversao } from './campo';
-import { Dialogo } from './dialogo';
 import { dataBR, ICONES, Icone } from './ui';
 
 const sm = `${quietButton} sm`;
-const CLASSE_STATUS: Record<MetaStatus, string> = {
-  EM_ANDAMENTO: 'onb',
-  ATINGIDA: 'ativo',
-  NAO_ATINGIDA: 'canc',
-};
 
 /** "10.000", "2.500,50" ou "2500.5": número com até 2 casas, como o banco guarda. */
 export const DECIMAL: Conversao = {
@@ -48,10 +39,6 @@ const primeiroNome = (nome: string) => nome.split(' ')[0] ?? nome;
 const dono = (m: MetaDTO, pessoas: PessoaMeta[]) =>
   m.pessoaId ? primeiroNome(pessoas.find((p) => p.id === m.pessoaId)?.nome ?? '') : null;
 
-export function TagMeta({ status }: { status: MetaStatus }) {
-  return <span className={`tag ${CLASSE_STATUS[status]}`}>{META_STATUS_LABEL[status]}</span>;
-}
-
 /** Uma meta: no campo para quem edita (salva ao sair); resumo para quem só lê. */
 function MetaItem({
   m,
@@ -60,10 +47,10 @@ function MetaItem({
 }: {
   m: MetaDTO;
   pessoas: PessoaMeta[];
+  /** Depois de mudar alvo ou atual: o % do PME é recalculado no servidor. */
   atualizar: () => void;
 }) {
   const chave = `meta:${m.inscricaoId}:${m.id}`;
-  const [excluir, setExcluir] = useState(false);
   useEffect(() => {
     registrarVersion(chave, m.version);
   }, [chave, m.version]);
@@ -76,7 +63,6 @@ function MetaItem({
       <li className="mt-item">
         <div className="mt-topo">
           <b>{descricao}</b>
-          <TagMeta status={m.status} />
         </div>
         <div className="mt-chips">
           {m.pilar && <span>{PILAR_LABEL[m.pilar]}</span>}
@@ -104,16 +90,6 @@ function MetaItem({
         }}
       />
       <div className="mt-grade">
-        <CampoPr
-          chave={chave}
-          rotulo="Status"
-          campo="status"
-          valor={m.status}
-          tipo="select"
-          semVazio
-          aoSalvar={atualizar}
-          opcoes={META_STATUS.map((s) => ({ valor: s, rotulo: META_STATUS_LABEL[s] }))}
-        />
         <CampoPr
           chave={chave}
           rotulo="Pilar"
@@ -169,25 +145,7 @@ function MetaItem({
         <span>
           {m.cicloNumero !== null ? `Conta no ${nomePme(m.cicloNumero)}` : 'Fora de um PME'}
         </span>
-        <button type="button" className="pl-link" onClick={() => setExcluir(true)}>
-          Excluir meta
-        </button>
       </div>
-      {excluir && (
-        <Dialogo
-          titulo="Excluir meta?"
-          texto="As tarefas ligadas a ela continuam, sem a meta. Não dá para desfazer."
-          rotulo="Excluir meta"
-          perigo
-          onFechar={() => setExcluir(false)}
-          onConfirmar={async () => {
-            await filaDeSalvamento().idle();
-            await clientApi(`/api/mentoria/metas/${m.id}`, 'DELETE');
-            setExcluir(false);
-            atualizar();
-          }}
-        />
-      )}
     </li>
   );
 }
@@ -325,8 +283,8 @@ function NovaMeta({
 }
 
 /**
- * Metas (Parte 2): lista e meta nova. Na ficha, as em andamento ficam à mostra e as encerradas
- * recolhidas; no registro da reunião, só as em andamento e as definidas nela.
+ * Metas (Parte 2): lista e meta nova, as mais recentes primeiro. O status da meta (spec S3) e a
+ * exclusão esperam decisão do Gabriel; até lá a lista é uma só.
  */
 export function Metas({
   inscricaoId,
@@ -348,8 +306,6 @@ export function Metas({
   vazio: string;
 }) {
   const [nova, setNova] = useState(false);
-  const abertas = metas.filter((m) => m.status === 'EM_ANDAMENTO' || m.reuniaoId === reuniaoId);
-  const encerradas = reuniaoId ? [] : metas.filter((m) => !abertas.includes(m));
   return (
     <section className="mt" aria-label={titulo}>
       <div className="pme-cab">
@@ -373,27 +329,14 @@ export function Metas({
           }}
         />
       )}
-      {abertas.length > 0 ? (
+      {metas.length > 0 ? (
         <ul className="mt-lista">
-          {abertas.map((m) => (
+          {metas.map((m) => (
             <MetaItem key={m.id} m={m} pessoas={pessoas} atualizar={atualizar} />
           ))}
         </ul>
       ) : (
         !nova && <p className="pme-vazio-txt">{vazio}</p>
-      )}
-      {encerradas.length > 0 && (
-        <details className="pme-hist">
-          <summary>
-            Metas encerradas <span>{encerradas.length}</span>
-            <Icone d={ICONES.abaixo} />
-          </summary>
-          <ul className="mt-lista">
-            {encerradas.map((m) => (
-              <MetaItem key={m.id} m={m} pessoas={pessoas} atualizar={atualizar} />
-            ))}
-          </ul>
-        </details>
       )}
     </section>
   );

@@ -116,42 +116,21 @@ describe('metas', () => {
     expect((await pgError(criarMeta(MANU))).code).toBe('42501');
     const r = await como(
       OPERACAO,
-      sql`update mentoria_metas set status = 'ATINGIDA' where id = ${m!.id} returning id`,
+      sql`update mentoria_metas set valor_atual = 3 where id = ${m!.id} returning id`,
     );
     expect(r).toHaveLength(0);
-    await como(ADMIN, sql`update mentoria_metas set status = 'ATINGIDA' where id = ${m!.id}`);
-    const [x] = await owner<{ status: string; criado_por: string }[]>`
-      select status, criado_por from mentoria_metas where id = ${m!.id}`;
-    expect(x).toEqual({ status: 'ATINGIDA', criado_por: ACOMP });
+    await como(ADMIN, sql`update mentoria_metas set valor_atual = 3 where id = ${m!.id}`);
+    const [x] = await owner<{ v: string; criado_por: string }[]>`
+      select valor_atual::text as v, criado_por from mentoria_metas where id = ${m!.id}`;
+    expect(x).toEqual({ v: '3.00', criado_por: ACOMP });
   });
 
-  it('npac_app não apaga; a função exclui e solta a tarefa ligada', async () => {
+  it('npac_app não apaga meta nem tarefa', async () => {
     const r = await reuniao(ACOMP);
-    const [m] = await criarMeta(ACOMP);
-    const [t] = await criarTarefa(ACOMP, r);
-    await como(ACOMP, sql`update mentoria_tarefas set meta_id = ${m!.id} where id = ${t!.id}`);
+    await criarMeta(ACOMP);
+    await criarTarefa(ACOMP, r);
     expect((await pgError(como(ADMIN, sql`delete from mentoria_metas`))).code).toBe('42501');
-    expect(
-      (await pgError(como(OPERACAO, sql`select mentoria_excluir_meta(${m!.id}::uuid)`))).code,
-    ).toBe('P0002');
-    await como(ACOMP, sql`select mentoria_excluir_meta(${m!.id}::uuid)`);
-    const [tt] = await owner<{ meta_id: string | null }[]>`
-      select meta_id from mentoria_tarefas where id = ${t!.id}`;
-    expect(tt!.meta_id).toBeNull();
-    const [h] = await owner<{ n: number }[]>`
-      select count(*)::int as n from mentoria_historico where tipo = 'meta.excluida'`;
-    expect(h!.n).toBe(1);
-    expect(
-      (
-        await pgError(
-          como(
-            ACOMP,
-            sql`insert into mentoria_historico (inscricao_id, ator_id, tipo, campos)
-            values (${inscricao}, app_user_id(), 'meta.excluida', '{}')`,
-          ),
-        )
-      ).code,
-    ).toBe('42501');
+    expect((await pgError(como(ADMIN, sql`delete from mentoria_tarefas`))).code).toBe('42501');
   });
 
   it('ciclo, reunião e pessoa da mesma inscrição', async () => {
@@ -165,22 +144,17 @@ describe('metas', () => {
       expect((await pgError(como(ACOMP, q))).message).toMatch(/outro mentorado/);
   });
 
-  it('valores: alvo > 0, atual ≥ 0, pilar e status da lista', async () => {
+  it('valores: alvo > 0, atual ≥ 0, pilar da lista; sem coluna de status (S3)', async () => {
     for (const q of [
       sql`insert into mentoria_metas (inscricao_id, descricao, valor_alvo) values (${inscricao}, 'x', 0)`,
       sql`insert into mentoria_metas (inscricao_id, descricao, valor_atual) values (${inscricao}, 'x', -1)`,
       sql`insert into mentoria_metas (inscricao_id, descricao, pilar) values (${inscricao}, 'x', 'OUTRO')`,
-      sql`insert into mentoria_metas (inscricao_id, descricao, status) values (${inscricao}, 'x', 'FEITA')`,
     ])
       expect((await pgError(como(ACOMP, q))).code).toBe('23514');
-  });
-
-  it('meta sem ciclo entra no próximo ciclo registrado', async () => {
-    const [m] = await criarMeta(ACOMP);
-    const c = await ciclo();
-    const [x] = await owner<{ ciclo_id: string }[]>`
-      select ciclo_id from mentoria_metas where id = ${m!.id}`;
-    expect(x!.ciclo_id).toBe(c);
+    const [c] = await owner<{ n: number }[]>`
+      select count(*)::int as n from information_schema.columns
+      where table_name = 'mentoria_metas' and column_name = 'status'`;
+    expect(c!.n).toBe(0);
   });
 });
 
@@ -242,28 +216,6 @@ describe('tarefas da reunião', () => {
     ).toMatch(/outro mentorado/);
   });
 
-  it('excluir: só pendente da reunião, pela função, com o comprovante na fila', async () => {
-    const r = await reuniao(MANU);
-    const [t] = await criarTarefa(MANU, r);
-    const [t2] = await criarTarefa(MANU, r);
-    await owner`insert into mentoria_midia (dono_tipo, dono_id, tipo, chave_objeto, mime, tamanho_bytes)
-      values ('TAREFA_COMPROVANTE', ${t!.id}, 'PDF', 'obj-q-1', 'application/pdf', 10)`;
-    expect((await pgError(como(ADMIN, sql`delete from mentoria_tarefas`))).code).toBe('42501');
-    await como(MANU, sql`update mentoria_tarefas set status = 'FEITA' where id = ${t2!.id}`);
-    expect(
-      (await pgError(como(MANU, sql`select mentoria_excluir_tarefa(${t2!.id}::uuid)`))).message,
-    ).toMatch(/ainda pendente/);
-    expect(
-      (await pgError(como(OPERACAO, sql`select mentoria_excluir_tarefa(${t!.id}::uuid)`))).code,
-    ).toBe('P0002');
-    await como(MANU, sql`select mentoria_excluir_tarefa(${t!.id}::uuid)`);
-    const [x] = await owner<{ t: number; m: number; f: number }[]>`
-      select (select count(*)::int from mentoria_tarefas where id = ${t!.id}) as t,
-        (select count(*)::int from mentoria_midia where dono_id = ${t!.id}) as m,
-        (select count(*)::int from mentoria_midia_exclusao where chave_objeto = 'obj-q-1') as f`;
-    expect(x).toEqual({ t: 0, m: 0, f: 1 });
-  });
-
   it('reunião com tarefa ou meta não é excluída', async () => {
     const [r] = await owner<{ id: string }[]>`
       insert into mentoria_reunioes (inscricao_id, tipo, conduzida_por, inicio)
@@ -286,18 +238,17 @@ describe('% do PME', () => {
     expect((await pct(c)).t).toBe(33);
   });
 
-  it('metas: média de min(atual ÷ alvo, 1); sem alvo pelo status; ATINGIDA conta 100 %', async () => {
+  it('metas: média de min(atual ÷ alvo, 1) nas metas com alvo; sem alvo fica fora (S4)', async () => {
     const c = await ciclo();
     expect((await pct(c)).m).toBeNull();
-    await owner`insert into mentoria_metas (inscricao_id, ciclo_id, descricao, valor_alvo, valor_atual, status)
-      values (${inscricao}, ${c}, 'x', 10, 5, 'EM_ANDAMENTO'),
-        (${inscricao}, ${c}, 'x', 10, 30, 'EM_ANDAMENTO'),
-        (${inscricao}, ${c}, 'x', null, null, 'ATINGIDA'),
-        (${inscricao}, ${c}, 'x', null, null, 'NAO_ATINGIDA')`;
-    // (0,5 + 1 + 1 + 0) ÷ 4 = 62,5 %
-    expect((await pct(c)).m).toBe(63);
-    await owner`update mentoria_metas set status = 'ATINGIDA' where valor_atual = 5`;
-    expect((await pct(c)).m).toBe(75);
+    await owner`insert into mentoria_metas (inscricao_id, ciclo_id, descricao, valor_alvo, valor_atual)
+      values (${inscricao}, ${c}, 'x', null, null)`;
+    expect((await pct(c)).m).toBeNull();
+    await owner`insert into mentoria_metas (inscricao_id, ciclo_id, descricao, valor_alvo, valor_atual)
+      values (${inscricao}, ${c}, 'x', 10, 5), (${inscricao}, ${c}, 'x', 10, 30),
+        (${inscricao}, ${c}, 'x', 8, null)`;
+    // (0,5 + 1 + 0) ÷ 3 = 50 %
+    expect((await pct(c)).m).toBe(50);
   });
 
   it('a Especialista vê o mesmo número; o Mentor, nulo', async () => {

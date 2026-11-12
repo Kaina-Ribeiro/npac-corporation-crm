@@ -13,7 +13,7 @@ import type {
 import type { EnvioStatus, Etapa, EtapaStatus } from './onboarding.js';
 import type { AcaoStatus, Gatilho, PerfilAcao, ReuniaoTipo } from './plano.js';
 import type { CanalContato, Plataforma, ReuniaoStatus } from './reunioes.js';
-import type { MetaStatus, Pilar } from './metas.js';
+import type { Pilar } from './metas.js';
 import type { CicloStatus, TarefaOrigem, TarefaStatus } from './pmes.js';
 
 /** `GET mentoria/eu`: o perfil operacional e o selo de Admin de quem está logado. */
@@ -390,7 +390,7 @@ export type TarefaDTO = {
   podeEditar: boolean;
 };
 
-/** Meta (Parte 2, S3). `pessoaId` nulo = do casal ou do individual. */
+/** Meta (Parte 2). `pessoaId` nulo = do casal ou do individual. Sem status até a decisão (S3). */
 export type MetaDTO = {
   id: string;
   version: number;
@@ -406,7 +406,6 @@ export type MetaDTO = {
   valorAtual: number | null;
   unidade: string | null;
   prazo: string | null;
-  status: MetaStatus;
   criadoEm: string;
   podeEditar: boolean;
 };
@@ -488,7 +487,7 @@ export type ReuniaoDTO = ReuniaoItem & {
   interesseRenovar: boolean | null;
   /** Tarefas da semana combinadas nesta reunião (até 3). */
   tarefas: TarefaDTO[];
-  /** Cobrança: a reunião anterior mais recente com tarefas visíveis a quem abre. */
+  /** Cobrança: a última reunião realizada antes desta (das que quem abre vê) e as tarefas dela. */
   cobranca: {
     reuniao: { id: string; inicio: string; tipo: ReuniaoTipo };
     tarefas: TarefaDTO[];

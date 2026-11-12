@@ -24,13 +24,13 @@ export function CobrancaAnterior({ r, atualizar }: { r: ReuniaoDTO; atualizar: (
     <section className="card pa tr-bloco" aria-label="Cobrança da reunião anterior">
       <div className="pme-cab">
         <h3>Cobrança da reunião anterior</h3>
-        {c && (
+        {c && c.tarefas.length > 0 && (
           <span className={`tag ${pendentes ? 'gold' : 'ativo'}`}>
             {pendentes ? `${pendentes} a cobrar` : 'Tudo cobrado'}
           </span>
         )}
       </div>
-      {c ? (
+      {c && c.tarefas.length > 0 ? (
         <>
           <p className="tr-origem">
             Combinadas em{' '}
@@ -45,7 +45,9 @@ export function CobrancaAnterior({ r, atualizar }: { r: ReuniaoDTO; atualizar: (
           </ul>
         </>
       ) : (
-        <p className="pme-vazio-txt">Nenhuma tarefa combinada em reunião anterior para cobrar.</p>
+        <p className="pme-vazio-txt">
+          Nenhuma tarefa combinada na última reunião realizada para cobrar.
+        </p>
       )}
     </section>
   );
@@ -59,9 +61,8 @@ export function TarefasSemana({ r, atualizar }: { r: ReuniaoDTO; atualizar: () =
   const [metaId, setMetaId] = useState('');
   const [erro, setErro] = useState('');
   const [ocupado, setOcupado] = useState(false);
-  const recebe = r.status !== 'REMARCADA' && r.status !== 'FALTOU';
   const cabe = r.tarefas.length < MAX_TAREFAS_REUNIAO;
-  const metas = r.metasInscricao.filter((m) => m.status === 'EM_ANDAMENTO');
+  const metas = r.metasInscricao;
 
   async function combinar(e: React.FormEvent) {
     e.preventDefault();
@@ -100,12 +101,12 @@ export function TarefasSemana({ r, atualizar }: { r: ReuniaoDTO; atualizar: () =
         </ul>
       ) : (
         <p className="pme-vazio-txt">
-          {r.podeTarefa && recebe
+          {r.podeTarefa
             ? 'Combine até 3 tarefas, cada uma com prazo. Cada uma vira cobrança no prazo.'
             : 'Nenhuma tarefa combinada nesta reunião.'}
         </p>
       )}
-      {r.podeTarefa && recebe && cabe && (
+      {r.podeTarefa && cabe && (
         <form className="tr-nova" onSubmit={(e) => void combinar(e)} aria-label="Nova tarefa">
           <label className="f tr-nova-desc">
             <span>Tarefa</span>
@@ -158,7 +159,7 @@ export function TarefasSemana({ r, atualizar }: { r: ReuniaoDTO; atualizar: () =
           </div>
         </form>
       )}
-      {r.podeTarefa && recebe && !cabe && (
+      {r.podeTarefa && !cabe && (
         <p className="ob-nota">Limite de {MAX_TAREFAS_REUNIAO} tarefas por reunião.</p>
       )}
     </section>

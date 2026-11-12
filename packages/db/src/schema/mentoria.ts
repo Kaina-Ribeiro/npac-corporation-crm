@@ -858,8 +858,9 @@ export const mentoriaTarefas = pgTable(
 );
 
 /**
- * Metas (Fase 2, Parte 2, S3): do casal ou individual (`pessoa_id` nulo) ou de uma pessoa do casal.
- * Descrição cifrada. Nasce no ciclo aberto, se houver, e conta no % de metas dele (E5).
+ * Metas (Fase 2, Parte 2): do casal ou individual (`pessoa_id` nulo) ou de uma pessoa do casal.
+ * Descrição cifrada. Nasce no ciclo aberto, se houver, e conta no % de metas dele (E5). O status da
+ * meta (spec S3) espera decisão do Gabriel: sem coluna até lá.
  */
 export const mentoriaMetas = pgTable(
   'mentoria_metas',
@@ -880,7 +881,6 @@ export const mentoriaMetas = pgTable(
     valorAtual: numeric('valor_atual', { precision: 14, scale: 2 }),
     unidade: text('unidade'),
     prazo: date('prazo'),
-    status: text('status').notNull().default('EM_ANDAMENTO'),
     visivelAoMentorado: boolean('visivel_ao_mentorado').notNull().default(true),
     version: integer('version').notNull().default(1),
     ...autoria,
@@ -891,10 +891,6 @@ export const mentoriaMetas = pgTable(
     check(
       'mentoria_metas_pilar',
       sql`${t.pilar} in ('FE', 'SAUDE', 'DINHEIRO', 'RELACIONAMENTOS')`,
-    ),
-    check(
-      'mentoria_metas_status',
-      sql`${t.status} in ('EM_ANDAMENTO', 'ATINGIDA', 'NAO_ATINGIDA')`,
     ),
     check('mentoria_metas_alvo', sql`${t.valorAlvo} > 0`),
     check('mentoria_metas_atual', sql`${t.valorAtual} >= 0`),

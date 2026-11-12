@@ -277,11 +277,11 @@ export function ReuniaoRegistro({
               inscricaoId={r.inscricaoId}
               metas={r.metasInscricao}
               pessoas={r.pessoasDaInscricao}
-              podeCriar={r.podeMeta && r.status !== 'REMARCADA' && r.status !== 'FALTOU'}
+              podeCriar={r.podeMeta}
               atualizar={atualizar}
               reuniaoId={r.id}
               titulo="Metas definidas ou ajustadas"
-              vazio="Nenhuma meta em andamento. Defina as metas do mentorado aqui."
+              vazio="Nenhuma meta definida. Defina as metas do mentorado aqui."
             />
           </div>
         )}

@@ -67,10 +67,8 @@ const TITULOS: Record<string, string> = {
   'tarefa.criada': 'Tarefa combinada na reunião',
   'tarefa.marcada': 'Resultado da tarefa',
   'tarefa.editada': 'Alteração na tarefa',
-  'tarefa.excluida': 'Tarefa excluída',
   'meta.criada': 'Meta definida',
   'meta.editada': 'Alteração na meta',
-  'meta.excluida': 'Meta excluída',
 };
 
 const CAMPOS: Record<string, string> = {

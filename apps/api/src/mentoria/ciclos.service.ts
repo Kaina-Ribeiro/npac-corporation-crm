@@ -20,7 +20,6 @@ import { DB } from '../common/db/db.module.js';
 import { conflitoDeVersao, erroDoBanco } from './erros.js';
 import { exigirEdicao, registrarHistorico } from './historico.js';
 import { aad, MentoriaCrypto } from './mentoria-crypto.js';
-import { ESTADOS_SEM_REGISTRO } from './metas.service.js';
 import { MENTORIA_CLOCK, type Clock } from './relogio.js';
 
 const DIA_BR = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' });
@@ -331,28 +330,16 @@ export class CiclosService {
   }
 
   /**
-   * Tarefa da semana combinada na reunião (§4): até 3 (gatilho), prazo a partir do dia da reunião,
-   * no ciclo aberto se houver. Quem marca tarefas combina; a Especialista, só nas reuniões dela.
+   * Tarefa da semana combinada na reunião (§4): até 3 (gatilho), prazo obrigatório, no ciclo aberto
+   * se houver. Quem marca tarefas combina; a Especialista, só nas reuniões dela.
    */
   criarTarefa(u: AuthUser, reuniaoId: string, b: TarefaCriar): Promise<TarefaDTO> {
     const id = randomUUID();
     return withUser(this.db, u.id, async (tx) => {
-      const [r] = await tx.execute<{
-        inscricao_id: string;
-        status: string;
-        dia: string;
-        ok: boolean;
-      }>(sql`
-        select r.inscricao_id, r.status,
-          to_char((r.inicio at time zone 'America/Sao_Paulo')::date, 'YYYY-MM-DD') as dia,
-          mentoria_edita_tarefa(r.id, r.inscricao_id) as ok
+      const [r] = await tx.execute<{ inscricao_id: string; ok: boolean }>(sql`
+        select r.inscricao_id, mentoria_edita_tarefa(r.id, r.inscricao_id) as ok
         from mentoria_reunioes r where r.id = ${reuniaoId}::uuid`);
       if (!r?.ok) throw new NotFoundException();
-      if (ESTADOS_SEM_REGISTRO.includes(r.status))
-        throw new BadRequestException(
-          'Reunião remarcada ou com falta não recebe metas nem tarefas',
-        );
-      if (b.prazo < r.dia) throw new BadRequestException('O prazo não pode ser antes da reunião');
       if (b.metaId) await this.validarMeta(tx, r.inscricao_id, b.metaId);
       await tx.execute(sql`
         insert into mentoria_tarefas (id, inscricao_id, origem, reuniao_id, ciclo_id, meta_id,
@@ -376,12 +363,6 @@ export class CiclosService {
     }).catch((e) => erroDoBanco(e));
   }
 
-  excluirTarefa(u: AuthUser, id: string): Promise<void> {
-    return withUser(this.db, u.id, async (tx) => {
-      await tx.execute(sql`select mentoria_excluir_tarefa(${id}::uuid)`);
-    }).catch((e) => erroDoBanco(e));
-  }
-
   /**
    * "Fiz" lançado pela equipe (E8): resultado e motivo. O comprovante vai pela rota de mídia. Na
    * tarefa da reunião, também texto, prazo e meta.
@@ -390,17 +371,14 @@ export class CiclosService {
     return withUser(this.db, u.id, async (tx) => {
       const [t] = await tx.select().from(mentoriaTarefas).where(eq(mentoriaTarefas.id, id));
       if (!t) throw new NotFoundException();
-      const [q] = await tx.execute<{ ok: boolean; dia: string | null }>(sql`
-        select mentoria_edita_tarefa(${t.reuniaoId}::uuid, ${t.inscricaoId}::uuid) as ok,
-          (select to_char((r.inicio at time zone 'America/Sao_Paulo')::date, 'YYYY-MM-DD')
-           from mentoria_reunioes r where r.id = ${t.reuniaoId}::uuid) as dia`);
+      const [q] = await tx.execute<{ ok: boolean }>(
+        sql`select mentoria_edita_tarefa(${t.reuniaoId}::uuid, ${t.inscricaoId}::uuid) as ok`,
+      );
       if (!q?.ok) throw new NotFoundException();
       const mudaCombinado =
         b.descricao !== undefined || b.prazo !== undefined || b.metaId !== undefined;
       if (mudaCombinado && t.origem !== 'REUNIAO')
         throw new BadRequestException('Só a tarefa da reunião muda texto, prazo e meta');
-      if (b.prazo !== undefined && q.dia && b.prazo < q.dia)
-        throw new BadRequestException('O prazo não pode ser antes da reunião');
       if (b.metaId) await this.validarMeta(tx, t.inscricaoId, b.metaId);
       const combinado = {
         ...(b.descricao !== undefined

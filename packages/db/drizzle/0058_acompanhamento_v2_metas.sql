@@ -10,14 +10,12 @@ CREATE TABLE "mentoria_metas" (
 	"valor_atual" numeric(14, 2),
 	"unidade" text,
 	"prazo" date,
-	"status" text DEFAULT 'EM_ANDAMENTO' NOT NULL,
 	"visivel_ao_mentorado" boolean DEFAULT true NOT NULL,
 	"version" integer DEFAULT 1 NOT NULL,
 	"criado_por" text,
 	"criado_em" timestamp with time zone DEFAULT now() NOT NULL,
 	"atualizado_em" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "mentoria_metas_pilar" CHECK ("mentoria_metas"."pilar" in ('FE', 'SAUDE', 'DINHEIRO', 'RELACIONAMENTOS')),
-	CONSTRAINT "mentoria_metas_status" CHECK ("mentoria_metas"."status" in ('EM_ANDAMENTO', 'ATINGIDA', 'NAO_ATINGIDA')),
 	CONSTRAINT "mentoria_metas_alvo" CHECK ("mentoria_metas"."valor_alvo" > 0),
 	CONSTRAINT "mentoria_metas_atual" CHECK ("mentoria_metas"."valor_atual" >= 0),
 	CONSTRAINT "mentoria_metas_unidade" CHECK (char_length("mentoria_metas"."unidade") between 1 and 20),
@@ -138,66 +136,6 @@ CREATE TRIGGER mentoria_meta_guarda BEFORE INSERT ON mentoria_metas
   FOR EACH ROW EXECUTE FUNCTION mentoria_meta_guarda();
 --> statement-breakpoint
 
--- Meta definida antes do primeiro PME (ou sem ciclo aberto) entra no próximo ciclo registrado, para
--- contar no % de metas dele (E5).
-CREATE FUNCTION mentoria_ciclo_leva_metas() RETURNS trigger
-  LANGUAGE plpgsql SECURITY DEFINER
-  SET search_path = public, pg_temp
-AS $$
-BEGIN
-  UPDATE mentoria_metas SET ciclo_id = NEW.id, version = version + 1, atualizado_em = now()
-    WHERE inscricao_id = NEW.inscricao_id AND ciclo_id IS NULL AND status = 'EM_ANDAMENTO';
-  RETURN NEW;
-END $$;
---> statement-breakpoint
-CREATE TRIGGER mentoria_ciclo_leva_metas AFTER INSERT ON mentoria_ciclos
-  FOR EACH ROW WHEN (NEW.concluido_em IS NULL AND NEW.nao_concluido_em IS NULL)
-  EXECUTE FUNCTION mentoria_ciclo_leva_metas();
---> statement-breakpoint
-
--- Excluir tarefa combinada por engano: só da reunião e ainda pendente (o resultado é histórico).
-CREATE FUNCTION mentoria_excluir_tarefa(tarefa uuid) RETURNS void
-  LANGUAGE plpgsql VOLATILE SECURITY DEFINER
-  SET search_path = public, pg_temp
-AS $$
-DECLARE t record;
-BEGIN
-  PERFORM mentoria_exigir_acesso();
-  SELECT * INTO t FROM mentoria_tarefas WHERE id = tarefa FOR UPDATE;
-  IF NOT FOUND OR NOT mentoria_edita_tarefa(t.reuniao_id, t.inscricao_id) THEN
-    RAISE EXCEPTION 'Registro não encontrado' USING ERRCODE = 'P0002';
-  END IF;
-  IF t.origem <> 'REUNIAO' OR t.status <> 'PENDENTE' THEN
-    RAISE EXCEPTION 'Só tarefa da reunião ainda pendente pode ser excluída' USING ERRCODE = '22023';
-  END IF;
-  WITH m AS (
-    DELETE FROM mentoria_midia x WHERE x.dono_tipo = 'TAREFA_COMPROVANTE' AND x.dono_id = tarefa
-    RETURNING x.chave_objeto
-  )
-  INSERT INTO mentoria_midia_exclusao (chave_objeto)
-  SELECT m.chave_objeto FROM m WHERE m.chave_objeto IS NOT NULL;
-  DELETE FROM mentoria_tarefas WHERE id = tarefa;
-  INSERT INTO mentoria_historico (inscricao_id, ator_id, tipo, campos)
-    VALUES (t.inscricao_id, app_user_id(), 'tarefa.excluida', ARRAY['tarefa_reuniao']);
-END $$;
---> statement-breakpoint
-CREATE FUNCTION mentoria_excluir_meta(meta uuid) RETURNS void
-  LANGUAGE plpgsql VOLATILE SECURITY DEFINER
-  SET search_path = public, pg_temp
-AS $$
-DECLARE i uuid;
-BEGIN
-  PERFORM mentoria_exigir_acesso();
-  SELECT inscricao_id INTO i FROM mentoria_metas WHERE id = meta FOR UPDATE;
-  IF NOT FOUND OR NOT mentoria_edita('META', i) THEN
-    RAISE EXCEPTION 'Registro não encontrado' USING ERRCODE = 'P0002';
-  END IF;
-  DELETE FROM mentoria_metas WHERE id = meta;
-  INSERT INTO mentoria_historico (inscricao_id, ator_id, tipo, campos)
-    VALUES (i, app_user_id(), 'meta.excluida', ARRAY['meta']);
-END $$;
---> statement-breakpoint
-
 -- % do PME (E5): duas medidas, sem fórmula única. Número agregado, sem dado pessoal: quem vê a
 -- inscrição vê o número inteiro (a Especialista, que só lê as tarefas dela, inclusive).
 -- Tarefas: FEITA ÷ total do ciclo (PARCIAL não conta). Nulo sem tarefas.
@@ -211,19 +149,15 @@ AS $$
   WHERE t.ciclo_id = ciclo AND mentoria_ve(c.inscricao_id)
 $$;
 --> statement-breakpoint
--- Metas: média de min(atual ÷ alvo, 1) com alvo; sem alvo, ATINGIDA 100 % e as demais 0 % (S4).
--- ATINGIDA conta 100 % mesmo com alvo. Nulo sem metas no ciclo.
+-- Metas: média de min(atual ÷ alvo, 1) nas metas do ciclo com alvo numérico. A meta sem alvo
+-- (spec S4) e o status da meta (S3) esperam decisão: por ora ficam fora. Nulo sem metas com alvo.
 CREATE FUNCTION mentoria_pct_metas(ciclo uuid) RETURNS int
   LANGUAGE sql STABLE SECURITY DEFINER
   SET search_path = public, pg_temp
 AS $$
-  SELECT round(100 * avg(CASE
-      WHEN m.status = 'ATINGIDA' THEN 1
-      WHEN m.valor_alvo IS NOT NULL THEN least(coalesce(m.valor_atual, 0) / m.valor_alvo, 1)
-      ELSE 0
-    END))::int
+  SELECT round(100 * avg(least(coalesce(m.valor_atual, 0) / m.valor_alvo, 1)))::int
   FROM mentoria_metas m JOIN mentoria_ciclos c ON c.id = m.ciclo_id
-  WHERE m.ciclo_id = ciclo AND mentoria_ve(c.inscricao_id)
+  WHERE m.ciclo_id = ciclo AND m.valor_alvo IS NOT NULL AND mentoria_ve(c.inscricao_id)
 $$;
 --> statement-breakpoint
 
@@ -307,25 +241,18 @@ ALTER FUNCTION mentoria_vinculos_inscricao() OWNER TO npac_owner;
 --> statement-breakpoint
 ALTER FUNCTION mentoria_meta_guarda() OWNER TO npac_owner;
 --> statement-breakpoint
-ALTER FUNCTION mentoria_ciclo_leva_metas() OWNER TO npac_owner;
---> statement-breakpoint
-ALTER FUNCTION mentoria_excluir_tarefa(uuid) OWNER TO npac_owner;
---> statement-breakpoint
-ALTER FUNCTION mentoria_excluir_meta(uuid) OWNER TO npac_owner;
---> statement-breakpoint
 ALTER FUNCTION mentoria_pct_tarefas(uuid) OWNER TO npac_owner;
 --> statement-breakpoint
 ALTER FUNCTION mentoria_pct_metas(uuid) OWNER TO npac_owner;
 --> statement-breakpoint
 REVOKE ALL ON FUNCTION mentoria_ve_meta(uuid), mentoria_vinculos_inscricao(),
-  mentoria_ciclo_leva_metas(), mentoria_excluir_tarefa(uuid), mentoria_excluir_meta(uuid),
   mentoria_pct_tarefas(uuid), mentoria_pct_metas(uuid) FROM PUBLIC;
 --> statement-breakpoint
-GRANT EXECUTE ON FUNCTION mentoria_ve_meta(uuid), mentoria_excluir_tarefa(uuid),
-  mentoria_excluir_meta(uuid), mentoria_pct_tarefas(uuid), mentoria_pct_metas(uuid) TO npac_app;
+GRANT EXECUTE ON FUNCTION mentoria_ve_meta(uuid), mentoria_pct_tarefas(uuid),
+  mentoria_pct_metas(uuid) TO npac_app;
 --> statement-breakpoint
 
--- Metas: leitura por mentoria_ve_meta; escrita pela área META. Sem DELETE: só pela função.
+-- Metas: leitura por mentoria_ve_meta; escrita pela área META. Sem DELETE.
 ALTER TABLE mentoria_metas ENABLE ROW LEVEL SECURITY;
 --> statement-breakpoint
 ALTER TABLE mentoria_metas FORCE ROW LEVEL SECURITY;
@@ -341,19 +268,9 @@ CREATE POLICY mentoria_metas_editar ON mentoria_metas FOR UPDATE
 --> statement-breakpoint
 GRANT SELECT, INSERT ON mentoria_metas TO npac_app;
 --> statement-breakpoint
-GRANT UPDATE (pessoa_id, pilar, descricao, valor_alvo, valor_atual, unidade, prazo, status, version,
+GRANT UPDATE (pessoa_id, pilar, descricao, valor_alvo, valor_atual, unidade, prazo, version,
   atualizado_em) ON mentoria_metas TO npac_app;
 --> statement-breakpoint
 
 -- Tarefa da reunião: texto, prazo e meta editáveis (o gatilho recusa nas do ciclo).
 GRANT UPDATE (descricao, prazo, meta_id) ON mentoria_tarefas TO npac_app;
---> statement-breakpoint
-
--- Excluir tarefa e meta só pelas funções: npac_app não forja.
-DROP POLICY mentoria_historico_criar ON mentoria_historico;
---> statement-breakpoint
-CREATE POLICY mentoria_historico_criar ON mentoria_historico FOR INSERT
-  WITH CHECK (ator_id = app_user_id() AND mentoria_ve(inscricao_id)
-    AND tipo NOT IN ('momento.concluido', 'momento.destravado', 'inscricao.virou_individual',
-      'inscricao.pausada', 'inscricao.retomada', 'reuniao.remarcada', 'reuniao.excluida',
-      'pme.concluido', 'pme.reaberto', 'meta.excluida', 'tarefa.excluida'));

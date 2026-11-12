@@ -114,7 +114,7 @@ function Combinado({ t, metas }: { t: TarefaDTO; metas?: MetaDTO[] }) {
 
 /**
  * Uma tarefa: resultado, motivo e comprovante, lançados pela equipe (E8). A da reunião mostra de
- * onde veio e, com `combinar`, edita texto, prazo e meta (e sai, se ainda pendente).
+ * onde veio e, com `combinar`, edita texto, prazo e meta.
  */
 export function Tarefa({
   t,
@@ -133,7 +133,6 @@ export function Tarefa({
   const chave = chaveTarefa(t);
   const arquivo = useRef<HTMLInputElement>(null);
   const [erro, setErro] = useState('');
-  const [excluir, setExcluir] = useState(false);
   useEffect(() => {
     registrarVersion(chave, t.version);
   }, [chave, t.version]);
@@ -236,33 +235,9 @@ export function Tarefa({
                     Remover
                   </button>
                 )}
-                {editaCombinado && t.status === 'PENDENTE' && (
-                  <button
-                    type="button"
-                    className="pl-link tr-excluir"
-                    onClick={() => setExcluir(true)}
-                  >
-                    Excluir tarefa
-                  </button>
-                )}
               </>
             )}
           </div>
-        )}
-        {excluir && (
-          <Dialogo
-            titulo="Excluir tarefa?"
-            texto="Use só para tarefa combinada por engano. Não dá para desfazer."
-            rotulo="Excluir tarefa"
-            perigo
-            onFechar={() => setExcluir(false)}
-            onConfirmar={async () => {
-              await filaDeSalvamento().idle();
-              await clientApi(`/api/mentoria/tarefas/${t.id}`, 'DELETE');
-              setExcluir(false);
-              atualizar();
-            }}
-          />
         )}
         {tarefaPedeMotivo(t.status) && (
           <CampoPr
