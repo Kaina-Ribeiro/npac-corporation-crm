@@ -40,6 +40,9 @@ import { StageMoveDialog } from './stage-move-dialog';
 import { useCrmRefresh } from './shell/live-updates';
 import { showToast } from './toast';
 
+/** Cada abertura da janelinha é uma instância nova (a anterior pode estar saindo, animada). */
+let aberturas = 0;
+
 /** O card na coluna nova: na hora do clique e de novo quando a API confirma (idempotente). */
 function moveCard(cols: PipelineDTO, lead: PipelineLead, target: string): PipelineDTO {
   return cols.map((c) => {
@@ -123,7 +126,11 @@ export function Pipeline({
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   // Mudança que pede dados da etapa (NPAC-38): a janelinha pergunta antes de salvar.
-  const [pending, setPending] = useState<{ lead: PipelineLead; target: string } | null>(null);
+  const [pending, setPending] = useState<{
+    lead: PipelineLead;
+    target: string;
+    n: number;
+  } | null>(null);
   async function load(selected = filters) {
     const mine = ++seq.current;
     const fresh = await clientApi<PipelineDTO>('/api/leads/pipeline/search', 'POST', selected);
@@ -145,7 +152,7 @@ export function Pipeline({
       return;
     }
     if (stageNeedsFields(target)) {
-      setPending({ lead, target });
+      setPending({ lead, target, n: ++aberturas });
       return;
     }
     setBusy(true);
@@ -337,7 +344,7 @@ export function Pipeline({
       <FormError message={error} />
       {pending && (
         <StageMoveDialog
-          key={`${pending.lead?.id ?? 'massa'}-${pending.target}`}
+          key={pending.n}
           title={`Mover ${pending.lead.name} para ${stages.find((s) => s.key === pending.target)?.label ?? 'a etapa'}`}
           stage={pending.target}
           lead={pending.lead}
@@ -347,8 +354,9 @@ export function Pipeline({
             await save(pending.lead, pending.target, fields);
             showToast();
           }}
-          // Cancelar não muda nada: o card continua na etapa antiga.
-          onClose={() => setPending(null)}
+          // Cancelar não muda nada: o card continua na etapa antiga. Só limpa a própria mudança:
+          // a janelinha sai animada, e outra pode já ter sido aberta nesse meio-tempo.
+          onClose={() => setPending((cur) => (cur === pending ? null : cur))}
         />
       )}
       <nav aria-label="Etapas do Pipeline" className="flex gap-2 overflow-x-auto pb-2 md:hidden">
