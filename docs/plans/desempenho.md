@@ -25,7 +25,7 @@ Next 16 App Router + React 19 + Tailwind 4 (`apps/web`).
 | 2 | Web: navegação, carregamento e erro | ✅ feita (12/11/2026, PR #96, `a3c5e75`; no ar no ITODEV `v0.15.2-rc`) |
 | 3 | API: canal ao vivo, relatórios, índices | ✅ feita (12/11/2026, PR #98, `a3bf7fd`; ITODEV `v0.15.4-rc` 18/18) |
 | 4 | Interface: movimento e resposta | ✅ PR para `release/v0.15` (Gabriel escolheu a opção B em T4.1) |
-| 5 | Varredura de fluxos por cargo e sobras | ⏳ pendente (por último) |
+| 5 | Varredura de fluxos por cargo e sobras | ✅ feita (12/11/2026; 9 cargos no ITODEV; ⚠️ Fila lenta fica de pendência) |
 
 ## Decisões do Gabriel (12/11/2026)
 
@@ -505,16 +505,51 @@ coordenação (`capturas-fase-4/`).
 
 ## Fase 5 — Varredura de fluxos por cargo e sobras
 
-**Status:** ⏳ pendente (D4) · **Feito quando:** a tabela de fluxos abaixo está preenchida e cada
-falha virou issue no Linear.
+**Status:** ✅ feita (12/11/2026, NPAC-47; ITODEV `v0.15.6-rc`, 9 cargos, 85 telas do menu × 4 larguras sem
+falha) · **Feito quando:** a tabela de fluxos abaixo está preenchida e cada falha virou issue no Linear.
+*(O NPAC não está no Linear: a única falha achada foi corrigida no PR; a lentidão da Fila ficou como
+pendência abaixo.)*
 
-- [ ] T5.1 Um login por cargo no ITODEV (Diretoria, Head, SDR, Closer, Acompanhamento Admin,
+- [x] T5.1 Um login por cargo no ITODEV (Diretoria, Head, SDR, Closer, Acompanhamento Admin,
   Operação, Especialista, Mentor, Acompanhamento sem perfil): login → onde cai → cada item do menu
   → ação principal de cada tela. Registrar ✅/❌ por tela numa tabela neste arquivo.
-- [ ] T5.2 Apagar `app/(app)/(comercial)/[secao]/page.tsx` e `SOON` (`nav-items.tsx:114`), com o
+- [x] T5.2 Apagar `app/(app)/(comercial)/[secao]/page.tsx` e `SOON` (`nav-items.tsx:114`), com o
   e2e de 404 para `/qualquer-coisa`.
-- [ ] T5.3 Aplicar D4 no menu do Acompanhamento.
-- [ ] T5.4 Rodar o Playwright completo e o roteiro de celular (não rodados na auditoria).
+- [x] T5.3 Aplicar D4 no menu do Acompanhamento. *(D4: nada a fazer; os 5 "Em breve" abrem ✅.)*
+- [x] T5.4 Rodar o Playwright completo e o roteiro de celular (não rodados na auditoria).
+
+### Resultado da varredura (ITODEV `v0.15.6-rc`, 12/11/2026)
+
+Contas próprias `tc5*` (uma por cargo, criadas por SQL no ITODEV e desativadas no fim). Menu e
+larguras por `apps/web/scripts/varredura-por-cargo.mjs` (clique em cada item da lateral a 1440 px,
+depois cada tela a 1024, 768 e 375 px): em cada tela, título, erro na tela, erro de console, resposta
+4xx/5xx da API e rolagem lateral. Ações principais à mão no navegador.
+
+| Cargo | Onde cai | Telas do menu (4 larguras) | Ação principal | Resultado |
+|---|---|---|---|---|
+| Diretoria | Dashboard | 23 ✅ (comercial 9, Acompanhamento 13 com o grupo, Admin) | menu do módulo abre dentro dele; Admin abre | ✅ (⚠️ Fila lenta, abaixo) |
+| Head | Dashboard | 10 ✅ (Avisos, Dashboard, Hoje, Pipeline, Leads, Relatórios, Chat, Equipe, Playbook, Admin) | Admin abre | ✅ |
+| SDR | Dashboard | 9 ✅ (sem Admin) | cadastra lead com reunião para o closer; nota; Pipeline move o card na hora; Sem Perfil abre a janelinha (200 ms) e Cancelar fecha | ✅ |
+| Closer | Dashboard | 9 ✅ | vê só o lead da reunião dele; ficha com "Registrar venda" | ✅ |
+| Acompanhamento Admin | Fila do dia | 12 ✅ (inclui Configurações) | Fila: Concluir some na hora + "Salvo"; Mentorados → ficha com 5 abas; Plano abre | ✅ (⚠️ Fila lenta) |
+| Operação | Fila do dia | 11 ✅ (sem Configurações) | Fila, Plano e Mentorados abrem | ✅ |
+| Especialista | Fila do dia | 11 ✅ | Fila vazia sem erro (nenhuma reunião conduzida) | ✅ |
+| Mentor | `/acompanhamento` | sem menu | "Seu painel chega em breve" | ✅ |
+| Acompanhamento sem perfil | `/acompanhamento` | sem menu | "Peça ao Admin para definir seu perfil" | ✅ |
+
+- Entrada de página (Fase 4): a última animação do `<main>` termina em 180–280 ms em todas as telas;
+  só o gráfico do Dashboard passa (1.950 ms, `chart-draw`, fora da meta de T4.2).
+- "Salvo" aparece onde a T4.4 o pôs (Fila e Plano); nota, tarefa e ficha do lead seguem sem aviso,
+  como antes.
+- ❌ → ✅ Endereço solto (`/qualquer-coisa`): o SDR via **duas barras laterais** (o `notFound()` de
+  `[secao]` desenhava o 404 da raiz dentro do layout de `(app)`) e o Acompanhamento era jogado ao
+  módulo com 200. Com `[secao]` e `SOON` apagados, é 404 com uma barra só, para os dois
+  (`e2e/sidebar.spec.ts`, RED antes da remoção).
+- ⚠️ **Pendência: Fila do dia lenta.** `POST /api/mentoria/fila` leva ~1,45 s no servidor do ITODEV
+  para Admin/Diretoria (≈ 1,86 s com a rede; Especialista com fila vazia ≈ 0,03 s); a tela leva
+  ~1,85 s a cada ida, e é a entrada do módulo. No `npac_e2e_perf` (364 inscrições),
+  `mentoria_fila(now())` como Diretoria leva ~700 ms. A função (SECURITY INVOKER, RLS) não foi medida
+  na Fase 1; corrigir pede migration e revisor de permissão, fora do escopo desta fase.
 
 ## Brief para abrir cada fase
 
