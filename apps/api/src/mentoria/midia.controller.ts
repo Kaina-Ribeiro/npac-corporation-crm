@@ -17,6 +17,7 @@ import {
   mentoriaInscricoes,
   mentoriaMidia,
   mentoriaPessoas,
+  mentoriaTarefas,
   withUser,
   type Db,
   type Tx,
@@ -42,6 +43,7 @@ const DONOS = {
   'pessoa-foto': { tipo: 'PESSOA_FOTO', tabela: mentoriaPessoas },
   'foto-familia': { tipo: 'FOTO_FAMILIA', tabela: mentoriaInscricoes },
   'acao-evidencia': { tipo: 'ACAO_EVIDENCIA', tabela: mentoriaAcoes },
+  'tarefa-comprovante': { tipo: 'TAREFA_COMPROVANTE', tabela: mentoriaTarefas },
 } as const;
 type DonoUrl = keyof typeof DONOS;
 
@@ -73,6 +75,23 @@ export class MidiaController {
 
   /** A foto nova passa a ser a do dono; a anterior vai para a fila de exclusão. */
   private async apontarFoto(tx: Tx, d: DonoUrl, donoId: string, midiaId: string) {
+    if (d === 'tarefa-comprovante') {
+      const [t] = await tx
+        .select({ midia: mentoriaTarefas.comprovanteMidiaId })
+        .from(mentoriaTarefas)
+        .where(eq(mentoriaTarefas.id, donoId))
+        .for('update');
+      if (t?.midia) await tx.execute(sql`select mentoria_excluir_midia(${t.midia})`);
+      await tx
+        .update(mentoriaTarefas)
+        .set({
+          comprovanteMidiaId: midiaId,
+          version: sql`${mentoriaTarefas.version} + 1`,
+          atualizadoEm: sql`now()`,
+        })
+        .where(eq(mentoriaTarefas.id, donoId));
+      return;
+    }
     if (d === 'acao-evidencia') {
       const [a] = await tx
         .select({ midia: mentoriaAcoes.evidenciaMidiaId })
@@ -136,7 +155,10 @@ export class MidiaController {
       throw new PayloadTooLargeException('Arquivo acima de 20 MB');
     }
     const f = farejar(dados);
-    if (!f || f.tipo !== 'FOTO')
+    // Comprovante de tarefa (Fase 2): foto, vídeo ou PDF. Os demais donos, só foto.
+    if (d === 'tarefa-comprovante') {
+      if (!f) throw new BadRequestException('Envie uma foto, um vídeo ou um PDF');
+    } else if (!f || f.tipo !== 'FOTO')
       throw new BadRequestException('Envie uma foto (JPEG, PNG ou WEBP)');
     const limpo = semMetadados(dados, f.mime);
     const chave = await this.store.put(limpo);

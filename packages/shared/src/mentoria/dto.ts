@@ -13,6 +13,7 @@ import type {
 import type { EnvioStatus, Etapa, EtapaStatus } from './onboarding.js';
 import type { AcaoStatus, Gatilho, PerfilAcao, ReuniaoTipo } from './plano.js';
 import type { CanalContato, Plataforma, ReuniaoStatus } from './reunioes.js';
+import type { CicloStatus, TarefaOrigem, TarefaStatus } from './pmes.js';
 
 /** `GET mentoria/eu`: o perfil operacional e o selo de Admin de quem está logado. */
 export type EuMentoria = { perfil: Perfil | null; admin: boolean };
@@ -324,6 +325,9 @@ export type FichaDTO = {
   contatos: ContatoDTO[];
   /** A pausa em curso, se houver. `dias`: parados até hoje. */
   pausa: { inicio: string; dias: number; motivo: string | null } | null;
+  /** Ciclos de PME, do mais recente ao mais antigo (Fase 2). `hoje`: o dia de Brasília do cálculo. */
+  ciclos: CicloDTO[];
+  hoje: string;
   pode: {
     inscricao: boolean;
     momento: boolean;
@@ -332,8 +336,61 @@ export type FichaDTO = {
     plano: boolean;
     reuniao: boolean;
     contato: boolean;
+    /** Envio do PME, ciclo anterior ao sistema e data de envio (Admin, Acompanhamento, Operação). */
+    pme: boolean;
+    /** Marcar as tarefas do ciclo e fechar à mão (Admin, Acompanhamento). */
+    tarefa: boolean;
     admin: boolean;
   };
+};
+
+/** Catálogo de PMEs (Configurações > PMEs). */
+export type PmeDTO = {
+  id: string;
+  version: number;
+  numero: number;
+  titulo: string | null;
+  foco: string | null;
+  linkMaterial: string | null;
+  atividadesExtras: string[];
+  encerramento: string | null;
+  ativo: boolean;
+};
+
+export type TarefaDTO = {
+  id: string;
+  version: number;
+  inscricaoId: string;
+  origem: TarefaOrigem;
+  cicloId: string | null;
+  reuniaoId: string | null;
+  /** Nula só depois da anonimização (LGPD). */
+  descricao: string | null;
+  prazo: string | null;
+  status: TarefaStatus;
+  motivo: string | null;
+  comprovanteMidiaId: string | null;
+  comprovanteTipo: MidiaDTO['tipo'] | null;
+  cobradaEm: string | null;
+  cobradaPor: string | null;
+  podeEditar: boolean;
+};
+
+export type CicloDTO = {
+  id: string;
+  version: number;
+  numero: number;
+  titulo: string | null;
+  linkMaterial: string | null;
+  enviadoEm: string;
+  prazo: string;
+  concluidoEm: string | null;
+  naoConcluidoEm: string | null;
+  anteriorAoSistema: boolean;
+  status: CicloStatus;
+  /** Dias depois do prazo, só enquanto aberto (0 antes do prazo). */
+  diasAtraso: number;
+  tarefas: TarefaDTO[];
 };
 
 export type HistoricoItem = {

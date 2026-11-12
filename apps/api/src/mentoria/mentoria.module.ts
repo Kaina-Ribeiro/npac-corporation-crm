@@ -21,7 +21,10 @@ import { PerfisController } from './perfis.controller.js';
 import { PerfisService } from './perfis.service.js';
 import { PlanoController } from './plano.controller.js';
 import { PlanoService } from './plano.service.js';
+import { CiclosController } from './ciclos.controller.js';
+import { CiclosService } from './ciclos.service.js';
 import { ContatosController } from './contatos.controller.js';
+import { PmesController, PmesService } from './pmes.controller.js';
 import { FilaController, Pme1Controller } from './fila.controller.js';
 import { FilaService } from './fila.service.js';
 import { MensagensController, MensagensService } from './mensagens.controller.js';
@@ -49,6 +52,8 @@ import { ReunioesService } from './reunioes.service.js';
     ExportacaoController,
     ExclusaoController,
     CarteiraController,
+    PmesController,
+    CiclosController,
   ],
   providers: [
     MentoriaGuard,
@@ -67,6 +72,8 @@ import { ReunioesService } from './reunioes.service.js';
     AvisosRearme,
     ExportacaoService,
     CarteiraService,
+    PmesService,
+    CiclosService,
     { provide: MENTORIA_CLOCK, useValue: systemClock },
     {
       provide: MentoriaCrypto,
