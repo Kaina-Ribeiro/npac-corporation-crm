@@ -2,6 +2,7 @@
 import { PERFIL_LABEL, type AcaoItem, type FichaDTO } from '@npac/shared/mentoria';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { keep, recall } from '@/lib/screen-memory';
 import { filaDeSalvamento, registrarVersion, salvarCampo } from '@/lib/acompanhamento-saver';
 import { dataBR, ICONES, Icone } from './ui';
 
@@ -54,9 +55,28 @@ const mesInicial = (meses: number[], atual: number | null) => {
 };
 
 /** Ações do plano na Jornada da ficha: um mês por vez, para não virar uma lista comprida. */
-export function PlanoMentorado({ ficha, atualizar }: { ficha: FichaDTO; atualizar: () => void }) {
+export function PlanoMentorado({
+  ficha,
+  atualizar,
+  memoria,
+}: {
+  ficha: FichaDTO;
+  atualizar: () => void;
+  /** Chave da memória da aba (NPAC-46): o mês escolhido volta, por ficha, até o F5. */
+  memoria: string;
+}) {
   const meses = [...new Set(ficha.acoes.map((a) => a.mes))].sort((a, b) => a - b);
-  const [mes, setMes] = useState(() => mesInicial(meses, ficha.mesJornada));
+  const [mes, setMesState] = useState(() => mesInicial(meses, ficha.mesJornada));
+  const chave = `${memoria}:plano:${ficha.id}`;
+  const setMes = (m: number) => {
+    setMesState(m);
+    keep(chave, m);
+  };
+  const lembrado = recall<number>(chave);
+  // Depois de montar: no servidor a memória não existe (sem diferença na hidratação).
+  useEffect(() => {
+    if (lembrado !== undefined && meses.includes(lembrado)) setMesState(lembrado);
+  }, [chave]);
   const doMes = ficha.acoes.filter((a) => a.mes === mes);
   return (
     <div>

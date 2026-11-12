@@ -7,7 +7,10 @@ import {
 } from '@npac/shared/mentoria';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { readPrefs } from '@npac/shared/screen-prefs';
 import { useEffect, useState } from 'react';
+import { ONBOARDING_REGRAS, atualizarAc } from '@/lib/acompanhamento-prefs';
+import { useLatestPrefs } from '@/lib/use-latest-prefs';
 import { button, quietButton } from '@/components/crm-ui';
 import { clientApi } from '@/lib/client-api';
 import { Dialogo } from './dialogo';
@@ -81,15 +84,37 @@ function Linha({
 type Painel = 'funil' | 'caixas' | 'idrs';
 
 /** Aba Onboarding: funil das 6 etapas, quem está parado, caixas em trânsito e IDRs a agendar. */
-export function OnboardingFunil({ painel }: { painel: PainelOnboarding }) {
+export function OnboardingFunil({
+  painel,
+  lembrar,
+}: {
+  painel: PainelOnboarding;
+  /** Cookie da etapa e do painel lembrados (NPAC-46) e o valor que o servidor usou. */
+  lembrar: { cookie: string; valor: string };
+}) {
   const router = useRouter();
+  const salvo = readPrefs(lembrar.valor, ONBOARDING_REGRAS);
+  const noFunil = (e: string | undefined) =>
+    painel.funil.some((c) => c.etapa === e) ? (e as Etapa) : undefined;
   const maisParada = [...painel.funil].sort((a, b) => b.alertas - a.alertas)[0];
   const inicial =
     maisParada && maisParada.alertas > 0
       ? maisParada.etapa
       : (painel.funil.find((c) => c.total > 0)?.etapa ?? 'BOAS_VINDAS');
-  const [escolhida, setEscolhida] = useState<Etapa>(inicial);
-  const [aba, setAba] = useState<Painel>('funil');
+  const [escolhida, setEscolhida] = useState<Etapa>(noFunil(salvo.etapa) ?? inicial);
+  const [aba, setAba] = useState<Painel>((salvo.painel as Painel | undefined) ?? 'funil');
+  const lembrarEscolha = (etapa: Etapa, p: Painel) =>
+    atualizarAc('onboarding', lembrar.cookie, ONBOARDING_REGRAS, {
+      etapa,
+      painel: p === 'funil' ? undefined : p,
+    });
+  // Voltar do navegador traz a página de antes: vale a escolha mais nova do cookie.
+  useLatestPrefs(lembrar.cookie, lembrar.valor, (valor) => {
+    const p = readPrefs(valor, ONBOARDING_REGRAS);
+    const etapa = noFunil(p.etapa);
+    if (etapa) setEscolhida(etapa);
+    setAba((p.painel as Painel | undefined) ?? 'funil');
+  });
   const [erro, setErro] = useState('');
   const [dispensando, setDispensando] = useState<PessoaFunil | null>(null);
   const coluna = painel.funil.find((c) => c.etapa === escolhida)!;
@@ -139,6 +164,7 @@ export function OnboardingFunil({ painel }: { painel: PainelOnboarding }) {
             onClick={() => {
               setEscolhida(c.etapa);
               setAba('funil');
+              lembrarEscolha(c.etapa, 'funil');
             }}
           >
             <span className="lb">{ETAPA_LABEL[c.etapa]}</span>
@@ -160,7 +186,10 @@ export function OnboardingFunil({ painel }: { painel: PainelOnboarding }) {
             role="tab"
             aria-selected={aba === id}
             className={aba === id ? 'on' : ''}
-            onClick={() => setAba(id)}
+            onClick={() => {
+              setAba(id);
+              lembrarEscolha(escolhida, id);
+            }}
           >
             {rotulo}
           </button>

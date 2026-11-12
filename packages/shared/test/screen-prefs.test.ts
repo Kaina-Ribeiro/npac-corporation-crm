@@ -7,7 +7,9 @@ import {
   readLeadFilters,
   readPipelinePrefs,
   readPrefs,
+  pickTabUrl,
   readTabUrls,
+  tabQuery,
   reportRules,
   writePrefs,
   writeTabUrls,
@@ -106,6 +108,34 @@ describe('screen-prefs', () => {
     expect(readTabUrls('outra=aba%3Doutra&last=outra', tabs, '2026-11-10', [])).toEqual({
       tabs: {},
     });
+  });
+
+  it('consulta da aba: só as chaves da tela, na ordem, sem vazio', () => {
+    expect(
+      tabQuery({ mentoria: 'RDV', aba: 'controle', mes: '', outra: 'x' }, [
+        'aba',
+        'mes',
+        'mentoria',
+      ]),
+    ).toBe('aba=controle&mentoria=RDV');
+    expect(tabQuery({}, ['aba'])).toBe('');
+  });
+
+  it('URL com chave da tela vence; sem nenhuma (menu), vale a última aba salva', () => {
+    const keys = ['aba', 'dia', 'condutor', 'mes', 'mentoria'];
+    const saved = {
+      last: 'controle',
+      tabs: { agenda: 'aba=agenda', controle: 'aba=controle&mentoria=RDV&lixo=1' },
+    };
+    expect(pickTabUrl({ aba: 'agenda', item: 'x' }, keys, saved)).toEqual({
+      fromMenu: false,
+      params: { aba: 'agenda' },
+    });
+    expect(pickTabUrl({ item: 'x' }, keys, saved)).toEqual({
+      fromMenu: true,
+      params: { aba: 'controle', mentoria: 'RDV' },
+    });
+    expect(pickTabUrl({}, keys, { tabs: {} })).toEqual({ fromMenu: true, params: {} });
   });
 
   it('brasiliaDay usa o dia de Brasília', () => {

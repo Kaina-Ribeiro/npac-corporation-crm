@@ -17,7 +17,10 @@ import {
 } from '@npac/shared/mentoria';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { readPrefs } from '@npac/shared/screen-prefs';
+import { useEffect, useRef, useState } from 'react';
+import { FILA_REGRAS, atualizarAc } from '@/lib/acompanhamento-prefs';
+import { readPreference } from '@/lib/read-preference';
 import { clientApi } from '@/lib/client-api';
 import { ExportarBotao } from './exportar-botao';
 import { ICONES, Icone, Rostos, dataBR, diaBR, horaBR } from './ui';
@@ -206,6 +209,8 @@ export function Fila({
   temPerfil,
   admin,
   exportar,
+  lembrar,
+  inicialGrupo,
 }: {
   dados: FilaDTO;
   mensagens: MensagemModelo[];
@@ -213,10 +218,13 @@ export function Fila({
   temPerfil: boolean;
   admin: boolean;
   exportar: boolean;
+  /** Cookie dos filtros lembrados (NPAC-46) e o valor que o servidor leu. */
+  lembrar: { cookie: string; valor: string };
+  inicialGrupo: FilaGrupo | 'TODOS';
 }) {
   const router = useRouter();
   const params = useSearchParams();
-  const [grupo, setGrupo] = useState<FilaGrupo | 'TODOS'>('TODOS');
+  const [grupo, setGrupo] = useState<FilaGrupo | 'TODOS'>(inicialGrupo);
   const [ocupado, setOcupado] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const agora = new Date(dados.agora);
@@ -267,6 +275,25 @@ export function Fila({
   };
   const escopoHref = (e: 'MINHA' | 'EQUIPE') =>
     e === 'EQUIPE' ? '/acompanhamento/fila?ver=equipe' : '/acompanhamento/fila?ver=minha';
+
+  const escolherGrupo = (g: FilaGrupo | 'TODOS') => {
+    setGrupo(g);
+    atualizarAc('fila', lembrar.cookie, FILA_REGRAS, { grupo: g === 'TODOS' ? undefined : g });
+  };
+  // `ver` na URL vence e vira o lembrado. Sem ele, voltar do navegador ou o pré-carregamento do
+  // menu podem trazer a fila de antes: vale o mais novo do cookie.
+  const verUrl = params.get('ver');
+  const primeiraVisao = useRef({ escopo: dados.escopo, temPerfil });
+  useEffect(() => {
+    const salvo = readPrefs(readPreference(lembrar.cookie, lembrar.valor), FILA_REGRAS);
+    const { escopo, temPerfil: comBotao } = primeiraVisao.current;
+    if (verUrl) atualizarAc('fila', lembrar.cookie, FILA_REGRAS, { ver: verUrl });
+    else if (comBotao && salvo.ver && salvo.ver.toUpperCase() !== escopo) {
+      router.replace(`/acompanhamento/fila?ver=${salvo.ver}`);
+      return;
+    }
+    setGrupo((salvo.grupo as FilaGrupo | undefined) ?? 'TODOS');
+  }, [verUrl, lembrar.cookie, lembrar.valor, router]);
 
   const executar = async (l: Linha) => {
     const acao = l.link ? acaoDe(l.link) : acaoDe(l.item);
@@ -350,7 +377,7 @@ export function Fila({
             type="button"
             className={`fchip ${grupo === g.chave ? 'on' : ''}`}
             aria-pressed={grupo === g.chave}
-            onClick={() => setGrupo(g.chave)}
+            onClick={() => escolherGrupo(g.chave)}
           >
             {g.label}
             <span>{linhas.filter((l) => daGrupo(l.item, g.chave)).length}</span>
