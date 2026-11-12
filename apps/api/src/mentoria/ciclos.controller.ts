@@ -3,6 +3,7 @@ import {
   cicloAnteriorSchema,
   cicloPatchSchema,
   envioPmeSchema,
+  tarefaCriarSchema,
   tarefaPatchSchema,
 } from '@npac/shared';
 import { CurrentUser, type SessionUser } from '../auth/current-user.decorator.js';
@@ -48,5 +49,12 @@ export class CiclosController {
   @Patch('tarefas/:id')
   atualizarTarefa(@CurrentUser() u: SessionUser, @Param('id') id: string, @Body() body: unknown) {
     return this.ciclos.atualizarTarefa(u, entityId(id), validarComAviso(tarefaPatchSchema, body));
+  }
+
+  /** Tarefa da semana combinada na reunião (Parte 2): até 3, prazo obrigatório. */
+  @Post('reunioes/:id/tarefas')
+  @HttpCode(201)
+  criarTarefa(@CurrentUser() u: SessionUser, @Param('id') id: string, @Body() body: unknown) {
+    return this.ciclos.criarTarefa(u, entityId(id), validarComAviso(tarefaCriarSchema, body));
   }
 }

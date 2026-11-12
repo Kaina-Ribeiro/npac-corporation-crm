@@ -6,17 +6,19 @@ import {
   TAREFA_STATUS,
   TAREFA_STATUS_LABEL,
   tarefaPedeMotivo,
+  REUNIAO_TIPO_LABEL,
   ULTIMO_PME,
   type CicloDTO,
   type CicloStatus,
   type FichaDTO,
+  type MetaDTO,
   type TarefaDTO,
 } from '@npac/shared/mentoria';
 import { useEffect, useRef, useState } from 'react';
 import { button, control, FormError, quietButton } from '@/components/crm-ui';
 import { clientApi } from '@/lib/client-api';
 import { filaDeSalvamento, registrarVersion, salvarCampo } from '@/lib/acompanhamento-saver';
-import { CampoPr } from './campo';
+import { CampoPr, useCampo } from './campo';
 import { Dialogo } from './dialogo';
 import { enviarFoto } from './midia';
 import { dataBR, ICONES, Icone } from './ui';
@@ -24,7 +26,6 @@ import { dataBR, ICONES, Icone } from './ui';
 const sm = `${quietButton} sm`;
 const CLASSE_CICLO: Record<CicloStatus, string> = {
   EM_ANDAMENTO: 'onb',
-  SEGUNDA_CHANCE: 'gold',
   CONCLUIDO: 'ativo',
   NAO_CONCLUIDO: 'canc',
 };
@@ -45,8 +46,89 @@ export function TagCiclo({ c }: { c: CicloDTO }) {
   );
 }
 
-/** Uma tarefa do ciclo: resultado, motivo e comprovante, lançados pela equipe (E8). */
-function Tarefa({ t, atualizar }: { t: TarefaDTO; atualizar: () => void }) {
+/** Texto e prazo da tarefa da reunião, salvos ao sair do campo. */
+function Combinado({ t, metas }: { t: TarefaDTO; metas?: MetaDTO[] }) {
+  const chave = chaveTarefa(t);
+  const texto = useCampo(chave, 'descricao', t.descricao);
+  const prazo = useCampo(chave, 'prazo', t.prazo);
+  const meta = useCampo(chave, 'metaId', t.metaId);
+  return (
+    <div className="tr-comb">
+      <input
+        className="tr-texto"
+        aria-label="Tarefa"
+        value={texto.texto}
+        maxLength={2000}
+        onChange={(e) => texto.setTexto(e.target.value)}
+        onFocus={texto.aoFocar}
+        onBlur={(e) => {
+          if (!e.target.value.trim()) {
+            texto.setTexto(t.descricao ?? '');
+            return;
+          }
+          texto.aoSair(e.target.value);
+        }}
+      />
+      <div className="tr-linha">
+        <label>
+          <span>Prazo</span>
+          <input
+            type="date"
+            value={prazo.texto}
+            required
+            onChange={(e) => prazo.setTexto(e.target.value)}
+            onFocus={prazo.aoFocar}
+            onBlur={(e) => {
+              if (!e.target.value) {
+                prazo.setTexto(t.prazo ?? '');
+                return;
+              }
+              prazo.aoSair(e.target.value);
+            }}
+          />
+        </label>
+        {metas && metas.length > 0 && (
+          <label>
+            <span>Meta</span>
+            <select
+              value={meta.texto}
+              onChange={(e) => {
+                meta.setTexto(e.target.value);
+                meta.salvar(e.target.value);
+              }}
+            >
+              <option value="">Nenhuma</option>
+              {metas.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.descricao ?? 'Meta'}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Uma tarefa: resultado, motivo e comprovante, lançados pela equipe (E8). A da reunião mostra de
+ * onde veio e, com `combinar`, edita texto, prazo e meta.
+ */
+export function Tarefa({
+  t,
+  atualizar,
+  metas,
+  combinar = false,
+  mostrarReuniao = false,
+}: {
+  t: TarefaDTO;
+  atualizar: () => void;
+  /** Metas visíveis, para a escolha e o nome da meta (vazio para a Especialista). */
+  metas?: MetaDTO[];
+  combinar?: boolean;
+  mostrarReuniao?: boolean;
+}) {
   const chave = chaveTarefa(t);
   const arquivo = useRef<HTMLInputElement>(null);
   const [erro, setErro] = useState('');
@@ -57,6 +139,8 @@ function Tarefa({ t, atualizar }: { t: TarefaDTO; atualizar: () => void }) {
   const feita = t.status === 'FEITA';
   const encerramento = t.origem === 'ENCERRAMENTO';
   const descricao = t.descricao ?? 'Texto apagado (LGPD)';
+  const editaCombinado = combinar && ed && t.origem === 'REUNIAO' && t.descricao !== null;
+  const nomeMeta = t.metaId ? metas?.find((m) => m.id === t.metaId)?.descricao : null;
 
   const mudar = (status: string) => {
     if (status === t.status) return;
@@ -97,12 +181,17 @@ function Tarefa({ t, atualizar }: { t: TarefaDTO; atualizar: () => void }) {
         <Icone d={ICONES.check} largura={3} />
       </button>
       <div className="min-w-0">
-        <span className="pme-orig">{TAREFA_ORIGEM_LABEL[t.origem]}</span>
-        <b>{descricao}</b>
+        <span className="pme-orig">
+          {mostrarReuniao && t.reuniaoInicio
+            ? `${t.reuniaoTipo ? REUNIAO_TIPO_LABEL[t.reuniaoTipo] : 'Reunião'} de ${diaBR(t.reuniaoInicio)}`
+            : TAREFA_ORIGEM_LABEL[t.origem]}
+        </span>
+        {editaCombinado ? <Combinado t={t} metas={metas} /> : <b>{descricao}</b>}
+        {!editaCombinado && nomeMeta && <span className="tr-meta">Meta: {nomeMeta}</span>}
         <span className="meta">
           {t.cobradaEm && t.status !== 'PENDENTE'
-            ? `${TAREFA_STATUS_LABEL[t.status]} em ${diaBR(t.cobradaEm)}${t.cobradaPor ? `, ${t.cobradaPor}` : ''}`
-            : t.prazo
+            ? `${TAREFA_STATUS_LABEL[t.status]} em ${diaBR(t.cobradaEm)}${t.cobradaPor ? `, ${t.cobradaPor}` : ''}${t.prazo ? ` · prazo ${dataBR(t.prazo)}` : ''}`
+            : t.prazo && !editaCombinado
               ? `Prazo ${dataBR(t.prazo)}`
               : ''}
         </span>
@@ -186,7 +275,44 @@ type Janela =
   | { tipo: 'fechar'; c: CicloDTO }
   | null;
 
-/** Um ciclo: datas, status e tarefas. */
+/** Barra de progresso (0–100 %) com rótulo; `pct` nulo mostra `vazio`. O número vem do banco. */
+export function Barra({
+  rotulo,
+  nome,
+  pct,
+  vazio,
+  dica,
+}: {
+  rotulo: string;
+  /** Nome acessível do medidor. */
+  nome: string;
+  pct: number | null;
+  vazio: string;
+  dica?: string;
+}) {
+  const texto = pct === null ? vazio : `${pct}%`;
+  return (
+    <div className="pme-barra" title={dica}>
+      <div className="pme-barra-t">
+        <span>{rotulo}</span>
+        <b>{texto}</b>
+      </div>
+      <div
+        className="pme-trilho"
+        role="meter"
+        aria-label={nome}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={pct ?? 0}
+        aria-valuetext={texto}
+      >
+        <span style={{ width: `${pct ?? 0}%` }} />
+      </div>
+    </div>
+  );
+}
+
+/** Um ciclo: datas, status, % e as tarefas do catálogo (as da reunião ficam na seção Tarefas). */
 function Ciclo({
   c,
   ficha,
@@ -200,7 +326,8 @@ function Ciclo({
   abrir: (j: Janela) => void;
   atualizar: () => void;
 }) {
-  const feitas = c.tarefas.filter((t) => t.status === 'FEITA').length;
+  const doCiclo = c.tarefas.filter((t) => t.origem !== 'REUNIAO');
+  const daReuniao = c.tarefas.length - doCiclo.length;
   const semEncerramento = !c.tarefas.some((t) => t.origem === 'ENCERRAMENTO');
   const fechavel = semEncerramento && c.anteriorAoSistema && ficha.pode.tarefa;
   return (
@@ -264,14 +391,6 @@ function Ciclo({
             <dd>{dataBR(c.naoConcluidoEm)}</dd>
           </div>
         )}
-        {c.tarefas.length > 0 && (
-          <div>
-            <dt>Tarefas</dt>
-            <dd>
-              {feitas} de {c.tarefas.length} feitas
-            </dd>
-          </div>
-        )}
         {c.linkMaterial && (
           <div>
             <dt>Material</dt>
@@ -283,12 +402,29 @@ function Ciclo({
           </div>
         )}
       </dl>
-      {c.tarefas.length > 0 && (
+      {(c.pctTarefas !== null || !c.anteriorAoSistema) && (
+        // % do PME (E5): só tarefas. Juntar as metas num número único está com a Eduarda.
+        <Barra
+          rotulo="Tarefas feitas"
+          nome={`Tarefas do ${nomePme(c.numero)}`}
+          pct={c.pctTarefas}
+          vazio="Sem tarefas"
+          dica="Tarefas feitas ÷ todas as tarefas do PME (parcial não conta)"
+        />
+      )}
+      {doCiclo.length > 0 && (
         <ul className="pme-tarefas">
-          {c.tarefas.map((t) => (
+          {doCiclo.map((t) => (
             <Tarefa key={t.id} t={t} atualizar={atualizar} />
           ))}
         </ul>
+      )}
+      {daReuniao > 0 && (
+        <p className="pme-nota">
+          {daReuniao === 1
+            ? 'Mais 1 tarefa combinada em reunião conta neste PME (veja em Tarefas).'
+            : `Mais ${daReuniao} tarefas combinadas em reunião contam neste PME (veja em Tarefas).`}
+        </p>
       )}
     </div>
   );

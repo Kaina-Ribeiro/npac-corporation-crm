@@ -4,6 +4,7 @@ import {
   FieldQueue,
   type AcaoDTO,
   type FichaDTO,
+  type MetaDTO,
   type PlanoModeloLinha,
   type PmeDTO,
   type ReuniaoDTO,
@@ -17,7 +18,7 @@ import { useEffect, useState } from 'react';
  * status do 409. Uma fila por aba; nada vai para storage. Chaves do registro:
  * `inscricao:<id>`, `pessoa:<inscricaoId>:<pessoaId>`, `etapa:<inscricaoId>:<etapaId>`,
  * `endereco:<id>`, `momento:<id>`, `acao:<inscricaoId>:<acaoId>`, `reuniao:<inscricaoId>:<id>`,
- * `modelo:<id>`, `pme:<id>`, `tarefa:<inscricaoId>:<id>` e
+ * `modelo:<id>`, `pme:<id>`, `tarefa:<inscricaoId>:<id>`, `meta:<inscricaoId>:<id>` e
  * `avaliacao:<pessoaId>:<tipo>` (esta sem version: uma coluna por envio, não colide).
  */
 type Alvo = { url: string; method: 'PATCH' | 'PUT'; corpo: (v: number) => object };
@@ -53,6 +54,8 @@ function alvo(key: string): Alvo {
       return { url: `${base}/pmes`, method: 'PUT', corpo: (version) => ({ id: a, version }) };
     case 'tarefa':
       return { url: `${base}/tarefas/${b}`, method: 'PATCH', corpo: comVersion };
+    case 'meta':
+      return { url: `${base}/metas/${b}`, method: 'PATCH', corpo: comVersion };
     default:
       throw new Error(`Registro desconhecido: ${key}`);
   }
@@ -110,6 +113,12 @@ async function recarregar(key: string) {
     const res = await fetch(`/api/mentoria/tarefas/${b}`, { cache: 'no-store' });
     if (!res.ok) throw new ErroDeEnvio('Não foi possível recarregar', res.status);
     const x = (await res.json()) as TarefaDTO;
+    return { version: x.version, valores: x as unknown as Record<string, unknown> };
+  }
+  if (tipo === 'meta') {
+    const res = await fetch(`/api/mentoria/metas/${b}`, { cache: 'no-store' });
+    if (!res.ok) throw new ErroDeEnvio('Não foi possível recarregar', res.status);
+    const x = (await res.json()) as MetaDTO;
     return { version: x.version, valores: x as unknown as Record<string, unknown> };
   }
   if (tipo === 'reuniao') {
