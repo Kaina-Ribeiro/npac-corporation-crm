@@ -18,6 +18,7 @@ import { FILA_TIPOS } from '../mentoria/fila.js';
 import { MOMENTOS_MENSAGEM } from '../mentoria/mensagens.js';
 import { ENVIO_STATUS } from '../mentoria/onboarding.js';
 import { ACAO_STATUS, GATILHOS, PERFIS_ACAO, REUNIAO_TIPOS } from '../mentoria/plano.js';
+import { META_STATUS, PILARES } from '../mentoria/metas.js';
 import { TAREFA_STATUS } from '../mentoria/pmes.js';
 import {
   CANAIS_CONTATO,
@@ -335,10 +336,52 @@ export const cicloPatchSchema = z
   .strict();
 export type CicloPatch = z.output<typeof cicloPatchSchema>;
 
+// Metas e tarefas da reunião (Parte 2). Texto e prazo só valem para a tarefa da reunião.
+const descricaoTarefa = z.string().trim().min(1, 'Descreva a tarefa').max(2000);
+const descricaoMeta = z.string().trim().min(1, 'Descreva a meta').max(2000);
+const VALOR_MAX = 999_999_999_999;
+
 export const tarefaPatchSchema = z
-  .object({ version, status: z.enum(TAREFA_STATUS).optional(), motivo: texto(2000) })
+  .object({
+    version,
+    status: z.enum(TAREFA_STATUS).optional(),
+    motivo: texto(2000),
+    descricao: descricaoTarefa.optional(),
+    prazo: dataIso.optional(),
+    metaId: opc(z.uuid()),
+  })
   .strict();
 export type TarefaPatch = z.output<typeof tarefaPatchSchema>;
+
+/** Tarefa da semana, combinada na reunião: prazo obrigatório (§4). */
+export const tarefaCriarSchema = z
+  .object({ descricao: descricaoTarefa, prazo: dataIso, metaId: opc(z.uuid()) })
+  .strict();
+export type TarefaCriar = z.output<typeof tarefaCriarSchema>;
+
+const camposMeta = {
+  pilar: opc(z.enum(PILARES)),
+  pessoaId: opc(z.uuid()),
+  valorAlvo: opc(z.number().positive('O alvo é maior que zero').max(VALOR_MAX)),
+  valorAtual: opc(z.number().min(0).max(VALOR_MAX)),
+  unidade: texto(20),
+  prazo: data,
+};
+
+export const metaCriarSchema = z
+  .object({ descricao: descricaoMeta, ...camposMeta, reuniaoId: opc(z.uuid()) })
+  .strict();
+export type MetaCriar = z.output<typeof metaCriarSchema>;
+
+export const metaPatchSchema = z
+  .object({
+    version,
+    descricao: descricaoMeta.optional(),
+    ...camposMeta,
+    status: z.enum(META_STATUS).optional(),
+  })
+  .strict();
+export type MetaPatch = z.output<typeof metaPatchSchema>;
 
 export const dataIdrSchema = z.object({ version, dataIdr: dataIso }).strict();
 export type DataIdrPut = z.output<typeof dataIdrSchema>;
