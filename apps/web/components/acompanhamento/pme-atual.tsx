@@ -276,43 +276,39 @@ type Janela =
   | { tipo: 'fechar'; c: CicloDTO }
   | null;
 
-/** % do PME (E5): duas medidas lado a lado, do banco; nunca juntas numa fórmula. */
-export function BarrasPme({ c }: { c: CicloDTO }) {
-  const barras: { rotulo: string; pct: number | null; vazio: string; dica: string }[] = [
-    {
-      rotulo: 'Tarefas',
-      pct: c.pctTarefas,
-      vazio: 'Sem tarefas',
-      dica: 'Tarefas feitas ÷ todas as tarefas do PME (parcial não conta)',
-    },
-    {
-      rotulo: 'Metas',
-      pct: c.pctMetas,
-      vazio: 'Sem metas',
-      dica: 'Progresso médio das metas do PME',
-    },
-  ];
+/** Barra de progresso (0–100 %) com rótulo; `pct` nulo mostra `vazio`. O número vem do banco. */
+export function Barra({
+  rotulo,
+  nome,
+  pct,
+  vazio,
+  dica,
+}: {
+  rotulo: string;
+  /** Nome acessível do medidor. */
+  nome: string;
+  pct: number | null;
+  vazio: string;
+  dica?: string;
+}) {
+  const texto = pct === null ? vazio : `${pct}%`;
   return (
-    <div className="pme-barras">
-      {barras.map((b) => (
-        <div key={b.rotulo} className="pme-barra" title={b.dica}>
-          <div className="pme-barra-t">
-            <span>{b.rotulo}</span>
-            <b>{b.pct === null ? b.vazio : `${b.pct}%`}</b>
-          </div>
-          <div
-            className="pme-trilho"
-            role="meter"
-            aria-label={`${b.rotulo} do ${nomePme(c.numero)}`}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={b.pct ?? 0}
-            aria-valuetext={b.pct === null ? b.vazio : `${b.pct}%`}
-          >
-            <span style={{ width: `${b.pct ?? 0}%` }} />
-          </div>
-        </div>
-      ))}
+    <div className="pme-barra" title={dica}>
+      <div className="pme-barra-t">
+        <span>{rotulo}</span>
+        <b>{texto}</b>
+      </div>
+      <div
+        className="pme-trilho"
+        role="meter"
+        aria-label={nome}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={pct ?? 0}
+        aria-valuetext={texto}
+      >
+        <span style={{ width: `${pct ?? 0}%` }} />
+      </div>
     </div>
   );
 }
@@ -407,8 +403,15 @@ function Ciclo({
           </div>
         )}
       </dl>
-      {(c.pctTarefas !== null || c.pctMetas !== null || !c.anteriorAoSistema) && (
-        <BarrasPme c={c} />
+      {(c.pctTarefas !== null || !c.anteriorAoSistema) && (
+        // % do PME (E5): só tarefas. Juntar as metas num número único está com a Eduarda.
+        <Barra
+          rotulo="Tarefas feitas"
+          nome={`Tarefas do ${nomePme(c.numero)}`}
+          pct={c.pctTarefas}
+          vazio="Sem tarefas"
+          dica="Tarefas feitas ÷ todas as tarefas do PME (parcial não conta)"
+        />
       )}
       {doCiclo.length > 0 && (
         <ul className="pme-tarefas">

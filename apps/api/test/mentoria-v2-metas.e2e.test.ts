@@ -337,7 +337,7 @@ describe('metas', () => {
 });
 
 describe('% do PME', () => {
-  it('tarefas FEITA ÷ total (PARCIAL não conta) e metas pelo alvo (sem alvo fica fora)', async () => {
+  it('PME: só tarefas FEITA ÷ total (PARCIAL não conta); cada meta com alvo tem o próprio %', async () => {
     const i = await inscricao();
     const s = await duda();
     await enviarPme(s, i); // 1º PME: 2 extras + encerramento
@@ -346,14 +346,15 @@ describe('% do PME', () => {
     const t2 = await combinarOk(s, r);
     let c = (await ficha(s, i)).ciclos[0]!;
     expect(c.pctTarefas).toBe(0);
-    expect(c.pctMetas).toBeNull();
+    expect(c).not.toHaveProperty('pctMetas');
     await h.patch(`/api/mentoria/tarefas/${t1.id}`, { version: t1.version, status: 'FEITA' }, s);
     await h.patch(`/api/mentoria/tarefas/${t2.id}`, { version: t2.version, status: 'PARCIAL' }, s);
-    await novaMetaOk(s, i, { valorAlvo: 10, valorAtual: 5 });
-    await novaMetaOk(s, i); // sem alvo: fora do % até a decisão (S4)
+    const comAlvo = await novaMetaOk(s, i, { valorAlvo: 10, valorAtual: 5 });
+    const passou = await novaMetaOk(s, i, { valorAlvo: 10, valorAtual: 30 });
+    const semAlvo = await novaMetaOk(s, i); // sem alvo: sem % (S4 pendente com a Eduarda)
+    expect([comAlvo.pct, passou.pct, semAlvo.pct]).toEqual([50, 100, null]);
     c = (await ficha(s, i)).ciclos[0]!;
     expect(c.pctTarefas).toBe(20); // 1 de 5
-    expect(c.pctMetas).toBe(50);
     // A Especialista vê o mesmo número, mesmo sem ler as tarefas.
     await reuniao(i, ids.carla!, 2);
     expect((await ficha(await manu(), i)).ciclos[0]!.pctTarefas).toBe(20);

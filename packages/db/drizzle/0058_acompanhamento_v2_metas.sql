@@ -136,9 +136,9 @@ CREATE TRIGGER mentoria_meta_guarda BEFORE INSERT ON mentoria_metas
   FOR EACH ROW EXECUTE FUNCTION mentoria_meta_guarda();
 --> statement-breakpoint
 
--- % do PME (E5): duas medidas, sem fórmula única. Número agregado, sem dado pessoal: quem vê a
--- inscrição vê o número inteiro (a Especialista, que só lê as tarefas dela, inclusive).
--- Tarefas: FEITA ÷ total do ciclo (PARCIAL não conta). Nulo sem tarefas.
+-- % do PME (E5): tarefas FEITA ÷ total do ciclo (PARCIAL não conta); nulo sem tarefas. Número
+-- agregado, sem dado pessoal: quem vê a inscrição vê o número inteiro (a Especialista, inclusive).
+-- Juntar as metas num número único está pendente com a Eduarda: cada meta mostra a própria barra.
 CREATE FUNCTION mentoria_pct_tarefas(ciclo uuid) RETURNS int
   LANGUAGE sql STABLE SECURITY DEFINER
   SET search_path = public, pg_temp
@@ -149,18 +149,6 @@ AS $$
   WHERE t.ciclo_id = ciclo AND mentoria_ve(c.inscricao_id)
 $$;
 --> statement-breakpoint
--- Metas: média de min(atual ÷ alvo, 1) nas metas do ciclo com alvo numérico. A meta sem alvo
--- (spec S4) e o status da meta (S3) esperam decisão: por ora ficam fora. Nulo sem metas com alvo.
-CREATE FUNCTION mentoria_pct_metas(ciclo uuid) RETURNS int
-  LANGUAGE sql STABLE SECURITY DEFINER
-  SET search_path = public, pg_temp
-AS $$
-  SELECT round(100 * avg(least(coalesce(m.valor_atual, 0) / m.valor_alvo, 1)))::int
-  FROM mentoria_metas m JOIN mentoria_ciclos c ON c.id = m.ciclo_id
-  WHERE m.ciclo_id = ciclo AND m.valor_alvo IS NOT NULL AND mentoria_ve(c.inscricao_id)
-$$;
---> statement-breakpoint
-
 -- Reunião com tarefas ou metas não é "marcada por engano": não se exclui.
 CREATE OR REPLACE FUNCTION mentoria_excluir_reuniao(reuniao uuid) RETURNS void
   LANGUAGE plpgsql VOLATILE SECURITY DEFINER
@@ -243,13 +231,10 @@ ALTER FUNCTION mentoria_meta_guarda() OWNER TO npac_owner;
 --> statement-breakpoint
 ALTER FUNCTION mentoria_pct_tarefas(uuid) OWNER TO npac_owner;
 --> statement-breakpoint
-ALTER FUNCTION mentoria_pct_metas(uuid) OWNER TO npac_owner;
---> statement-breakpoint
 REVOKE ALL ON FUNCTION mentoria_ve_meta(uuid), mentoria_vinculos_inscricao(),
-  mentoria_pct_tarefas(uuid), mentoria_pct_metas(uuid) FROM PUBLIC;
+  mentoria_pct_tarefas(uuid) FROM PUBLIC;
 --> statement-breakpoint
-GRANT EXECUTE ON FUNCTION mentoria_ve_meta(uuid), mentoria_pct_tarefas(uuid),
-  mentoria_pct_metas(uuid) TO npac_app;
+GRANT EXECUTE ON FUNCTION mentoria_ve_meta(uuid), mentoria_pct_tarefas(uuid) TO npac_app;
 --> statement-breakpoint
 
 -- Metas: leitura por mentoria_ve_meta; escrita pela área META. Sem DELETE.
