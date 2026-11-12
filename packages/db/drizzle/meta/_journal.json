@@ -421,6 +421,20 @@
       "when": 1794455807300,
       "tag": "0059_acompanhamento_v2_ciclo_status",
       "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1794455867300,
+      "tag": "0060_rls_por_consulta_comercial",
+      "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1794455927300,
+      "tag": "0061_rls_por_consulta_mentoria",
+      "breakpoints": true
     }
   ]
 }
