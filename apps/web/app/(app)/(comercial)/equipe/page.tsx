@@ -28,9 +28,7 @@ export default async function EquipePage() {
         <h1 className="mt-1.5 text-[34px] leading-tight font-bold tracking-[-0.04em]">Equipe</h1>
         <p className="text-sm text-ink2">Números do mês corrente (horário de Brasília).</p>
       </div>
-      <ul
-        className="reveal-grid grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 4xl:grid-cols-6"
-      >
+      <ul className="reveal-grid grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 4xl:grid-cols-6">
         {members.map((m) => (
           <li key={m.id} className="glass-card flex flex-col gap-3 p-5">
             <div className="flex items-center gap-3">

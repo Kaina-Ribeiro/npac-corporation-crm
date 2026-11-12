@@ -2,6 +2,7 @@
 import type { LeadCatalog, MeetingDTO, ProductDTO, Role } from '@npac/shared';
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { clientApi } from '@/lib/client-api';
+import { closeWithMotion } from '@/lib/dialog-motion';
 import { readStageFields, stageFieldsKind, type StageFieldsBody } from '@/lib/stage-fields';
 import { button, FormError, quietButton } from './crm-ui';
 import { StageFields, type OpenMeeting, type StageFieldsLead } from './stage-fields';
@@ -96,7 +97,7 @@ export function StageMoveDialog({
     setBusy(true);
     try {
       await onSubmit(body);
-      onClose();
+      closeWithMotion(ref.current, onClose);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -108,14 +109,15 @@ export function StageMoveDialog({
     <dialog
       ref={ref}
       aria-labelledby={titleId}
-      // Fecha na hora (sem esperar o evento `close`, que chega depois e fecharia a próxima).
+      // Esc: sai animada e só então avisa quem abriu (sem esperar o evento `close` nativo, que
+      // chegaria depois e fecharia a próxima).
       onCancel={(e) => {
         e.preventDefault();
-        onClose();
+        closeWithMotion(ref.current, onClose);
       }}
       // Fora da entrada em cascata da página (.page-reveal), que deixava a janelinha transparente.
       data-own-motion
-      className="m-auto w-[min(460px,calc(100vw-32px))] rounded-3xl bg-[var(--bg)] p-0 text-ink shadow-[0_30px_80px_-20px_rgba(0,0,0,.45)] backdrop:bg-black/30 backdrop:backdrop-blur-[2px]"
+      className="dlg m-auto w-[min(460px,calc(100vw-32px))] rounded-3xl bg-[var(--bg)] p-0 text-ink shadow-[0_30px_80px_-20px_rgba(0,0,0,.45)] backdrop:bg-black/30 backdrop:backdrop-blur-[2px]"
     >
       <form onSubmit={submit} className="flex flex-col gap-4 p-6">
         <h2 id={titleId} className="text-lg font-bold tracking-[-0.02em]">
@@ -140,7 +142,11 @@ export function StageMoveDialog({
         )}
         <FormError message={error} />
         <div className="flex flex-wrap justify-end gap-2">
-          <button type="button" className={quietButton} onClick={onClose}>
+          <button
+            type="button"
+            className={quietButton}
+            onClick={() => closeWithMotion(ref.current, onClose)}
+          >
             Cancelar
           </button>
           {!blocked && (

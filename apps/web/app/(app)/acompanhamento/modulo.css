@@ -3921,3 +3921,80 @@
     }
   }
 }
+
+/* Resposta ao ponteiro e ao toque (NPAC-47, T4.3): tudo que é clicável no módulo muda de cor e
+   de fundo em `--dur-fast`, afunda um pouco no toque em `--dur-press` e ganha um hover discreto
+   onde não tinha. Mesmos tokens e curvas do CRM (`globals.css`); movimento reduzido zera tudo. */
+.ac {
+  :is(
+    .row,
+    .tabs a,
+    .tabs button,
+    .chip,
+    .fchip,
+    .seg button,
+    .hf button,
+    .fc-menu button,
+    .busca-item,
+    .back,
+    .pl-link,
+    .pl-p,
+    .pl-mod,
+    .pl-id .nm,
+    .check,
+    .fr-hit,
+    .st-b,
+    .fun-t,
+    .pl-m,
+    .pn-fechar,
+    .rn-abrir,
+    .imp-det summary,
+    .pme-hist summary,
+    .aviso-campo button,
+    .ml.sair > button
+  ) {
+    transition:
+      background-color var(--dur-fast) var(--ease-out),
+      color var(--dur-fast) var(--ease-out),
+      border-color var(--dur-fast) var(--ease-out),
+      box-shadow var(--dur-fast) var(--ease-out),
+      opacity var(--dur-fast) var(--ease-out),
+      scale var(--dur) var(--ease-out);
+  }
+  /* Toque: afunda na hora (80 ms) e volta na curva normal. */
+  :is(
+      .tabs a,
+      .tabs button,
+      .chip,
+      .fchip,
+      .seg button,
+      .hf button,
+      .rn-abrir,
+      .pn-fechar,
+      .st-b
+    ):active:not(:disabled) {
+    scale: 0.97;
+    transition-duration: var(--dur-press);
+  }
+  :is(.row, .fc-menu button, .busca-item, .pl-p, .pl-mod):active {
+    transition-duration: var(--dur-press);
+  }
+  @media (hover: hover) {
+    :is(.tabs a, .tabs button, .seg button, .hf button):not(.on):hover {
+      color: var(--ink);
+    }
+    :is(.tabs a, .tabs button):not(.on):hover {
+      background: var(--fill);
+    }
+    .fchip:not(.on):hover {
+      color: var(--ink);
+      box-shadow: inset 0 0 0 0.5px var(--fill-line);
+    }
+    .chip:hover {
+      opacity: 0.85;
+    }
+    .back:hover {
+      color: var(--ink);
+    }
+  }
+}

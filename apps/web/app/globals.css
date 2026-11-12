@@ -1544,6 +1544,53 @@ html[data-nav-pending] .ac > :not(.top, nav, .nav-skeleton) {
   animation: dash-pop 0.35s var(--ease-spring) both;
 }
 
+/* Janelinhas (`<dialog>` modal com `.dlg`, NPAC-47): entram em `--dur` subindo 8 px de um leve
+   recuo e saem em `--dur-fast`. A entrada é `@starting-style`; a saída é `[data-closing]`, posto
+   por `closeWithMotion` (`lib/dialog-motion.ts`) antes do `close()`, com a janela ainda modal.
+   `overlay`/`display` com `allow-discrete` cobrem o fechamento nativo (Esc repetido). */
+@layer components {
+  .dlg {
+    transition:
+      opacity var(--dur) var(--ease-out),
+      scale var(--dur) var(--ease-out),
+      translate var(--dur) var(--ease-out),
+      overlay var(--dur) allow-discrete,
+      display var(--dur) allow-discrete;
+  }
+  .dlg:not([open]),
+  .dlg[data-closing] {
+    opacity: 0;
+    scale: 0.97;
+    translate: 0 8px;
+  }
+  .dlg[data-closing] {
+    transition-duration: var(--dur-fast);
+  }
+  .dlg::backdrop {
+    transition:
+      opacity var(--dur) var(--ease-out),
+      overlay var(--dur) allow-discrete,
+      display var(--dur) allow-discrete;
+  }
+  .dlg:not([open])::backdrop,
+  .dlg[data-closing]::backdrop {
+    opacity: 0;
+  }
+  .dlg[data-closing]::backdrop {
+    transition-duration: var(--dur-fast);
+  }
+  @starting-style {
+    .dlg[open] {
+      opacity: 0;
+      scale: 0.97;
+      translate: 0 8px;
+    }
+    .dlg[open]::backdrop {
+      opacity: 0;
+    }
+  }
+}
+
 /* Dropdown com o visual do CRM (NPAC-39): select nativo personalizável (`appearance:
    base-select`, Chrome/Edge 135+). Só CSS, nenhum JS: teclado, leitor de tela e formulário
    continuam os do select nativo. Navegador sem suporte (Safari, iPhone) mantém o seletor do
