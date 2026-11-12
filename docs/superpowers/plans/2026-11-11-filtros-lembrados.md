@@ -260,6 +260,6 @@ Página: chaves lembradas `aba, dia, condutor, mes, mentoria`; sem nenhuma na UR
 
 - [ ] **Step 1:** e2e `onboarding lembra etapa e painel`, `ficha abre na última aba, em qualquer mentorado`, `link da fila com ?aba= vence`, `histórico lembra o filtro` → FAIL. **Step 2:** implementar. **Step 3:** PASS + `acompanhamento-v2-onboarding.spec.ts`, `acompanhamento-v2-base.spec.ts`. **Step 4:** Commit `feat(NPAC-46): onboarding e ficha lembram a escolha`.
 
-### Task 13: Fechar o PR 2 — Status: ⏳
+### Task 13: Fechar o PR 2 — Status: ✅ (PR #86)
 
 - [ ] Igual ao Task 8 (lint, typecheck, e2e completo, capturas das telas do módulo, `CLAUDE.md` com "última URL por aba" e `lembrar-url.tsx`), PR `feat(NPAC-46): filtros lembrados no acompanhamento`.
