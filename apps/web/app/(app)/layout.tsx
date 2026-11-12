@@ -72,7 +72,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <Suspense>
         <NavProgress />
       </Suspense>
-      <LiveUpdates />
+      <LiveUpdates revision={me.revision} />
       {commercial && <TabTitle />}
       <CommandPalette
         nav={paletteItems({

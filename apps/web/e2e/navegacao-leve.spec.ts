@@ -63,3 +63,27 @@ test('abrir o Plano não recarrega a própria tela e faz poucas requisições RS
   expect(rsc.filter((r) => r.path === '/acompanhamento/plano' && !r.prefetch)).toEqual([]);
   expect(rsc.length, JSON.stringify(rsc)).toBeLessThanOrEqual(20);
 });
+
+test('abrir a ficha não carrega a tela duas vezes (canal ao vivo em dia responde ready)', async ({
+  page,
+}) => {
+  // Fase 3 (T3.1): o `ready` ao conectar virava `crm:invalidate` e a ficha fazia `router.refresh()`.
+  await entrar(page, 'ale');
+  const [lead] = await owner<{ id: string }[]>`select id from leads where name = 'Lead do Ale'`;
+  const rota = `/leads/${lead!.id}`;
+  const ficha = await page.context().newPage();
+  const recargas: string[] = [];
+  ficha.on('request', (req) => {
+    const url = new URL(req.url());
+    if (url.pathname !== rota || req.resourceType() === 'document') return;
+    if (req.headers()['next-router-prefetch'] !== undefined) return;
+    recargas.push(req.url());
+  });
+  // A aba conecta com a revisão que o render entregou.
+  const canal = ficha.waitForRequest((r) => /\/api\/events\?rev=\d+$/.test(r.url()));
+  await ficha.goto(rota);
+  await expect(ficha.getByRole('heading', { name: 'Lead do Ale', level: 1 })).toBeVisible();
+  await canal;
+  await ficha.waitForTimeout(3000);
+  expect(recargas).toEqual([]);
+});
