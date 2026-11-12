@@ -414,6 +414,13 @@
       "when": 1794454576054,
       "tag": "0058_acompanhamento_v2_metas",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1794455807300,
+      "tag": "0059_acompanhamento_v2_ciclo_status",
+      "breakpoints": true
     }
   ]
 }

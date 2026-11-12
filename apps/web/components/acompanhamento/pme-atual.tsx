@@ -26,7 +26,6 @@ import { dataBR, ICONES, Icone } from './ui';
 const sm = `${quietButton} sm`;
 const CLASSE_CICLO: Record<CicloStatus, string> = {
   EM_ANDAMENTO: 'onb',
-  SEGUNDA_CHANCE: 'gold',
   CONCLUIDO: 'ativo',
   NAO_CONCLUIDO: 'canc',
 };

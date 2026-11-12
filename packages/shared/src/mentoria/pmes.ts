@@ -6,16 +6,15 @@ export const PRAZO_PME_DIAS = 30;
 export const NUMEROS_PME = Array.from({ length: 13 }, (_, n) => n);
 export const ULTIMO_PME = 12;
 
-export const CICLO_STATUS = [
-  'EM_ANDAMENTO',
-  'SEGUNDA_CHANCE',
-  'CONCLUIDO',
-  'NAO_CONCLUIDO',
-] as const;
+/**
+ * Status do ciclo (do banco, `mentoria_ciclo_status`). A "segunda chance" (spec S1) está pendente com
+ * a Eduarda: o ciclo aberto fica em andamento, com os dias de atraso; não concluído só quando o
+ * seguinte é enviado sem este fechar.
+ */
+export const CICLO_STATUS = ['EM_ANDAMENTO', 'CONCLUIDO', 'NAO_CONCLUIDO'] as const;
 export type CicloStatus = (typeof CICLO_STATUS)[number];
 export const CICLO_STATUS_LABEL: Record<CicloStatus, string> = {
   EM_ANDAMENTO: 'Em andamento',
-  SEGUNDA_CHANCE: 'Segunda chance',
   CONCLUIDO: 'Concluído',
   NAO_CONCLUIDO: 'Não concluído',
 };
