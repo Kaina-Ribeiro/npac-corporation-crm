@@ -38,12 +38,12 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   `api/finance/finance.service.ts` · relatórios/dashboard/CSV/feed `api/finance/reports.service.ts` ·
   Hoje `api/today/*` · avisos/filtros salvos `api/notifications/notifications.ts`, `views.ts` ·
   chat/handoff/equipe/playbook `api/collab/*` · admin `api/admin/users.ts`, `catalog.ts`, `lgpd.ts`,
-  `access-requests.ts` · SSE `api/events/events.controller.ts` · import Firebase `api/import/*` ·
+  `access-requests.ts` · SSE `api/events/events.controller.ts` + contador `revision.service.ts` · import Firebase `api/import/*` ·
   push (Web Push) e despertador dos lembretes `api/push/*` ·
   mock do protótipo `api/dev/mock-prototype.ts`
 - **Web:** layout/sidebar/bottom nav `web/app/(app)/layout.tsx`, `web/components/shell/*` (menu da
   sidebar e do Ctrl+K, grupos e sub-itens do Acompanhamento: `shell/nav-menu.tsx`, só servidor, para
-  não pesar no JS; `nav-items.tsx` vai ao cliente pela barra inferior) · classes de botão `lib/button.ts` · dropdown (todos os `<select>`) com o visual do CRM só por CSS
+  não pesar no JS; `nav-items.tsx` também fica no servidor, a barra inferior é componente de servidor) · classes de botão `lib/button.ts` · dropdown (todos os `<select>`) com o visual do CRM só por CSS
   (`appearance: base-select` + `::picker(select)` no fim de `globals.css`; Safari fica com o do
   sistema; Lightning CSS não aceita pseudo-classe depois de `::picker`, use `select:open::picker(select)`) · login,
   pedir acesso `web/components/login/*` · senha/MFA `components/conta/*`, `app/(conta)/*` · API
@@ -61,6 +61,13 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   rápida do Hoje `today-quick-action.tsx` · closer completa o pagamento `payment-complete.tsx` · menu de CSV `csv-export.tsx` (API: `api/common/csv.ts`) ·
   avisos compartilhados (selo do chat, `(N)` na aba, lembretes) `lib/alerts.ts`, `meeting-reminder.tsx` ·
   push no aparelho `lib/push.ts`, `public/sw.js`, `/conta/avisos`
+- **Movimento e resposta** (NPAC-47, Fase 4): entrada de página em `globals.css` (`.page-reveal`, `.reveal`,
+  `.reveal-grid`; opção B do Gabriel: sobe 6 px, `--dur-enter` 220 ms, cascata de 3 blocos × `--stagger` 30 ms,
+  tudo pronto em 280 ms, sem desfoque; cards do Pipeline não animam um a um) · janelinhas `<dialog class="dlg">`
+  entram por `@starting-style` e saem por `closeWithMotion` (`lib/dialog-motion.ts`: anima com a janela ainda
+  modal, depois `close()`) · aviso "Salvo" `components/toast.ts` (`showToast()`, sem React: região `role="status"` do layout, um por vez, 2,5 s;
+  único texto aprovado, D3) · `startNavProgress(href)` (`shell/nav-progress.tsx`) antes de `router.push` ·
+  movimento reduzido zera duração e atraso (`globals.css`, `prefers-reduced-motion`) · e2e `e2e/resposta-imediata.spec.ts`
 - **Acompanhamento (mentorados), v2 em 5 partes** (plano `docs/superpowers/plans/2026-11-10-acompanhamento-v2-fase-1.md`, protótipo `docs/acompanhamento/prototipo/canvas/`):
   API `api/mentoria/*` (guarda 404 + MFA: `MentoriaController` em `mentoria.guard.ts`; perfil `perfil.guard.ts`,
   `perfis.*`; inscrição e ficha `inscricoes.*`, `ficha.service.ts`, `historico.ts`; mídia `midia.controller.ts`,
@@ -71,7 +78,9 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   remarcar/excluir no banco; IDR realizada → `data_idr`/início de Brasília + ATIVO + ações em `iniciarPelaIdr`;
   reunião realizada conclui a ação do mesmo `reuniao_tipo`; Especialista vê só inscrições/reuniões que conduz,
   nunca IDR); Fila do dia `fila.*` (0053: `mentoria_fila(agora)` calcula na leitura, SECURITY INVOKER;
-  quem vê cada item `sh/mentoria/fila.ts` `itemVisivel`; `mentoria_fila_feitos` conclui o que não tem estado;
+  0064: sem função por linha que releia tabela, porque cada uma reavalia a RLS (era 0,6–1 s); o mês da
+  jornada e os dias parados repetem a conta de `mentoria_mes_jornada`/`mentoria_dias_pausados`: mudou
+  uma delas, mude a Fila; `db/test/fila-equivalencia.test.ts` compara com a versão da 0053; quem vê cada item `sh/mentoria/fila.ts` `itemVisivel`; `mentoria_fila_feitos` conclui o que não tem estado;
   relógio `MENTORIA_CLOCK` em `relogio.ts`); mensagens-modelo `mensagens.controller.ts` + `sh/mentoria/mensagens.ts`
   (0054; `{nome}`/`{nomes}`, WhatsApp copia e abre `wa.me/<número>` sem texto); push da Fila `avisos.scheduler.ts`
   (0055: um timer, `mentoria_aviso_proximo`/`_reclamar`, `mentoria_avisos_enviados`; `AvisosRearme` no
@@ -79,7 +88,10 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   anonimizar e transferir carteira `carteira.controller.ts` (0056); **Fase 2** (cobrança, plano
   `docs/superpowers/plans/2026-11-11-acompanhamento-v2-fase-2.md`, spec `docs/superpowers/specs/2026-11-11-acompanhamento-v2-fase-2-design.md`),
   Parte 1 (0057): catálogo `mentoria_pmes` em Configurações > PMEs (`pmes.controller.ts`, só Admin; a migration traz o 1º e o 2º do PDF),
-  ciclos e tarefas do ciclo `ciclos.*` + `sh/mentoria/pmes.ts`, card "PME atual" na Jornada (`components/acompanhamento/pme-atual.tsx`)
+  ciclos e tarefas do ciclo `ciclos.*` + `sh/mentoria/pmes.ts`, card "PME atual" na Jornada (`components/acompanhamento/pme-atual.tsx`);
+  Parte 2 (0058): metas `metas.*` + `sh/mentoria/metas.ts`, tarefas da reunião (`POST reunioes/:id/tarefas`, `DELETE tarefas/:id` em
+  `ciclos.*`), cobrança e blocos do registro (`components/acompanhamento/tarefas-reuniao.tsx`, `metas.tsx`), % do PME em SQL
+  (`mentoria_pct_tarefas`; barra por meta); 0059 tira a segunda chance do status do ciclo
   · banco `db/src/schema/mentoria.ts`
   - 0044–0045 (`mentoria_perfil()`, `mentoria_admin()`, `mentoria_ve()`, `mentoria_edita()`, funções `mentoria_*`) ·
     seed `db/src/seed-mentoria.ts` · lógica pura `sh/mentoria/*` (cliente: `@npac/shared/mentoria`, sem zod) ·
@@ -90,6 +102,32 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
 - **Docs:** `docs/spec.md`; deploy `docs/deploy.md` (Oracle), `docs/deploy-cubeship.md` (o `web` do
   ITODEV só fala com a API dele pela build arg `API_INTERNAL_URL`; sem ela cai na API de produção:
   conferir com o `curl` da seção 4 antes de testar); planos `docs/superpowers/plans/`; releases `RELEASING.md`
+
+**Navegação e carregamento** (desempenho, Fase 2, 12/11/2026): o menu usa o `prefetch` padrão do Next
+(rota dinâmica sem `loading.tsx` não pré-carrega a página); `semPrefetch` (Ficha e itens "Em breve")
+vira `prefetch={false}`; link de linha ou card de lista leva `prefetch={false}`. Nunca `prefetch`
+completo (renderizava telas inteiras e gravava auditoria em segundo plano) nem `router.refresh()` ao
+montar (o clique já traz o dado fresco); `router.refresh()` só depois de ação. **Sem `loading.tsx`**:
+com ele a carga direta começa a ser enviada antes da página, e `notFound()` sai 200 e `redirect()` vira
+redirecionamento no navegador (quebra o 404 de quem não vê). O esqueleto (`components/shell/page-skeleton.tsx`)
+vem escondido na casca (`main` e `.ac`) e o `NavProgress` marca `data-nav-pending` no `<html>` no clique
+de link para outra tela (CSS `.nav-skeleton` em `globals.css`); sai quando a URL muda. Erro de tela:
+`app/(app)/error.tsx`, "Não foi possível carregar." + "Tentar de novo" (`retry()`, que rebusca;
+`reset()` não). `BottomNav` é componente de servidor (ícones fora do JS). Prova: `e2e/navegacao-leve.spec.ts`.
+
+**Canal ao vivo** (desempenho, Fase 3, D2, 12/11/2026): contador global `app_revision` (0062, uma linha). Gatilho
+adiado para o commit (`CONSTRAINT TRIGGER … DEFERRABLE INITIALLY DEFERRED`, por linha, soma 1 por transação; UPDATE que
+não muda nada não soma) em `leads`, `lead_tasks`, `lead_timeline`, `chat_*`, `notifications`, `meetings` e `deals` (as duas últimas mudam o que
+o closer vê). `RevisionService` lê `n`
+com um temporizador de 2 s por processo (não por aba) e qualquer escrita vira `invalidate` para todas as abas; a sessão é
+conferida ao abrir e a cada 10 s (`heartbeat`). `/api/me` traz `revision`; o layout a passa ao `LiveUpdates`, que abre
+`/api/events?rev=`: igual à atual sai `ready` (a aba não recarrega: ficha, lista e Pipeline não carregam duas vezes),
+diferente ou ausente sai `invalidate`. Tabela nova que deva avisar a tela: o mesmo gatilho na migration. Não
+grave em tabela vigiada ao recarregar (laço de avisos); se precisar, só quando o valor muda.
+**Relatório** (`reports.service.ts`): resposta travada byte a byte por `test/reports-legacy.ts` (cópia congelada) em
+`reports.e2e.test.ts`; mexeu na busca, esse teste diz se algum número mudou (mudança de número pedida: altere a
+cópia no mesmo PR). `GET /team` usa `peopleOfMonth(tx)` (só por
+SDR e por closer). Índices só com plano que os use (`explain` no `npac_e2e_perf`): 0063.
 
 Next 16 tem APIs incompatíveis: em dúvida, `web/node_modules/next/dist/docs/`. Valor exportado de
 módulo `'use client'` não é legível em server component: constantes compartilhadas ficam em arquivo
@@ -166,12 +204,23 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   ciclo do número seguinte (1 a 12) com uma tarefa EXTRA por atividade do catálogo e uma ENCERRAMENTO (texto cifrado; sem texto
   no catálogo, "Encerramento do Nº PME"); só ATIVO, antes do término; ciclo aberto vira `nao_concluido_em`; o 1º preenche
   `pme1_enviado_em`, e o "Enviado" do 1º PME na Fila também abre o ciclo 1. Status derivado em `mentoria_ciclo_status(concluido,
-nao_concluido, prazo, hoje)` com o `hoje` do `MENTORIA_CLOCK`: até 9 dias de atraso em andamento, 10–16 segunda chance, 17+ não
-  concluído. Encerramento FEITA fecha o ciclo por gatilho; voltar reabre (recusa se o seguinte já saiu). Ciclo anterior ao sistema
+nao_concluido, prazo, hoje)`: aberto = em andamento com "N dias de atraso" (do `MENTORIA_CLOCK`); não concluído só com o
+  seguinte enviado (0059: a segunda chance, S1, está pendente com a Eduarda). Encerramento FEITA fecha o ciclo por gatilho; voltar reabre (recusa se o seguinte já saiu). Ciclo anterior ao sistema
   (`ciclos/anterior`) sem tarefas, fecha à mão (área `TAREFA`). Marcar tarefa (resultado, motivo só em parcial/não feita,
   comprovante foto/vídeo/PDF em `tarefa-comprovante/:id/midia`): Admin e Acompanhamento; Especialista só as REUNIAO das próprias
   reuniões (`mentoria_ve_tarefa`/`mentoria_edita_tarefa`); Operação envia mas não marca. Até 3 tarefas por reunião (gatilho, para a
   Parte 2). Pausa não estica o prazo do PME (pergunta aberta à Eduarda).
+  **Metas e tarefas da reunião** (Fase 2, Parte 2, 12/11/2026): metas (`mentoria_metas`, casal ou de uma pessoa, pilar, alvo/atual
+  `numeric`, unidade, prazo, descrição cifrada) leem Admin, Acompanhamento e Operação (`mentoria_ve_meta`); escrevem Admin e
+  Acompanhamento (área `META`); a **Especialista não vê metas**. Meta nasce no ciclo aberto (se houver). **Sem status da meta (S3) e
+  sem exclusão de meta ou tarefa**: esperam decisão do Gabriel (pendências no plano da Fase 2, Parte 2). Registro da reunião:
+  "Cobrança da reunião anterior" (tarefas REUNIAO da última reunião REALIZADA antes desta, entre as que quem abre vê), "Tarefas da
+  semana" (até 3, prazo obrigatório, meta opcional, entra no ciclo aberto) e "Metas definidas ou ajustadas"; os textos da Fase 1
+  continuam. Só a tarefa REUNIAO muda texto, prazo e meta; reunião com tarefa/meta não se exclui (a FK apagaria as tarefas).
+  Vínculos (ciclo, reunião, pessoa, meta) da mesma inscrição por gatilho. % do PME (E5, `mentoria_pct_tarefas`, `SECURITY
+DEFINER`, a Especialista vê o número inteiro): só tarefas FEITA ÷ total do ciclo (PARCIAL não conta). Metas não viram número
+  único (pendente com a Eduarda): cada meta com alvo tem a própria barra (`pct` na leitura); sem alvo (S4), nenhum %. Ficha >
+  Jornada: card do PME (extras e encerramento + barra de tarefas), Tarefas (as da reunião por PME) e Metas.
 - **Siglas das mentorias** (Gabriel, 04/11/2026): RDV = Rico de Verdade · IDR = Introdução da
   Riqueza · PME = Plano Mensal de Enriquecimento · 2M = Marco e Mudança · 6M = sem definição ainda.
   Nas telas vale o texto literal do PDF, exceto IDR: "Introdução da Riqueza" (o PDF diz "à"; corrigido).
@@ -300,6 +349,8 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
   agenda; cobranças têm bloco próprio. `moveDue` passa o que vence no navegador (sem polling, que
   gravaria auditoria). Ação rápida `POST /leads/:id/quick-action` (Chamado/Remarcado/Próxima ação).
 - Desativar usuário derruba sessões; leads dele vão por `POST /admin/users/:id/transfer-leads`.
+  Login de conta desativada: 401 com o mesmo corpo da senha errada (gancho `session.create.before` em
+  `api/auth/auth.ts` lança o erro do plugin `username`; `return false` ali vira 500).
 - Fuso `America/Sao_Paulo`; `datetime-local` = Brasília (`brasiliaInput`); intervalos [início, fim);
   em `sql` cru, datas como ISO string.
 - Métricas em SQL com CTEs que não multiplicam linhas; vendas contam por `deals`, não por etapa.
@@ -309,6 +360,9 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
   período, filtro atual ou tudo (`period: 'ALL'` só no CSV). `POST /reports/export` = relatório do
   período em CSV (resumo + por SDR/closer/produto, sem contato), para todos; SDR sem venda. As
   exportações dos Relatórios leem o formulário na tela, não o último "Atualizar".
+- Ação de um clique (concluir na Fila, marcar feita no Plano, mover card no Pipeline): `useOptimistic` +
+  `startTransition`, a tela muda no clique; erro desfaz e mostra a mensagem da API; sucesso chama `showToast()`.
+  Ação nova do mesmo tipo segue o padrão.
 - Erros da API em português para o usuário final (`BadRequestException('…')`); o `clientApi` mostra a
   mensagem, as padrão do Nest viram texto genérico. `clientApi` aceita 204.
 
@@ -351,6 +405,14 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
   lido da tabela de dentro e a contagem dá zero.
 - RLS, grants, triggers e SECURITY DEFINER são SQL manual: revise além do schema. `npac_app` sem
   UPDATE numa tabela não pode `SELECT … FOR UPDATE` nela.
+- **Política de leitura sem função por linha** (desempenho, Fase 1, 0060–0061): no `USING` de
+  SELECT/ALL (e de `leads_update`), toda função vai dentro de `(select f())`, calculada uma vez por
+  consulta; o que depende da linha compara com uma lista: `id = any ((select closer_lead_ids())::uuid[])`
+  (comercial), `(select mentoria_ve_todas()) or inscricao_id = any ((select mentoria_ids_especialista())::uuid[])`
+  (Acompanhamento). Nunca `closer_has_lead(id)`/`mentoria_ve(inscricao_id)` direto: com 20 mil leads o
+  Dashboard do SDR levava 20 s. O teste-guarda de `db/test/rls-por-consulta.test.ts` varre `pg_policies`
+  (única exceção: `mentoria_midia_leitura`). INSERT/UPDATE com `mentoria_edita*` seguem por linha.
+  Tabela nova do módulo: política de leitura nesse formato e caso no teste de equivalência.
 - Valor novo de enum não vale na mesma transação da migration (compare como texto).
 - Aplicar no dev: `pnpm --filter @npac/db build && pnpm --filter @npac/db migrate`.
   psql: `docker exec npac-corporation-postgres-1 psql -U npac_owner -d npac`.
@@ -370,7 +432,20 @@ pnpm --filter @npac/shared test
 pnpm --filter @npac/api exec vitest run test/leads.e2e.test.ts -t "nome"   # focado
 pnpm --filter @npac/web e2e [e2e/admin.spec.ts]   # Playwright (~2 min)
 pnpm exec prettier --write <arquivos>
+pnpm perf:seed                       # recria npac_e2e_perf com ~20 mil leads e ~360 inscrições (~2 min)
+pnpm perf:api                        # API de medição na porta 4150 (produção, npac_e2e_perf)
+scripts/perf/medir.sh igor GET /api/leads?page=1          # mediana de 5, em ms (bash)
+node scripts/perf/medir-sql.mjs igor sonia                # count(*) e canal ao vivo sob a RLS
+# Varredura por cargo num ambiente publicado (só lê): login → cada item do menu em 1440/1024/768/375,
+# com erro na tela, console, 4xx/5xx da API e rolagem lateral; relatório e capturas em VARREDURA_OUT
+VARREDURA_URL=https://crm-itodev… VARREDURA_SENHA=… VARREDURA_OUT=<pasta> node apps/web/scripts/varredura-por-cargo.mjs <usuário>…
 ```
+
+- Endereço que não existe é 404 com a navegação do cargo (`app/not-found.tsx`); não há mais a página
+  "Em breve" do comercial (`[secao]`). Os "Em breve" do Acompanhamento ficam (D4).
+
+- **Medição** só no `npac_e2e_perf` (nunca no dev `npac`); senha de todos `senha-do-e2e-123`. Plano,
+  metas e números de antes/depois em `docs/plans/desempenho.md`.
 
 - **Dev só pelo painel**: `preview_start` `npac-dev` (`.claude/launch.json`), nunca `pnpm dev` em
   segundo plano (porta 3000). e2e e dev disputam portas e `.next`: antes do e2e, `preview_stop` e
@@ -383,7 +458,7 @@ pnpm exec prettier --write <arquivos>
   (SDR), sonia (CLOSER), carla (Acompanhamento sem perfil), duda (Acompanhamento + Admin), operacao, manu, leo, `@npac.com.br`; teste que troca papel: `update "user" set role = …` e restaurar.
 - Playwright: `filter({ visible: true })`/`exact: true` (layout mobile oculto duplica controles);
   `role=alert` também pega o anunciador de rotas do Next; nada de `networkidle` (SSE).
-- JS de `/leads` < 150 KB gzip (teste; hoje ~149,4). Sem libs pesadas no cliente, nem zod; prefira server components.
+- JS de `/leads` < 150 KB gzip (teste; hoje ~149,7, com a release em 150,0 antes da Fase 2 do desempenho). Sem libs pesadas no cliente, nem zod; prefira server components.
 - Capturas dos e2e: `apps/web/test-results/*.png`.
 
 ## Não commitar

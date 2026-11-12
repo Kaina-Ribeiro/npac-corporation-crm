@@ -59,6 +59,16 @@ const TITULOS: Record<string, string> = {
   'acao.editada': 'Alteração na ação do plano',
   'inscricao.pausada': 'Inscrição pausada',
   'inscricao.retomada': 'Inscrição retomada',
+  'pme.enviado': 'PME enviado',
+  'pme.anterior': 'PME anterior ao sistema registrado',
+  'pme.editado': 'Alteração no PME',
+  'pme.concluido': 'PME concluído',
+  'pme.reaberto': 'PME reaberto',
+  'tarefa.criada': 'Tarefa combinada na reunião',
+  'tarefa.marcada': 'Resultado da tarefa',
+  'tarefa.editada': 'Alteração na tarefa',
+  'meta.criada': 'Meta definida',
+  'meta.editada': 'Alteração na meta',
 };
 
 const CAMPOS: Record<string, string> = {
@@ -141,7 +151,27 @@ const CAMPOS: Record<string, string> = {
   itensFeitos: 'Passos',
   observacao: 'Observação',
   evidenciaLink: 'Evidência',
+  descricao: 'Descrição',
+  prazo: 'Prazo',
+  motivo: 'Motivo',
+  pilar: 'Pilar',
+  pessoaId: 'De quem',
+  valorAlvo: 'Alvo',
+  valorAtual: 'Atual',
+  unidade: 'Unidade',
+  concluidoEm: 'Conclusão',
+  tarefa_reuniao: 'Tarefa da reunião',
+  tarefa_extra: 'Atividade extra',
+  tarefa_encerramento: 'Encerramento',
+  tarefa_pme: 'Tarefa do PME',
 };
+
+/** `pme_3` e `pme_3_nao_concluido` (envio do PME) viram "3º PME" e "3º PME não concluído". */
+function nomeCampo(c: string): string {
+  const pme = /^pme_(\d+)(_nao_concluido)?$/.exec(c);
+  if (pme) return `${pme[1]}º PME${pme[2] ? ' não concluído' : ''}`;
+  return CAMPOS[c] ?? c;
+}
 
 const DIA = 86_400_000;
 
@@ -301,9 +331,7 @@ function Evento({ e }: { e: HistoricoItem }) {
           {anotacao ? `Anotação de ${e.ator}` : `${TITULOS[e.tipo] ?? 'Alteração'} por ${e.ator}`}
         </b>
         {anotacao && <p>{e.texto}</p>}
-        {!anotacao && e.campos.length > 0 && (
-          <p>Campos: {e.campos.map((c) => CAMPOS[c] ?? c).join(', ')}.</p>
-        )}
+        {!anotacao && e.campos.length > 0 && <p>Campos: {e.campos.map(nomeCampo).join(', ')}.</p>}
         <time dateTime={e.quando}>{quando(e.quando)}</time>
       </div>
     </div>

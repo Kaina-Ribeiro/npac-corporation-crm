@@ -112,7 +112,10 @@ test('Operação registra o envio, Duda fecha pelo encerramento, Manu só vê', 
   await card.getByRole('button', { name: 'Registrar envio do 1º PME' }).click();
   await page.getByRole('button', { name: 'Registrar envio', exact: true }).click();
   await expect(card.getByText('Em andamento')).toBeVisible();
-  await expect(card.getByText('0 de 3 feitas')).toBeVisible();
+  await expect(card.getByRole('meter', { name: 'Tarefas do 1º PME' })).toHaveAttribute(
+    'aria-valuetext',
+    '0%',
+  );
   await expect(card.getByRole('button', { name: /^Marcar feita: Arrancar/ })).toBeDisabled();
   await capturar(page, 'operacao', async () => {
     await page.goto(ficha);

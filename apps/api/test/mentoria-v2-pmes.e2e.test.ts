@@ -193,15 +193,16 @@ describe('envio do PME', () => {
 });
 
 describe('status e datas do ciclo', () => {
-  it('9 dias de atraso em andamento; 10 e 16 segunda chance; 17 não concluído', async () => {
+  it('aberto fica em andamento com os dias de atraso (sem segunda chance, S1 pendente)', async () => {
     const i = await inscricao();
     const s = await operacao();
     let c = await enviarOk(s, i, { enviadoEm: dia(39) });
     expect([c.status, c.diasAtraso]).toEqual(['EM_ANDAMENTO', 9]);
     for (const [envio, status, atraso] of [
-      [40, 'SEGUNDA_CHANCE', 10],
-      [46, 'SEGUNDA_CHANCE', 16],
-      [47, 'NAO_CONCLUIDO', 17],
+      [40, 'EM_ANDAMENTO', 10],
+      [46, 'EM_ANDAMENTO', 16],
+      [47, 'EM_ANDAMENTO', 17],
+      [80, 'EM_ANDAMENTO', 50],
     ] as const) {
       const r = await h.patch(
         `/api/mentoria/ciclos/${c.id}`,

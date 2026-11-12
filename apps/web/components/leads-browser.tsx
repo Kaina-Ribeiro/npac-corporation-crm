@@ -43,6 +43,9 @@ const dateFmt = new Intl.DateTimeFormat('pt-BR', {
   timeZone: 'America/Sao_Paulo',
 });
 
+/** Cada abertura da janelinha de etapa é uma instância nova (a anterior pode estar saindo). */
+let aberturas = 0;
+
 /** Busca só em memória: contatos nunca vão para URL ou armazenamento persistente. */
 export function LeadsBrowser({
   initialData,
@@ -90,11 +93,14 @@ export function LeadsBrowser({
   const [saved, setSaved] = useState('');
   const [bulkMsg, setBulkMsg] = useState('');
   // Mudança de etapa que pede dados: um lead (célula) ou os selecionados (massa, só Sem Perfil).
-  const [pending, setPending] = useState<{ lead?: LeadDTO; target: string } | null>(null);
+  // `n`: cada abertura é uma janelinha nova (a anterior pode ainda estar saindo, animada).
+  const [pending, setPending] = useState<{ lead?: LeadDTO; target: string; n: number } | null>(
+    null,
+  );
   // Janelinha dos campos da etapa (NPAC-38): só baixa quando abre, fora da primeira carga de /leads.
   const [StageMoveDialog, setDialog] = useState<typeof Dialog | null>(null);
   function askStage(p: { lead?: LeadDTO; target: string }) {
-    setPending(p);
+    setPending({ ...p, n: ++aberturas });
     if (!StageMoveDialog)
       import('./stage-move-dialog')
         .then((m) => setDialog(() => m.StageMoveDialog))
@@ -519,7 +525,11 @@ export function LeadsBrowser({
               <li key={l.id} className="glass-card flex flex-col gap-2 p-3.5">
                 <div className="flex items-center gap-2.5">
                   {checkbox(l)}
-                  <Link href={`/leads/${l.id}`} className="flex-1 truncate text-base font-semibold">
+                  <Link
+                    href={`/leads/${l.id}`}
+                    prefetch={false}
+                    className="flex-1 truncate text-base font-semibold"
+                  >
                     {l.name}
                   </Link>
                   <span className={`tier tier-${l.tier}`}>{TIER_LABELS[l.tier]}</span>
@@ -584,7 +594,9 @@ export function LeadsBrowser({
                   >
                     <td className="border-b border-line pl-3.5">{checkbox(l)}</td>
                     <td className="h-[46px] border-b border-line px-3.5 font-semibold whitespace-nowrap">
-                      <Link href={`/leads/${l.id}`}>{l.name}</Link>
+                      <Link href={`/leads/${l.id}`} prefetch={false}>
+                        {l.name}
+                      </Link>
                     </td>
                     <td className="border-b border-line px-2">{stageSelect(l, cell)}</td>
                     {/* Perfil vem da faixa de renda: muda trocando a faixa na ficha. */}
@@ -653,7 +665,7 @@ export function LeadsBrowser({
       </p>
       {pending && StageMoveDialog && (
         <StageMoveDialog
-          key={`${pending.lead?.id ?? 'massa'}-${pending.target}`}
+          key={pending.n}
           title={`Mover ${pending.lead ? pending.lead.name : `${selected.length} ${selected.length === 1 ? 'lead' : 'leads'}`} para ${catalog.stages.find((st) => st.key === pending.target)?.label ?? 'a etapa'}`}
           stage={pending.target}
           lead={pending.lead}
@@ -668,7 +680,8 @@ export function LeadsBrowser({
             } else await bulk(change);
           }}
           // Cancelar não muda nada: a célula volta à etapa antiga.
-          onClose={() => setPending(null)}
+          // Só limpa a própria mudança (a janelinha sai animada; outra pode já estar aberta).
+          onClose={() => setPending((cur) => (cur === pending ? null : cur))}
         />
       )}
       {selected.length > 0 && (

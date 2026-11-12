@@ -10,11 +10,12 @@ import {
   type CicloDTO,
   type CicloPatch,
   type EnvioPme,
+  type TarefaCriar,
   type TarefaDTO,
   type TarefaPatch,
   type TarefaStatus,
 } from '@npac/shared';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, sql, type SQL } from 'drizzle-orm';
 import { DB } from '../common/db/db.module.js';
 import { conflitoDeVersao, erroDoBanco } from './erros.js';
 import { exigirEdicao, registrarHistorico } from './historico.js';
@@ -24,10 +25,16 @@ import { MENTORIA_CLOCK, type Clock } from './relogio.js';
 const DIA_BR = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' });
 
 type LinhaCiclo = Omit<CicloDTO, 'tarefas'>;
-type LinhaTarefa = Omit<TarefaDTO, 'descricao' | 'motivo'> & {
+type LinhaTarefa = Omit<TarefaDTO, 'descricao' | 'motivo' | 'reuniaoInicio'> & {
   descricao: string | null;
   motivo: string | null;
+  reuniaoInicio: Date | string | null;
 };
+
+/** Ordem das tarefas no ciclo (card do PME): a do catálogo. */
+const POR_CICLO = sql`t.ciclo_id, t.ordem, t.criado_em, t.id`;
+/** Ordem das tarefas da reunião (ficha): da reunião mais recente, na ordem em que foram combinadas. */
+export const POR_REUNIAO = sql`r.inicio desc nulls last, t.ordem, t.criado_em, t.id`;
 
 /**
  * PMEs e ciclos (Fase 2, Parte 1, spec §3). O status do ciclo é do banco
@@ -50,6 +57,7 @@ export class CiclosService {
   private decifrar(t: LinhaTarefa): TarefaDTO {
     return {
       ...t,
+      reuniaoInicio: t.reuniaoInicio ? new Date(t.reuniaoInicio).toISOString() : null,
       descricao: this.crypto.decifrarOpcional(
         t.descricao,
         aad('mentoria_tarefas', 'descricao', t.id),
@@ -58,18 +66,24 @@ export class CiclosService {
     };
   }
 
-  private async tarefas(tx: Tx, filtro: ReturnType<typeof sql>): Promise<TarefaDTO[]> {
+  /** Tarefas pelo filtro (RLS: a Especialista só as das próprias reuniões). */
+  async tarefas(tx: Tx, filtro: SQL, ordem: SQL = POR_CICLO): Promise<TarefaDTO[]> {
     const linhas = await tx.execute<LinhaTarefa>(sql`
       select t.id, t.version, t.inscricao_id as "inscricaoId", t.origem, t.ciclo_id as "cicloId",
         t.reuniao_id as "reuniaoId", t.descricao, to_char(t.prazo, 'YYYY-MM-DD') as prazo,
         t.status, t.motivo, t.comprovante_midia_id as "comprovanteMidiaId",
         m.tipo as "comprovanteTipo", t.cobrada_em as "cobradaEm", u.name as "cobradaPor",
+        t.meta_id as "metaId", c.numero as "cicloNumero", r.inicio as "reuniaoInicio",
+        r.tipo as "reuniaoTipo",
         mentoria_edita_tarefa(t.reuniao_id, t.inscricao_id) as "podeEditar"
       from mentoria_tarefas t
       left join mentoria_midia m on m.id = t.comprovante_midia_id
       left join "user" u on u.id = t.cobrada_por
+      left join mentoria_ciclos c on c.id = t.ciclo_id
+      left join mentoria_reunioes r on r.id = t.reuniao_id
       where ${filtro}
-      order by t.ciclo_id, t.ordem, t.criado_em, t.id`);
+      order by ${ordem}
+      limit 1000`);
     return linhas.map((t) =>
       this.decifrar({
         ...t,
@@ -88,7 +102,8 @@ export class CiclosService {
         c.anterior_ao_sistema as "anteriorAoSistema",
         mentoria_ciclo_status(c.concluido_em, c.nao_concluido_em, c.prazo, ${hoje}::date) as status,
         case when c.concluido_em is null and c.nao_concluido_em is null
-          then greatest(${hoje}::date - c.prazo, 0) else 0 end as "diasAtraso"
+          then greatest(${hoje}::date - c.prazo, 0) else 0 end as "diasAtraso",
+        mentoria_pct_tarefas(c.id) as "pctTarefas"
       from mentoria_ciclos c left join mentoria_pmes p on p.id = c.pme_id
       where c.inscricao_id = ${inscricaoId}::uuid
       order by c.numero desc`);
@@ -306,7 +321,52 @@ export class CiclosService {
     });
   }
 
-  /** "Fiz" lançado pela equipe (E8): resultado e motivo. O comprovante vai pela rota de mídia. */
+  /** A meta escolhida é da inscrição e visível a quem combina (a Especialista não escolhe meta). */
+  private async validarMeta(tx: Tx, inscricaoId: string, metaId: string) {
+    const [m] = await tx.execute<{ id: string }>(sql`
+      select id from mentoria_metas
+      where id = ${metaId}::uuid and inscricao_id = ${inscricaoId}::uuid`);
+    if (!m) throw new BadRequestException('Meta não encontrada');
+  }
+
+  /**
+   * Tarefa da semana combinada na reunião (§4): até 3 (gatilho), prazo obrigatório, no ciclo aberto
+   * se houver. Quem marca tarefas combina; a Especialista, só nas reuniões dela.
+   */
+  criarTarefa(u: AuthUser, reuniaoId: string, b: TarefaCriar): Promise<TarefaDTO> {
+    const id = randomUUID();
+    return withUser(this.db, u.id, async (tx) => {
+      const [r] = await tx.execute<{ inscricao_id: string; ok: boolean }>(sql`
+        select r.inscricao_id, mentoria_edita_tarefa(r.id, r.inscricao_id) as ok
+        from mentoria_reunioes r where r.id = ${reuniaoId}::uuid`);
+      if (!r?.ok) throw new NotFoundException();
+      if (b.metaId) await this.validarMeta(tx, r.inscricao_id, b.metaId);
+      await tx.execute(sql`
+        insert into mentoria_tarefas (id, inscricao_id, origem, reuniao_id, ciclo_id, meta_id,
+          ordem, descricao, prazo)
+        values (${id}::uuid, ${r.inscricao_id}::uuid, 'REUNIAO', ${reuniaoId}::uuid,
+          (select c.id from mentoria_ciclos c where c.inscricao_id = ${r.inscricao_id}::uuid
+            and c.concluido_em is null and c.nao_concluido_em is null),
+          ${b.metaId ?? null}::uuid,
+          (select coalesce(max(x.ordem) + 1, 0) from mentoria_tarefas x
+            where x.reuniao_id = ${reuniaoId}::uuid and x.origem = 'REUNIAO'),
+          ${this.crypto.cifrarTexto(b.descricao, aad('mentoria_tarefas', 'descricao', id))},
+          ${b.prazo}::date)`);
+      await registrarHistorico(tx, r.inscricao_id, 'tarefa.criada', [
+        'tarefa_reuniao',
+        'descricao',
+        'prazo',
+        ...(b.metaId ? ['meta'] : []),
+      ]);
+      const [t] = await this.tarefas(tx, sql`t.id = ${id}::uuid`);
+      return t!;
+    }).catch((e) => erroDoBanco(e));
+  }
+
+  /**
+   * "Fiz" lançado pela equipe (E8): resultado e motivo. O comprovante vai pela rota de mídia. Na
+   * tarefa da reunião, também texto, prazo e meta.
+   */
   atualizarTarefa(u: AuthUser, id: string, b: TarefaPatch): Promise<{ version: number }> {
     return withUser(this.db, u.id, async (tx) => {
       const [t] = await tx.select().from(mentoriaTarefas).where(eq(mentoriaTarefas.id, id));
@@ -315,6 +375,23 @@ export class CiclosService {
         sql`select mentoria_edita_tarefa(${t.reuniaoId}::uuid, ${t.inscricaoId}::uuid) as ok`,
       );
       if (!q?.ok) throw new NotFoundException();
+      const mudaCombinado =
+        b.descricao !== undefined || b.prazo !== undefined || b.metaId !== undefined;
+      if (mudaCombinado && t.origem !== 'REUNIAO')
+        throw new BadRequestException('Só a tarefa da reunião muda texto, prazo e meta');
+      if (b.metaId) await this.validarMeta(tx, t.inscricaoId, b.metaId);
+      const combinado = {
+        ...(b.descricao !== undefined
+          ? {
+              descricao: this.crypto.cifrarTexto(
+                b.descricao,
+                aad('mentoria_tarefas', 'descricao', id),
+              ),
+            }
+          : {}),
+        ...(b.prazo !== undefined ? { prazo: b.prazo } : {}),
+        ...(b.metaId !== undefined ? { metaId: b.metaId } : {}),
+      };
       const status = (b.status ?? t.status) as TarefaStatus;
       const pede = tarefaPedeMotivo(status);
       if (!pede && b.motivo)
@@ -329,6 +406,7 @@ export class CiclosService {
         .set({
           status,
           ...motivo,
+          ...combinado,
           version: sql`${mentoriaTarefas.version} + 1`,
           atualizadoEm: sql`now()`,
         })
@@ -340,6 +418,7 @@ export class CiclosService {
         `tarefa_${t.origem.toLowerCase()}`,
         ...(mudou ? ['status'] : []),
         ...(b.motivo !== undefined || (mudou && !pede && t.motivo) ? ['motivo'] : []),
+        ...Object.keys(combinado).map((k) => (k === 'metaId' ? 'meta' : k)),
       ]);
       return r;
     }).catch((e) => erroDoBanco(e));

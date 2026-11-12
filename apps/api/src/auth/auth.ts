@@ -4,9 +4,9 @@ import { user as userTable, type Db } from '@npac/db';
 import { MFA_LIGADO } from '@npac/shared';
 import { betterAuth, type BetterAuthPlugin } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { createAuthMiddleware, getSessionFromCtx, isAPIError } from 'better-auth/api';
+import { APIError, createAuthMiddleware, getSessionFromCtx, isAPIError } from 'better-auth/api';
 import { twoFactor } from 'better-auth/plugins/two-factor';
-import { username } from 'better-auth/plugins/username';
+import { USERNAME_ERROR_CODES, username } from 'better-auth/plugins/username';
 import { eq } from 'drizzle-orm';
 import type { AuditService } from '../audit/audit.service.js';
 import type { Env } from '../config/env.js';
@@ -170,13 +170,19 @@ export function createAuth(db: Db, env: Env, audit: AuditService) {
     databaseHooks: {
       session: {
         create: {
-          // Usuário desativado não abre sessão.
+          // Usuário desativado não abre sessão. Recusa com o mesmo 401 e a mesma mensagem da
+          // senha errada (só chega aqui quem acertou a senha): a resposta não revela que a conta
+          // existe. `return false` virava 500 "Failed to create session".
           before: async (s) => {
             const [u] = await db
               .select({ active: userTable.active })
               .from(userTable)
               .where(eq(userTable.id, s.userId));
-            return u?.active ? undefined : false;
+            if (!u?.active)
+              throw APIError.from(
+                'UNAUTHORIZED',
+                USERNAME_ERROR_CODES.INVALID_USERNAME_OR_PASSWORD,
+              );
           },
         },
       },

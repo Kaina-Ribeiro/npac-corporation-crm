@@ -16,6 +16,7 @@ import { useState, type FormEvent } from 'react';
 import { button, control, FormError, quietButton } from '@/components/crm-ui';
 import { clientApi } from '@/lib/client-api';
 import { ICONES, Icone } from './ui';
+import { startNavProgress } from '@/components/shell/nav-progress';
 
 const VOLTAR = '/acompanhamento/mentorados';
 
@@ -76,6 +77,7 @@ export function NovaInscricao({
         ...(valorCentavos === undefined ? {} : { valorCentavos }),
         pessoas: visiveis.map((p) => preenchidos(p)),
       });
+      startNavProgress(`/acompanhamento/ficha/${ficha.id}`);
       router.push(`/acompanhamento/ficha/${ficha.id}`);
     } catch (err) {
       setErro((err as Error).message);

@@ -36,7 +36,8 @@ import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { DB } from '../common/db/db.module.js';
 import { conflitoDeVersao, erroDoBanco } from './erros.js';
 import { exigirEdicao, registrarHistorico } from './historico.js';
-import { CiclosService } from './ciclos.service.js';
+import { CiclosService, POR_REUNIAO } from './ciclos.service.js';
+import { MetasService } from './metas.service.js';
 import { aad, MentoriaCrypto } from './mentoria-crypto.js';
 import { PlanoService } from './plano.service.js';
 import { ReunioesService } from './reunioes.service.js';
@@ -51,6 +52,7 @@ export class FichaService {
     private readonly plano: PlanoService,
     private readonly reunioes: ReunioesService,
     private readonly ciclos: CiclosService,
+    private readonly metas: MetasService,
   ) {}
 
   /** Monta a ficha dentro da transação; RLS decide: invisível = 404. */
@@ -107,6 +109,7 @@ export class FichaService {
       contato: boolean;
       pme: boolean;
       tarefa: boolean;
+      meta: boolean;
       admin: boolean;
       travado_por: string | null;
       pausa_dias: number | null;
@@ -121,6 +124,7 @@ export class FichaService {
         mentoria_edita('CONTATO', ${id}::uuid) as contato,
         mentoria_edita('PME', ${id}::uuid) as pme,
         mentoria_edita('TAREFA', ${id}::uuid) as tarefa,
+        mentoria_edita('META', ${id}::uuid) as meta,
         mentoria_admin() as admin,
         (select name from "user" where id = ${momento?.travadoPor ?? null}) as travado_por,
         (select (now() at time zone 'America/Sao_Paulo')::date - p.inicio
@@ -251,6 +255,12 @@ export class FichaService {
       contatos: await this.reunioes.contatosDaInscricao(tx, id),
       ciclos: await this.ciclos.daInscricao(tx, id, hoje),
       hoje,
+      metas: await this.metas.daInscricao(tx, id),
+      tarefasReuniao: await this.ciclos.tarefas(
+        tx,
+        sql`t.inscricao_id = ${id}::uuid and t.origem = 'REUNIAO'`,
+        POR_REUNIAO,
+      ),
       pausa: pausa
         ? {
             inicio: pausa.inicio,
@@ -271,6 +281,7 @@ export class FichaService {
         contato: extra?.contato === true,
         pme: extra?.pme === true,
         tarefa: extra?.tarefa === true,
+        meta: extra?.meta === true,
         admin: extra?.admin === true,
       },
     };

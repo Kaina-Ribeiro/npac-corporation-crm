@@ -29,6 +29,8 @@ import { DB } from '../common/db/db.module.js';
 import { conflitoDeVersao, erroDoBanco } from './erros.js';
 import { exigirEdicao, registrarHistorico } from './historico.js';
 import { aad, MentoriaCrypto } from './mentoria-crypto.js';
+import { CiclosService, POR_REUNIAO } from './ciclos.service.js';
+import { MetasService } from './metas.service.js';
 import { PlanoService } from './plano.service.js';
 
 const HOJE = sql`(now() at time zone 'America/Sao_Paulo')::date`;
@@ -114,6 +116,8 @@ export class ReunioesService {
     @Inject(DB) private readonly db: Db,
     private readonly crypto: MentoriaCrypto,
     private readonly plano: PlanoService,
+    private readonly ciclos: CiclosService,
+    private readonly metas: MetasService,
   ) {}
 
   private consultar(tx: Tx, where: SQL[], limite = 500) {
@@ -125,7 +129,10 @@ export class ReunioesService {
         r.inicio, r.duracao_min, r.plataforma, r.link, r.status, r.remarcada_para_id,
         r.inicio <= now() as ja_comecou, ${TEM_REGISTRO} as tem_registro,
         mentoria_edita_reuniao(r.conduzida_por, r.tipo, r.inscricao_id) as pode_editar,
-        (r.status = 'AGENDADA' and not ${TEM_REGISTRO} and (mentoria_admin()
+        (r.status = 'AGENDADA' and not ${TEM_REGISTRO}
+          and not exists (select 1 from mentoria_tarefas t where t.reuniao_id = r.id)
+          and not exists (select 1 from mentoria_metas m where m.reuniao_id = r.id)
+          and (mentoria_admin()
           or coalesce(mentoria_perfil() in ('ACOMPANHAMENTO', 'OPERACAO'), false))) as pode_excluir
       from mentoria_reunioes r
       join mentoria_inscricoes i on i.id = r.inscricao_id
@@ -248,8 +255,42 @@ export class ReunioesService {
       if (!r) throw new NotFoundException();
       const texto = (campo: ReuniaoTexto) =>
         this.crypto.decifrarOpcional(r[campo], aad('mentoria_reunioes', COLUNA[campo], id));
+      const tarefas = await this.ciclos.tarefas(
+        tx,
+        sql`t.reuniao_id = ${id}::uuid and t.origem = 'REUNIAO'`,
+        POR_REUNIAO,
+      );
+      // Cobrança (§4): as tarefas da última reunião realizada antes desta (das que quem abre vê).
+      const [ant] = await tx.execute<{ id: string; inicio: Date; tipo: ReuniaoTipo }>(sql`
+        select a.id, a.inicio, a.tipo from mentoria_reunioes a
+        where a.inscricao_id = ${r.inscricaoId}::uuid and a.id <> ${id}::uuid
+          and a.status = 'REALIZADA'
+          and a.inicio < ${new Date(r.inicio).toISOString()}::timestamptz
+        order by a.inicio desc, a.id limit 1`);
+      const cobranca = ant
+        ? {
+            reuniao: { id: ant.id, inicio: new Date(ant.inicio).toISOString(), tipo: ant.tipo },
+            tarefas: await this.ciclos.tarefas(
+              tx,
+              sql`t.reuniao_id = ${ant.id}::uuid and t.origem = 'REUNIAO'`,
+              POR_REUNIAO,
+            ),
+          }
+        : null;
+      const [pode] = await tx.execute<{ tarefa: boolean; meta: boolean }>(sql`
+        select mentoria_edita_tarefa(${id}::uuid, ${r.inscricaoId}::uuid) as tarefa,
+          mentoria_edita('META', ${r.inscricaoId}::uuid) as meta`);
+      const pessoas = await tx.execute<{ id: string; nome: string }>(sql`
+        select id, nome from mentoria_pessoas where inscricao_id = ${r.inscricaoId}::uuid
+        order by ordem`);
       return {
         ...emItem(item),
+        tarefas,
+        cobranca,
+        metasInscricao: await this.metas.daInscricao(tx, r.inscricaoId),
+        pessoasDaInscricao: [...pessoas],
+        podeTarefa: pode?.tarefa === true,
+        podeMeta: pode?.meta === true,
         resumo: texto('resumo'),
         metas: texto('metas'),
         combinado: texto('combinado'),

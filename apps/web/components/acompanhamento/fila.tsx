@@ -18,10 +18,11 @@ import {
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { readPrefs } from '@npac/shared/screen-prefs';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useOptimistic, useRef, useState, useTransition } from 'react';
 import { FILA_REGRAS, atualizarAc } from '@/lib/acompanhamento-prefs';
 import { readPreference } from '@/lib/read-preference';
 import { clientApi } from '@/lib/client-api';
+import { showToast } from '@/components/toast';
 import { ExportarBotao } from './exportar-botao';
 import { ICONES, Icone, Rostos, dataBR, diaBR, horaBR } from './ui';
 import { WhatsappBotoes } from './whatsapp-botoes';
@@ -225,8 +226,11 @@ export function Fila({
   const router = useRouter();
   const params = useSearchParams();
   const [grupo, setGrupo] = useState<FilaGrupo | 'TODOS'>(inicialGrupo);
-  const [ocupado, setOcupado] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  // Concluir (NPAC-47): o item sai da lista no clique; erro da API o devolve, com a mensagem.
+  // Item de link da IDR: só a ação do link some, a reunião de hoje fica na agenda.
+  const [feitos, marcarFeito] = useOptimistic<string[], string>([], (f, chave) => [...f, chave]);
+  const [, startTransition] = useTransition();
   const agora = new Date(dados.agora);
 
   // A IDR de hoje aparece uma vez na agenda; o "enviar o link" vira a ação da linha.
@@ -243,7 +247,11 @@ export function Fila({
     (FILA_GRUPOS.find((x) => x.chave === g)!.tipos as readonly string[]).includes(i.tipo);
   const linhas: Linha[] = dados.itens
     .filter((i) => !(i.tipo === 'LINK_IDR' && reunioesHoje.has(i.referenciaId)))
-    .map((item) => ({ item, link: linkDe.get(item.referenciaId) ?? null }));
+    .filter((i) => !feitos.includes(i.chave))
+    .map((item) => {
+      const link = linkDe.get(item.referenciaId) ?? null;
+      return { item, link: link && !feitos.includes(link.chave) ? link : null };
+    });
   const visiveis = linhas.filter((l) => daGrupo(l.item, grupo));
   const agenda = visiveis
     .filter((l) => l.item.tipo === 'REUNIAO_HOJE')
@@ -295,20 +303,23 @@ export function Fila({
     setGrupo((salvo.grupo as FilaGrupo | undefined) ?? 'TODOS');
   }, [verUrl, lembrar.cookie, lembrar.valor, router]);
 
-  const executar = async (l: Linha) => {
+  const executar = (l: Linha) => {
     const acao = l.link ? acaoDe(l.link) : acaoDe(l.item);
     if (!acao?.run) return;
-    setOcupado(l.item.chave);
+    const run = acao.run;
+    const chave = (l.link ?? l.item).chave;
     setErro(null);
-    try {
-      await acao.run();
-      if (selChave === l.item.chave) fechar();
-      router.refresh();
-    } catch (e) {
-      setErro((e as Error).message);
-    } finally {
-      setOcupado(null);
-    }
+    if (!l.link && selChave === l.item.chave) fechar();
+    startTransition(async () => {
+      marcarFeito(chave);
+      try {
+        await run();
+        showToast();
+        router.refresh();
+      } catch (e) {
+        setErro((e as Error).message);
+      }
+    });
   };
 
   const atrasados = resto.filter((l) => l.item.atrasado).length;
@@ -320,18 +331,13 @@ export function Fila({
     if (!acao) return null;
     if (acao.href)
       return (
-        <Link className={classe} href={acao.href}>
+        <Link className={classe} href={acao.href} prefetch={false}>
           {acao.label}
         </Link>
       );
     return (
-      <button
-        type="button"
-        className={classe}
-        disabled={ocupado === l.item.chave}
-        onClick={() => void executar(l)}
-      >
-        {ocupado === l.item.chave ? 'Salvando…' : acao.label}
+      <button type="button" className={classe} onClick={() => executar(l)}>
+        {acao.label}
       </button>
     );
   };
@@ -544,7 +550,7 @@ function Painel({
       <div className="pn-a">
         {acao}
         {item.inscricaoId && (
-          <Link className="btn btn-secondary" href={ficha(item.inscricaoId)}>
+          <Link className="btn btn-secondary" href={ficha(item.inscricaoId)} prefetch={false}>
             Abrir ficha
           </Link>
         )}

@@ -8,7 +8,7 @@ import {
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { readPrefs } from '@npac/shared/screen-prefs';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ONBOARDING_REGRAS, atualizarAc } from '@/lib/acompanhamento-prefs';
 import { useLatestPrefs } from '@/lib/use-latest-prefs';
 import { button, quietButton } from '@/components/crm-ui';
@@ -43,7 +43,7 @@ function Linha({
 }) {
   return (
     <li className={`ob-r ${primeira ? 'p1' : ''}`}>
-      <Link className="ob-id" href={ficha(p.inscricaoId)}>
+      <Link className="ob-id" href={ficha(p.inscricaoId)} prefetch={false}>
         <Rostos pessoas={p.pessoas} />
         <div className="nm">
           {p.nome}
@@ -55,11 +55,19 @@ function Linha({
       <SeloDias p={p} />
       <div className="ob-acoes">
         {p.etapa === 'CAIXA' ? (
-          <Link className={sm(button)} href={`${ficha(p.inscricaoId)}?aba=jornada`}>
+          <Link
+            className={sm(button)}
+            href={`${ficha(p.inscricaoId)}?aba=jornada`}
+            prefetch={false}
+          >
             {p.status === 'ENVIADA' ? 'Registrar recebimento' : 'Registrar envio'}
           </Link>
         ) : p.etapa === 'IDR' ? (
-          <Link className={sm(quietButton)} href={`${ficha(p.inscricaoId)}?aba=jornada`}>
+          <Link
+            className={sm(quietButton)}
+            href={`${ficha(p.inscricaoId)}?aba=jornada`}
+            prefetch={false}
+          >
             Abrir a ficha
           </Link>
         ) : p.status === 'PENDENTE' ? (
@@ -119,11 +127,6 @@ export function OnboardingFunil({
   const [dispensando, setDispensando] = useState<PessoaFunil | null>(null);
   const coluna = painel.funil.find((c) => c.etapa === escolhida)!;
   const alertas = painel.funil.reduce((n, c) => n + c.alertas, 0);
-
-  // O menu pré-carrega a aba com os dados daquele instante; aqui as linhas andam por `version`.
-  useEffect(() => {
-    router.refresh();
-  }, [router]);
 
   async function andar(p: PessoaFunil, status: 'ENVIADA' | 'CONCLUIDA') {
     setErro('');

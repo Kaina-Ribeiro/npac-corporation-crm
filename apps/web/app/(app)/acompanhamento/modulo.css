@@ -3648,3 +3648,358 @@
     }
   }
 }
+
+/* Fase 2, Parte 2: % do PME, tarefas da reunião e metas */
+.ac {
+  .pme-barra-t {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 5px;
+  }
+  .pme-barra-t span {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--ink3);
+  }
+  .pme-barra-t b {
+    font-size: 14px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .pme-trilho {
+    height: 6px;
+    border-radius: 99px;
+    overflow: hidden;
+    background: rgba(120, 120, 128, 0.16);
+  }
+  .pme-trilho span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--gold-deep);
+    transition: width var(--dur-slow);
+  }
+  .mt-item .pme-trilho span {
+    background: var(--viz-2);
+  }
+  .mt-item .pme-barra-t span {
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--ink2);
+  }
+
+  .tr,
+  .mt {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  .pa .tr .pme-cab h3,
+  .pa .mt .pme-cab h3,
+  .tr-bloco .pme-cab h3 {
+    margin: 0;
+  }
+  .tr-bloco {
+    display: grid;
+    gap: 10px;
+    align-content: start;
+  }
+  .tr-bloco .mt {
+    margin-bottom: 0;
+  }
+  .tr-conta {
+    font-size: 13px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink2);
+  }
+  .tr-origem {
+    font-size: 13px;
+    color: var(--ink2);
+  }
+  .tr-grupo {
+    padding: 10px 14px 2px;
+    border-radius: 14px;
+    background: var(--fill);
+    box-shadow: inset 0 0 0 0.5px var(--line);
+  }
+  .tr-grupo + .tr-grupo,
+  .pme-hist > .tr-grupo {
+    margin-top: 8px;
+  }
+  .tr-grupo-t {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    padding-bottom: 4px;
+  }
+  .tr-grupo-t b {
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .tr-grupo-t span {
+    font-size: 12px;
+    color: var(--ink3);
+    font-variant-numeric: tabular-nums;
+  }
+  .tr-meta {
+    display: block;
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--viz-2);
+    overflow-wrap: anywhere;
+  }
+  .tr-comb {
+    display: grid;
+    gap: 6px;
+  }
+  .tr-texto,
+  .tr-linha input,
+  .tr-linha select {
+    width: 100%;
+    min-width: 0;
+    height: 36px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 9px;
+    font: inherit;
+    font-size: 15px;
+    color: var(--ink);
+    background: var(--fill);
+    box-shadow: inset 0 0 0 0.5px var(--line);
+  }
+  .tr-texto {
+    font-weight: 600;
+  }
+  .tr-linha {
+    display: grid;
+    grid-template-columns: minmax(0, 150px) minmax(0, 1fr);
+    gap: 6px;
+  }
+  .tr-linha label {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+  }
+  .tr-linha label span {
+    font-size: 11px;
+    color: var(--ink3);
+  }
+  .tr-linha input,
+  .tr-linha select {
+    height: 32px;
+    font-size: 14px;
+  }
+  .tr-excluir {
+    color: var(--danger);
+  }
+  .tr-nova,
+  .mt-nova {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    padding: 12px;
+    border-radius: 14px;
+    background: var(--fill);
+    box-shadow: inset 0 0 0 0.5px var(--line);
+  }
+  .tr-nova-desc,
+  .mt-nova-desc,
+  .tr-nova-acoes,
+  .mt-nova-acoes {
+    grid-column: 1 / -1;
+  }
+  .tr-nova-acoes,
+  .mt-nova-acoes {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+  .tr-nova-acoes > :first-child:not(button),
+  .mt-nova-acoes > :first-child:not(button) {
+    margin-right: auto;
+  }
+
+  .mt-lista {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .pme-hist .mt-lista {
+    margin-top: 8px;
+  }
+  .mt-item {
+    display: grid;
+    gap: 6px;
+    padding: 10px 14px;
+    border-radius: 14px;
+    background: var(--fill);
+    box-shadow: inset 0 0 0 0.5px var(--line);
+  }
+  .mt-topo {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .mt-topo b {
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 20px;
+    overflow-wrap: anywhere;
+  }
+  .mt-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    font-size: 12px;
+    color: var(--ink2);
+  }
+  .mt-chips span + span::before {
+    content: '·';
+    margin-right: 12px;
+    color: var(--ink3);
+  }
+  .mt-item .pr {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+    min-height: 0;
+    padding: 0;
+    border-bottom: 0;
+  }
+  .mt-item .pr > span {
+    font-size: 11px;
+    color: var(--ink3);
+  }
+  .mt-item .pv {
+    height: 34px;
+    padding: 0 10px;
+    font-size: 14px;
+    background: var(--gl-solid);
+    box-shadow: inset 0 0 0 0.5px var(--line);
+  }
+  .mt-item select.pv {
+    white-space: nowrap;
+  }
+  .mt-item .pr.mt-desc .pv {
+    height: 38px;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .mt-grade {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 136px), 1fr));
+    gap: 8px;
+  }
+  .mt-pe {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--ink3);
+  }
+  .mt-pe .pl-link {
+    color: var(--danger);
+  }
+  @media (min-width: 768px) {
+    .tr-nova,
+    .mt-nova {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+}
+
+/* Resposta ao ponteiro e ao toque (NPAC-47, T4.3): tudo que é clicável no módulo muda de cor e
+   de fundo em `--dur-fast`, afunda um pouco no toque em `--dur-press` e ganha um hover discreto
+   onde não tinha. Mesmos tokens e curvas do CRM (`globals.css`); movimento reduzido zera tudo. */
+.ac {
+  :is(
+    .row,
+    .tabs a,
+    .tabs button,
+    .chip,
+    .fchip,
+    .seg button,
+    .hf button,
+    .fc-menu button,
+    .busca-item,
+    .back,
+    .pl-link,
+    .pl-p,
+    .pl-mod,
+    .pl-id .nm,
+    .check,
+    .fr-hit,
+    .st-b,
+    .fun-t,
+    .pl-m,
+    .pn-fechar,
+    .rn-abrir,
+    .imp-det summary,
+    .pme-hist summary,
+    .aviso-campo button,
+    .ml.sair > button
+  ) {
+    transition:
+      background-color var(--dur-fast) var(--ease-out),
+      color var(--dur-fast) var(--ease-out),
+      border-color var(--dur-fast) var(--ease-out),
+      box-shadow var(--dur-fast) var(--ease-out),
+      opacity var(--dur-fast) var(--ease-out),
+      scale var(--dur) var(--ease-out);
+  }
+  /* Toque: afunda na hora (80 ms) e volta na curva normal. */
+  :is(
+      .tabs a,
+      .tabs button,
+      .chip,
+      .fchip,
+      .seg button,
+      .hf button,
+      .rn-abrir,
+      .pn-fechar,
+      .st-b
+    ):active:not(:disabled) {
+    scale: 0.97;
+    transition-duration: var(--dur-press);
+  }
+  :is(.row, .fc-menu button, .busca-item, .pl-p, .pl-mod):active {
+    transition-duration: var(--dur-press);
+  }
+  /* Aviso de erro ao marcar ação no Plano: linha inteira, acima das duas colunas. */
+  .pl-corpo > .aviso-campo {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+  @media (hover: hover) {
+    :is(.tabs a, .tabs button, .seg button, .hf button):not(.on):hover {
+      color: var(--ink);
+    }
+    :is(.tabs a, .tabs button):not(.on):hover {
+      background: var(--fill);
+    }
+    .fchip:not(.on):hover {
+      color: var(--ink);
+      box-shadow: inset 0 0 0 0.5px var(--fill-line);
+    }
+    .chip:hover {
+      opacity: 0.85;
+    }
+    .back:hover {
+      color: var(--ink);
+    }
+  }
+}

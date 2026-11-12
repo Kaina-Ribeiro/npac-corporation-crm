@@ -182,3 +182,36 @@ test('trilho recolhido: Diretoria dentro do módulo vê só o ícone do Acompanh
     lateral(page).getByRole('link', { name: 'Acompanhamento', exact: true }),
   ).toBeVisible();
 });
+
+test('endereço solto responde 404 com a navegação do cargo (sem a página "Em breve")', async ({
+  browser,
+}) => {
+  const casos = [
+    { email: 'ale@npac.com.br', texto: 'Página não encontrada.', link: 'Leads' },
+    {
+      email: 'duda@npac.com.br',
+      texto: 'Esta tela não faz parte do seu acesso.',
+      link: 'Fila do dia',
+    },
+  ];
+  for (const c of casos) {
+    const ctx = await browser.newContext();
+    const page = await ctx.newPage();
+    await login(page, c.email);
+    for (const rota of ['/qualquer-coisa', '/em-breve']) {
+      const res = await page.goto(rota);
+      expect(res?.status(), `${c.email} ${rota}`).toBe(404);
+      await expect(page).toHaveURL(new RegExp(`${rota}$`));
+      await expect(page.getByRole('heading', { name: c.texto })).toBeVisible();
+      await expect(page.getByRole('main').getByRole('heading', { name: 'Em breve' })).toHaveCount(
+        0,
+      );
+      await expect(
+        page
+          .getByRole('navigation', { name: 'Navegação lateral' })
+          .getByRole('link', { name: c.link, exact: true }),
+      ).toBeVisible();
+    }
+    await ctx.close();
+  }
+});

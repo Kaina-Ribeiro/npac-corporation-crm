@@ -36,7 +36,7 @@ export function NavGroup({
   return (
     <>
       <NavLink
-        item={{ ...item, children: undefined }}
+        item={{ href: item.href, match: item.match }}
         className={`${linkClass} side-parent`}
         activeClassName={activeClass}
       >
