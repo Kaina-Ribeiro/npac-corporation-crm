@@ -432,7 +432,13 @@ pnpm perf:seed                       # recria npac_e2e_perf com ~20 mil leads e 
 pnpm perf:api                        # API de medição na porta 4150 (produção, npac_e2e_perf)
 scripts/perf/medir.sh igor GET /api/leads?page=1          # mediana de 5, em ms (bash)
 node scripts/perf/medir-sql.mjs igor sonia                # count(*) e canal ao vivo sob a RLS
+# Varredura por cargo num ambiente publicado (só lê): login → cada item do menu em 1440/1024/768/375,
+# com erro na tela, console, 4xx/5xx da API e rolagem lateral; relatório e capturas em VARREDURA_OUT
+VARREDURA_URL=https://crm-itodev… VARREDURA_SENHA=… VARREDURA_OUT=<pasta> node apps/web/scripts/varredura-por-cargo.mjs <usuário>…
 ```
+
+- Endereço que não existe é 404 com a navegação do cargo (`app/not-found.tsx`); não há mais a página
+  "Em breve" do comercial (`[secao]`). Os "Em breve" do Acompanhamento ficam (D4).
 
 - **Medição** só no `npac_e2e_perf` (nunca no dev `npac`); senha de todos `senha-do-e2e-123`. Plano,
   metas e números de antes/depois em `docs/plans/desempenho.md`.
