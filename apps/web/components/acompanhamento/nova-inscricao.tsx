@@ -16,6 +16,7 @@ import { useState, type FormEvent } from 'react';
 import { button, control, FormError, quietButton } from '@/components/crm-ui';
 import { clientApi } from '@/lib/client-api';
 import { ICONES, Icone } from './ui';
+import { startNavProgress } from '@/components/shell/nav-progress';
 
 const VOLTAR = '/acompanhamento/mentorados';
 
@@ -37,6 +38,7 @@ export function NovaInscricao({
   responsaveis,
   responsavelPadrao,
 }: {
+  /** Só quem pode ser escolhido (perfil Acompanhamento, conta ativa). */
   responsaveis: { id: string; nome: string }[];
   responsavelPadrao: string;
 }) {
@@ -48,7 +50,8 @@ export function NovaInscricao({
     dataCompra: '',
     valor: '',
     formaPagamento: '',
-    statusFinanceiro: 'EM_DIA',
+    // O PDF não define um padrão: fica sem valor até alguém informar.
+    statusFinanceiro: '',
     origem: '',
     responsavelId: responsavelPadrao,
   });
@@ -74,6 +77,7 @@ export function NovaInscricao({
         ...(valorCentavos === undefined ? {} : { valorCentavos }),
         pessoas: visiveis.map((p) => preenchidos(p)),
       });
+      startNavProgress(`/acompanhamento/ficha/${ficha.id}`);
       router.push(`/acompanhamento/ficha/${ficha.id}`);
     } catch (err) {
       setErro((err as Error).message);
@@ -217,6 +221,7 @@ export function NovaInscricao({
                 value={compra.statusFinanceiro}
                 onChange={(e) => setCompra({ ...compra, statusFinanceiro: e.target.value })}
               >
+                <option value="">Não informado</option>
                 {STATUS_FINANCEIRO.map((s) => (
                   <option key={s} value={s}>
                     {STATUS_FINANCEIRO_LABEL[s]}

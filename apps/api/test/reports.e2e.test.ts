@@ -1,7 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import type { Db } from '@npac/db';
+import { DB } from '../src/common/db/db.module.js';
 import { api, closeTestApp, createTestApp, owner, resetAuthState } from './helpers.js';
+import { LegacyReportsService, legacyTeam, type ReportQuery } from './reports-legacy.js';
 let app: NestFastifyApplication, h: ReturnType<typeof api>, ale: string, head: string;
 beforeAll(async () => {
   app = await createTestApp();
@@ -347,5 +350,150 @@ describe('CSV de relatórios por período, filtro ou total', () => {
 
   it('busca da tela não aceita total', async () => {
     expect((await h.post('/api/reports/search', { period: 'ALL' }, head)).status).toBe(400);
+  });
+});
+
+// T3.2 do plano de desempenho: a reescrita em menos consultas responde byte a byte igual à versão
+// de antes (cópia congelada em reports-legacy.ts), com dados espalhados por este mês e o anterior.
+describe('resposta idêntica à de antes da reescrita', () => {
+  const ids: Record<string, string> = {};
+  let products: { id: string; closer_id: string }[] = [];
+  beforeEach(async () => {
+    for (const u of await owner<
+      { id: string; email: string }[]
+    >`select id, email from "user" where email like '%@npac.com.br'`)
+      ids[u.email.split('@')[0]!] = u.id;
+    products = await owner`select id, closer_id from products order by code`;
+    const sdrs = {
+      ale,
+      murilo: await h.signIn('murilo@npac.com.br'),
+      igor: await h.signIn('igor@npac.com.br'),
+    };
+    const bands = ['R5_8K', 'R8_15K', 'R15_50K', 'R50K_PLUS', 'DESCOBRINDO'] as const;
+    const sources = ['BIO', 'NACAO', 'YOUTUBE'] as const;
+    const leads: { id: string; band: string }[] = [];
+    let i = 0;
+    for (const [sdr, cookie] of Object.entries(sdrs))
+      for (const band of bands) {
+        i++;
+        const r = await h.post(
+          '/api/leads',
+          {
+            name: `Equivalência ${i}`,
+            instagram: `@eq.${sdr}.${i}`,
+            incomeBand: band,
+            source: sources[i % sources.length],
+          },
+          cookie,
+        );
+        expect(r.status, JSON.stringify(r.body)).toBe(201);
+        leads.push({ id: r.body.id, band });
+      }
+    // Criação espalhada: hoje, este mês e o mês anterior (o MONTH compara com ele).
+    for (const [k, l] of leads.entries())
+      await owner`update leads set created_at = now() - make_interval(days => ${(k * 3) % 45}, hours => ${k % 7}) where id = ${l.id}`;
+    // Reuniões de todo tipo: realizada, no-show, remarcada, aberta, cancelada, de outro closer.
+    const outcomes = ['DONE', 'NO_SHOW', 'RESCHEDULED', null, 'DONE'] as const;
+    for (const [k, l] of leads.entries()) {
+      if (l.band === 'DESCOBRINDO') continue;
+      for (let j = 0; j < 2; j++) {
+        const outcome = outcomes[(k + j) % outcomes.length]!;
+        const closer = (k + j) % 3 === 0 ? ids.sonia! : products[k % products.length]!.closer_id;
+        const day = (k + j * 5) % 40;
+        await owner`insert into meetings (lead_id, closer_id, scheduled_at, origin, outcome, outcome_at, canceled_at, created_by, created_at)
+          values (${l.id}, ${closer}, now() - make_interval(days => ${day}),
+            ${(k + j) % 2 ? 'FOLLOW' : 'DIRETO'}, ${outcome},
+            case when ${outcome}::text is null then null else now() - make_interval(days => ${day}, hours => 1) end,
+            case when ${(k + j) % 7 === 6} then now() end, ${ids.ale!},
+            now() - make_interval(days => ${(k * 2 + j) % 38}))`;
+      }
+    }
+    // Vendas: à vista e parcelada (parcela futura = a receber), datas recuadas, uma estornada.
+    for (const [k, l] of leads.entries()) {
+      if (k % 2 || l.band === 'DESCOBRINDO') continue;
+      const p = products[k % products.length]!;
+      const partial = k % 4 === 0;
+      const total = 100000 + k * 1337;
+      const r = await h.post(
+        '/api/finance/deals',
+        {
+          leadId: l.id,
+          productId: p.id,
+          closerId: p.closer_id,
+          version: 1,
+          totalCents: total,
+          method: partial ? 'PARTIAL' : 'PIX',
+          entryCents: partial ? 40000 : 0,
+          installments: partial
+            ? [{ amountCents: total - 40000, dueAt: '2030-01-01T12:00:00-03:00' }]
+            : [],
+          requestKey: randomUUID(),
+        },
+        head,
+      );
+      expect(r.status, JSON.stringify(r.body)).toBe(201);
+      const days = (k * 5) % 42;
+      const hours = k % 5;
+      await owner`update deals set closed_at = closed_at - make_interval(days => ${days}, hours => ${hours}) where lead_id = ${l.id}`;
+      await owner`update payments set paid_at = paid_at - make_interval(days => ${days}, hours => ${hours})
+        where paid_at is not null and deal_id in (select id from deals where lead_id = ${l.id})`;
+      if (k % 6 === 2)
+        await owner`update deals set reversed_at = now(), reversed_by = ${ids.ronaldo!} where lead_id = ${l.id}`;
+    }
+    // Uma venda no 1º dia do mês anterior: o "período anterior" do MONTH tem movimento em qualquer dia.
+    await owner`update deals set closed_at = (date_trunc('month', now() at time zone 'America/Sao_Paulo') - interval '1 month' + interval '12 hours') at time zone 'America/Sao_Paulo'
+      where total_cents = 300000`;
+    // Lead excluído com reunião e venda: não entra em nada.
+    await owner`update leads set deleted_at = now() where id = ${leads[4]!.id}`;
+  });
+
+  it('busca e equipe batem com a versão congelada para cada filtro e papel', async () => {
+    const db = app.get<Db>(DB);
+    const legacy = new LegacyReportsService(db);
+    const promo = (
+      await owner<{ id: string }[]>`select id from products where code='NACAO_PROMO'`
+    )[0]!.id;
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(
+      new Date(),
+    );
+    const from = new Date(Date.now() - 80 * 86_400_000).toISOString().slice(0, 10);
+    const filters: ReportQuery[] = [
+      { period: 'MONTH' },
+      { period: 'MONTH', sdrId: ids.ale },
+      { period: 'MONTH', closerId: products[0]!.closer_id, productId: promo },
+      { period: 'TODAY' },
+      { period: 'RANGE', from, to: today },
+      { period: 'RANGE', from, to: today, closerId: ids.sonia },
+      { period: 'RANGE', from, to: today, tier: 'P1', page: 2, pageSize: 3 },
+      { period: 'RANGE', from, to: today, stage: 'SONDAGEM', source: 'BIO' },
+    ];
+    const people = [
+      ['diretor', 'DIRETOR'],
+      ['ronaldo', 'HEAD'],
+      ['ale', 'SDR'],
+      ['sonia', 'CLOSER'],
+    ] as const;
+    let compared = 0;
+    for (const [who, role] of people) {
+      const cookie = await h.signIn(`${who}@npac.com.br`);
+      const u = { id: ids[who]!, role };
+      for (const q of filters) {
+        const res = await h.post('/api/reports/search', q, cookie);
+        expect(res.status, `${who} ${JSON.stringify(q)}`).toBe(200);
+        expect(res.text, `${who} ${JSON.stringify(q)}`).toBe(
+          JSON.stringify(await legacy.search(u, q)),
+        );
+        compared++;
+      }
+      const team = await h.get('/api/team', cookie);
+      expect(team.text, `${who} /team`).toBe(JSON.stringify(await legacyTeam(db, u)));
+    }
+    expect(compared).toBe(filters.length * people.length);
+    // Os dados cobrem o que a reescrita precisa acertar (senão o teste passaria no vazio).
+    const month = await legacy.search({ id: ids.diretor!, role: 'DIRETOR' }, { period: 'MONTH' });
+    const m = month.metrics as Record<string, number>;
+    for (const k of ['leads', 'meetings', 'done', 'noShow', 'sales', 'soldCents', 'receivedCents'])
+      expect(m[k], k).toBeGreaterThan(0);
+    expect(month.previousDaily.some((d) => Number(d.soldCents) > 0)).toBe(true);
   });
 });

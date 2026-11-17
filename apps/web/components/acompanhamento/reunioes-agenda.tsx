@@ -8,7 +8,7 @@ import {
 } from '@npac/shared/mentoria';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { button, quietButton } from '@/components/crm-ui';
 import { clientApi } from '@/lib/client-api';
 import { dataBR, diaBR, horaBR, ICONES, Icone, Rostos, TagReuniao } from './ui';
@@ -39,7 +39,7 @@ export function AcaoRapida({ r, aoMudar }: { r: ReuniaoItem; aoMudar: () => void
   if (!passo) {
     if (r.status === 'LINK_ENVIADO' && r.jaComecou)
       return (
-        <Link className={`${button} sm`} href={linkReuniao(r)}>
+        <Link className={`${button} sm`} href={linkReuniao(r)} prefetch={false}>
           Registrar
         </Link>
       );
@@ -84,7 +84,7 @@ export function LinhaReuniao({
         {comDia && <small>{dataBR(diaBR(r.inicio)).slice(0, 5)}</small>}
         {horaBR(r.inicio)}
       </span>
-      <Link className="pl-id" href={linkReuniao(r)}>
+      <Link className="pl-id" href={linkReuniao(r)} prefetch={false}>
         <Rostos pessoas={r.pessoas} />
         <div className="nm">
           {r.nome}
@@ -116,10 +116,6 @@ export function ReunioesAgenda({
 }) {
   const router = useRouter();
   const atualizar = () => router.refresh();
-  // O menu pré-carrega a aba com os dados daquele instante.
-  useEffect(() => {
-    router.refresh();
-  }, [router]);
 
   const filtro = (dia: string, condutor: string) => {
     const q = new URLSearchParams({ aba: 'agenda', dia });

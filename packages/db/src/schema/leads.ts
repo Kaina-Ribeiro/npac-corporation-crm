@@ -83,6 +83,10 @@ export const leads = pgTable(
   (t) => [
     index('leads_sdr_id_idx').on(t.sdrId),
     index('leads_closer_id_idx').on(t.closerId),
+    // Colunas do Pipeline; desempenho, Fase 3 (0063).
+    index('leads_stage_id_idx')
+      .on(t.stageId)
+      .where(sql`${t.deletedAt} is null`),
     index('leads_next_contact_at_idx').on(t.nextContactAt),
     index('leads_phone_bidx_idx').on(t.phoneBidx),
     index('leads_instagram_idx').on(t.instagram),

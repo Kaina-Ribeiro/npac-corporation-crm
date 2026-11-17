@@ -111,7 +111,6 @@ test('filtro salvo aparece na sidebar e reabre a lista já filtrada', async ({ p
   await page.goto('/leads');
   await page.getByText('Filtrar e ordenar').click();
   await page.getByLabel('Perfil do lead').selectOption('P1');
-  await page.getByRole('button', { name: 'Aplicar filtros' }).click();
   await page.getByRole('button', { name: '+ Salvar este filtro' }).click();
   await page.getByLabel('Nome do filtro').fill('Meus P1');
   await page.getByRole('button', { name: 'Salvar', exact: true }).click();

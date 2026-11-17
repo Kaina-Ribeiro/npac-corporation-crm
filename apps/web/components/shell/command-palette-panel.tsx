@@ -8,6 +8,7 @@ import { clientApi } from '@/lib/client-api';
 import { SIDEBAR_EVENT } from '@/lib/sidebar';
 import type { PaletteItem } from './nav-menu';
 import { useSavedViews } from './saved-views-nav';
+import { startNavProgress } from './nav-progress';
 
 type Item = {
   id: string;
@@ -103,6 +104,7 @@ export function CommandPalettePanel({ nav, commercial, open, onClose }: PanelPro
   const views = useSavedViews(commercial);
   const go = (href: string) => () => {
     onClose();
+    startNavProgress(href);
     router.push(href);
   };
   const commands: Item[] = [

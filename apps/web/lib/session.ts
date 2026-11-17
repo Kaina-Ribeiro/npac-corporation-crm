@@ -12,6 +12,8 @@ export type Me = {
   twoFactorEnabled: boolean;
   mustChangePassword: boolean;
   modules: { mentoria: boolean };
+  /** Contador do canal ao vivo no render (ver `LiveUpdates`). */
+  revision?: string;
 };
 
 /** Usuário da sessão (via /api/me) ou null se não houver sessão válida. */

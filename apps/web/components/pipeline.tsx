@@ -10,17 +10,51 @@ import type {
 } from '@npac/shared';
 import { INCOME_DISCOVERY_STAGE, TIER_LABELS } from '@npac/shared/enums';
 import { can } from '@npac/shared/permissions';
+import {
+  pipelineRules,
+  readLeadFilters,
+  readPipelinePrefs,
+  writePrefs,
+} from '@npac/shared/screen-prefs';
 import Link from 'next/link';
-import { useLayoutEffect, useRef, useState, type CSSProperties, type FormEvent } from 'react';
+import {
+  useEffect,
+  useLayoutEffect,
+  useOptimistic,
+  useRef,
+  useState,
+  useTransition,
+  type CSSProperties,
+  type FormEvent,
+} from 'react';
 import { clientApi } from '@/lib/client-api';
 import { parseHidden, PIPE_COOKIE_PATH, serializeHidden } from '@/lib/pipeline-columns';
 import { stageNeedsFields, type StageFieldsBody } from '@/lib/stage-fields';
+import { keep, recall } from '@/lib/screen-memory';
+import { rememberPrefs } from '@/lib/screen-prefs';
 import { readPreference, savePreference } from '@/lib/user-cookie';
-import { button, control, FormError, quietButton, StageOptions } from './crm-ui';
+import { control, FormError, quietButton, StageOptions } from './crm-ui';
 import { LeadFilters, readFilters } from './lead-filters';
 import { PipelineColumnsEditor } from './pipeline-columns-editor';
 import { StageMoveDialog } from './stage-move-dialog';
 import { useCrmRefresh } from './shell/live-updates';
+import { showToast } from './toast';
+
+/** Cada abertura da janelinha é uma instância nova (a anterior pode estar saindo, animada). */
+let aberturas = 0;
+
+/** O card na coluna nova: na hora do clique e de novo quando a API confirma (idempotente). */
+function moveCard(cols: PipelineDTO, lead: PipelineLead, target: string): PipelineDTO {
+  return cols.map((c) => {
+    const had = c.items.some((l) => l.id === lead.id);
+    if (c.stage.key === target) {
+      if (had) return c;
+      const moved = { ...lead, stageKey: target as PipelineLead['stageKey'] };
+      return { ...c, total: c.total + 1, items: [moved, ...c.items] };
+    }
+    return had ? { ...c, total: c.total - 1, items: c.items.filter((l) => l.id !== lead.id) } : c;
+  });
+}
 
 export function Pipeline({
   initial,
@@ -30,6 +64,9 @@ export function Pipeline({
   role,
   cookie,
   initialHidden,
+  prefs,
+  initialFilters = {},
+  initialCol,
 }: {
   initial: PipelineDTO;
   catalog: LeadCatalog;
@@ -38,21 +75,32 @@ export function Pipeline({
   /** Cookie da pessoa com as colunas ocultas (pedido do Igor, 10/11/2026). */
   cookie: string;
   initialHidden: StageKey[];
+  /** Filtros lembrados (NPAC-46): cookie, valor que o servidor usou e se ele vence o cookie. */
+  prefs: { cookie: string; value: string; force: boolean };
+  initialFilters?: Record<string, string>;
+  /** Coluna aberta no celular. */
+  initialCol?: string;
   /** Liderança cria, renomeia, reordena e exclui colunas (pedido de 04/11/2026). */
   canEditColumns?: boolean;
 }) {
   const [columns, setColumns] = useState(initial);
+  // Mover sem janelinha: o card muda de coluna no clique; erro da API desfaz e mostra a mensagem.
+  const [board, moveOnBoard] = useOptimistic(
+    columns,
+    (cols, m: { lead: PipelineLead; target: string }) => moveCard(cols, m.lead, m.target),
+  );
+  const [, startTransition] = useTransition();
   const canRegister = can({ role }, 'sale:register');
-  const [active, setActive] = useState<StageKey>('SONDAGEM');
+  const [active, setActive] = useState<StageKey>((initialCol as StageKey) ?? 'SONDAGEM');
   // Etapas vivas (o editor de colunas muda a lista) e as ocultas pela pessoa: coluna nova aparece.
   const [stages, setStages] = useState(catalog.stages);
   const [hidden, setHidden] = useState<StageKey[]>(initialHidden);
   // Voltar no navegador reaproveita a página antiga: ao montar, o cookie tem a escolha mais recente.
-  const mounted = useRef({ cookie, keys: catalog.stages.map((s) => s.key) });
+  const mounted = useRef({ cookie, keys: catalog.stages.map((s) => s.key), initialHidden });
   useLayoutEffect(() => {
-    const { cookie, keys } = mounted.current;
+    const { cookie, keys, initialHidden } = mounted.current;
     if (!cookie) return;
-    const now = parseHidden(readPreference(cookie), keys);
+    const now = parseHidden(readPreference(cookie, serializeHidden(initialHidden)), keys);
     setHidden((prev) => (serializeHidden(prev) === serializeHidden(now) ? prev : now));
   }, []);
   function toggleColumn(key: StageKey, visible: boolean) {
@@ -61,15 +109,34 @@ export function Pipeline({
     if (cookie) savePreference(cookie, serializeHidden(next), PIPE_COOKIE_PATH);
   }
   const [editing, setEditing] = useState(false);
-  const [filters, setFilters] = useState<Record<string, string>>({});
+  // Filtros aplicados; `search` é o texto buscado (só na memória, nunca no cookie).
+  const [filters, setFilters] = useState<Record<string, string>>(initialFilters);
+  const [formKey, setFormKey] = useState(0);
+  const qInput = useRef<HTMLInputElement>(null);
+  const seq = useRef(0);
+  const rules = pipelineRules(catalog);
+  /** Cookie: filtros sem padrões (intervalo só com as duas datas) + coluna aberta. */
+  function remember(f: Record<string, string>, col: string = active) {
+    const clean = readLeadFilters(writePrefs(f, rules), catalog);
+    rememberPrefs('pipeline', prefs.cookie, writePrefs({ ...clean, col }, rules));
+  }
+  const shownFilters = Object.fromEntries(Object.entries(filters).filter(([k]) => k !== 'search'));
+  const filtered = !!writePrefs(readLeadFilters(writePrefs(shownFilters, rules), catalog), rules);
   useCrmRefresh(() => load());
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   // Mudança que pede dados da etapa (NPAC-38): a janelinha pergunta antes de salvar.
-  const [pending, setPending] = useState<{ lead: PipelineLead; target: string } | null>(null);
+  const [pending, setPending] = useState<{
+    lead: PipelineLead;
+    target: string;
+    n: number;
+  } | null>(null);
   async function load(selected = filters) {
+    const mine = ++seq.current;
     const fresh = await clientApi<PipelineDTO>('/api/leads/pipeline/search', 'POST', selected);
+    if (mine !== seq.current) return;
     setColumns(fresh);
+    if (prefs.cookie) keep(prefs.cookie, selected.search || undefined);
     setActive((old) =>
       fresh.some((c) => c.stage.key === old) ? old : (fresh[0]?.stage.key ?? old),
     );
@@ -85,17 +152,21 @@ export function Pipeline({
       return;
     }
     if (stageNeedsFields(target)) {
-      setPending({ lead, target });
+      setPending({ lead, target, n: ++aberturas });
       return;
     }
     setBusy(true);
-    try {
-      await save(lead, target);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
+    startTransition(async () => {
+      moveOnBoard({ lead, target });
+      try {
+        await save(lead, target);
+        showToast();
+      } catch (e) {
+        setError((e as Error).message);
+      } finally {
+        setBusy(false);
+      }
+    });
   }
   async function save(lead: PipelineLead, target: string, fields: StageFieldsBody = {}) {
     await clientApi(`/api/leads/${lead.id}`, 'PATCH', {
@@ -103,12 +174,40 @@ export function Pipeline({
       stageKey: target,
       ...fields,
     });
+    // Salvo: o card fica na coluna nova enquanto a lista recarrega.
+    setColumns((cols) => moveCard(cols, lead, target));
     await load();
   }
-  async function submit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const f = new FormData(e.currentTarget);
-    const selected = { ...readFilters(f), search: String(f.get('q') ?? '') };
+  // Ao montar: voltar do navegador (cookie mais novo que a página) e texto buscado na memória.
+  const boot = useRef({ prefs, catalog, load, initialFilters });
+  useEffect(() => {
+    const { prefs, catalog, load, initialFilters } = boot.current;
+    if (!prefs.cookie) return;
+    const term = recall<string>(prefs.cookie);
+    let next: Record<string, string> = initialFilters;
+    let changed = false;
+    if (prefs.force) rememberPrefs('pipeline', prefs.cookie, prefs.value);
+    else {
+      const saved = readPreference(prefs.cookie, prefs.value) ?? '';
+      if (saved !== prefs.value) {
+        const { col, ...f } = readPipelinePrefs(saved, catalog);
+        const value = writePrefs({ ...f, col }, pipelineRules(catalog));
+        rememberPrefs('pipeline', prefs.cookie, value);
+        if (value !== prefs.value) {
+          next = f;
+          changed = true;
+          if (col) setActive(col as StageKey);
+          setFormKey((k) => k + 1);
+        }
+      }
+    }
+    if (term && qInput.current) qInput.current.value = term;
+    if (!changed && !term) return;
+    const selected = { ...next, ...(term ? { search: term } : {}) };
+    setFilters(selected);
+    void load(selected).catch((e: Error) => setError(e.message));
+  }, []);
+  async function run(selected: Record<string, string>) {
     setBusy(true);
     setError('');
     setFilters(selected);
@@ -119,6 +218,30 @@ export function Pipeline({
     } finally {
       setBusy(false);
     }
+  }
+  /** Texto da busca no Enter (telefone e e-mail só são achados inteiros). */
+  function submit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const f = new FormData(e.currentTarget);
+    const selected = readFilters(f);
+    if (selected.period === 'RANGE' && !(selected.from && selected.to)) return;
+    const search = String(f.get('q') ?? '').trim();
+    remember(selected);
+    void run({ ...selected, ...(search ? { search } : {}) });
+  }
+  /** Filtro vale ao escolher (NPAC-46), com o texto já buscado. */
+  function applyFilters() {
+    const el = document.getElementById('pipeline-search');
+    if (!(el instanceof HTMLFormElement)) return;
+    const selected = readFilters(new FormData(el));
+    if (selected.period === 'RANGE' && !(selected.from && selected.to)) return;
+    remember(selected);
+    void run({ ...selected, ...(filters.search ? { search: filters.search } : {}) });
+  }
+  function clearFilters() {
+    remember({});
+    setFormKey((k) => k + 1);
+    void run(filters.search ? { search: filters.search } : {});
   }
   async function more(stage: StageKey, page: number) {
     setBusy(true);
@@ -148,7 +271,7 @@ export function Pipeline({
     }
   }
   // No celular aparece uma etapa por vez: se a escolhida estiver oculta, vale a primeira visível.
-  const shown = columns.filter((c) => !hidden.includes(c.stage.key));
+  const shown = board.filter((c) => !hidden.includes(c.stage.key));
   const current = shown.some((c) => c.stage.key === active) ? active : shown[0]?.stage.key;
   return (
     <div className="flex flex-col gap-4">
@@ -184,18 +307,25 @@ export function Pipeline({
           }}
         />
       )}
-      <form id="pipeline-search" onSubmit={submit} className="flex gap-2">
+      <form id="pipeline-search" role="search" onSubmit={submit} className="flex gap-2">
         <input
+          ref={qInput}
           name="q"
+          type="search"
+          enterKeyHint="search"
           className={control}
           aria-label="Buscar no Pipeline"
           placeholder="Nome, WhatsApp, @instagram ou e-mail"
         />
-        <button className={button} disabled={busy}>
-          Buscar
-        </button>
       </form>
-      <LeadFilters catalog={catalog} form="pipeline-search" />
+      <LeadFilters
+        key={formKey}
+        catalog={catalog}
+        form="pipeline-search"
+        values={shownFilters}
+        onApply={applyFilters}
+        onClear={filtered ? clearFilters : undefined}
+      />
       <details className="text-sm">
         <summary className="cursor-pointer font-semibold">Colunas visíveis</summary>
         <div className="mt-3 flex flex-wrap gap-3">
@@ -214,24 +344,31 @@ export function Pipeline({
       <FormError message={error} />
       {pending && (
         <StageMoveDialog
-          key={`${pending.lead?.id ?? 'massa'}-${pending.target}`}
+          key={pending.n}
           title={`Mover ${pending.lead.name} para ${stages.find((s) => s.key === pending.target)?.label ?? 'a etapa'}`}
           stage={pending.target}
           lead={pending.lead}
           team={catalog.team}
           role={role}
-          onSubmit={(fields) => save(pending.lead, pending.target, fields)}
-          // Cancelar não muda nada: o card continua na etapa antiga.
-          onClose={() => setPending(null)}
+          onSubmit={async (fields) => {
+            await save(pending.lead, pending.target, fields);
+            showToast();
+          }}
+          // Cancelar não muda nada: o card continua na etapa antiga. Só limpa a própria mudança:
+          // a janelinha sai animada, e outra pode já ter sido aberta nesse meio-tempo.
+          onClose={() => setPending((cur) => (cur === pending ? null : cur))}
         />
       )}
       <nav aria-label="Etapas do Pipeline" className="flex gap-2 overflow-x-auto pb-2 md:hidden">
-        {columns
+        {board
           .filter((c) => !hidden.includes(c.stage.key))
           .map((c) => (
             <button
               key={c.stage.id}
-              onClick={() => setActive(c.stage.key)}
+              onClick={() => {
+                setActive(c.stage.key);
+                remember(shownFilters, c.stage.key);
+              }}
               aria-pressed={current === c.stage.key}
               className={`${quietButton} shrink-0 ${current === c.stage.key ? 'bg-[var(--on)]' : ''}`}
             >
@@ -245,20 +382,21 @@ export function Pipeline({
         data-own-motion
         className="grid items-start gap-4 pb-4 md:grid-cols-[repeat(auto-fill,minmax(260px,1fr))]"
       >
-        {columns
+        {board
           .filter((c) => !hidden.includes(c.stage.key))
           .map((c, col) => (
             <section
               key={c.stage.id}
               aria-label={c.stage.label}
-              // Entrada em cascata (globals.css `.reveal`): coluna por coluna, depois os cards.
-              style={{ '--delay': `${200 + col * 90}ms` } as CSSProperties}
+              // Entrada (globals.css `.reveal`): só as colunas, na cascata curta da página (0, 30
+              // e 60 ms); os cards entram junto com a coluna, nunca um a um.
+              style={{ '--delay': `${Math.min(col, 2) * 30}ms` } as CSSProperties}
               className={`reveal glass-card scroll-thin min-w-0 flex-col gap-3 p-3 md:max-h-[min(70vh,720px)] md:overflow-y-auto ${current === c.stage.key ? 'flex' : 'hidden md:flex'}`}
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => {
                 e.preventDefault();
                 const id = e.dataTransfer.getData('text/plain');
-                const lead = columns.flatMap((col) => col.items).find((l) => l.id === id);
+                const lead = board.flatMap((col) => col.items).find((l) => l.id === id);
                 if (lead) void move(lead, c.stage.key);
               }}
             >
@@ -266,18 +404,19 @@ export function Pipeline({
                 {c.stage.label}
                 <span className="text-ink2">{c.total}</span>
               </h2>
-              {c.items.map((l, i) => (
+              {c.items.map((l) => (
                 <article
                   key={l.id}
                   draggable={!busy}
                   onDragStart={(e) => e.dataTransfer.setData('text/plain', l.id)}
-                  style={
-                    { '--delay': `${360 + col * 90 + Math.min(i, 8) * 55}ms` } as CSSProperties
-                  }
-                  className="reveal rounded-2xl border border-line bg-[var(--gl2)] p-3"
+                  className="rounded-2xl border border-line bg-[var(--gl2)] p-3"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <Link className="text-sm font-semibold" href={`/leads/${l.id}`}>
+                    <Link
+                      className="text-sm font-semibold"
+                      href={`/leads/${l.id}`}
+                      prefetch={false}
+                    >
                       {l.name}
                     </Link>
                     <span className={`tier tier-${l.tier}`}>{TIER_LABELS[l.tier]}</span>
@@ -289,6 +428,7 @@ export function Pipeline({
                         <Link
                           className="text-xs font-semibold text-gold-deep underline-offset-2 hover:underline"
                           href={`/leads/${l.id}#vendas`}
+                          prefetch={false}
                         >
                           Registrar venda
                         </Link>

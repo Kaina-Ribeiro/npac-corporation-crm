@@ -1,10 +1,12 @@
 'use client';
 import { useEffect, useId, useRef, useState } from 'react';
 import { button, dangerButton, FormError, quietButton } from '@/components/crm-ui';
+import { closeWithMotion } from '@/lib/dialog-motion';
 
 /**
  * Janelinha do módulo, no padrão do `<dialog>` do CRM: confirmação, filtros e anotação. O conteúdo
- * vem em `children`; `onConfirmar` que lança mostra o erro na janela e a deixa aberta.
+ * vem em `children`; `onConfirmar` que lança mostra o erro na janela e a deixa aberta. Entra e sai
+ * animada (`.dlg`); `onFechar` vem do evento `close`, depois da saída.
  */
 export function Dialogo({
   titulo,
@@ -38,7 +40,7 @@ export function Dialogo({
     setErro('');
     try {
       await onConfirmar();
-      ref.current?.close();
+      closeWithMotion(ref.current);
     } catch (e) {
       setErro((e as Error).message);
     } finally {
@@ -47,7 +49,17 @@ export function Dialogo({
   }
 
   return (
-    <dialog ref={ref} aria-labelledby={tituloId} onClose={onFechar} className="ac-dialogo">
+    <dialog
+      ref={ref}
+      aria-labelledby={tituloId}
+      onClose={onFechar}
+      onCancel={(e) => {
+        e.preventDefault();
+        closeWithMotion(ref.current);
+      }}
+      data-own-motion
+      className="ac-dialogo dlg"
+    >
       <form
         method="dialog"
         className="flex flex-col gap-4 p-6"
@@ -65,7 +77,11 @@ export function Dialogo({
         {children}
         <FormError message={erro} />
         <div className="flex flex-wrap justify-end gap-2">
-          <button type="button" className={quietButton} onClick={() => ref.current?.close()}>
+          <button
+            type="button"
+            className={quietButton}
+            onClick={() => closeWithMotion(ref.current)}
+          >
             Cancelar
           </button>
           <button

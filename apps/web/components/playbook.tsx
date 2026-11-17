@@ -1,5 +1,6 @@
 'use client';
 import { useMemo, useState, type FormEvent } from 'react';
+import { keep, recall } from '@/lib/screen-memory';
 import { clientApi } from '@/lib/client-api';
 import { button, control, Field, FormError, quietButton } from './crm-ui';
 
@@ -12,9 +13,23 @@ const normalize = (s: string) =>
     .toLowerCase();
 
 /** Scripts de objeção: busca local (conteúdo não é pessoal), copiar e edição pelos HEADs. */
-export function Playbook({ initial, head }: { initial: Script[]; head: boolean }) {
+export function Playbook({
+  initial,
+  head,
+  memoryKey,
+}: {
+  initial: Script[];
+  head: boolean;
+  /** Chave da busca na memória da aba (NPAC-46): volta ao trocar de tela, some no F5. */
+  memoryKey: string;
+}) {
   const [scripts, setScripts] = useState(initial);
-  const [query, setQuery] = useState('');
+  // Navegação no app renderiza só no navegador; no F5 a memória está vazia (sem divergir do HTML).
+  const [query, setQueryState] = useState(() => recall<string>(memoryKey) ?? '');
+  const setQuery = (q: string) => {
+    setQueryState(q);
+    keep(memoryKey, q || undefined);
+  };
   const [editing, setEditing] = useState<Script | 'new' | null>(null);
   const [error, setError] = useState<string>();
   const [copied, setCopied] = useState<string>();

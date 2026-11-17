@@ -12,7 +12,10 @@ import {
 } from '@npac/shared/mentoria';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { readPrefs } from '@npac/shared/screen-prefs';
 import { useCallback, useEffect, useState } from 'react';
+import { FICHA_REGRAS, atualizarAc } from '@/lib/acompanhamento-prefs';
+import { useLatestPrefs } from '@/lib/use-latest-prefs';
 import { control, quietButton } from '@/components/crm-ui';
 import { clientApi } from '@/lib/client-api';
 import { Dialogo } from './dialogo';
@@ -56,6 +59,16 @@ const TITULOS: Record<string, string> = {
   'acao.editada': 'Alteração na ação do plano',
   'inscricao.pausada': 'Inscrição pausada',
   'inscricao.retomada': 'Inscrição retomada',
+  'pme.enviado': 'PME enviado',
+  'pme.anterior': 'PME anterior ao sistema registrado',
+  'pme.editado': 'Alteração no PME',
+  'pme.concluido': 'PME concluído',
+  'pme.reaberto': 'PME reaberto',
+  'tarefa.criada': 'Tarefa combinada na reunião',
+  'tarefa.marcada': 'Resultado da tarefa',
+  'tarefa.editada': 'Alteração na tarefa',
+  'meta.criada': 'Meta definida',
+  'meta.editada': 'Alteração na meta',
 };
 
 const CAMPOS: Record<string, string> = {
@@ -138,7 +151,27 @@ const CAMPOS: Record<string, string> = {
   itensFeitos: 'Passos',
   observacao: 'Observação',
   evidenciaLink: 'Evidência',
+  descricao: 'Descrição',
+  prazo: 'Prazo',
+  motivo: 'Motivo',
+  pilar: 'Pilar',
+  pessoaId: 'De quem',
+  valorAlvo: 'Alvo',
+  valorAtual: 'Atual',
+  unidade: 'Unidade',
+  concluidoEm: 'Conclusão',
+  tarefa_reuniao: 'Tarefa da reunião',
+  tarefa_extra: 'Atividade extra',
+  tarefa_encerramento: 'Encerramento',
+  tarefa_pme: 'Tarefa do PME',
 };
+
+/** `pme_3` e `pme_3_nao_concluido` (envio do PME) viram "3º PME" e "3º PME não concluído". */
+function nomeCampo(c: string): string {
+  const pme = /^pme_(\d+)(_nao_concluido)?$/.exec(c);
+  if (pme) return `${pme[1]}º PME${pme[2] ? ' não concluído' : ''}`;
+  return CAMPOS[c] ?? c;
+}
 
 const DIA = 86_400_000;
 
@@ -298,9 +331,7 @@ function Evento({ e }: { e: HistoricoItem }) {
           {anotacao ? `Anotação de ${e.ator}` : `${TITULOS[e.tipo] ?? 'Alteração'} por ${e.ator}`}
         </b>
         {anotacao && <p>{e.texto}</p>}
-        {!anotacao && e.campos.length > 0 && (
-          <p>Campos: {e.campos.map((c) => CAMPOS[c] ?? c).join(', ')}.</p>
-        )}
+        {!anotacao && e.campos.length > 0 && <p>Campos: {e.campos.map(nomeCampo).join(', ')}.</p>}
         <time dateTime={e.quando}>{quando(e.quando)}</time>
       </div>
     </div>
@@ -308,10 +339,27 @@ function Evento({ e }: { e: HistoricoItem }) {
 }
 
 /** Aba Histórico: alterações (só nomes de campos) e anotações. */
-export function HistoricoLista({ ficha }: { ficha: FichaDTO }) {
+export function HistoricoLista({
+  ficha,
+  lembrar,
+}: {
+  ficha: FichaDTO;
+  /** Cookie da ficha (NPAC-46): o filtro fica na chave `historico`. */
+  lembrar: { cookie: string; valor: string };
+}) {
   const [itens, setItens] = useState<HistoricoItem[] | null>(null);
   const [erro, setErro] = useState('');
-  const [filtro, setFiltro] = useState<Filtro>('TUDO');
+  const salvo = (valor: string) =>
+    (readPrefs(valor, FICHA_REGRAS).historico as Filtro | undefined) ?? 'TUDO';
+  const [filtro, setFiltroState] = useState<Filtro>(() => salvo(lembrar.valor));
+  const setFiltro = (f: Filtro) => {
+    setFiltroState(f);
+    atualizarAc('ficha', lembrar.cookie, FICHA_REGRAS, {
+      historico: f === 'TUDO' ? undefined : f,
+    });
+  };
+  // Voltar à aba ou do navegador: vale o filtro mais novo do cookie.
+  useLatestPrefs(lembrar.cookie, lembrar.valor, (valor) => setFiltroState(salvo(valor)));
   const [anotando, setAnotando] = useState(false);
   const [contato, setContato] = useState(false);
   const [texto, setTexto] = useState('');
@@ -349,12 +397,13 @@ export function HistoricoLista({ ficha }: { ficha: FichaDTO }) {
   return (
     <section className="card pa" role="tabpanel" aria-label="Histórico">
       <div className="hh">
-        <div className="hf">
+        <div className="hf" role="group" aria-label="Filtrar o histórico">
           {FILTROS.map(([id, rotulo]) => (
             <button
               key={id}
               type="button"
               className={filtro === id ? 'on' : ''}
+              aria-pressed={filtro === id}
               onClick={() => setFiltro(id)}
             >
               {rotulo}

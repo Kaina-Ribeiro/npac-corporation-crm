@@ -28,6 +28,7 @@ import { readStageFields } from '@/lib/stage-fields';
 import { button, control, Field, FormError, StageOptions } from './crm-ui';
 import { SoldFields } from './sold-fields';
 import { StageFields, type OpenMeeting } from './stage-fields';
+import { startNavProgress } from '@/components/shell/nav-progress';
 
 export function LeadForm({
   catalog,
@@ -109,6 +110,7 @@ export function LeadForm({
         parsed.data,
       );
       if (lead) setLead(await clientApi<LeadDTO>(`/api/leads/${result.id}`));
+      startNavProgress(`/leads/${result.id}`);
       router.push(`/leads/${result.id}`);
       router.refresh();
     } catch (e) {

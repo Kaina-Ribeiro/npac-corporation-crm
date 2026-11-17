@@ -56,7 +56,6 @@ test('SDR cadastra lead, escreve nota e conclui tarefa na ficha', async ({ page 
   await page.goto('/leads');
   await page.getByText('Filtrar e ordenar', { exact: true }).click();
   await page.getByLabel('Perfil do lead', { exact: true }).selectOption('P0');
-  await page.getByRole('button', { name: 'Aplicar filtros', exact: true }).click();
   await expect(page.getByText('Lead e2e CRM', { exact: true })).toHaveCount(0);
 });
 

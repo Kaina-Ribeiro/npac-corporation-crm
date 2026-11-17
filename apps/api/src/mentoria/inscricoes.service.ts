@@ -123,6 +123,18 @@ export class InscricoesService {
     });
   }
 
+  /**
+   * Responsável pelo acompanhamento (§3, PDF): pessoa ativa com o perfil Acompanhamento, a mesma
+   * regra de quem recebe uma carteira. Vazio continua valendo.
+   */
+  private async exigirResponsavel(tx: Tx, responsavelId: string | null | undefined) {
+    if (!responsavelId) return;
+    const [q] = await tx.execute<{ ok: boolean }>(
+      sql`select coalesce(mentoria_perfil_de(${responsavelId}) = 'ACOMPANHAMENTO', false) as ok`,
+    );
+    if (!q?.ok) throw new BadRequestException('O responsável precisa ter o perfil Acompanhamento');
+  }
+
   criar(u: AuthUser, b: InscricaoNova) {
     const esperadas = b.tipo === 'CASAL' ? 2 : 1;
     if (b.pessoas.length !== esperadas)
@@ -131,6 +143,7 @@ export class InscricoesService {
       );
     return withUser(this.db, u.id, async (tx) => {
       const { pessoas, ...campos } = b;
+      await this.exigirResponsavel(tx, campos.responsavelId);
       const id = randomUUID();
       await tx.insert(mentoriaInscricoes).values({
         ...campos,
@@ -241,11 +254,15 @@ export class InscricoesService {
           mentoria: mentoriaInscricoes.mentoria,
           inicio: mentoriaInscricoes.inicioJornada,
           termino: mentoriaInscricoes.terminoPrevisto,
+          responsavel: mentoriaInscricoes.responsavelId,
         })
         .from(mentoriaInscricoes)
         .where(eq(mentoriaInscricoes.id, id))
         .for('update');
       if (!atual) throw new NotFoundException();
+      // Só a troca é conferida: quem saiu continua na ficha até alguém mudar ou transferir.
+      if (campos.responsavelId !== undefined && campos.responsavelId !== atual.responsavel)
+        await this.exigirResponsavel(tx, campos.responsavelId);
       const mudaInicio =
         campos.inicioJornada !== undefined && campos.inicioJornada !== atual.inicio;
       const mudaMentoria = campos.mentoria !== undefined && campos.mentoria !== atual.mentoria;

@@ -8,6 +8,7 @@ import { paletteItems } from '@/components/shell/nav-menu';
 import { LiveUpdates } from '@/components/shell/live-updates';
 import { TabTitle } from '@/components/inbox';
 import { NavProgress } from '@/components/shell/nav-progress';
+import { PageSkeleton } from '@/components/shell/page-skeleton';
 import { ThemeToggle } from '@/components/shell/theme-toggle';
 import { BottomNav } from '@/components/shell/bottom-nav';
 import { Sidebar } from '@/components/shell/sidebar';
@@ -16,7 +17,7 @@ import { SignOutButton } from '@/components/shell/sign-out-button';
 import { RoleTag } from '@/components/role-tag';
 import { pendingAccessRequests } from '@/lib/access-requests';
 import { getSession, pendingStep } from '@/lib/session';
-import { lerEu, precisaMfa } from '@/lib/acompanhamento';
+import { lerEu, precisaMfa, ultimaFicha } from '@/lib/acompanhamento';
 import { SemAcesso } from '@/components/acompanhamento/sem-acesso';
 import { SIDEBAR_COOKIE } from '@/lib/sidebar';
 
@@ -32,7 +33,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const eu = me.modules.mentoria && !precisaMfa(me) ? await lerEu() : null;
   if (eu && !commercial && !eu.admin && (!eu.perfil || eu.perfil === 'MENTOR'))
     return <SemAcesso mentor={eu.perfil === 'MENTOR'} />;
-  const requests = await pendingAccessRequests(me.role);
+  const [requests, ultima] = await Promise.all([
+    pendingAccessRequests(me.role),
+    // Só quem tem o módulo; o cookie só vem nas telas do módulo (Path=/acompanhamento).
+    eu ? ultimaFicha() : null,
+  ]);
 
   const avatar = (
     <span
@@ -45,7 +50,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const who = (
     <span className="min-w-0 leading-tight">
       <b className="block truncate text-sm font-semibold">{me.name}</b>
-      <RoleTag role={me.role} className="mt-1" />
+      <RoleTag role={me.role} perfil={eu?.perfil} className="mt-1" />
       <small className="mt-1 flex items-center gap-1.5 text-xs text-ink2">
         <Link href="/conta/senha" className="underline-offset-2 hover:text-ink hover:underline">
           Trocar senha
@@ -66,8 +71,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <SidebarShell initialCollapsed={(await cookies()).get(SIDEBAR_COOKIE)?.value === '1'}>
       <Suspense>
         <NavProgress />
+        {/* Aviso "Salvo" (`showToast` em components/toast.ts): a região vem do servidor, sem JS. */}
+        <div role="status" className="toast-region" />
       </Suspense>
-      <LiveUpdates />
+      <LiveUpdates revision={me.revision} />
       {commercial && <TabTitle />}
       <CommandPalette
         nav={paletteItems({
@@ -84,6 +91,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         commercial={commercial}
         mentoriaAdmin={eu?.admin}
         adminBadge={requests}
+        ultimaFicha={ultima?.nome ?? null}
         footer={
           <div className="flex flex-col">
             <div className="side-who flex items-center gap-2.5 px-1">
@@ -104,6 +112,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <div className="flex min-w-0 flex-1 flex-col">
         <main className="page-reveal flex-1 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-32 md:px-8 md:pt-6 md:pb-10">
           {children}
+          <PageSkeleton />
         </main>
       </div>
       {/* Celular: o cargo Acompanhamento usa as abas do módulo (no /mais, a própria tela as põe). */}

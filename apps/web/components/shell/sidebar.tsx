@@ -1,4 +1,4 @@
-import { ADMIN_ITEM } from './nav-items';
+import { ADMIN_ITEM, type NavItem } from './nav-items';
 import { navItems } from './nav-menu';
 import { CountBadge, NavLink } from './nav-link';
 import { NavGroup, NavSection } from './nav-group';
@@ -7,6 +7,8 @@ import { Fragment, Suspense } from 'react';
 import { SearchButton } from './command-palette';
 import { SavedViewsNav } from './saved-views-nav';
 import { SidebarToggle } from './sidebar-shell';
+import { FichaAtalho } from './ficha-atalho';
+import { FICHA_HREF } from '@/lib/ultima-ficha';
 
 const LINK =
   'flex h-[34px] items-center gap-2.5 rounded-lg px-2.5 text-sm font-medium text-ink2 transition-colors hover:bg-black/5 hover:text-ink [&_svg]:h-4 [&_svg]:w-4 [&_svg]:flex-none';
@@ -22,6 +24,7 @@ export function Sidebar({
   commercial = true,
   mentoriaAdmin = false,
   adminBadge = 0,
+  ultimaFicha = null,
   footer,
 }: {
   head?: boolean;
@@ -33,8 +36,19 @@ export function Sidebar({
   mentoriaAdmin?: boolean;
   /** Pedidos de acesso esperando a liderança. */
   adminBadge?: number;
+  /** Nome da última ficha aberta: o item "Ficha do mentorado" diz para onde leva. */
+  ultimaFicha?: string | null;
   footer?: React.ReactNode;
 }) {
+  const rotulo = (n: NavItem) =>
+    n.href === FICHA_HREF ? (
+      <span className="side-label flex min-w-0 flex-col leading-tight">
+        {n.label}
+        <FichaAtalho inicial={ultimaFicha} />
+      </span>
+    ) : (
+      <span className="side-label">{n.label}</span>
+    );
   return (
     <aside
       id="app-sidebar"
@@ -51,7 +65,13 @@ export function Sidebar({
         {commercial && <InboxLink />}
         {navItems({ head, mentoria, commercial, mentoriaAdmin }).map((item, i, all) =>
           item.children ? (
-            <NavGroup key={item.href} item={item} linkClass={LINK} activeClass={ACTIVE} />
+            <NavGroup
+              key={item.href}
+              item={item}
+              linkClass={LINK}
+              activeClass={ACTIVE}
+              rotulo={rotulo}
+            />
           ) : (
             <Fragment key={item.href}>
               {item.section && item.section !== all[i - 1]?.section && (
@@ -59,7 +79,7 @@ export function Sidebar({
               )}
               <NavLink item={item} className={LINK} activeClassName={ACTIVE}>
                 {item.icon}
-                <span className="side-label">{item.label}</span>
+                {rotulo(item)}
                 {item.href === '/chat' && <ChatBadge />}
                 {item.href === ADMIN_ITEM.href && adminBadge > 0 && (
                   <CountBadge n={adminBadge} label={`${adminBadge} pedidos de acesso`} />

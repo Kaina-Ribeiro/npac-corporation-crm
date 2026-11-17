@@ -86,6 +86,28 @@ describe('autenticação', () => {
     expect(await auditCount('auth.sign_in.failure')).toBe(1);
   });
 
+  it('conta desativada: recusa igual à senha errada, sem abrir sessão, e auditado', async () => {
+    await owner`update "user" set must_change_password = false where email = 'igor@npac.com.br'`;
+    const errada = await h.signInRaw('igor@npac.com.br', 'errada-errada');
+    const inexistente = await h.signInRaw('ninguem.aqui@npac.com.br', 'errada-errada');
+    await deactivate('igor@npac.com.br');
+    const desativada = await h.signInRaw('igor@npac.com.br');
+
+    expect(errada.status).toBe(401);
+    // Mesmo código e mesma resposta: não dá para saber que a conta existe e está desativada.
+    expect({ status: desativada.status, body: desativada.body }).toEqual({
+      status: errada.status,
+      body: errada.body,
+    });
+    expect(inexistente.body).toEqual(errada.body);
+    expect(cookiesOf(desativada)).not.toContain('session_token=');
+    const [r] = await owner<{ n: number }[]>`
+      select count(*)::int as n from session s join "user" u on u.id = s.user_id
+      where u.email = 'igor@npac.com.br'`;
+    expect(r?.n).toBe(0);
+    expect(await auditCount('auth.sign_in.failure')).toBe(3);
+  });
+
   // Limite de tentativas desligado por ora (auth.ts, 04/11/2026). Ao religar, volta a esperar 429.
   it('várias tentativas seguidas não bloqueiam o login (limite desligado)', async () => {
     for (let i = 0; i < 7; i++) {

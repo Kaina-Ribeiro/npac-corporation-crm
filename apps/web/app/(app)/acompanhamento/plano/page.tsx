@@ -2,7 +2,9 @@ import type { PaginaAcoes, PaginaInscricoes, PlanoSemana as Semana } from '@npac
 import Link from 'next/link';
 import { PlanoMentorados, PlanoMes, PlanoSemana } from '@/components/acompanhamento/plano-semana';
 import { ExportarBotao } from '@/components/acompanhamento/exportar-botao';
+import { LembrarUrl } from '@/components/acompanhamento/lembrar-url';
 import { lerEu, podeExportar, sessaoDoModulo } from '@/lib/acompanhamento';
+import { abasLembradas } from '@/lib/acompanhamento-abas';
 import { apiPost } from '@/lib/api';
 
 export const metadata = { title: 'Plano dos 12 meses' };
@@ -12,6 +14,9 @@ const ABAS = [
   ['mes', 'Por mês'],
   ['mentorados', 'Por mentorado'],
 ] as const;
+const IDS = ABAS.map(([id]) => id);
+/** Aba e mês da jornada lembrados (NPAC-46). */
+const CHAVES = { semana: [], mes: ['mes'], mentorados: [] };
 
 async function Conteudo({ aba, mes }: { aba: string; mes: number }) {
   if (aba === 'mes') {
@@ -32,9 +37,14 @@ export default async function PlanoPage({
 }: {
   searchParams: Promise<{ aba?: string; mes?: string }>;
 }) {
-  if (!(await sessaoDoModulo())) return null;
-  const q = await searchParams;
-  const aba = ABAS.some(([id]) => id === q.aba) ? q.aba! : 'semana';
+  const me = await sessaoDoModulo();
+  if (!me) return null;
+  const lembradas = await abasLembradas('plano', me.id, await searchParams, {
+    abas: IDS,
+    padrao: 'semana',
+    chaves: CHAVES,
+  });
+  const { aba, q } = lembradas;
   const n = Number(q.mes);
   const mes = Number.isInteger(n) && n >= 1 && n <= 13 ? n : 1;
   return (
@@ -52,16 +62,21 @@ export default async function PlanoPage({
       </div>
       <div className="tabs">
         {ABAS.map(([id, rotulo]) => (
-          <Link
-            key={id}
-            className={aba === id ? 'on' : ''}
-            href={`/acompanhamento/plano?aba=${id}`}
-          >
+          <Link key={id} className={aba === id ? 'on' : ''} href={lembradas.href(id)}>
             {rotulo}
           </Link>
         ))}
       </div>
       <Conteudo aba={aba} mes={mes} />
+      <LembrarUrl
+        screen="plano"
+        cookie={lembradas.cookie}
+        valor={lembradas.valor}
+        abas={IDS}
+        aba={aba}
+        consulta={lembradas.consulta}
+        doMenu={lembradas.doMenu}
+      />
     </section>
   );
 }

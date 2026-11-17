@@ -237,10 +237,13 @@ function situacao(e: EtapaDTO, liberada: boolean, agora: Date) {
 export function OnboardingFicha({
   ficha,
   atualizar,
+  pme = null,
   plano,
 }: {
   ficha: FichaDTO;
   atualizar: () => void;
+  /** O PME atual (Fase 2): depois do mês, antes das ações. */
+  pme?: React.ReactNode;
   /** As ações do plano: ficam na coluna do passo aberto. */
   plano: React.ReactNode;
 }) {
@@ -306,6 +309,7 @@ export function OnboardingFicha({
     return (
       <div className="jg">
         <div>
+          {pme}
           {plano}
           <p className="jg-aviso">
             Entrou antes do sistema: as etapas do onboarding já tinham acontecido.
@@ -323,8 +327,9 @@ export function OnboardingFicha({
             <EtapaCard key={etapa.id} ficha={ficha} etapa={etapa} atualizar={atualizar} />
           </>
         ) : (
-          !plano && <p className="jg-aviso">Onboarding concluído.</p>
+          !plano && !pme && <p className="jg-aviso">Onboarding concluído.</p>
         )}
+        {pme}
         {plano}
       </div>
       {passos}

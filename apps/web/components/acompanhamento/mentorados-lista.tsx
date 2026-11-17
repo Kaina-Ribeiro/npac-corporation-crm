@@ -10,17 +10,21 @@ import {
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { button, control, quietButton } from '@/components/crm-ui';
+import { readPrefs, writePrefs } from '@npac/shared/screen-prefs';
+import {
+  filtrosParaPrefs,
+  lembrarAc,
+  mentoradosRegras,
+  prefsParaFiltros,
+  type FiltrosMentorados,
+} from '@/lib/acompanhamento-prefs';
 import { clientApi } from '@/lib/client-api';
+import { useLatestPrefs } from '@/lib/use-latest-prefs';
 import { Dialogo } from './dialogo';
 import { dataBR, ICONES, Icone, Rostos, rotuloMes, TagStatus, Trilha } from './ui';
 import { ExportarBotao } from './exportar-botao';
 
-type Filtros = {
-  mes?: number;
-  status?: InscricaoStatus;
-  responsavelId?: string;
-  completar?: boolean;
-};
+type Filtros = FiltrosMentorados;
 type Pessoa = { id: string; nome: string };
 
 const MESES = Array.from({ length: 12 }, (_, i) => i + 1);
@@ -28,7 +32,11 @@ const MESES = Array.from({ length: 12 }, (_, i) => i + 1);
 function Linha({ r, primeira }: { r: InscricaoItem; primeira: boolean }) {
   const ultimo = r.ultimoContato ? dataBR(r.ultimoContato) : '—';
   return (
-    <Link className={`row ${primeira ? 'primeira' : ''}`} href={`/acompanhamento/ficha/${r.id}`}>
+    <Link
+      className={`row ${primeira ? 'primeira' : ''}`}
+      href={`/acompanhamento/ficha/${r.id}`}
+      prefetch={false}
+    >
       <div className="cell-n">
         <Rostos pessoas={r.pessoas} />
         <div className="nm">
@@ -41,7 +49,9 @@ function Linha({ r, primeira }: { r: InscricaoItem; primeira: boolean }) {
       </div>
       <span className="tp tag justify-self-start">{r.mentoria}</span>
       <div className="jm">
-        <b className={r.mesJornada === null ? 'antes' : ''}>{rotuloMes(r.mesJornada)}</b>
+        <b className={r.mesJornada === null ? 'antes' : ''}>
+          {rotuloMes(r.mesJornada, r.mentoria)}
+        </b>
         {r.mesJornada !== null && <Trilha mes={r.mesJornada} alerta={r.completar} />}
       </div>
       <TagStatus status={r.status} className="st-tag justify-self-start" />
@@ -117,13 +127,23 @@ export function MentoradosLista({
   responsaveis,
   podeCriar,
   exportar = false,
+  inicial,
+  lembrar,
 }: {
   pagina: PaginaInscricoes;
   responsaveis: Pessoa[];
   podeCriar: boolean;
   exportar?: boolean;
+  inicial: Filtros;
+  /** Cookie dos filtros lembrados (NPAC-46) e o valor que o servidor usou. */
+  lembrar: { cookie: string; valor: string };
 }) {
-  const [f, setF] = useState<Filtros>({});
+  const [f, setF] = useState<Filtros>(inicial);
+  const regras = mentoradosRegras(responsaveis.map((r) => r.id));
+  // Voltar do navegador traz a página de antes: vale o filtro mais novo do cookie.
+  useLatestPrefs(lembrar.cookie, lembrar.valor, (salvo) =>
+    setF(prefsParaFiltros(readPrefs(salvo, regras))),
+  );
   const [dados, setDados] = useState(pagina);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState('');
@@ -137,6 +157,7 @@ export function MentoradosLista({
       primeira.current = false;
       return;
     }
+    lembrarAc('mentorados', lembrar.cookie, writePrefs(filtrosParaPrefs(f), regras));
     const n = ++pedido.current;
     setCarregando(true);
     clientApi<PaginaInscricoes>('/api/mentoria/inscricoes/lista', 'POST', f)
@@ -221,6 +242,11 @@ export function MentoradosLista({
         {chip('Mês', f.mes ? `Mês ${f.mes}` : undefined)}
         {chip('Status', f.status && INSCRICAO_STATUS_LABEL[f.status])}
         {chip('Responsável', responsaveis.find((r) => r.id === f.responsavelId)?.nome)}
+        {filtrando && (
+          <button type="button" className="fchip" onClick={() => setF({})}>
+            Limpar filtros
+          </button>
+        )}
       </div>
 
       <div className="filters so-desk">
@@ -233,6 +259,11 @@ export function MentoradosLista({
         >
           Completar a ficha ({resumo.completar})
         </button>
+        {filtrando && (
+          <button type="button" className={quietButton} onClick={() => setF({})}>
+            Limpar filtros
+          </button>
+        )}
       </div>
 
       {erro && (

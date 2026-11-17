@@ -22,6 +22,7 @@ import {
 import { sql } from 'drizzle-orm';
 import { DB } from '../common/db/db.module.js';
 import { erroDoBanco } from './erros.js';
+import { CiclosService } from './ciclos.service.js';
 import { exigirEdicao, registrarHistorico } from './historico.js';
 import { aad, MentoriaCrypto } from './mentoria-crypto.js';
 import { MENTORIA_CLOCK, type Clock } from './relogio.js';
@@ -57,6 +58,7 @@ export class FilaService {
     @Inject(DB) private readonly db: Db,
     private readonly crypto: MentoriaCrypto,
     @Inject(MENTORIA_CLOCK) private readonly clock: Clock,
+    private readonly ciclos: CiclosService,
   ) {}
 
   agora(): Date {
@@ -234,6 +236,20 @@ export class FilaService {
     }).catch((e) => erroDoBanco(e));
   }
 
+  /**
+   * Marcar o 1º PME enviado na Fila também abre o ciclo 1 (Fase 2), se a inscrição está ativa,
+   * sem ciclo e com o 1º PME ativo no catálogo, e se quem marca registra envios. Senão fica só a
+   * data, como na Fase 1.
+   */
+  private async cicloDoPme1(tx: Tx, inscricaoId: string) {
+    const [ok] = await tx.execute<{ ok: boolean }>(sql`
+      select mentoria_edita('PME', i.id) and i.status = 'ATIVO'
+        and not exists (select 1 from mentoria_ciclos c where c.inscricao_id = i.id)
+        and exists (select 1 from mentoria_pmes p where p.numero = 1 and p.ativo) as ok
+      from mentoria_inscricoes i where i.id = ${inscricaoId}::uuid`);
+    if (ok?.ok) await this.ciclos.enviarNaTx(tx, inscricaoId, this.ciclos.hoje());
+  }
+
   /** "Enviar o 1º PME" sai quando a equipe marca o envio (§5, F3). */
   pme1(
     u: AuthUser,
@@ -248,6 +264,7 @@ export class FilaService {
         where id = ${inscricaoId}::uuid returning pme1_enviado_em as em`);
       if (!r) throw new NotFoundException();
       await registrarHistorico(tx, inscricaoId, 'inscricao.pme1', ['pme1EnviadoEm']);
+      if (enviado) await this.cicloDoPme1(tx, inscricaoId);
       return { pme1EnviadoEm: r.em ? iso(r.em) : null };
     }).catch((e) => erroDoBanco(e));
   }

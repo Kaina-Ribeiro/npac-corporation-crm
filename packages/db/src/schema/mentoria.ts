@@ -12,6 +12,7 @@ import {
   date,
   index,
   integer,
+  numeric,
   pgTable,
   smallint,
   text,
@@ -651,7 +652,7 @@ export const mentoriaMidia = pgTable(
   (t) => [
     check(
       'mentoria_midia_dono',
-      sql`${t.donoTipo} in ('PESSOA_FOTO', 'FOTO_FAMILIA', 'ACAO_EVIDENCIA')`,
+      sql`${t.donoTipo} in ('PESSOA_FOTO', 'FOTO_FAMILIA', 'ACAO_EVIDENCIA', 'TAREFA_COMPROVANTE')`,
     ),
     check('mentoria_midia_tipo', sql`${t.tipo} in ('FOTO', 'VIDEO', 'PDF', 'LINK_VIDEO')`),
     check('mentoria_midia_link', sql`(${t.tipo} = 'LINK_VIDEO') = (${t.urlVideo} is not null)`),
@@ -718,3 +719,182 @@ export const mentoriaAvisosEnviados = pgTable('mentoria_avisos_enviados', {
   chave: text('chave').primaryKey(),
   enviadoEm: timestamp('enviado_em', { withTimezone: true }).notNull().defaultNow(),
 });
+
+/**
+ * Catálogo de PMEs (Fase 2, E1): o material de cada número, cadastrado pela Eduarda. Não é dado
+ * pessoal: texto puro, sem cifra. 0 = aquecimento (etapa do onboarding), 1 a 12 = um por mês.
+ */
+export const mentoriaPmes = pgTable(
+  'mentoria_pmes',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    numero: smallint('numero').notNull(),
+    titulo: text('titulo'),
+    foco: text('foco'),
+    linkMaterial: text('link_material'),
+    atividadesExtras: text('atividades_extras')
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    encerramento: text('encerramento'),
+    ativo: boolean('ativo').notNull().default(true),
+    version: integer('version').notNull().default(1),
+    // Sem FK para user: as linhas vêm da migration e não podem cair num `truncate "user" cascade`.
+    criadoPor: text('criado_por'),
+    criadoEm: autoria.criadoEm,
+    atualizadoEm: autoria.atualizadoEm,
+  },
+  (t) => [
+    unique('mentoria_pmes_numero_unico').on(t.numero),
+    check('mentoria_pmes_numero', sql`${t.numero} between 0 and 12`),
+    check('mentoria_pmes_titulo', sql`char_length(${t.titulo}) between 1 and 120`),
+    check('mentoria_pmes_foco', sql`char_length(${t.foco}) between 1 and 500`),
+    check('mentoria_pmes_link', sql`${t.linkMaterial} ~ ${sql.raw(`'${LINK_PERMITIDO_SQL}'`)}`),
+    check('mentoria_pmes_extras', sql`cardinality(${t.atividadesExtras}) <= 20`),
+    check('mentoria_pmes_encerramento', sql`char_length(${t.encerramento}) between 1 and 500`),
+  ],
+);
+
+/**
+ * Ciclo de um PME numa inscrição (E2, E3): nasce no envio, dura 30 dias e fecha pela tarefa de
+ * encerramento. O status é derivado em SQL (`mentoria_ciclo_status`), nunca gravado.
+ */
+export const mentoriaCiclos = pgTable(
+  'mentoria_ciclos',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    inscricaoId: uuid('inscricao_id')
+      .notNull()
+      .references(() => mentoriaInscricoes.id, { onDelete: 'cascade' }),
+    /** Nulo só no ciclo anterior ao sistema de um número que o catálogo não tem. */
+    pmeId: uuid('pme_id').references(() => mentoriaPmes.id),
+    numero: smallint('numero').notNull(),
+    enviadoEm: date('enviado_em').notNull(),
+    prazo: date('prazo')
+      .notNull()
+      .generatedAlwaysAs(sql`enviado_em + 30`),
+    concluidoEm: date('concluido_em'),
+    /** Um ciclo seguinte foi enviado sem este fechar. */
+    naoConcluidoEm: date('nao_concluido_em'),
+    anteriorAoSistema: boolean('anterior_ao_sistema').notNull().default(false),
+    version: integer('version').notNull().default(1),
+    ...autoria,
+  },
+  (t) => [
+    unique('mentoria_ciclos_numero_unico').on(t.inscricaoId, t.numero),
+    uniqueIndex('mentoria_ciclos_aberto')
+      .on(t.inscricaoId)
+      .where(sql`${t.concluidoEm} is null and ${t.naoConcluidoEm} is null`),
+    check('mentoria_ciclos_numero', sql`${t.numero} between 1 and 12`),
+  ],
+);
+
+/**
+ * Tarefas (E5, E8): extras e encerramento do ciclo e, na Parte 2, as combinadas na reunião (até 3).
+ * Descrição e motivo chegam cifrados. "Fiz" e comprovante são lançados pela equipe; quem marcou e
+ * quando são do banco.
+ */
+export const mentoriaTarefas = pgTable(
+  'mentoria_tarefas',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    inscricaoId: uuid('inscricao_id')
+      .notNull()
+      .references(() => mentoriaInscricoes.id, { onDelete: 'cascade' }),
+    origem: text('origem').notNull(),
+    reuniaoId: uuid('reuniao_id').references(() => mentoriaReunioes.id, { onDelete: 'cascade' }),
+    cicloId: uuid('ciclo_id').references(() => mentoriaCiclos.id, { onDelete: 'cascade' }),
+    /** Meta a que a tarefa da reunião serve (Parte 2); some com a meta. */
+    metaId: uuid('meta_id').references((): AnyPgColumn => mentoriaMetas.id, {
+      onDelete: 'set null',
+    }),
+    ordem: smallint('ordem').notNull().default(0),
+    /** Nulo só depois da anonimização (LGPD); a API exige. */
+    descricao: text('descricao'),
+    prazo: date('prazo'),
+    dataCobranca: date('data_cobranca').generatedAlwaysAs(sql`prazo`),
+    status: text('status').notNull().default('PENDENTE'),
+    motivo: text('motivo'),
+    comprovanteMidiaId: uuid('comprovante_midia_id'),
+    cobradaEm: timestamp('cobrada_em', { withTimezone: true }),
+    cobradaPor: text('cobrada_por').references(() => user.id),
+    marcadaPorMentoradoEm: timestamp('marcada_por_mentorado_em', { withTimezone: true }),
+    visivelAoMentorado: boolean('visivel_ao_mentorado').notNull().default(true),
+    version: integer('version').notNull().default(1),
+    ...autoria,
+  },
+  (t) => [
+    index('mentoria_tarefas_inscricao').on(t.inscricaoId, t.prazo),
+    index('mentoria_tarefas_ciclo').on(t.cicloId, t.ordem),
+    index('mentoria_tarefas_reuniao').on(t.reuniaoId),
+    index('mentoria_tarefas_meta').on(t.metaId),
+    uniqueIndex('mentoria_tarefas_encerramento')
+      .on(t.cicloId)
+      .where(sql`${t.origem} = 'ENCERRAMENTO'`),
+    check(
+      'mentoria_tarefas_origem',
+      sql`${t.origem} in ('REUNIAO', 'PME', 'EXTRA', 'ENCERRAMENTO')`,
+    ),
+    check(
+      'mentoria_tarefas_status',
+      sql`${t.status} in ('PENDENTE', 'FEITA', 'PARCIAL', 'NAO_FEITA')`,
+    ),
+    check(
+      'mentoria_tarefas_reuniao_exige',
+      sql`${t.origem} <> 'REUNIAO' or (${t.reuniaoId} is not null and ${t.prazo} is not null)`,
+    ),
+    check(
+      'mentoria_tarefas_ciclo_exige',
+      sql`${t.origem} not in ('EXTRA', 'ENCERRAMENTO') or ${t.cicloId} is not null`,
+    ),
+    check(
+      'mentoria_tarefas_motivo_status',
+      sql`${t.motivo} is null or ${t.status} in ('PARCIAL', 'NAO_FEITA')`,
+    ),
+    check('mentoria_tarefas_descricao', cifradoCabe(t.descricao)),
+    check('mentoria_tarefas_motivo', cifradoCabe(t.motivo)),
+    check('mentoria_tarefas_ordem', sql`${t.ordem} between 0 and 100`),
+  ],
+);
+
+/**
+ * Metas (Fase 2, Parte 2): do casal ou individual (`pessoa_id` nulo) ou de uma pessoa do casal.
+ * Descrição cifrada. Nasce no ciclo aberto, se houver, e conta no % de metas dele (E5). O status da
+ * meta (spec S3) espera decisão do Gabriel: sem coluna até lá.
+ */
+export const mentoriaMetas = pgTable(
+  'mentoria_metas',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    inscricaoId: uuid('inscricao_id')
+      .notNull()
+      .references(() => mentoriaInscricoes.id, { onDelete: 'cascade' }),
+    cicloId: uuid('ciclo_id').references(() => mentoriaCiclos.id, { onDelete: 'cascade' }),
+    /** Reunião onde foi definida (opcional). */
+    reuniaoId: uuid('reuniao_id').references(() => mentoriaReunioes.id, { onDelete: 'set null' }),
+    /** Nulo = do casal ou do individual; a pessoa 2 removida devolve a meta ao casal. */
+    pessoaId: uuid('pessoa_id').references(() => mentoriaPessoas.id, { onDelete: 'set null' }),
+    pilar: text('pilar'),
+    /** Nulo só depois da anonimização (LGPD); a API exige. */
+    descricao: text('descricao'),
+    valorAlvo: numeric('valor_alvo', { precision: 14, scale: 2 }),
+    valorAtual: numeric('valor_atual', { precision: 14, scale: 2 }),
+    unidade: text('unidade'),
+    prazo: date('prazo'),
+    visivelAoMentorado: boolean('visivel_ao_mentorado').notNull().default(true),
+    version: integer('version').notNull().default(1),
+    ...autoria,
+  },
+  (t) => [
+    index('mentoria_metas_inscricao').on(t.inscricaoId, t.criadoEm),
+    index('mentoria_metas_ciclo').on(t.cicloId),
+    check(
+      'mentoria_metas_pilar',
+      sql`${t.pilar} in ('FE', 'SAUDE', 'DINHEIRO', 'RELACIONAMENTOS')`,
+    ),
+    check('mentoria_metas_alvo', sql`${t.valorAlvo} > 0`),
+    check('mentoria_metas_atual', sql`${t.valorAtual} >= 0`),
+    check('mentoria_metas_unidade', sql`char_length(${t.unidade}) between 1 and 20`),
+    check('mentoria_metas_descricao', cifradoCabe(t.descricao)),
+  ],
+);

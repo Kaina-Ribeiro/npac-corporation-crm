@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useId, useRef, useState } from 'react';
 import { clientApi } from '@/lib/client-api';
 import { Rostos } from './ui';
+import { startNavProgress } from '@/components/shell/nav-progress';
 
 /**
  * Busca do topo: nome por trecho, telefone e e-mail só completos (índice cego). O termo vai no
@@ -48,7 +49,9 @@ export function BuscaModulo() {
   function abrir(item: InscricaoItem) {
     setTermo('');
     setItens(null);
-    router.push(`/acompanhamento/ficha/${item.id}`);
+    const href = `/acompanhamento/ficha/${item.id}`;
+    startNavProgress(href);
+    router.push(href);
   }
 
   return (

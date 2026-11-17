@@ -11,13 +11,18 @@ import {
   linkGrupoValido,
   linkWhatsApp,
   type FichaDTO,
+  type Responsavel,
 } from '@npac/shared/mentoria';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { readPrefs } from '@npac/shared/screen-prefs';
 import { useEffect, useRef, useState } from 'react';
 import { button, control, quietButton } from '@/components/crm-ui';
+import { FICHA_REGRAS, atualizarAc } from '@/lib/acompanhamento-prefs';
 import { clientApi } from '@/lib/client-api';
+import { useLatestPrefs } from '@/lib/use-latest-prefs';
 import { filaDeSalvamento, registrarVersion } from '@/lib/acompanhamento-saver';
+import { EVENTO_ULTIMA_FICHA } from '@/lib/ultima-ficha';
 import { CampoPr, DINHEIRO } from './campo';
 import { Dialogo } from './dialogo';
 import { OnboardingFicha } from './etapa-card';
@@ -26,7 +31,22 @@ import { FichaPessoas } from './ficha-pessoas';
 import { HistoricoLista } from './historico-lista';
 import { IndicadorSalvo } from './indicador-salvo';
 import { PlanoMentorado } from './plano-mentorado';
-import { dataBR, FOCOS_RDV, ICONES, Icone, Rostos, TagStatus, Trilha, type Aba } from './ui';
+import { Metas } from './metas';
+import { PmeAtual } from './pme-atual';
+import { TarefasFicha } from './tarefas-reuniao';
+import {
+  abaValida,
+  dataBR,
+  FOCOS_RDV,
+  ICONES,
+  Icone,
+  opcoesResponsavel,
+  rotuloAntesDoInicio,
+  Rostos,
+  TagStatus,
+  Trilha,
+  type Aba,
+} from './ui';
 
 const COOKIE_ULTIMA_FICHA = 'npac_ultima_ficha';
 const sm = `${quietButton} sm`;
@@ -35,13 +55,19 @@ function Jornada({
   ficha,
   soLargo,
   atualizar,
+  memoria,
 }: {
   ficha: FichaDTO;
   soLargo: boolean;
   atualizar: () => void;
+  memoria: string;
 }) {
   const mes = ficha.mesJornada;
   const focos = ficha.mentoria === 'RDV' ? FOCOS_RDV : null;
+  const ativo = ficha.status === 'ATIVO';
+  const comPme = ficha.ciclos.length > 0 || ativo;
+  const comTarefas = ficha.tarefasReuniao.length > 0 || ativo;
+  const comMetas = ficha.metas.length > 0 || (ficha.pode.meta && ativo);
   return (
     <section
       className={`card pa ${soLargo ? 'so-largo' : ''}`}
@@ -66,8 +92,34 @@ function Jornada({
       <OnboardingFicha
         ficha={ficha}
         atualizar={atualizar}
+        pme={
+          comPme || comTarefas || comMetas ? (
+            <>
+              {comPme && <PmeAtual ficha={ficha} atualizar={atualizar} />}
+              {comTarefas && (
+                <TarefasFicha
+                  tarefas={ficha.tarefasReuniao}
+                  metas={ficha.metas}
+                  atualizar={atualizar}
+                />
+              )}
+              {comMetas && (
+                <Metas
+                  inscricaoId={ficha.id}
+                  metas={ficha.metas}
+                  pessoas={ficha.pessoas.map((p) => ({ id: p.id, nome: p.nome }))}
+                  podeCriar={ficha.pode.meta}
+                  atualizar={atualizar}
+                  vazio="Nenhuma meta definida. As metas nascem na reunião ou aqui."
+                />
+              )}
+            </>
+          ) : null
+        }
         plano={
-          ficha.acoes.length > 0 ? <PlanoMentorado ficha={ficha} atualizar={atualizar} /> : null
+          ficha.acoes.length > 0 ? (
+            <PlanoMentorado ficha={ficha} atualizar={atualizar} memoria={memoria} />
+          ) : null
         }
       />
     </section>
@@ -83,7 +135,7 @@ function Inscricao({
   pedirIdr,
 }: {
   ficha: FichaDTO;
-  responsaveis: { id: string; nome: string }[];
+  responsaveis: Responsavel[];
   ativo: boolean;
   atualizar: () => void;
   pedirTipo: () => void;
@@ -150,7 +202,7 @@ function Inscricao({
         campo="responsavelId"
         valor={ficha.responsavelId}
         tipo="select"
-        opcoes={responsaveis.map((r) => ({ valor: r.id, rotulo: r.nome }))}
+        opcoes={opcoesResponsavel(responsaveis, ficha.responsavelId)}
       />
       <CampoPr
         {...base}
@@ -492,13 +544,27 @@ export function Ficha({
   ficha,
   responsaveis,
   abaInicial,
+  lembrar,
 }: {
   ficha: FichaDTO;
-  responsaveis: { id: string; nome: string }[];
+  responsaveis: Responsavel[];
   abaInicial: Aba;
+  /** Cookie da aba e do filtro do histórico (NPAC-46); `abaDaUrl`: o link pediu a aba. */
+  lembrar: { cookie: string; valor: string; abaDaUrl: boolean };
 }) {
   const router = useRouter();
   const [aba, setAba] = useState<Aba>(abaInicial);
+  const lembrarAba = (a: Aba) =>
+    atualizarAc('ficha', lembrar.cookie, FICHA_REGRAS, { aba: a === 'jornada' ? undefined : a });
+  const pedida = useRef(lembrar.abaDaUrl ? abaInicial : null);
+  // Voltar do navegador traz a página de antes: sem aba no link, vale a mais nova do cookie.
+  useLatestPrefs(lembrar.cookie, lembrar.valor, (valor) => {
+    if (!pedida.current) setAba(abaValida(readPrefs(valor, FICHA_REGRAS).aba));
+  });
+  // A aba pedida no link vira a lembrada (depois de `useLatestPrefs`, que semeia a memória).
+  useEffect(() => {
+    if (pedida.current) lembrarAba(pedida.current);
+  }, []);
   const [mudarTipo, setMudarTipo] = useState(false);
   const [dialogo, setDialogo] = useState<
     'pausar' | 'retomar' | 'idr' | 'excluir' | 'anonimizar' | null
@@ -510,7 +576,8 @@ export function Ficha({
 
   useEffect(() => {
     document.cookie = `${COOKIE_ULTIMA_FICHA}=${ficha.id}; Path=/acompanhamento; Max-Age=2592000; SameSite=Lax`;
-  }, [ficha.id]);
+    window.dispatchEvent(new CustomEvent(EVENTO_ULTIMA_FICHA, { detail: ficha.nome }));
+  }, [ficha.id, ficha.nome]);
 
   useEffect(() => {
     registrarVersion(`inscricao:${ficha.id}`, ficha.version);
@@ -524,13 +591,14 @@ export function Ficha({
   function trocarAba(a: Aba) {
     setAba(a);
     window.history.replaceState(null, '', `?aba=${a}`);
+    lembrarAba(a);
   }
 
   const mes = ficha.mesJornada;
   const foco = mes !== null && mes <= 12 && ficha.mentoria === 'RDV' ? FOCOS_RDV[mes - 1] : null;
   const titulo =
     mes === null
-      ? 'Antes da IDR'
+      ? rotuloAntesDoInicio(ficha.mentoria)
       : mes > 12
         ? 'Jornada concluída'
         : `Mês ${mes} de 12${foco ? `: ${foco}` : ''}`;
@@ -641,11 +709,16 @@ export function Ficha({
           </div>
           {/* A partir de 1280 px a Inscrição é coluna: a aba dela mostra a Jornada ao lado. */}
           {(aba === 'jornada' || aba === 'inscricao') && (
-            <Jornada ficha={ficha} soLargo={aba === 'inscricao'} atualizar={atualizar} />
+            <Jornada
+              ficha={ficha}
+              soLargo={aba === 'inscricao'}
+              atualizar={atualizar}
+              memoria={lembrar.cookie}
+            />
           )}
           {aba === 'pessoas' && <FichaPessoas ficha={ficha} atualizar={atualizar} />}
           {aba === 'momento' && <FichaMomento ficha={ficha} atualizar={atualizar} />}
-          {aba === 'historico' && <HistoricoLista ficha={ficha} />}
+          {aba === 'historico' && <HistoricoLista ficha={ficha} lembrar={lembrar} />}
         </div>
         <Inscricao
           ficha={ficha}

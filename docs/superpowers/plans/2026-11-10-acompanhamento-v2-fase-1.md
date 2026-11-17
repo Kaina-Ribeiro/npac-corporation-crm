@@ -52,6 +52,22 @@
 4. **Casal em que uma pessoa não tem WhatsApp, e inscrição sem link do grupo:** o botão correspondente some, sem quebrar nem abrir link vazio. → Tarefa 5.2.
 5. **Responsável desativado no CRM e Diretoria sem perfil:** o item cai na Fila do perfil, e a Diretoria vê tudo sem repetir item. → Tarefa 5.1.
 
+## Auditoria de 11/11/2026 (branch `fix/NPAC-43-auditoria-fase-1`)
+
+Fase 1 inteira conferida contra o PDF e o SPEC, com suítes e fluxo real por perfil.
+
+Corrigido:
+- **Transferir carteira de quem saiu:** "De" só listava contas ativas; a carteira de quem foi desativado (o caso do §5) não podia ser escolhida. Agora lista quem tem inscrição em andamento, com "(desativado)" e a contagem.
+- **Responsável fora da regra:** a lista oferecia Carla (sem perfil), Leo, Manu, Operação e Diretoria, e o cadastro feito pela Operação a punha como responsável. Agora só perfil Acompanhamento ativo (mesma regra de quem recebe carteira), com 400 na API; o atual que saiu continua visível na ficha.
+- **Status financeiro "Em dia" inventado:** o cadastro já vinha com "Em dia"; agora começa "Não informado".
+- **"Antes da IDR" no 2M e 6M:** eles podem começar sem IDR (D15); agora "Antes do início".
+- **Etiqueta do rodapé:** Operação, Especialista e Mentor apareciam como "Acompanhamento"; agora o cargo real.
+
+Suposições ainda sem validação da Eduarda (ficam editáveis em Configurações > Plano-modelo):
+- Ações RDV de gatilho "fim do PME" (meses 2, 4, 5, 8, 10 e 12) vencem no **dia 25** do mês da jornada: número não está no PDF. A Fase 2 troca pelo fechamento real do PME.
+- Mês 1 do RDV tem responsável só Acompanhamento; o PDF diz "Operação e Duda".
+- Valores do status financeiro (Em dia, Em atraso, Quitado), §12.
+
 ---
 
 ## Parte 1 — Base

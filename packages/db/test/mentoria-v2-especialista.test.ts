@@ -166,6 +166,19 @@ describe('Especialista', () => {
     expect(await q(MANU, sql`select id from mentoria_inscricoes`)).toHaveLength(0);
   });
 
+  it('quem conduziu como Especialista e trocou de perfil deixa de ver na consulta seguinte', async () => {
+    expect(await q(MANU, sql`select id from mentoria_inscricoes`)).toHaveLength(1);
+    await owner`update mentoria_perfis set perfil = 'MENTOR' where user_id = ${MANU}`;
+    try {
+      expect(await q(MANU, sql`select id from mentoria_inscricoes`)).toHaveLength(0);
+      expect(await q(MANU, sql`select id from mentoria_reunioes`)).toHaveLength(0);
+      expect(await q(MANU, sql`select id from mentoria_pessoas`)).toHaveLength(0);
+    } finally {
+      await owner`update mentoria_perfis set perfil = 'ESPECIALISTA' where user_id = ${MANU}`;
+    }
+    expect(await q(MANU, sql`select id from mentoria_inscricoes`)).toHaveLength(1);
+  });
+
   it('não registra contato e não exclui reunião', async () => {
     const contato = withUser(db, MANU, (tx) =>
       tx.execute(sql`insert into mentoria_contatos (inscricao_id, feito_por, quando, canal)

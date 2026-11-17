@@ -12,7 +12,9 @@
     "test": "turbo run test",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "perf:seed": "turbo run build --filter=@npac/api && node scripts/perf/seed.mjs",
+    "perf:api": "turbo run build --filter=@npac/api && node scripts/perf/api.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",

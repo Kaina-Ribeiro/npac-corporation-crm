@@ -23,6 +23,8 @@ import { filaDeSalvamento, registrarVersion } from '@/lib/acompanhamento-saver';
 import { CampoPr, INTEIRO, useCampo } from './campo';
 import { Dialogo } from './dialogo';
 import { IndicadorSalvo } from './indicador-salvo';
+import { Metas } from './metas';
+import { CobrancaAnterior, TarefasSemana } from './tarefas-reuniao';
 import { diaHoraBR, ICONES, Icone, paraCampoBR, TagInterno, TagReuniao } from './ui';
 
 const ROTULO_ESTADO: Partial<Record<ReuniaoStatus, string>> = {
@@ -266,6 +268,23 @@ export function ReuniaoRegistro({
           )}
           <FormError message={erro} />
         </section>
+
+        <CobrancaAnterior r={r} atualizar={atualizar} />
+        <TarefasSemana r={r} atualizar={atualizar} />
+        {(r.podeMeta || r.metasInscricao.length > 0) && (
+          <div className="card pa tr-bloco">
+            <Metas
+              inscricaoId={r.inscricaoId}
+              metas={r.metasInscricao}
+              pessoas={r.pessoasDaInscricao}
+              podeCriar={r.podeMeta}
+              atualizar={atualizar}
+              reuniaoId={r.id}
+              titulo="Metas definidas ou ajustadas"
+              vazio="Nenhuma meta definida. Defina as metas do mentorado aqui."
+            />
+          </div>
+        )}
 
         <section className="card pa">
           <h3>Registro</h3>

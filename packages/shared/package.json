@@ -33,6 +33,10 @@
     "./reminders": {
       "types": "./dist/reminders.d.ts",
       "default": "./dist/reminders.js"
+    },
+    "./screen-prefs": {
+      "types": "./dist/screen-prefs.d.ts",
+      "default": "./dist/screen-prefs.js"
     }
   },
   "scripts": {

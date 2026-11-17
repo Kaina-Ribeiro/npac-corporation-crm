@@ -9,21 +9,29 @@ import {
 } from '@npac/shared/enums';
 import { control, Field, quietButton } from './crm-ui';
 
-/** Campos associados a um form POST em memória; nenhum filtro pessoal vai para a URL. */
+/**
+ * Campos associados a um form POST em memória; nenhum filtro pessoal vai para a URL. Cada mudança
+ * chama `onApply` (o filtro vale ao escolher, NPAC-46); a busca por texto segue no Enter.
+ */
 export function LeadFilters({
   catalog,
   form,
   values = {},
+  onApply,
+  onClear,
 }: {
   catalog: LeadCatalog;
   form: string;
   /** Valores iniciais (filtro salvo aplicado); troque a `key` do componente para reaplicar. */
   values?: Record<string, string>;
+  onApply: () => void;
+  /** Mostra "Limpar filtros" quando há filtro fora do padrão. */
+  onClear?: () => void;
 }) {
   return (
     <details className="glass-card p-4" open={Object.keys(values).length > 0 || undefined}>
       <summary className="cursor-pointer text-sm font-semibold">Filtrar e ordenar</summary>
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4" onChange={onApply}>
         <Field label="Etapa do lead">
           <select name="stage" form={form} defaultValue={values.stage ?? ''} className={control}>
             <option value="">Todas</option>
@@ -121,9 +129,11 @@ export function LeadFilters({
           </select>
         </Field>
       </div>
-      <button form={form} className={`${quietButton} mt-4`}>
-        Aplicar filtros
-      </button>
+      {onClear && (
+        <button type="button" onClick={onClear} className={`${quietButton} mt-4`}>
+          Limpar filtros
+        </button>
+      )}
     </details>
   );
 }

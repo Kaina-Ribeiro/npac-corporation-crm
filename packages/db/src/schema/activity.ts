@@ -66,6 +66,8 @@ export const leadTimeline = pgTable(
   },
   (t) => [
     index('lead_timeline_lead_idx').on(t.leadId, t.at),
+    // Feed do Dashboard (mais recentes primeiro); desempenho, Fase 3 (0063).
+    index('lead_timeline_at_idx').on(t.at.desc().nullsFirst(), t.id),
     check(
       'timeline_kind_allowed',
       sql`${t.kind} in ('lead.created','lead.updated','lead.moved','lead.reassigned','lead.deleted','lead.called','lead.contact_rescheduled','note.created','note.updated','task.created','task.updated','meeting.scheduled','meeting.rescheduled','meeting.canceled','meeting.outcome','meeting.confirmed','sale.registered','sale.pending','sale.reversed','payment.pending','payment.received','form.received')`,

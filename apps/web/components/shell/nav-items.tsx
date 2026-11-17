@@ -9,6 +9,12 @@ export type NavItem = {
   section?: 'Em breve' | 'Admin';
   /** Sub-itens (módulo do Acompanhamento para a Diretoria): abrem dentro de `match`. */
   children?: NavItem[];
+  /**
+   * Sem pré-carga (`prefetch={false}`): destino decidido a cada clique (redirect do servidor, ex.:
+   * "Ficha do mentorado" → última ficha; pré-carregado, o Next guardaria o destino velho) ou tela
+   * quase nunca aberta (itens "Em breve" do módulo).
+   */
+  semPrefetch?: boolean;
 };
 
 export const svg = (d: React.ReactNode) => (
@@ -104,11 +110,3 @@ export const BOTTOM_ITEMS: NavItem[] = [
 
 /** O restante da sidebar, na mesma ordem, listado na tela Mais. */
 export const MORE_ITEMS: NavItem[] = SIDEBAR_ITEMS.slice(4);
-
-/** Seções que existem na navegação mas ainda não foram construídas. */
-export const SOON: Record<string, string> = {
-  dashboard: 'Dashboard',
-  pipeline: 'Pipeline',
-  relatorios: 'Relatórios',
-  mais: 'Mais',
-};
