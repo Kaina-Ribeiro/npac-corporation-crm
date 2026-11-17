@@ -15,6 +15,7 @@ import { getSession } from '@/lib/session';
 export const metadata = { title: 'Mais' };
 
 const HINT: Record<string, string> = {
+  '/leads': 'Busca, filtros e CSV',
   '/relatorios': 'Filtros, CSV e resumo',
   '/chat': 'Geral e conversas',
   '/equipe': 'Pessoas e números',

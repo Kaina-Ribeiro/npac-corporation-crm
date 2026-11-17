@@ -102,11 +102,15 @@ export const ACOMPANHAMENTO_ITEM: NavItem = {
   icon: ICONS.acompanhamento,
 };
 
-/** Mobile: os quatro primeiros da sidebar, na mesma ordem, + Mais (Dashboard sempre primeiro). */
+/**
+ * Mobile: Dashboard, Hoje, Pipeline e Chat + Mais. O Chat fica no lugar de Leads (pedido do Igor,
+ * 16/11/2026: acesso mais fácil); Leads vai para a tela Mais. O desktop segue a ordem da sidebar.
+ */
+const BOTTOM_HREFS = ['/dashboard', '/hoje', '/pipeline', '/chat'];
 export const BOTTOM_ITEMS: NavItem[] = [
-  ...SIDEBAR_ITEMS.slice(0, 4),
+  ...BOTTOM_HREFS.map((href) => SIDEBAR_ITEMS.find((i) => i.href === href)!),
   { href: '/mais', label: 'Mais', ready: true, icon: ICONS.mais },
 ];
 
 /** O restante da sidebar, na mesma ordem, listado na tela Mais. */
-export const MORE_ITEMS: NavItem[] = SIDEBAR_ITEMS.slice(4);
+export const MORE_ITEMS: NavItem[] = SIDEBAR_ITEMS.filter((i) => !BOTTOM_HREFS.includes(i.href));

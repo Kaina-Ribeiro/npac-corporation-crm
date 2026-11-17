@@ -6,6 +6,7 @@ import { Today } from '@/components/today';
 import { apiGet, apiPost } from '@/lib/api';
 import { getSession } from '@/lib/session';
 import { parseTodayFilters, todayCookieName } from '@/lib/today-filters';
+import { PushInvite } from '@/components/push-invite';
 
 export const metadata = { title: 'Hoje' };
 export default async function HojePage() {
@@ -18,17 +19,20 @@ export default async function HojePage() {
   const filters = head ? parseTodayFilters(jar.get(cookie)?.value, catalog.team) : {};
   const initial = await apiPost<TodayDTO>('/api/today/search', filters);
   return (
-    <Today
-      initial={initial}
-      catalog={catalog}
-      name={me.name}
-      head={head}
-      quick={me.role !== 'CLOSER'}
-      charges={me.role !== 'SDR'}
-      canCreate={head || me.canProspect}
-      cookie={cookie}
-      initialFilters={filters}
-      closerMarkFor={head && me.canClose ? me.id : undefined}
-    />
+    <>
+      <PushInvite className="mb-5" />
+      <Today
+        initial={initial}
+        catalog={catalog}
+        name={me.name}
+        head={head}
+        quick={me.role !== 'CLOSER'}
+        charges={me.role !== 'SDR'}
+        canCreate={head || me.canProspect}
+        cookie={cookie}
+        initialFilters={filters}
+        closerMarkFor={head && me.canClose ? me.id : undefined}
+      />
+    </>
   );
 }
