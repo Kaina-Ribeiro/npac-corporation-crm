@@ -21,12 +21,18 @@ function abaAtual(path: string): string | null {
 }
 
 /**
+ * Formulários com a barra de botões presa embaixo (`.nf-barra`): o rodapé sai para não cobri-la.
+ * Formulário novo com `.nf-barra` entra aqui (e2e `mobile-layout`).
+ */
+const SEM_RODAPE = ['/acompanhamento/mentorados/nova', '/acompanhamento/reunioes/nova'];
+
+/**
  * Celular (abaixo de 768 px): Fila · Mentorados · + · Reuniões · Mais. O "+" abre a Nova inscrição
- * e não aparece para quem não cadastra; a própria tela de cadastro esconde o rodapé.
+ * e não aparece para quem não cadastra; os formulários de `SEM_RODAPE` escondem o rodapé.
  */
 export function AbasMobile({ podeCriar = false }: { podeCriar?: boolean }) {
   const path = usePathname();
-  if (path === '/acompanhamento/mentorados/nova') return null;
+  if (SEM_RODAPE.includes(path)) return null;
   const aba = abaAtual(path);
 
   const item = (a: (typeof ABAS)[number]) => {
