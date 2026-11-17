@@ -61,7 +61,8 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   admin `admin.tsx`, `access-requests.tsx` · Ctrl+K `shell/command-palette.tsx` · avisos `inbox.tsx` ·
   textos de atividade `lib/activity-text.ts` · campos por etapa `stage-fields.tsx` (+ `lib/stage-fields.ts`,
   `lib/stage-kind.ts`) e janelinha `stage-move-dialog.tsx` (Pipeline, lista, massa) · editor de colunas `pipeline-columns-editor.tsx` · ação
-  rápida do Hoje `today-quick-action.tsx` · closer completa o pagamento `payment-complete.tsx` · menu de CSV `csv-export.tsx` (API: `api/common/csv.ts`) ·
+  rápida do Hoje `today-quick-action.tsx` · closer completa o pagamento `payment-complete.tsx` · SDR marca a
+  venda `sale-mark.tsx` · menu de CSV `csv-export.tsx` (API: `api/common/csv.ts`) ·
   avisos compartilhados (selo do chat, `(N)` na aba, lembretes) `lib/alerts.ts`, `meeting-reminder.tsx` ·
   push no aparelho `lib/push.ts`, `public/sw.js`, `/conta/avisos`, convite `components/push-invite.tsx`
 - **Movimento e resposta** (NPAC-47, Fase 4): entrada de página em `globals.css` (`.page-reveal`, `.reveal`,
@@ -160,7 +161,9 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   e `/team` cortam no servidor (`dropSales`), o lead vem sem valor e entrada (`toDTO`) e
   `/finance/products` sem preço; o Dashboard do SDR mostra comparecimento. Closer igual a
   antes; liderança vê venda + comparecimento, com filtro por SDR. Vendas e pagamentos (ficha,
-  cobranças do Hoje, `sale:register`) são do closer e da liderança; o SDR só marca o resultado da reunião.
+  cobranças do Hoje, `sale:register`) são do closer e da liderança; o SDR marca o resultado da reunião
+  e, depois dela, a venda só com o produto (NPAC-48, abaixo em "Marcar venda"). A renda extra do SDR
+  (`saleBonus`) é renda dele, não R$ de venda: o SDR vê só a dele; a liderança vê a de todos.
 - Login por **usuário** (`/sign-in/username`, `[a-z0-9_.]{3,30}`, minúsculo); login por e-mail e
   `/is-username-available` desligados. Senha mínima 3 (provisório, decisão de 29/10/2026: no dev
   todas são `123`; as regras voltam no fim).
@@ -305,6 +308,26 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
     da reunião (409 `PRODUCT_REQUIRED`); SDR vê só o nome, sem R$. Sem a venda fica em
     `leads.sold_product_id` (0039): "Produto: X" na ficha e pré-preenche o registro; apagado ao
     registrar ou sair da Venda (o gatilho deixa o closer zerá-lo sem trocar a etapa).
+- **Marcar venda** (NPAC-48, Igor 16–17/11/2026, "4A, 5B, 1A, 2A"): depois da reunião realizada, o SDR
+  do lead (ou a liderança; closer não, 403) usa `POST /leads/:id/sale-mark` `{ version, productId }`
+  (`markSale` em `api/leads/lead-mutations.service.ts`; tela `components/sale-mark.tsx`, na última
+  reunião realizada da ficha). Um produto por venda, do closer da reunião realizada mais recente (pelo
+  horário); sem ela, 409 `MEETING_DONE_REQUIRED`; já em Venda, 409 `ALREADY_SOLD`. O lead vai para
+  Venda como **venda a registrar** (`sold_product_id`), o closer da reunião vira o do lead (gatilho
+  `leads_guard_owner_columns` da 0066 deixa o SDR só nesse caso) e recebe `sale.pending` (sino + push);
+  ele põe o valor registrando a venda, como no cadastro. **Renda extra do SDR** (`sdr_sale_marks`, 0066):
+  cada marcação guarda o SDR do lead, o produto e `bonus_cents` = `products.sdr_bonus_cents` do dia
+  (valor editável em Admin > Produtos, "Renda extra do SDR"; mudar não altera o já ganho). O cadastro
+  em Venda Fechada também grava a marcação (`recordSaleMark` em `api/leads/sale-mark.ts`). Conta na
+  data da marcação (1A); sai (`canceled_at`, por gatilho) no estorno, quando o lead deixa a Venda ou é
+  excluído. Leitura por RLS: o próprio SDR e a liderança; `npac_app` só SELECT/INSERT. Aparece no
+  Dashboard como o balão preto "Valor a receber por venda feita" (card `sale-bonus`, o `RevenueHero` do valor
+  por reunião, linha acumulada por `saleBonus.daily`; Igor, 17/11: "outro balão desse preto das reuniões
+  realizadas, só que das vendas feitas"), pelo período de `/reports/search`: **cada SDR vê o dele (rodapé por
+  produto); a liderança vê o de todos (rodapé por SDR, `bySdr`) ou do SDR filtrado** (Gabriel, 17/11/2026);
+  o closer não recebe. Igor, 17/11 ("1A, 2B"): a renda segue o produto que o SDR marcou, mesmo que o
+  closer registre outro; venda registrada direto pelo closer, sem marcação, não gera renda. Valores do Igor: Nação Promocional R$ 5, Padrão (Normal) R$ 10, Completo (Cheio) R$ 20,
+  RDV R$ 70, 2M R$ 90, 6M R$ 120 (seed e 0066, por código ou nome).
 - **Campos por etapa** (NPAC-38, 05/11/2026, "1A 2A 3A"): Agendados pedem `meeting` (criada na
   mesma transação, origem pela etapa, `rearm()` depois do commit; reunião futura aberta dispensa),
   Agendou Pagamento pede data (`next_contact_at`) + produto + valor, Sem Perfil pede `lost_reason`
@@ -417,7 +440,7 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
   `FORMS_OWNER_USERNAME`, origem `FORMULARIO`, etapa Criando Relacionamento; senão descarta, sem guardar.
 - `form_responses`: respostas cifradas, gravação só por `form_response_record` (timeline
   `form.received` + auditoria), LGPD zera. Aviso ao dono e à liderança, sem excluir o autor; bloco
-  "Formulários novos" no Hoje e card na ficha. `truncate leads` nos testes inclui `form_responses`.
+  "Formulários novos" no Hoje e card na ficha. `truncate leads` nos testes inclui `form_responses` e `sdr_sale_marks`.
 
 ## Banco
 
@@ -443,7 +466,7 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
 - Valor novo de enum não vale na mesma transação da migration (compare como texto).
 - Aplicar no dev: `pnpm --filter @npac/db build && pnpm --filter @npac/db migrate`.
   psql: `docker exec npac-corporation-postgres-1 psql -U npac_owner -d npac`.
-- Apagar lead/usuário à mão: FKs em `form_responses`, `chat_reads`, `chat_*`, `payments`, `deals`, `lead_notes`,
+- Apagar lead/usuário à mão: FKs em `form_responses`, `sdr_sale_marks`, `chat_reads`, `chat_*`, `payments`, `deals`, `lead_notes`,
   `lead_tasks`, `notifications`, `lead_timeline`, `meetings` (`meeting_confirmations` e
   `meeting_reminders_sent` em cascata), `lgpd_requests` (usuário: também `session`, `account`,
   `push_subscriptions`). `truncate` de `meetings` nos testes lista as duas tabelas de lembretes.

@@ -13,6 +13,7 @@ export const DASH_CARDS = [
   'kpi-missed',
   'revenue',
   'meeting-value',
+  'sale-bonus',
   'funnel',
   'daily-leads',
   'tiers',

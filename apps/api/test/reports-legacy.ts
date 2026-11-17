@@ -1,6 +1,7 @@
 // Cópia CONGELADA de ReportsService.search e TeamService.members antes da Fase 3 do desempenho
 // (docs/plans/desempenho.md, T3.2). Serve só de referência ao teste de equivalência em
-// reports.e2e.test.ts: a versão nova tem de responder byte a byte igual. Não alterar.
+// reports.e2e.test.ts: a versão nova tem de responder byte a byte igual. Não alterar, salvo
+// número novo pedido pelo cliente, no mesmo PR (NPAC-48: `saleBonus` do SDR).
 import { BadRequestException } from '@nestjs/common';
 import { withUser, type Db } from '@npac/db';
 import { spDayRange, TIERS, type AuthUser } from '@npac/shared';
@@ -203,6 +204,12 @@ export class LegacyReportsService {
       },
       { isolationLevel: 'repeatable read' },
     );
+    // Acréscimo pedido (NPAC-48, Gabriel 17/11/2026): a liderança vê a renda extra de todos os SDRs.
+    if (u.role === 'HEAD' || u.role === 'DIRETOR')
+      return {
+        ...result,
+        saleBonus: await legacySaleBonus(this.db, u, q.sdrId ?? null, start, end),
+      };
     if (u.role !== 'SDR') return result;
     return {
       ...result,
@@ -212,8 +219,52 @@ export class LegacyReportsService {
       daily: result.daily.map(dropSales),
       bySdr: result.bySdr.map(dropSales),
       byCloser: result.byCloser.map(dropSales),
+      // Acréscimo pedido (NPAC-48, Igor 17/11/2026): renda extra do SDR por venda marcada.
+      saleBonus: await legacySaleBonus(this.db, u, u.id, start, end),
     };
   }
+}
+
+/** Acréscimo pedido (NPAC-48): renda extra do SDR; a liderança recebe também a linha por SDR. */
+async function legacySaleBonus(
+  db: Db,
+  u: Pick<AuthUser, 'id' | 'role'>,
+  sdrId: string | null,
+  start: Date,
+  end: Date,
+) {
+  const team = u.role === 'HEAD' || u.role === 'DIRETOR';
+  return withUser(db, u.id, async (tx) => {
+    const where = sql`k.canceled_at is null and k.marked_at>=${start.toISOString()} and k.marked_at<${end.toISOString()}
+      and (${sdrId}::text is null or k.sdr_id=${sdrId})`;
+    const byProduct = (
+      await tx.execute<Record<string, unknown>>(
+        sql`select p.id,p.name,count(*) as count,sum(k.bonus_cents) as cents from sdr_sale_marks k join products p on p.id=k.product_id
+      where ${where} group by p.id,p.name order by sum(k.bonus_cents) desc,p.name`,
+      )
+    ).map(numeric) as { count: number; cents: number }[];
+    const bySdr = team
+      ? (
+          await tx.execute<Record<string, unknown>>(
+            sql`select u.id,u.name,count(*) as count,sum(k.bonus_cents) as cents from sdr_sale_marks k join "user" u on u.id=k.sdr_id
+      where ${where} group by u.id,u.name order by sum(k.bonus_cents) desc,u.name`,
+          )
+        ).map(numeric)
+      : undefined;
+    const daily = (
+      await tx.execute<Record<string, unknown>>(
+        sql`select to_char((k.marked_at at time zone 'America/Sao_Paulo')::date,'YYYY-MM-DD') as date,sum(k.bonus_cents) as cents
+      from sdr_sale_marks k where ${where} group by 1 order by 1`,
+      )
+    ).map(numeric);
+    return {
+      cents: byProduct.reduce((a, r) => a + r.cents, 0),
+      count: byProduct.reduce((a, r) => a + r.count, 0),
+      byProduct,
+      ...(bySdr ? { bySdr } : {}),
+      daily,
+    };
+  });
 }
 
 type Row = Record<string, unknown> & { id: string };

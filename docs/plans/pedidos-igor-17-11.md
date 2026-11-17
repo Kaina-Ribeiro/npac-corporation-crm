@@ -64,5 +64,25 @@ Decisões do Gabriel em 17/11: "se ele tá pedindo pra notificar, temos que noti
 
 | # | Tarefa | Status |
 |---|---|---|
-| C1 | Depois da reunião realizada, o SDR tem "Marcar venda": escolhe o produto, sem valor. O lead vai para Venda como "venda a registrar" (caminho do cadastro, NPAC-39/41) e o closer recebe o aviso (com push, via B2) | ⏳ PR 3 |
-| C2 | Renda extra do SDR por produto: valor por produto no catálogo (Admin), somado no painel do SDR. Conta quando o SDR marca a venda (1A) | ⏳ PR 3 |
+| C1 | Depois da reunião realizada, o SDR tem "Marcar venda": escolhe o produto, sem valor. O lead vai para Venda como "venda a registrar" (caminho do cadastro, NPAC-39/41) e o closer recebe o aviso (com push, via B2) | ✅ PR 3 |
+| C2 | Renda extra do SDR por produto: valor por produto no catálogo (Admin), somado no painel do SDR. Conta quando o SDR marca a venda (1A) | ✅ PR 3 |
+
+### Como ficou (PR 3, 17/11/2026)
+
+- **Marcar venda** na ficha, na última reunião realizada: o SDR do lead (ou a liderança) escolhe só o produto
+  do closer da reunião. `POST /leads/:id/sale-mark`; o lead vai para Venda a registrar, o closer da reunião vira
+  o do lead e recebe `sale.pending` (sino e push). O closer registra a venda com o valor, como no cadastro.
+- **Renda extra**: tabela `sdr_sale_marks` (migration 0066), valor do catálogo no dia da marcação
+  (`products.sdr_bonus_cents`, Admin > Produtos > "Renda extra do SDR"). Sai no estorno, se o lead deixar a
+  Venda ou for excluído. Dashboard: balão preto "Valor a receber por venda feita", igual ao das reuniões
+  realizadas (pedido do Igor, 17/11): cada SDR vê o dele (rodapé por produto); a liderança vê o de todos
+  (rodapé por SDR) ou do SDR filtrado. O closer não vê.
+- O cadastro em Venda Fechada (o caminho que o SDR já tinha para marcar a venda) também conta a renda.
+- Catálogo: a 0066 preenche pelo código do seed ou pelo nome (Promocional, Padrão/Normal, Completo/Cheio,
+  RDV, 2M, 6M). Produto que não bater fica com R$ 0 e aparece no Admin.
+
+### Perguntas do PR 3, respondidas em 17/11/2026
+
+1. Closer registra produto diferente do que o SDR marcou → **a renda segue a marcação do SDR** (Igor, "1A").
+2. Venda registrada direto pelo closer, sem o SDR marcar → **não gera renda extra** (Igor, "2B").
+3. Quem vê → **cada SDR vê a sua; o Head vê a de todos** (Gabriel). Feito no Dashboard.

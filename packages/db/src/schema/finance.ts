@@ -12,6 +12,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import { user } from './auth.js';
 import { leads } from './leads.js';
+import { meetings } from './meetings.js';
 import { pipelineStages } from './pipeline.js';
 
 export const products = pgTable(
@@ -24,9 +25,51 @@ export const products = pgTable(
       .notNull()
       .references(() => user.id),
     priceCents: integer('price_cents').notNull(),
+    /** Renda extra do SDR por venda deste produto (NPAC-48, Igor 17/11/2026); a liderança edita. */
+    sdrBonusCents: integer('sdr_bonus_cents').notNull().default(0),
     active: boolean('active').notNull().default(true),
   },
-  (t) => [check('product_positive_price', sql`${t.priceCents} > 0`)],
+  (t) => [
+    check('product_positive_price', sql`${t.priceCents} > 0`),
+    check('product_sdr_bonus', sql`${t.sdrBonusCents} >= 0`),
+  ],
+);
+
+/**
+ * Venda marcada pelo SDR depois da reunião realizada (NPAC-48): o produto, sem valor, e a renda
+ * extra do SDR na data da marcação (1A). `bonus_cents` guarda o valor do catálogo naquele dia.
+ * Sai (`canceled_at`) quando o lead deixa a Venda ou a venda é estornada (gatilhos da 0066).
+ */
+export const sdrSaleMarks = pgTable(
+  'sdr_sale_marks',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    leadId: uuid('lead_id')
+      .notNull()
+      .references(() => leads.id),
+    sdrId: text('sdr_id')
+      .notNull()
+      .references(() => user.id),
+    productId: uuid('product_id')
+      .notNull()
+      .references(() => products.id),
+    meetingId: uuid('meeting_id')
+      .notNull()
+      .references(() => meetings.id),
+    bonusCents: integer('bonus_cents').notNull(),
+    markedBy: text('marked_by')
+      .notNull()
+      .references(() => user.id),
+    markedAt: timestamp('marked_at', { withTimezone: true }).notNull().defaultNow(),
+    canceledAt: timestamp('canceled_at', { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex('sdr_sale_marks_one_active')
+      .on(t.leadId)
+      .where(sql`${t.canceledAt} is null`),
+    index('sdr_sale_marks_sdr_idx').on(t.sdrId, t.markedAt),
+    check('sdr_sale_mark_bonus', sql`${t.bonusCents} >= 0`),
+  ],
 );
 
 export const deals = pgTable(

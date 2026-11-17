@@ -115,6 +115,49 @@ function Breakdown({ title, rows }: { title: string; rows: ReportRow[] }) {
 }
 const SP = 'America/Sao_Paulo';
 
+/**
+ * Balão preto da renda extra (NPAC-48, Igor 17/11/2026: "outro balão desse preto das reuniões
+ * realizadas, só que das vendas feitas"): o mesmo card do valor por reunião, com a renda extra das
+ * vendas marcadas, acumulada por dia. O SDR vê a dele; a liderança, a de todos (ou do SDR filtrado).
+ * Valor = renda extra do SDR, nunca o R$ da venda (o SDR não vê preço).
+ */
+function SaleBonusHero({
+  bonus,
+  daily,
+  team,
+  monthly,
+}: {
+  bonus: NonNullable<ReportDTO['saleBonus']>;
+  daily: ReportDTO['daily'];
+  team: boolean;
+  monthly: boolean;
+}) {
+  const byDay = new Map(bonus.daily.map((d) => [d.date, d.cents]));
+  const parts = team
+    ? (bonus.bySdr ?? []).map((r) => `${r.name} ${money(r.cents)}`)
+    : bonus.byProduct.map((r) => `${r.name} ${r.count}×`);
+  return (
+    <RevenueHero
+      daily={daily}
+      previous={[]}
+      monthly={monthly}
+      title="Valor a receber por venda feita"
+      value={(d) => byDay.get(d.date) ?? 0}
+      dayLabel="Valor do dia"
+      foot={
+        bonus.count ? (
+          <>
+            {parts.join(' · ')} · {bonus.count}{' '}
+            {bonus.count === 1 ? 'venda feita' : 'vendas feitas'}
+          </>
+        ) : (
+          'Nenhuma venda feita no período'
+        )
+      }
+    />
+  );
+}
+
 function greeting(name?: string) {
   const h = Number(
     new Intl.DateTimeFormat('pt-BR', { timeZone: SP, hour: 'numeric', hourCycle: 'h23' }).format(
@@ -303,9 +346,11 @@ export function Reports({
     sdr
       ? ['kpi-sold', 'kpi-received', 'revenue', 'products']
       : role === 'CLOSER'
-        ? ['kpi-done', 'kpi-missed', 'meeting-value']
+        ? // Renda extra (NPAC-48): o SDR vê a dele e a liderança a de todos; o closer não.
+          ['kpi-done', 'kpi-missed', 'meeting-value', 'sale-bonus']
         : [],
   );
+  const bonus = data.saleBonus ?? { cents: 0, count: 0, byProduct: [], daily: [] };
   const dashCards: BoardCard[] = !dashboard
     ? []
     : [
@@ -413,6 +458,19 @@ export function Reports({
                   {m.done ?? 0} {(m.done ?? 0) === 1 ? 'realizada' : 'realizadas'}
                 </>
               }
+            />
+          ),
+        },
+        {
+          id: 'sale-bonus',
+          title: 'Valor a receber por venda feita',
+          size: 'wide',
+          node: (
+            <SaleBonusHero
+              bonus={bonus}
+              daily={data.daily}
+              team={head && !sdrId}
+              monthly={preset === 'MONTH'}
             />
           ),
         },

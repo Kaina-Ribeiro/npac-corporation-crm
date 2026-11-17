@@ -11,7 +11,9 @@ import {
   leadContactTaken,
   leads,
   leadTasks,
+  meetings,
   pipelineStages,
+  products,
   withUser,
   type Db,
   type Tx,
@@ -23,13 +25,14 @@ import {
   type AuthUser,
   type LeadUpdateInput,
 } from '@npac/shared';
-import { and, eq, isNull, sql } from 'drizzle-orm';
+import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 import { DB } from '../common/db/db.module.js';
 import { FieldCrypto } from '../common/crypto/field-crypto.js';
 import { scheduleMeeting } from '../meetings/meetings.service.js';
 import { ReminderScheduler } from '../push/reminders.js';
 import { recordActivity } from './activity.js';
 import { LeadsRepository } from './leads.repository.js';
+import { recordSaleMark } from './sale-mark.js';
 import type { RequestMeta } from './leads.service.js';
 import {
   assertIncomeStage,
@@ -288,6 +291,94 @@ export class LeadMutationsService {
           meta,
         );
       }
+      return { id, version: old.version + 1 };
+    });
+  }
+
+  /**
+   * Marcar venda (NPAC-48, Igor 17/11/2026): depois da reunião realizada, o SDR do lead (ou a
+   * liderança) informa só o produto, sem valor. O lead vai para Venda como "venda a registrar"
+   * (mesmo estado do cadastro em Venda Fechada), o closer da reunião passa a ser o do lead e
+   * recebe o pedido de registro; o SDR ganha a renda extra do produto na data de hoje (1A).
+   */
+  async markSale(
+    u: AuthUser,
+    id: string,
+    input: { version: number; productId: string },
+    meta: RequestMeta,
+  ) {
+    return withUser(this.db, u.id, async (tx) => {
+      const old = await lockLead(tx, id, input.version);
+      const [current] = await tx
+        .select({ key: pipelineStages.key })
+        .from(pipelineStages)
+        .where(eq(pipelineStages.id, old.stageId));
+      if (current!.key === 'VENDA')
+        throw new ConflictException({
+          code: 'ALREADY_SOLD',
+          message: 'Este lead já está em Venda.',
+        });
+      assertIncomeStage(old.incomeBand, 'VENDA');
+      // A reunião realizada mais recente (pelo horário, como a ficha mostra) decide o closer da venda.
+      const [meeting] = await tx
+        .select({ id: meetings.id, closerId: meetings.closerId })
+        .from(meetings)
+        .where(
+          and(eq(meetings.leadId, id), eq(meetings.outcome, 'DONE'), isNull(meetings.canceledAt)),
+        )
+        .orderBy(desc(meetings.scheduledAt), desc(meetings.id))
+        .limit(1);
+      if (!meeting)
+        throw new ConflictException({
+          code: 'MEETING_DONE_REQUIRED',
+          message: 'Marque a venda depois de uma reunião realizada.',
+        });
+      const [product] = await tx
+        .select({ id: products.id })
+        .from(products)
+        .where(
+          and(
+            eq(products.id, input.productId),
+            eq(products.closerId, meeting.closerId),
+            eq(products.active, true),
+          ),
+        );
+      if (!product) throw new BadRequestException('Produto inválido para o closer da reunião');
+      const venda = await this.repo.stageId(tx, 'VENDA');
+      if (!venda) throw new BadRequestException('Etapa de venda não configurada');
+      // Saindo de Agendou Pagamento, o combinado deixa de valer (como no registro da venda).
+      const stage = await resolveStageFields(tx, {
+        leadId: id,
+        target: 'VENDA',
+        changed: true,
+        input: {},
+        old: old as StageState,
+        role: u.role,
+        closerId: old.closerId,
+        leavingPayment: current!.key === 'AGENDOU_PAGAMENTO',
+      });
+      await tx
+        .update(leads)
+        .set({
+          ...stage.values,
+          stageId: venda,
+          soldProductId: product.id,
+          closerId: meeting.closerId,
+          version: old.version + 1,
+          updatedAt: new Date(),
+        })
+        .where(eq(leads.id, id));
+      await recordSaleMark(tx, u, {
+        leadId: id,
+        sdrId: old.sdrId,
+        productId: product.id,
+        meetingId: meeting.id,
+      });
+      const fields = ['stageKey'];
+      if (meeting.closerId !== old.closerId) fields.push('closerId');
+      await recordActivity(tx, u, id, 'lead.moved', fields, undefined, meta);
+      // Entidade = a reunião: o aviso vai ao closer dela (e ao SDR, quando quem marca é a liderança).
+      await recordActivity(tx, u, id, 'sale.pending', [], meeting.id, meta);
       return { id, version: old.version + 1 };
     });
   }
