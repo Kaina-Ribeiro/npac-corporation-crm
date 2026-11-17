@@ -1,0 +1,50 @@
+# Pedidos do Igor (16/11/2026): avisos, barra do celular e venda do SDR (NPAC-48)
+
+Origem: mensagens do Igor no WhatsApp em 16/11/2026 e respostas dele em 17/11 ("2A e 2B, 4A, 5B").
+Decisões do Gabriel em 17/11: "se ele tá pedindo pra notificar, temos que notificar" e "deixa o forms para depois".
+
+## Respostas do Igor (17/11/2026)
+
+- **2A + 2B:** "cada um recebe os avisos que são do acesso dele, exemplo cada SDR recebe os avisos do lead que está
+  em seu controle, apenas Igor e head SDR recebem avisos do formulário e garantir que chegue o aviso nos celulares
+  de cada um". Leitura: quem recebe já é por acesso (sino de hoje); falta chegar no celular. Liderança não passa a
+  receber os avisos dos leads da equipe (lacuna 2 descartada).
+- **4A:** um produto por venda.
+- **5B:** o CRM mostra a renda extra do SDR por produto. Valores: Nação 2500 → R$ 5,00 · Nação 3000 → R$ 10,00 ·
+  Nação 3500 → R$ 20,00 · Mentoria RDV → R$ 70,00 · Mentoria 2M → R$ 90,00 · Mentoria 6M → R$ 120,00.
+- Pergunta dele sobre o Forms ("com o e-mail? ou só abrir o link para público?"): ver Fase A.
+
+## O que já se sabe (17/11/2026)
+
+- ✅ Produção (`npac/production/api`): chaves do push (VAPID) presentes.
+- ❌ Produção e ITODEV: `FORMS_WEBHOOK_TOKEN`/`FORMS_OWNER_USERNAME` ausentes; o script do Forms aponta para a produção.
+- ITODEV (SQL só de leitura): 1 aparelho com push, 0 mensagens de chat desde 15/11, 0 formulários. O teste de chat do
+  Igor foi na produção.
+- Causa provável do "não está notificando": ninguém ativou o push no aparelho, e nada na tela convidava (B6).
+
+## Fase A: formulário (adiada pelo Gabriel em 17/11)
+
+| # | Tarefa | Status |
+|---|---|---|
+| A1 | Produção: `FORMS_WEBHOOK_TOKEN` e `FORMS_OWNER_USERNAME` (usuário do Igor) no app `api`, redeploy | ⏸ |
+| A2 | Igor adiciona o Gabriel como **editor** do Forms pelo e-mail (link público não serve: só deixa responder); instalar o Apps Script (`docs/integracao-forms/README.md`) | ⏸ |
+| A3 | Teste com resposta acima de 5 mil → sino + push + "Formulários novos" | ⏸ |
+
+## Fase B: avisos
+
+| # | Tarefa | Status |
+|---|---|---|
+| B1 | Barra do celular: Dashboard, Hoje, Pipeline, **Chat** (selo de não lidas), Mais; Leads no Mais | ✅ PR 1 |
+| B6 | Convite "Ative os avisos neste aparelho" no Dashboard, Hoje, Chat e Fila; "Agora não" = 7 dias | ✅ PR 1 |
+| B2 | Todo aviso do sino também como push, para as mesmas pessoas (por acesso, como hoje) | ⏳ PR 2 |
+| B3 | Lembrete de 15 min e 1 min também para o closer da reunião (é do acesso dele) | ⏳ PR 2 |
+| B7 | Falha de push (fora 404/410) no log com o código HTTP, sem dados | ⏳ PR 2 |
+| B4 | Liderança recebe avisos da equipe | ❌ descartado (resposta 2 do Igor) |
+| B5 | Formulário que não vira lead também avisa | ⏸ junto com a Fase A |
+
+## Fase C: SDR marca a venda (4A, 5B)
+
+| # | Tarefa | Status |
+|---|---|---|
+| C1 | Depois da reunião realizada, o SDR tem "Marcar venda": escolhe o produto, sem valor. O lead vai para Venda como "venda a registrar" (caminho do cadastro, NPAC-39/41) e o closer recebe o aviso (com push, via B2) | ⏳ PR 3 |
+| C2 | Renda extra do SDR por produto: valor por produto no catálogo (Admin), somado no painel do SDR. Pergunta aberta: conta quando o SDR marca ou quando o closer registra a venda? | ⏳ PR 3 |

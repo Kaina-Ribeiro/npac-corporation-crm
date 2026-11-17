@@ -7,6 +7,7 @@ import { useLatestPrefs } from '@/lib/use-latest-prefs';
 import { clientApi } from '@/lib/client-api';
 import { button, control, FormError, quietButton } from './crm-ui';
 import { useCrmRefresh } from './shell/live-updates';
+import { PushInvite } from './push-invite';
 
 export type Channel = {
   id: string;
@@ -184,6 +185,7 @@ export function Chat({
     // a lista e a conversa esticam, as mensagens rolam por dentro e o campo fica no rodapé.
     <div className="flex h-[calc(100dvh-max(1rem,env(safe-area-inset-top))-8rem)] min-h-[420px] flex-col gap-4 md:h-[calc(100dvh-4rem)] md:min-h-[520px]">
       <h1 className="mt-1.5 text-[34px] leading-tight font-bold tracking-[-0.04em]">Chat</h1>
+      <PushInvite className="flex-none" />
       <FormError message={error} />
       <div className="grid min-h-0 flex-1 gap-4 md:grid-cols-[280px_minmax(0,1fr)] 2xl:grid-cols-[320px_minmax(0,1fr)]">
         <nav

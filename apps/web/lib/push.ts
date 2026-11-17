@@ -37,6 +37,29 @@ export async function pushState(): Promise<PushState> {
   return (await currentSubscription()) ? 'on' : 'off';
 }
 
+/** "Agora não" no convite: esconde neste aparelho por 7 dias (cookie, nada pessoal). */
+const CONVITE_COOKIE = 'npac_push_convite';
+
+export function adiarConvite() {
+  const secure = location.protocol === 'https:' ? '; Secure' : '';
+  document.cookie = `${CONVITE_COOKIE}=1; Path=/; Max-Age=${7 * 86_400}; SameSite=Lax${secure}`;
+}
+
+/**
+ * Convite para ativar: só quando dá para ligar e ainda não está ligado neste aparelho. Bloqueado no
+ * navegador, sem suporte ou sem push no servidor não convida (a tela /conta/avisos explica cada caso).
+ */
+export async function conviteState(): Promise<'off' | 'ios-home' | null> {
+  if (typeof document === 'undefined' || document.cookie.includes(`${CONVITE_COOKIE}=`))
+    return null;
+  const ios = iosOutsideHome();
+  if (!ios && (!supported() || Notification.permission === 'denied')) return null;
+  if (!ios && (await currentSubscription())) return null;
+  const { publicKey } = await clientApi<{ publicKey: string | null }>('/api/push/key');
+  if (!publicKey) return null;
+  return ios ? 'ios-home' : 'off';
+}
+
 /** Pede a permissão, inscreve o aparelho e registra na API. */
 export async function enablePush(): Promise<PushState> {
   const { publicKey } = await clientApi<{ publicKey: string | null }>('/api/push/key');

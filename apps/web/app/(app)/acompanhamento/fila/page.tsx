@@ -5,6 +5,7 @@ import { Fila } from '@/components/acompanhamento/fila';
 import { lerEu, podeExportar, sessaoDoModulo } from '@/lib/acompanhamento';
 import { FILA_REGRAS, acCookie } from '@/lib/acompanhamento-prefs';
 import { apiGet, apiPost } from '@/lib/api';
+import { PushInvite } from '@/components/push-invite';
 
 export const metadata = { title: 'Fila do dia' };
 
@@ -30,15 +31,18 @@ export default async function FilaPage({
     apiGet<MensagemModelo[]>('/api/mentoria/mensagens'),
   ]);
   return (
-    <Fila
-      dados={dados}
-      mensagens={mensagens}
-      euId={me.id}
-      temPerfil={!!eu?.perfil}
-      admin={!!eu?.admin}
-      exportar={podeExportar(eu)}
-      lembrar={{ cookie, valor: writePrefs(salvo, FILA_REGRAS) }}
-      inicialGrupo={(salvo.grupo as FilaGrupo | undefined) ?? 'TODOS'}
-    />
+    <>
+      <PushInvite className="mb-5" />
+      <Fila
+        dados={dados}
+        mensagens={mensagens}
+        euId={me.id}
+        temPerfil={!!eu?.perfil}
+        admin={!!eu?.admin}
+        exportar={podeExportar(eu)}
+        lembrar={{ cookie, valor: writePrefs(salvo, FILA_REGRAS) }}
+        inicialGrupo={(salvo.grupo as FilaGrupo | undefined) ?? 'TODOS'}
+      />
+    </>
   );
 }
