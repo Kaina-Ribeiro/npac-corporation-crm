@@ -61,7 +61,7 @@ const DEFAULT = [
   'kpi-done',
   'kpi-missed',
   'meeting-value',
-  // Renda extra do SDR por produto vendido (NPAC-48): só no painel do SDR.
+  // Balão da renda extra das vendas feitas (NPAC-48): SDR vê o dele, liderança o de todos.
   'sale-bonus',
   'funnel',
   'daily-leads',
@@ -191,7 +191,7 @@ test('SDR vê comparecimento e nenhum valor de venda no dashboard', async ({ pag
   for (const id of ['kpi-sold', 'kpi-received', 'revenue', 'products'])
     await expect(card(page, id)).toHaveCount(0);
   // R$ só no valor por reunião realizada e na renda extra do próprio SDR (NPAC-48): nunca de venda.
-  await expect(card(page, 'sale-bonus')).toContainText('Renda extra por produto vendido');
+  await expect(card(page, 'sale-bonus')).toContainText('Valor a receber por venda feita');
   const money = await page
     .locator(
       '.dash-board [data-card]:not([data-card="meeting-value"]):not([data-card="sale-bonus"])',

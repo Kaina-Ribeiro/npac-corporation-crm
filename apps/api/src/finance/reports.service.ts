@@ -229,11 +229,19 @@ async function sdrSaleBonus(tx: Tx, sdrId: string | null, start: Date, end: Date
         )
       ).map(numeric) as BonusRow[])
     : undefined;
+  // Por dia de Brasília (só dias com venda marcada), para o balão com a linha acumulada.
+  const daily = (
+    await tx.execute<Record<string, unknown>>(
+      sql`select to_char((k.marked_at at time zone 'America/Sao_Paulo')::date,'YYYY-MM-DD') as date,sum(k.bonus_cents) as cents
+      from sdr_sale_marks k where ${where} group by 1 order by 1`,
+    )
+  ).map(numeric) as { date: string; cents: number }[];
   return {
     cents: byProduct.reduce((a, r) => a + r.cents, 0),
     count: byProduct.reduce((a, r) => a + r.count, 0),
     byProduct,
     ...(bySdr ? { bySdr } : {}),
+    daily,
   };
 }
 

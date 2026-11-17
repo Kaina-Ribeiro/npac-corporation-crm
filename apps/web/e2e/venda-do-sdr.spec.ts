@@ -57,8 +57,11 @@ async function leadWithDoneMeeting(page: Page, name: string) {
   return id;
 }
 
-const bonusCard = (page: Page) =>
-  page.getByRole('region', { name: 'Renda extra por produto vendido' });
+/** Balão preto "Valor a receber por venda feita" (Igor, 17/11/2026), igual ao das reuniões. */
+const bonusCard = (page: Page) => page.locator('[data-card="sale-bonus"]');
+/** O gráfico do balão diz o total no nome (o número grande anima ao entrar). */
+const bonusTotal = (page: Page, total: string) =>
+  bonusCard(page).getByRole('img', { name: `Valor a receber por venda feita ${total}` });
 
 test('SDR marca a venda só com o produto, closer põe o valor, renda no Dashboard e estorno tira', async ({
   page,
@@ -100,9 +103,11 @@ test('SDR marca a venda só com o produto, closer põe o valor, renda no Dashboa
   // Dashboard do SDR: renda extra separada do valor das reuniões.
   await page.goto('/dashboard');
   const card = bonusCard(page);
-  await expect(card.getByText('R$ 10,00').first()).toBeVisible();
-  await expect(card.getByText('1 venda marcada no período')).toBeVisible();
-  await expect(card.getByText('Nação Padrão')).toBeVisible();
+  await expect(
+    card.getByRole('heading', { name: 'Valor a receber por venda feita' }),
+  ).toBeVisible();
+  await expect(bonusTotal(page, 'R$ 10,00')).toBeVisible();
+  await expect(card.getByText('Nação Padrão 1× · 1 venda feita')).toBeVisible();
   await card.scrollIntoViewIfNeeded();
   await shots(page, 'venda-sdr-dashboard');
 
@@ -130,7 +135,7 @@ test('SDR marca a venda só com o produto, closer põe o valor, renda no Dashboa
 
   // Registrada a venda, a renda continua; o SDR segue sem ver o valor.
   await page.goto('/dashboard');
-  await expect(bonusCard(page).getByText('R$ 10,00').first()).toBeVisible();
+  await expect(bonusTotal(page, 'R$ 10,00')).toBeVisible();
   await page.goto(`/leads/${id}`);
   await expect(page.locator('body')).not.toContainText('R$ 3.000');
 
@@ -139,8 +144,8 @@ test('SDR marca a venda só com o produto, closer põe o valor, renda no Dashboa
   const head = await ctx2.newPage();
   await login(head, 'ronaldo@npac.com.br');
   // A liderança vê a renda extra de todos os SDRs, uma linha por SDR (Gabriel, 17/11/2026).
-  const team = head.getByRole('region', { name: 'Renda extra dos SDRs' });
-  await expect(team.getByRole('listitem').filter({ hasText: 'Ale' })).toContainText('R$ 10,00');
+  const team = bonusCard(head);
+  await expect(team).toContainText('Ale R$ 10,00');
   await team.scrollIntoViewIfNeeded();
   await shots(head, 'venda-sdr-dashboard-head');
   const reversed = await head.request.post(`/api/finance/deals/${deal!.id}/reverse`, {
@@ -149,10 +154,8 @@ test('SDR marca a venda só com o produto, closer põe o valor, renda no Dashboa
   expect(reversed.ok(), await reversed.text()).toBe(true);
   await ctx2.close();
   await page.goto('/dashboard');
-  await expect(bonusCard(page).getByText('R$ 0,00').first()).toBeVisible();
-  await expect(
-    bonusCard(page).getByText('Nenhuma venda marcada no período.', { exact: false }),
-  ).toBeVisible();
+  await expect(bonusTotal(page, 'R$ 0,00')).toBeVisible();
+  await expect(bonusCard(page).getByText('Nenhuma venda feita no período')).toBeVisible();
 });
 
 test('liderança edita a renda extra do produto no Admin > Catálogo', async ({ page }) => {

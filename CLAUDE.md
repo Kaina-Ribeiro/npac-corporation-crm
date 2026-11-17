@@ -321,8 +321,10 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
   em Venda Fechada também grava a marcação (`recordSaleMark` em `api/leads/sale-mark.ts`). Conta na
   data da marcação (1A); sai (`canceled_at`, por gatilho) no estorno, quando o lead deixa a Venda ou é
   excluído. Leitura por RLS: o próprio SDR e a liderança; `npac_app` só SELECT/INSERT. Aparece no
-  Dashboard (card `sale-bonus`, `saleBonus` em `/reports/search` pelo período): **cada SDR vê a dele, por
-  produto; a liderança vê a de todos, por SDR (`bySdr`), e com o filtro de um SDR** (Gabriel, 17/11/2026);
+  Dashboard como o balão preto "Valor a receber por venda feita" (card `sale-bonus`, o `RevenueHero` do valor
+  por reunião, linha acumulada por `saleBonus.daily`; Igor, 17/11: "outro balão desse preto das reuniões
+  realizadas, só que das vendas feitas"), pelo período de `/reports/search`: **cada SDR vê o dele (rodapé por
+  produto); a liderança vê o de todos (rodapé por SDR, `bySdr`) ou do SDR filtrado** (Gabriel, 17/11/2026);
   o closer não recebe. Igor, 17/11 ("1A, 2B"): a renda segue o produto que o SDR marcou, mesmo que o
   closer registre outro; venda registrada direto pelo closer, sem marcação, não gera renda. Valores do Igor: Nação Promocional R$ 5, Padrão (Normal) R$ 10, Completo (Cheio) R$ 20,
   RDV R$ 70, 2M R$ 90, 6M R$ 120 (seed e 0066, por código ou nome).

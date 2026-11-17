@@ -116,55 +116,45 @@ function Breakdown({ title, rows }: { title: string; rows: ReportRow[] }) {
 const SP = 'America/Sao_Paulo';
 
 /**
- * Renda extra do SDR (NPAC-48, Igor 17/11/2026, 5B): cada produto vendido que o SDR marcou soma o
- * valor do catálogo, separado do valor das reuniões. Conta na data da marcação (1A). O SDR vê a
- * dele, por produto; a liderança vê a de todos, por SDR (com o filtro de um SDR, por produto).
+ * Balão preto da renda extra (NPAC-48, Igor 17/11/2026: "outro balão desse preto das reuniões
+ * realizadas, só que das vendas feitas"): o mesmo card do valor por reunião, com a renda extra das
+ * vendas marcadas, acumulada por dia. O SDR vê a dele; a liderança, a de todos (ou do SDR filtrado).
+ * Valor = renda extra do SDR, nunca o R$ da venda (o SDR não vê preço).
  */
-function SaleBonusCard({
+function SaleBonusHero({
   bonus,
+  daily,
   team,
+  monthly,
 }: {
   bonus: NonNullable<ReportDTO['saleBonus']>;
+  daily: ReportDTO['daily'];
   team: boolean;
+  monthly: boolean;
 }) {
-  const rows = team ? (bonus.bySdr ?? []) : bonus.byProduct;
-  const cents = new Map(rows.map((r) => [r.id, r.cents]));
-  const title = team ? 'Renda extra dos SDRs' : 'Renda extra por produto vendido';
+  const byDay = new Map(bonus.daily.map((d) => [d.date, d.cents]));
+  const parts = team
+    ? (bonus.bySdr ?? []).map((r) => `${r.name} ${money(r.cents)}`)
+    : bonus.byProduct.map((r) => `${r.name} ${r.count}×`);
   return (
-    <section
-      className="glass-card grid min-w-0 gap-5 p-5 xl:grid-cols-[minmax(0,15rem)_minmax(0,1fr)]"
-      aria-label={title}
-    >
-      <div className="flex flex-col gap-1">
-        <h2 className="text-lg font-bold tracking-[-0.03em]">{title}</h2>
-        <p className="text-3xl font-bold tracking-tight text-gold-deep tabular-nums">
-          <CountUp value={bonus.cents} format={money} delay={300} />
-        </p>
-        <p className="text-xs text-ink2">
-          {bonus.count} {bonus.count === 1 ? 'venda marcada' : 'vendas marcadas'} no período
-        </p>
-        <p className="pt-2 text-xs text-ink3 xl:mt-auto">
-          {team
-            ? 'Conta no dia em que o SDR marca a venda.'
-            : 'Conta no dia em que você marca a venda.'}{' '}
-          Sai se a venda for estornada.
-        </p>
-      </div>
-      {rows.length ? (
-        <RankBars
-          rows={rows.map((r) => ({ id: r.id, name: r.name, sales: r.count }))}
-          value={(r) => cents.get(r.id) ?? 0}
-          format={money}
-          color={chartColors.money}
-          detail={(r) => `${r.sales}×`}
-        />
-      ) : (
-        <p className="self-center text-sm text-ink2">
-          Nenhuma venda marcada no período.
-          {team ? '' : ' Depois da reunião realizada, marque a venda na ficha do lead.'}
-        </p>
-      )}
-    </section>
+    <RevenueHero
+      daily={daily}
+      previous={[]}
+      monthly={monthly}
+      title="Valor a receber por venda feita"
+      value={(d) => byDay.get(d.date) ?? 0}
+      dayLabel="Valor do dia"
+      foot={
+        bonus.count ? (
+          <>
+            {parts.join(' · ')} · {bonus.count}{' '}
+            {bonus.count === 1 ? 'venda feita' : 'vendas feitas'}
+          </>
+        ) : (
+          'Nenhuma venda feita no período'
+        )
+      }
+    />
   );
 }
 
@@ -360,7 +350,7 @@ export function Reports({
           ['kpi-done', 'kpi-missed', 'meeting-value', 'sale-bonus']
         : [],
   );
-  const bonus = data.saleBonus ?? { cents: 0, count: 0, byProduct: [] };
+  const bonus = data.saleBonus ?? { cents: 0, count: 0, byProduct: [], daily: [] };
   const dashCards: BoardCard[] = !dashboard
     ? []
     : [
@@ -473,9 +463,16 @@ export function Reports({
         },
         {
           id: 'sale-bonus',
-          title: head && !sdrId ? 'Renda extra dos SDRs' : 'Renda extra por produto vendido',
+          title: 'Valor a receber por venda feita',
           size: 'wide',
-          node: <SaleBonusCard bonus={bonus} team={head && !sdrId} />,
+          node: (
+            <SaleBonusHero
+              bonus={bonus}
+              daily={data.daily}
+              team={head && !sdrId}
+              monthly={preset === 'MONTH'}
+            />
+          ),
         },
         {
           id: 'funnel',

@@ -74,8 +74,9 @@ Decisões do Gabriel em 17/11: "se ele tá pedindo pra notificar, temos que noti
   o do lead e recebe `sale.pending` (sino e push). O closer registra a venda com o valor, como no cadastro.
 - **Renda extra**: tabela `sdr_sale_marks` (migration 0066), valor do catálogo no dia da marcação
   (`products.sdr_bonus_cents`, Admin > Produtos > "Renda extra do SDR"). Sai no estorno, se o lead deixar a
-  Venda ou for excluído. Dashboard: cada SDR vê a dele ("Renda extra por produto vendido"); a liderança vê a
-  de todos ("Renda extra dos SDRs", uma linha por SDR, com o filtro de SDR). O closer não vê.
+  Venda ou for excluído. Dashboard: balão preto "Valor a receber por venda feita", igual ao das reuniões
+  realizadas (pedido do Igor, 17/11): cada SDR vê o dele (rodapé por produto); a liderança vê o de todos
+  (rodapé por SDR) ou do SDR filtrado. O closer não vê.
 - O cadastro em Venda Fechada (o caminho que o SDR já tinha para marcar a venda) também conta a renda.
 - Catálogo: a 0066 preenche pelo código do seed ou pelo nome (Promocional, Padrão/Normal, Completo/Cheio,
   RDV, 2M, 6M). Produto que não bater fica com R$ 0 e aparece no Admin.

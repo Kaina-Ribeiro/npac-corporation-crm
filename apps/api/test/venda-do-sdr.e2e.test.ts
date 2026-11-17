@@ -216,6 +216,8 @@ describe('closer completa o valor e a renda aparece no painel do SDR', () => {
         { id: padrao, name: 'Nação Padrão', count: 2, cents: 2000 },
         { id: promo, name: 'Nação Promocional', count: 1, cents: 500 },
       ],
+      // Por dia de Brasília: o balão preto acumula a linha (Igor, 17/11/2026).
+      daily: [{ date: today(), cents: 2500 }],
     });
     expect((await dashboard(murilo)).body.saleBonus.cents).toBe(1000);
   });
@@ -224,14 +226,22 @@ describe('closer completa o valor e a renda aparece no painel do SDR', () => {
     const id = await leadWithMeeting();
     await mark(id);
     await owner`update sdr_sale_marks set marked_at = now() - interval '1 day' where lead_id = ${id}`;
-    expect((await dashboard()).body.saleBonus).toEqual({ cents: 0, count: 0, byProduct: [] });
+    expect((await dashboard()).body.saleBonus).toEqual({
+      cents: 0,
+      count: 0,
+      byProduct: [],
+      daily: [],
+    });
     const yesterday = spDay(new Date(Date.now() - DAY));
     const res = await h.post(
       '/api/reports/search',
       { period: 'RANGE', from: yesterday, to: yesterday },
       ale,
     );
-    expect(res.body.saleBonus.cents).toBe(1000);
+    expect(res.body.saleBonus).toMatchObject({
+      cents: 1000,
+      daily: [{ date: yesterday, cents: 1000 }],
+    });
   });
 
   it('valor guardado na marcação: mudar o catálogo depois não muda a renda já ganha', async () => {
@@ -275,6 +285,7 @@ describe('closer completa o valor e a renda aparece no painel do SDR', () => {
         { id: ids.ale, name: 'Ale', count: 2, cents: 1500 },
         { id: ids.murilo, name: 'Murilo', count: 1, cents: 1000 },
       ],
+      daily: [{ date: today(), cents: 2500 }],
     });
     const onlyMurilo = await h.post(
       '/api/reports/search',
@@ -295,6 +306,7 @@ describe('closer completa o valor e a renda aparece no painel do SDR', () => {
         { id: padrao, name: 'Nação Padrão', count: 1, cents: 1000 },
         { id: promo, name: 'Nação Promocional', count: 1, cents: 500 },
       ],
+      daily: [{ date: today(), cents: 1500 }],
     });
     expect('saleBonus' in (await dashboard(sonia)).body).toBe(false);
   });
@@ -313,7 +325,12 @@ describe('a renda sai quando a venda não se confirma', () => {
     expect(reversed.status, reversed.text).toBe(200);
     expect((await marks(id))[0]!.canceled_at).not.toBeNull();
     expect((await h.get(`/api/leads/${id}`, ale)).body.stageKey).toBe('EM_FOLLOW');
-    expect((await dashboard()).body.saleBonus).toEqual({ cents: 0, count: 0, byProduct: [] });
+    expect((await dashboard()).body.saleBonus).toEqual({
+      cents: 0,
+      count: 0,
+      byProduct: [],
+      daily: [],
+    });
   });
 
   it('lead sai de Venda sem venda registrada → renda sai; marcar de novo conta outra vez', async () => {

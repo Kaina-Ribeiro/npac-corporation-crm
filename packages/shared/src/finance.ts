@@ -56,6 +56,8 @@ export type ReportDTO = {
     count: number;
     byProduct: { id: string; name: string; count: number; cents: number }[];
     bySdr?: { id: string; name: string; count: number; cents: number }[];
+    /** Por dia de Brasília (AAAA-MM-DD), só dias com venda marcada: o balão acumula. */
+    daily: { date: string; cents: number }[];
   };
 };
 export type ReportRow = {
