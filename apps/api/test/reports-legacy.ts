@@ -204,6 +204,12 @@ export class LegacyReportsService {
       },
       { isolationLevel: 'repeatable read' },
     );
+    // Acréscimo pedido (NPAC-48, Gabriel 17/11/2026): a liderança vê a renda extra de todos os SDRs.
+    if (u.role === 'HEAD' || u.role === 'DIRETOR')
+      return {
+        ...result,
+        saleBonus: await legacySaleBonus(this.db, u, q.sdrId ?? null, start, end),
+      };
     if (u.role !== 'SDR') return result;
     return {
       ...result,
@@ -214,21 +220,44 @@ export class LegacyReportsService {
       bySdr: result.bySdr.map(dropSales),
       byCloser: result.byCloser.map(dropSales),
       // Acréscimo pedido (NPAC-48, Igor 17/11/2026): renda extra do SDR por venda marcada.
-      saleBonus: await withUser(this.db, u.id, async (tx) => {
-        const rows = await tx.execute<Record<string, unknown>>(
-          sql`select p.id,p.name,count(*) as count,sum(k.bonus_cents) as cents from sdr_sale_marks k join products p on p.id=k.product_id
-            where k.sdr_id=${u.id} and k.canceled_at is null and k.marked_at>=${start.toISOString()} and k.marked_at<${end.toISOString()}
-            group by p.id,p.name order by sum(k.bonus_cents) desc,p.name`,
-        );
-        const byProduct = rows.map(numeric) as { count: number; cents: number }[];
-        return {
-          cents: byProduct.reduce((a, r) => a + r.cents, 0),
-          count: byProduct.reduce((a, r) => a + r.count, 0),
-          byProduct,
-        };
-      }),
+      saleBonus: await legacySaleBonus(this.db, u, u.id, start, end),
     };
   }
+}
+
+/** Acréscimo pedido (NPAC-48): renda extra do SDR; a liderança recebe também a linha por SDR. */
+async function legacySaleBonus(
+  db: Db,
+  u: Pick<AuthUser, 'id' | 'role'>,
+  sdrId: string | null,
+  start: Date,
+  end: Date,
+) {
+  const team = u.role === 'HEAD' || u.role === 'DIRETOR';
+  return withUser(db, u.id, async (tx) => {
+    const where = sql`k.canceled_at is null and k.marked_at>=${start.toISOString()} and k.marked_at<${end.toISOString()}
+      and (${sdrId}::text is null or k.sdr_id=${sdrId})`;
+    const byProduct = (
+      await tx.execute<Record<string, unknown>>(
+        sql`select p.id,p.name,count(*) as count,sum(k.bonus_cents) as cents from sdr_sale_marks k join products p on p.id=k.product_id
+      where ${where} group by p.id,p.name order by sum(k.bonus_cents) desc,p.name`,
+      )
+    ).map(numeric) as { count: number; cents: number }[];
+    const bySdr = team
+      ? (
+          await tx.execute<Record<string, unknown>>(
+            sql`select u.id,u.name,count(*) as count,sum(k.bonus_cents) as cents from sdr_sale_marks k join "user" u on u.id=k.sdr_id
+      where ${where} group by u.id,u.name order by sum(k.bonus_cents) desc,u.name`,
+          )
+        ).map(numeric)
+      : undefined;
+    return {
+      cents: byProduct.reduce((a, r) => a + r.cents, 0),
+      count: byProduct.reduce((a, r) => a + r.count, 0),
+      byProduct,
+      ...(bySdr ? { bySdr } : {}),
+    };
+  });
 }
 
 type Row = Record<string, unknown> & { id: string };

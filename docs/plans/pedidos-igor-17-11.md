@@ -74,15 +74,14 @@ Decisões do Gabriel em 17/11: "se ele tá pedindo pra notificar, temos que noti
   o do lead e recebe `sale.pending` (sino e push). O closer registra a venda com o valor, como no cadastro.
 - **Renda extra**: tabela `sdr_sale_marks` (migration 0066), valor do catálogo no dia da marcação
   (`products.sdr_bonus_cents`, Admin > Produtos > "Renda extra do SDR"). Sai no estorno, se o lead deixar a
-  Venda ou for excluído. Card "Renda extra por produto vendido" só no Dashboard do SDR.
+  Venda ou for excluído. Dashboard: cada SDR vê a dele ("Renda extra por produto vendido"); a liderança vê a
+  de todos ("Renda extra dos SDRs", uma linha por SDR, com o filtro de SDR). O closer não vê.
 - O cadastro em Venda Fechada (o caminho que o SDR já tinha para marcar a venda) também conta a renda.
 - Catálogo: a 0066 preenche pelo código do seed ou pelo nome (Promocional, Padrão/Normal, Completo/Cheio,
   RDV, 2M, 6M). Produto que não bater fica com R$ 0 e aparece no Admin.
 
-### Perguntas em aberto (PR 3)
+### Perguntas do PR 3, respondidas em 17/11/2026
 
-1. Se o closer registrar um produto diferente do que o SDR marcou, a renda segue a marcação do SDR (como está)
-   ou o produto registrado?
-2. Venda que o closer registra direto, sem o SDR ter marcado (ex.: lead em Agendou Pagamento), gera renda
-   extra? Hoje não gera.
-3. A liderança quer ver a renda extra por SDR (no Dashboard ou nos Relatórios)? Não foi pedido; não construído.
+1. Closer registra produto diferente do que o SDR marcou → **a renda segue a marcação do SDR** (Igor, "1A").
+2. Venda registrada direto pelo closer, sem o SDR marcar → **não gera renda extra** (Igor, "2B").
+3. Quem vê → **cada SDR vê a sua; o Head vê a de todos** (Gabriel). Feito no Dashboard.

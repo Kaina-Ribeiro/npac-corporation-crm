@@ -117,30 +117,42 @@ const SP = 'America/Sao_Paulo';
 
 /**
  * Renda extra do SDR (NPAC-48, Igor 17/11/2026, 5B): cada produto vendido que o SDR marcou soma o
- * valor do catálogo, separado do valor das reuniões. Conta na data da marcação (1A).
+ * valor do catálogo, separado do valor das reuniões. Conta na data da marcação (1A). O SDR vê a
+ * dele, por produto; a liderança vê a de todos, por SDR (com o filtro de um SDR, por produto).
  */
-function SaleBonusCard({ bonus }: { bonus: NonNullable<ReportDTO['saleBonus']> }) {
-  const cents = new Map(bonus.byProduct.map((p) => [p.id, p.cents]));
+function SaleBonusCard({
+  bonus,
+  team,
+}: {
+  bonus: NonNullable<ReportDTO['saleBonus']>;
+  team: boolean;
+}) {
+  const rows = team ? (bonus.bySdr ?? []) : bonus.byProduct;
+  const cents = new Map(rows.map((r) => [r.id, r.cents]));
+  const title = team ? 'Renda extra dos SDRs' : 'Renda extra por produto vendido';
   return (
     <section
-      className="glass-card grid min-w-0 gap-5 p-5 sm:grid-cols-[minmax(0,15rem)_minmax(0,1fr)]"
-      aria-label="Renda extra por produto vendido"
+      className="glass-card grid min-w-0 gap-5 p-5 xl:grid-cols-[minmax(0,15rem)_minmax(0,1fr)]"
+      aria-label={title}
     >
       <div className="flex flex-col gap-1">
-        <h2 className="text-lg font-bold tracking-[-0.03em]">Renda extra por produto vendido</h2>
+        <h2 className="text-lg font-bold tracking-[-0.03em]">{title}</h2>
         <p className="text-3xl font-bold tracking-tight text-gold-deep tabular-nums">
           <CountUp value={bonus.cents} format={money} delay={300} />
         </p>
         <p className="text-xs text-ink2">
           {bonus.count} {bonus.count === 1 ? 'venda marcada' : 'vendas marcadas'} no período
         </p>
-        <p className="mt-auto pt-2 text-xs text-ink3">
-          Conta no dia em que você marca a venda. Sai se a venda for estornada.
+        <p className="pt-2 text-xs text-ink3 xl:mt-auto">
+          {team
+            ? 'Conta no dia em que o SDR marca a venda.'
+            : 'Conta no dia em que você marca a venda.'}{' '}
+          Sai se a venda for estornada.
         </p>
       </div>
-      {bonus.byProduct.length ? (
+      {rows.length ? (
         <RankBars
-          rows={bonus.byProduct.map((p) => ({ id: p.id, name: p.name, sales: p.count }))}
+          rows={rows.map((r) => ({ id: r.id, name: r.name, sales: r.count }))}
           value={(r) => cents.get(r.id) ?? 0}
           format={money}
           color={chartColors.money}
@@ -148,8 +160,8 @@ function SaleBonusCard({ bonus }: { bonus: NonNullable<ReportDTO['saleBonus']> }
         />
       ) : (
         <p className="self-center text-sm text-ink2">
-          Nenhuma venda marcada no período. Depois da reunião realizada, marque a venda na ficha do
-          lead.
+          Nenhuma venda marcada no período.
+          {team ? '' : ' Depois da reunião realizada, marque a venda na ficha do lead.'}
         </p>
       )}
     </section>
@@ -344,9 +356,9 @@ export function Reports({
     sdr
       ? ['kpi-sold', 'kpi-received', 'revenue', 'products']
       : role === 'CLOSER'
-        ? ['kpi-done', 'kpi-missed', 'meeting-value', 'sale-bonus']
-        : // Renda extra só no painel do próprio SDR (NPAC-48, 5B).
-          ['sale-bonus'],
+        ? // Renda extra (NPAC-48): o SDR vê a dele e a liderança a de todos; o closer não.
+          ['kpi-done', 'kpi-missed', 'meeting-value', 'sale-bonus']
+        : [],
   );
   const bonus = data.saleBonus ?? { cents: 0, count: 0, byProduct: [] };
   const dashCards: BoardCard[] = !dashboard
@@ -461,9 +473,9 @@ export function Reports({
         },
         {
           id: 'sale-bonus',
-          title: 'Renda extra por produto vendido',
+          title: head && !sdrId ? 'Renda extra dos SDRs' : 'Renda extra por produto vendido',
           size: 'wide',
-          node: <SaleBonusCard bonus={bonus} />,
+          node: <SaleBonusCard bonus={bonus} team={head && !sdrId} />,
         },
         {
           id: 'funnel',

@@ -134,11 +134,15 @@ test('SDR marca a venda só com o produto, closer põe o valor, renda no Dashboa
   await page.goto(`/leads/${id}`);
   await expect(page.locator('body')).not.toContainText('R$ 3.000');
 
-  // Estorno pela liderança: a renda sai do painel do SDR.
+  // Estorno pela liderança: a renda sai do painel do SDR e do da liderança.
   const ctx2 = await browser.newContext();
   const head = await ctx2.newPage();
   await login(head, 'ronaldo@npac.com.br');
-  await expect(head.locator('[data-card="sale-bonus"]')).toHaveCount(0);
+  // A liderança vê a renda extra de todos os SDRs, uma linha por SDR (Gabriel, 17/11/2026).
+  const team = head.getByRole('region', { name: 'Renda extra dos SDRs' });
+  await expect(team.getByRole('listitem').filter({ hasText: 'Ale' })).toContainText('R$ 10,00');
+  await team.scrollIntoViewIfNeeded();
+  await shots(head, 'venda-sdr-dashboard-head');
   const reversed = await head.request.post(`/api/finance/deals/${deal!.id}/reverse`, {
     data: { version: 1 },
   });

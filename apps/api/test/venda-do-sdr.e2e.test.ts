@@ -259,9 +259,43 @@ describe('closer completa o valor e a renda aparece no painel do SDR', () => {
     expect((await h.get(`/api/finance/leads/${id}`, ale)).status).not.toBe(200);
   });
 
-  it('a renda extra é só do painel do SDR: liderança e closer não recebem o campo', async () => {
+  it('cada SDR vê a sua; a liderança vê a de todos, por SDR e com o filtro; closer não recebe', async () => {
     await mark(await leadWithMeeting());
-    expect('saleBonus' in (await dashboard(ronaldo)).body).toBe(false);
+    await mark(await leadWithMeeting(), promo);
+    await mark(await leadWithMeeting('DONE', 'sonia', murilo), padrao, murilo);
+    const head = await dashboard(ronaldo);
+    expect(head.body.saleBonus).toEqual({
+      cents: 2500,
+      count: 3,
+      byProduct: [
+        { id: padrao, name: 'Nação Padrão', count: 2, cents: 2000 },
+        { id: promo, name: 'Nação Promocional', count: 1, cents: 500 },
+      ],
+      bySdr: [
+        { id: ids.ale, name: 'Ale', count: 2, cents: 1500 },
+        { id: ids.murilo, name: 'Murilo', count: 1, cents: 1000 },
+      ],
+    });
+    const onlyMurilo = await h.post(
+      '/api/reports/search',
+      { period: 'RANGE', from: today(), to: today(), sdrId: ids.murilo },
+      ronaldo,
+    );
+    expect(onlyMurilo.body.saleBonus).toMatchObject({
+      cents: 1000,
+      bySdr: [{ id: ids.murilo, cents: 1000 }],
+    });
+    const diretor = await h.signIn('diretor@npac.com.br');
+    expect((await dashboard(diretor)).body.saleBonus.cents).toBe(2500);
+    // O SDR só vê a dele, sem a linha por SDR.
+    expect((await dashboard()).body.saleBonus).toEqual({
+      cents: 1500,
+      count: 2,
+      byProduct: [
+        { id: padrao, name: 'Nação Padrão', count: 1, cents: 1000 },
+        { id: promo, name: 'Nação Promocional', count: 1, cents: 500 },
+      ],
+    });
     expect('saleBonus' in (await dashboard(sonia)).body).toBe(false);
   });
 });

@@ -163,7 +163,7 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   antes; liderança vê venda + comparecimento, com filtro por SDR. Vendas e pagamentos (ficha,
   cobranças do Hoje, `sale:register`) são do closer e da liderança; o SDR marca o resultado da reunião
   e, depois dela, a venda só com o produto (NPAC-48, abaixo em "Marcar venda"). A renda extra do SDR
-  (`saleBonus`) é renda dele, não R$ de venda: vem só para o próprio SDR.
+  (`saleBonus`) é renda dele, não R$ de venda: o SDR vê só a dele; a liderança vê a de todos.
 - Login por **usuário** (`/sign-in/username`, `[a-z0-9_.]{3,30}`, minúsculo); login por e-mail e
   `/is-username-available` desligados. Senha mínima 3 (provisório, decisão de 29/10/2026: no dev
   todas são `123`; as regras voltam no fim).
@@ -320,9 +320,11 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
   (valor editável em Admin > Produtos, "Renda extra do SDR"; mudar não altera o já ganho). O cadastro
   em Venda Fechada também grava a marcação (`recordSaleMark` em `api/leads/sale-mark.ts`). Conta na
   data da marcação (1A); sai (`canceled_at`, por gatilho) no estorno, quando o lead deixa a Venda ou é
-  excluído. Leitura por RLS: o próprio SDR e a liderança; `npac_app` só SELECT/INSERT. Aparece só no
-  Dashboard do SDR (card `sale-bonus`, `saleBonus` em `/reports/search` só para o papel SDR, pelo
-  período). Valores do Igor: Nação Promocional R$ 5, Padrão (Normal) R$ 10, Completo (Cheio) R$ 20,
+  excluído. Leitura por RLS: o próprio SDR e a liderança; `npac_app` só SELECT/INSERT. Aparece no
+  Dashboard (card `sale-bonus`, `saleBonus` em `/reports/search` pelo período): **cada SDR vê a dele, por
+  produto; a liderança vê a de todos, por SDR (`bySdr`), e com o filtro de um SDR** (Gabriel, 17/11/2026);
+  o closer não recebe. Igor, 17/11 ("1A, 2B"): a renda segue o produto que o SDR marcou, mesmo que o
+  closer registre outro; venda registrada direto pelo closer, sem marcação, não gera renda. Valores do Igor: Nação Promocional R$ 5, Padrão (Normal) R$ 10, Completo (Cheio) R$ 20,
   RDV R$ 70, 2M R$ 90, 6M R$ 120 (seed e 0066, por código ou nome).
 - **Campos por etapa** (NPAC-38, 05/11/2026, "1A 2A 3A"): Agendados pedem `meeting` (criada na
   mesma transação, origem pela etapa, `rearm()` depois do commit; reunião futura aberta dispensa),

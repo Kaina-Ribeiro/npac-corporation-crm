@@ -1,6 +1,6 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { withUser, type Db, type Tx } from '@npac/db';
-import { spDayRange, TIER_LABELS, TIERS, type AuthUser, type Tier } from '@npac/shared';
+import { isLeader, spDayRange, TIER_LABELS, TIERS, type AuthUser, type Tier } from '@npac/shared';
 import { MEETING_VALUE_CENTS } from '@npac/shared/money';
 import { sql, type SQL } from 'drizzle-orm';
 import { AuditService } from '../audit/audit.service.js';
@@ -205,26 +205,35 @@ function dailySql(base: SQL, q: ReportQuery, w: ReturnType<typeof window>) {
     order by x.day`;
 }
 
+type BonusRow = { id: string; name: string; count: number; cents: number };
+
 /**
  * Renda extra do SDR (NPAC-48): marcações ativas no período, pela data da marcação (1A) e pelo
- * valor do catálogo naquele dia. Por produto com o nome atual, como o relatório de vendas.
+ * valor do catálogo naquele dia. Por produto com o nome atual, como o relatório de vendas. O SDR
+ * vê a dele; a liderança, a de todos (Gabriel, 17/11/2026), com o filtro de SDR e a linha por SDR.
  */
-async function sdrSaleBonus(tx: Tx, sdrId: string, start: Date, end: Date) {
-  const rows = await tx.execute<Record<string, unknown>>(
-    sql`select p.id,p.name,count(*) as count,sum(k.bonus_cents) as cents from sdr_sale_marks k join products p on p.id=k.product_id
-      where k.sdr_id=${sdrId} and k.canceled_at is null and k.marked_at>=${start.toISOString()} and k.marked_at<${end.toISOString()}
-      group by p.id,p.name order by sum(k.bonus_cents) desc,p.name`,
-  );
-  const byProduct = rows.map(numeric) as {
-    id: string;
-    name: string;
-    count: number;
-    cents: number;
-  }[];
+async function sdrSaleBonus(tx: Tx, sdrId: string | null, start: Date, end: Date, team: boolean) {
+  const where = sql`k.canceled_at is null and k.marked_at>=${start.toISOString()} and k.marked_at<${end.toISOString()}
+      and (${sdrId}::text is null or k.sdr_id=${sdrId})`;
+  const byProduct = (
+    await tx.execute<Record<string, unknown>>(
+      sql`select p.id,p.name,count(*) as count,sum(k.bonus_cents) as cents from sdr_sale_marks k join products p on p.id=k.product_id
+      where ${where} group by p.id,p.name order by sum(k.bonus_cents) desc,p.name`,
+    )
+  ).map(numeric) as BonusRow[];
+  const bySdr = team
+    ? ((
+        await tx.execute<Record<string, unknown>>(
+          sql`select u.id,u.name,count(*) as count,sum(k.bonus_cents) as cents from sdr_sale_marks k join "user" u on u.id=k.sdr_id
+      where ${where} group by u.id,u.name order by sum(k.bonus_cents) desc,u.name`,
+        )
+      ).map(numeric) as BonusRow[])
+    : undefined;
   return {
     cents: byProduct.reduce((a, r) => a + r.cents, 0),
     count: byProduct.reduce((a, r) => a + r.count, 0),
     byProduct,
+    ...(bySdr ? { bySdr } : {}),
   };
 }
 
@@ -264,7 +273,12 @@ export class ReportsService {
         );
         const { bySdr, byCloser } = await people(tx, base, start, end);
         const days = await tx.execute<Record<string, unknown>>(dailySql(base, q, w));
-        const saleBonus = u.role === 'SDR' ? await sdrSaleBonus(tx, u.id, start, end) : undefined;
+        const saleBonus =
+          u.role === 'SDR'
+            ? await sdrSaleBonus(tx, u.id, start, end, false)
+            : isLeader(u.role)
+              ? await sdrSaleBonus(tx, q.sdrId ?? null, start, end, true)
+              : undefined;
         const rows = await tx.execute<{ id: string; name: string; stage: string; tier: string }>(
           sql`select l.id,l.name,s.label as stage,l.tier from leads l join pipeline_stages s on s.id=l.stage_id where ${scope(q)} and l.created_at>=${start.toISOString()} and l.created_at<${end.toISOString()} order by l.created_at desc,l.id limit ${q.pageSize ?? 20} offset ${((q.page ?? 1) - 1) * (q.pageSize ?? 20)}`,
         );
@@ -304,6 +318,8 @@ export class ReportsService {
         data: { ids: result.leads.map((r) => r.id) },
       });
     const { saleBonus, ...rest } = result;
+    // Renda extra (NPAC-48): o SDR vê a dele e a liderança a de todos; o closer não recebe.
+    if (isLeader(u.role)) return { ...rest, saleBonus };
     if (u.role !== 'SDR') return rest;
     return {
       ...rest,
@@ -313,7 +329,6 @@ export class ReportsService {
       daily: rest.daily.map(dropSales),
       bySdr: rest.bySdr.map(dropSales),
       byCloser: rest.byCloser.map(dropSales),
-      // Renda extra do SDR por venda marcada no período (NPAC-48, 5B): só no painel do próprio SDR.
       saleBonus,
     };
   }
