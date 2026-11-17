@@ -21,8 +21,43 @@ export interface PushSender {
 }
 export const PUSH_SENDER = Symbol('PUSH_SENDER');
 
-/** Web Push padrão (VAPID). Sem chaves no ambiente, não envia nada. */
+/** Host do serviço de push (ex.: `web.push.apple.com`): o endpoint inteiro identifica o aparelho. */
+function pushHost(endpoint: string): string {
+  try {
+    return new URL(endpoint).host;
+  } catch {
+    return 'endereço inválido';
+  }
+}
+
+/**
+ * Motivo que o serviço de push devolve (Apple: `{"reason":"BadDeviceToken"}`; Mozilla: `message`).
+ * Texto solto vai cortado, sem endereços.
+ */
+export function pushReason(body: unknown): string {
+  const text = typeof body === 'string' ? body : Buffer.isBuffer(body) ? body.toString() : '';
+  if (!text.trim()) return '';
+  try {
+    const j = JSON.parse(text) as Record<string, unknown>;
+    const r = j.reason ?? j.message ?? j.error;
+    if (typeof r === 'string') return r.slice(0, 120);
+  } catch {
+    // não é JSON
+  }
+  return text
+    .replace(/https?:\/\/\S+/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 120);
+}
+
+/**
+ * Web Push padrão (VAPID). Sem chaves no ambiente, não envia nada. Cada envio vai para o log com
+ * o código HTTP, o host do serviço e o motivo da recusa (NPAC-48, B7: diagnosticar o iPhone), sem
+ * o endpoint completo, sem o texto do aviso e sem dados da pessoa.
+ */
 export class WebPushSender implements PushSender {
+  private readonly log = new Logger('Push');
   readonly publicKey: string | null;
   private readonly privateKey: string | null;
   private readonly subject: string;
@@ -35,8 +70,9 @@ export class WebPushSender implements PushSender {
   }
   async send(target: PushTarget, payload: PushPayload): Promise<PushResult> {
     if (!this.publicKey || !this.privateKey) return 'ok';
+    const host = pushHost(target.endpoint);
     try {
-      await webpush.sendNotification(
+      const res = await webpush.sendNotification(
         { endpoint: target.endpoint, keys: { p256dh: target.p256dh, auth: target.auth } },
         JSON.stringify(payload),
         {
@@ -49,10 +85,23 @@ export class WebPushSender implements PushSender {
           },
         },
       );
+      this.log.log(`push enviado: ${res.statusCode} ${host}`);
       return 'ok';
     } catch (e) {
-      const status = (e as { statusCode?: number }).statusCode;
-      return status === 404 || status === 410 ? 'gone' : 'error';
+      const err = e as { statusCode?: number; body?: unknown; code?: string; name?: string };
+      if (err.statusCode === undefined) {
+        // Sem resposta HTTP: rede, DNS, TLS ou tempo esgotado até o serviço de push.
+        this.log.warn(`push sem resposta: ${err.code ?? err.name ?? 'erro'} ${host}`);
+        return 'error';
+      }
+      const reason = pushReason(err.body);
+      const line = `${err.statusCode} ${host}${reason ? ` ${reason}` : ''}`;
+      if (err.statusCode === 404 || err.statusCode === 410) {
+        this.log.log(`push expirado, inscrição apagada: ${line}`);
+        return 'gone';
+      }
+      this.log.warn(`push recusado: ${line}`);
+      return 'error';
     }
   }
 }

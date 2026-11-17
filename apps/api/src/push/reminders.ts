@@ -54,6 +54,24 @@ export function reminderPayload(
 }
 
 /**
+ * Lembrete do closer da reunião (NPAC-48, B3): só 15 min e 1 min antes, sem o "mande a
+ * confirmação", que é do SDR.
+ */
+export function closerReminderPayload(
+  step: Exclude<ReminderStep, 'H1'>,
+  meetingId: string,
+  scheduledAt: Date,
+  leadName: string,
+): PushPayload {
+  return {
+    title: `Reunião com ${leadName} às ${hourMinute.format(scheduledAt)}`,
+    body: step === 'M1' ? '1 min antes' : '15 min antes',
+    url: '/avisos',
+    tag: `meeting-${meetingId}`,
+  };
+}
+
+/**
  * "Despertador" dos lembretes de reunião (decisão de 04/11/2026, sem polling): um único timer
  * armado para o próximo lembrete pendente. Rearma ao iniciar a API e depois de cada evento que
  * muda reuniões (criar, remarcar, cancelar, resultado, transferir lead). Duplicidade entre
@@ -146,16 +164,28 @@ export class ReminderScheduler implements OnApplicationBootstrap, OnModuleDestro
       meeting_id: string;
       step: ReminderStep;
       scheduled_at: Date | string;
-      sdr_id: string;
+      sdr_id: string | null;
+      closer_id: string | null;
       lead_name: string;
     }>(sql`select * from meeting_reminder_claim(${now}::timestamptz)`);
     await Promise.all(
-      due.map((r) =>
-        this.push.notify(
-          [r.sdr_id],
-          reminderPayload(r.step, r.meeting_id, new Date(r.scheduled_at), r.lead_name),
-        ),
-      ),
+      due.flatMap((r) => {
+        const at = new Date(r.scheduled_at);
+        const jobs: Promise<void>[] = [];
+        if (r.sdr_id)
+          jobs.push(
+            this.push.notify([r.sdr_id], reminderPayload(r.step, r.meeting_id, at, r.lead_name)),
+          );
+        // Dono do lead que também é o closer já recebeu o dele.
+        if (r.closer_id && r.closer_id !== r.sdr_id && r.step !== 'H1')
+          jobs.push(
+            this.push.notify(
+              [r.closer_id],
+              closerReminderPayload(r.step, r.meeting_id, at, r.lead_name),
+            ),
+          );
+        return jobs;
+      }),
     );
   }
 }

@@ -373,16 +373,31 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
 
 - Chat: selo de não lidas (`chatUnread` em `/notifications`) e `(N)` no título, pelo SSE. Push sem
   texto: "Nova mensagem no Chat" (Geral → todos menos o autor) ou "de <nome>" (DM → destinatário).
-- Lembretes só para o dono do lead (`leads.sdr_id`): `H1` (60 min) e `M15` (15 min) com
+- Lembretes do dono do lead (`leads.sdr_id`): `H1` (60 min) e `M15` (15 min) com
   "Confirmação enviada" (`POST /meetings/:id/confirm`, `meeting_confirmations` por horário, timeline
   `meeting.confirmed`); `M1` só aviso. Etapa vigente calculada no navegador (`sh/reminders.ts`).
   Liderança vê "1 h: não confirmada" na ficha. Remarcar recomeça; cancelada/resultado não avisa.
+  O **closer da reunião** (`meetings.closer_id`, NPAC-48, 17/11/2026) recebe só o push de `M15` e `M1`
+  ("Reunião com X às HH:MM", `closerReminderPayload`), sem o pedido de confirmação; se for o próprio dono, um só.
 - Push dos lembretes: `ReminderScheduler` = um único timer para o próximo (`meeting_reminder_next`),
   rearmado ao subir a API e depois de criar/remarcar/cancelar/resultado/transferir. Disparo via
-  `meeting_reminder_claim` (advisory lock + `meeting_reminders_sent`): uma vez por etapa, só a mais
-  recente se a API ficou parada. Sem polling. Testes trocam `PUSH_SENDER` e `REMINDER_CLOCK`.
+  `meeting_reminder_claim` (advisory lock + `meeting_reminders_sent`; 0065 devolve `sdr_id` e `closer_id`,
+  nulo se desativado): uma vez por etapa, só a mais recente se a API ficou parada. Sem polling. Testes
+  trocam `PUSH_SENDER` e `REMINDER_CLOCK`.
+- **Push do sino** (NPAC-48, Igor 17/11/2026: "cada um recebe os avisos do seu acesso"): todo aviso que
+  entra em `notifications` também vai como push às mesmas pessoas (a liderança não ganha os da equipe).
+  Sem polling: gatilho `notifications_push` faz `pg_notify('npac_aviso', id)` (entregue no commit) e
+  `push/sino-push.ts` (`SinoPush`) ouve com o LISTEN do postgres-js (`DB_SQL`, conexão própria, reconecta
+  sozinho). `notification_push_claim` grava em `notification_pushes` (fora do `app_revision`, sem FK,
+  apaga o que passou de 1 dia): um push por aviso entre instâncias; ao (re)conectar, recupera os dos
+  últimos 10 min ainda não lidos. Texto = a linha do sino (`activityVerb` em `sh/activity.ts`, o mesmo do
+  web): "Ana agendou João"; o nome do lead é lido como a pessoa (RLS), fora do acesso sai "um lead fora do
+  seu acesso". `form.received` fica fora (o webhook já manda o push dele). Testes: `vi.waitFor` + `settled()`.
 - Push: VAPID opcional no env (sem chaves = desligado). Inscrição por `push_subscribe` (o aparelho
-  vai para quem logou por último); sair e desativar usuário apagam; 404/410 apaga.
+  vai para quem logou por último); sair e desativar usuário apagam; 404/410 apaga. **Log de cada envio**
+  (`WebPushSender`, NPAC-48): `push enviado: 201 web.push.apple.com`, `push recusado: <código> <host>
+<reason>`, `push expirado…` (404/410) e `push sem resposta: <ETIMEDOUT…> <host>`; nunca o endpoint
+  inteiro, o texto do aviso ou dados da pessoa.
 - **Convite para ativar** (NPAC-48, pedido do Igor 16/11/2026: a equipe não sabia que dava):
   `components/push-invite.tsx` no topo do Dashboard, Hoje, Chat (dentro da coluna, para o campo não sair
   da tela) e Fila do Acompanhamento; fora do layout para não pesar no JS de `/leads`. Só aparece se dá

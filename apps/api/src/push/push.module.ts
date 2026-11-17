@@ -7,6 +7,7 @@ import { CurrentUser, type SessionUser } from '../auth/current-user.decorator.js
 import { validate } from '../common/validate.js';
 import { PUSH_SENDER, PushService, WebPushSender } from './push.service.js';
 import { REMINDER_CLOCK, ReminderScheduler, systemClock } from './reminders.js';
+import { SinoPush } from './sino-push.js';
 
 const endpoint = z.url().startsWith('https://').max(1000);
 const subscription = z
@@ -76,7 +77,8 @@ export class PushController {
     { provide: REMINDER_CLOCK, useValue: systemClock },
     PushService,
     ReminderScheduler,
+    SinoPush,
   ],
-  exports: [PushService, ReminderScheduler],
+  exports: [PushService, ReminderScheduler, SinoPush],
 })
 export class PushModule {}
