@@ -55,3 +55,32 @@ test('nenhum campo estoura o container no iPhone', async ({ page }) => {
   }
   expect(problems).toEqual({});
 });
+
+// Formulário com a barra de botões presa embaixo (`.nf-barra`): o rodapé das abas não pode
+// ficar por cima dos botões depois de rolar até o fim (Agendar reunião ficava coberta).
+test('o rodapé das abas não cobre os botões dos formulários do Acompanhamento', async ({
+  page,
+}) => {
+  await page.goto('/login');
+  await page.getByLabel('Usuário', { exact: true }).fill('duda');
+  await page.getByLabel('Senha').fill(E2E_PASSWORD);
+  await page.getByRole('button', { name: 'Login', exact: true }).click();
+  await page.waitForURL((u) => !u.pathname.startsWith('/login'));
+  const cobertos: Record<string, string[]> = {};
+  for (const path of ['/acompanhamento/mentorados/nova', '/acompanhamento/reunioes/nova']) {
+    await page.goto(path);
+    await page.locator('.nf-barra').waitFor();
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    const r = await page.evaluate(() =>
+      [...document.querySelectorAll<HTMLElement>('.nf-barra button')]
+        .filter((b) => {
+          const c = b.getBoundingClientRect();
+          const em = document.elementFromPoint(c.left + c.width / 2, c.top + c.height / 2);
+          return !em || !b.contains(em);
+        })
+        .map((b) => b.textContent?.trim() ?? ''),
+    );
+    if (r.length) cobertos[path] = r;
+  }
+  expect(cobertos).toEqual({});
+});
