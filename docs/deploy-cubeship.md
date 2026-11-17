@@ -127,19 +127,23 @@ curl -s -X POST -H 'content-type: application/json' -d '{}' https://crm-itodev.1
 ```
 
 Fluxo: PR na `release/vX.Y` → rc `vX.Y.Z-rc` → ITODEV com essa tag (automático) → testar com
-cada cargo → Actions → Release → Run workflow **da `release/vX.Y`** → `deploy`, stage `prod`
+cada cargo → Actions → **Deploy** → Run workflow **da `release/vX.Y`**, stage `prod`
 (tag vazia = última rc) → PR da release em `main` → tag final `vX.Y.Z` (mesmo código, sem novo
 deploy; o `final` recusa se a prod não roda a última rc) → a automação apaga a `release/vX.Y`.
-Rollback: o mesmo `deploy` com a tag anterior.
+Rollback: o mesmo Deploy com a tag anterior. Desde o release-kit v1.2.0 (17/11/2026) o deploy
+saiu do menu do Release e virou o workflow Deploy (`.github/workflows/deploy.yml`).
 
 Configuração no GitHub (Settings → Secrets and variables → Actions):
 
 | Nome               | Tipo     | Valor                                                    |
 | ------------------ | -------- | -------------------------------------------------------- |
-| `CUBESHIP_URL`     | variável | `https://13-140-33-41.sslip.io/api`                      |
+| `DEPLOY_URL`       | variável | `https://13-140-33-41.sslip.io/api`                      |
 | `DEPLOY_TEST_APPS` | variável | `npac/itodev/api npac/itodev/web`                        |
 | `DEPLOY_PROD_APPS` | variável | `npac/production/api npac/production/retention npac/production/web` |
-| `CUBESHIP_TOKEN`   | secret   | chave de API do Cubeship que gerencia esses apps         |
+| `DEPLOY_TOKEN`     | secret   | chave `github-npac-deploy-v2` do Cubeship (papel Deploy) |
+
+`CUBESHIP_URL` e `CUBESHIP_TOKEN` (chave `github-npac-deploy`) são os nomes antigos: o kit ainda
+os lê, mas os callers novos não os passam. Saem depois do primeiro deploy verde com os novos.
 
 Bootstrap das roles: igual à seção 1 (app temporário `db-bootstrap` com `OWNER_PW`/`APP_PW`,
 datastore anexado, deploy, depois desanexar e apagar).
