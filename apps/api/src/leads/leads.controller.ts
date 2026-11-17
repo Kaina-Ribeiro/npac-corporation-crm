@@ -71,6 +71,10 @@ const quickActionSchema = z
   })
   .strict();
 
+const saleMarkSchema = z
+  .object({ version: z.number().int().positive(), productId: z.uuid() })
+  .strict();
+
 const uuid = z.uuid();
 
 function parse<T extends z.ZodType>(schema: T, input: unknown): z.output<T> {
@@ -115,6 +119,19 @@ export class LeadsController {
   ) {
     if (!uuid.safeParse(id).success) throw new NotFoundException();
     return this.mutations.quickAction(u, id, parse(quickActionSchema, body), meta(req));
+  }
+
+  /** Marcar venda (NPAC-48): SDR do lead e liderança, só o produto (closer não: ele registra). */
+  @Post(':id/sale-mark')
+  @Can('lead:update')
+  markSale(
+    @CurrentUser() u: SessionUser,
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @Req() req: FastifyRequest,
+  ) {
+    if (!uuid.safeParse(id).success) throw new NotFoundException();
+    return this.mutations.markSale(u, id, parse(saleMarkSchema, body), meta(req));
   }
 
   @Delete(':id')

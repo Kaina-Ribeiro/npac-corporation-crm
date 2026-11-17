@@ -47,6 +47,15 @@ export type ReportDTO = {
   leads: { id: string; name: string; stage: string; tier: string }[];
   from: string;
   to: string;
+  /**
+   * Renda extra do SDR pelas vendas que marcou no período (NPAC-48, 5B), pela data da marcação.
+   * Só vem para o próprio SDR.
+   */
+  saleBonus?: {
+    cents: number;
+    count: number;
+    byProduct: { id: string; name: string; count: number; cents: number }[];
+  };
 };
 export type ReportRow = {
   id: string;

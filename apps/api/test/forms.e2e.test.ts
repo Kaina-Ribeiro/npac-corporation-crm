@@ -62,7 +62,7 @@ afterAll(async () => {
 });
 beforeEach(async () => {
   await resetAuthState();
-  await owner`truncate push_subscriptions, lgpd_requests, chat_reads, chat_messages, chat_members, payments, deals, lead_notes, lead_tasks, notifications, lead_timeline, meeting_reminders_sent, meeting_confirmations, meetings, form_responses, leads`;
+  await owner`truncate push_subscriptions, lgpd_requests, chat_reads, chat_messages, chat_members, payments, deals, lead_notes, lead_tasks, notifications, lead_timeline, meeting_reminders_sent, meeting_confirmations, meetings, form_responses, sdr_sale_marks, leads`;
 });
 
 describe('acesso à rota', () => {

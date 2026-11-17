@@ -205,6 +205,29 @@ function dailySql(base: SQL, q: ReportQuery, w: ReturnType<typeof window>) {
     order by x.day`;
 }
 
+/**
+ * Renda extra do SDR (NPAC-48): marcações ativas no período, pela data da marcação (1A) e pelo
+ * valor do catálogo naquele dia. Por produto com o nome atual, como o relatório de vendas.
+ */
+async function sdrSaleBonus(tx: Tx, sdrId: string, start: Date, end: Date) {
+  const rows = await tx.execute<Record<string, unknown>>(
+    sql`select p.id,p.name,count(*) as count,sum(k.bonus_cents) as cents from sdr_sale_marks k join products p on p.id=k.product_id
+      where k.sdr_id=${sdrId} and k.canceled_at is null and k.marked_at>=${start.toISOString()} and k.marked_at<${end.toISOString()}
+      group by p.id,p.name order by sum(k.bonus_cents) desc,p.name`,
+  );
+  const byProduct = rows.map(numeric) as {
+    id: string;
+    name: string;
+    count: number;
+    cents: number;
+  }[];
+  return {
+    cents: byProduct.reduce((a, r) => a + r.cents, 0),
+    count: byProduct.reduce((a, r) => a + r.count, 0),
+    byProduct,
+  };
+}
+
 @Injectable()
 export class ReportsService {
   constructor(
@@ -241,6 +264,7 @@ export class ReportsService {
         );
         const { bySdr, byCloser } = await people(tx, base, start, end);
         const days = await tx.execute<Record<string, unknown>>(dailySql(base, q, w));
+        const saleBonus = u.role === 'SDR' ? await sdrSaleBonus(tx, u.id, start, end) : undefined;
         const rows = await tx.execute<{ id: string; name: string; stage: string; tier: string }>(
           sql`select l.id,l.name,s.label as stage,l.tier from leads l join pipeline_stages s on s.id=l.stage_id where ${scope(q)} and l.created_at>=${start.toISOString()} and l.created_at<${end.toISOString()} order by l.created_at desc,l.id limit ${q.pageSize ?? 20} offset ${((q.page ?? 1) - 1) * (q.pageSize ?? 20)}`,
         );
@@ -267,6 +291,7 @@ export class ReportsService {
           totalLeads: Number(metrics[0]!.leads),
           from: start.toISOString(),
           to: end.toISOString(),
+          saleBonus,
         };
       },
       { isolationLevel: 'repeatable read' },
@@ -278,15 +303,18 @@ export class ReportsService {
         entityType: 'report',
         data: { ids: result.leads.map((r) => r.id) },
       });
-    if (u.role !== 'SDR') return result;
+    const { saleBonus, ...rest } = result;
+    if (u.role !== 'SDR') return rest;
     return {
-      ...result,
-      metrics: dropSales(result.metrics),
+      ...rest,
+      metrics: dropSales(rest.metrics),
       byProduct: [],
       previousDaily: [],
-      daily: result.daily.map(dropSales),
-      bySdr: result.bySdr.map(dropSales),
-      byCloser: result.byCloser.map(dropSales),
+      daily: rest.daily.map(dropSales),
+      bySdr: rest.bySdr.map(dropSales),
+      byCloser: rest.byCloser.map(dropSales),
+      // Renda extra do SDR por venda marcada no período (NPAC-48, 5B): só no painel do próprio SDR.
+      saleBonus,
     };
   }
   /**

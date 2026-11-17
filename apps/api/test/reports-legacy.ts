@@ -1,6 +1,7 @@
 // Cópia CONGELADA de ReportsService.search e TeamService.members antes da Fase 3 do desempenho
 // (docs/plans/desempenho.md, T3.2). Serve só de referência ao teste de equivalência em
-// reports.e2e.test.ts: a versão nova tem de responder byte a byte igual. Não alterar.
+// reports.e2e.test.ts: a versão nova tem de responder byte a byte igual. Não alterar, salvo
+// número novo pedido pelo cliente, no mesmo PR (NPAC-48: `saleBonus` do SDR).
 import { BadRequestException } from '@nestjs/common';
 import { withUser, type Db } from '@npac/db';
 import { spDayRange, TIERS, type AuthUser } from '@npac/shared';
@@ -212,6 +213,20 @@ export class LegacyReportsService {
       daily: result.daily.map(dropSales),
       bySdr: result.bySdr.map(dropSales),
       byCloser: result.byCloser.map(dropSales),
+      // Acréscimo pedido (NPAC-48, Igor 17/11/2026): renda extra do SDR por venda marcada.
+      saleBonus: await withUser(this.db, u.id, async (tx) => {
+        const rows = await tx.execute<Record<string, unknown>>(
+          sql`select p.id,p.name,count(*) as count,sum(k.bonus_cents) as cents from sdr_sale_marks k join products p on p.id=k.product_id
+            where k.sdr_id=${u.id} and k.canceled_at is null and k.marked_at>=${start.toISOString()} and k.marked_at<${end.toISOString()}
+            group by p.id,p.name order by sum(k.bonus_cents) desc,p.name`,
+        );
+        const byProduct = rows.map(numeric) as { count: number; cents: number }[];
+        return {
+          cents: byProduct.reduce((a, r) => a + r.cents, 0),
+          count: byProduct.reduce((a, r) => a + r.count, 0),
+          byProduct,
+        };
+      }),
     };
   }
 }

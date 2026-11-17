@@ -55,6 +55,8 @@ type Product = {
   closerId: string;
   closerName: string;
   priceCents: number;
+  /** Renda extra do SDR por venda deste produto (NPAC-48). */
+  sdrBonusCents: number;
   active: boolean;
 };
 type Stage = { id: string; key: string; label: string; position: number };
@@ -526,7 +528,8 @@ export function Admin({
         <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(320px,400px)] 4xl:grid-cols-[minmax(0,1fr)_460px]">
           <Card title="Produtos e preços">
             <p className="text-xs text-ink2">
-              Vendas antigas guardam nome e preço da época; mudar o catálogo não as altera.
+              Vendas antigas guardam nome e preço da época; mudar o catálogo não as altera. A renda
+              extra do SDR vale para as vendas marcadas daqui em diante.
             </p>
             <ul className="divide-y divide-line">
               {data.products.map((p) => (
@@ -542,6 +545,7 @@ export function Admin({
                           clientApi(`/api/admin/products/${p.id}`, 'PATCH', {
                             name: String(f.get('name')),
                             priceCents: parseCents(String(f.get('price'))),
+                            sdrBonusCents: parseCents(String(f.get('bonus') || '0')),
                             closerId: String(f.get('closerId')),
                           }),
                         `${p.name} atualizado`,
@@ -558,6 +562,14 @@ export function Admin({
                         inputMode="decimal"
                         defaultValue={(p.priceCents / 100).toFixed(2).replace('.', ',')}
                         required
+                      />
+                    </Field>
+                    <Field label="Renda extra do SDR (R$)">
+                      <input
+                        name="bonus"
+                        className={control}
+                        inputMode="decimal"
+                        defaultValue={(p.sdrBonusCents / 100).toFixed(2).replace('.', ',')}
                       />
                     </Field>
                     <Field label="Closer">
@@ -582,7 +594,7 @@ export function Admin({
                       {p.active ? 'Desativar' : 'Reativar'}
                     </button>
                     <span className="pb-2 text-xs text-ink2">
-                      {p.code} · {money(p.priceCents)}
+                      {p.code} · {money(p.priceCents)} · renda extra do SDR {money(p.sdrBonusCents)}
                       {!p.active && ' · inativo'}
                     </span>
                   </form>
@@ -603,6 +615,7 @@ export function Admin({
                     code: String(f.get('code')).toUpperCase(),
                     name: String(f.get('name')),
                     priceCents: parseCents(String(f.get('price'))),
+                    sdrBonusCents: parseCents(String(f.get('bonus') || '0')),
                     closerId: String(f.get('closerId')),
                   });
                   form.reset();
@@ -617,6 +630,9 @@ export function Admin({
               </Field>
               <Field label="Preço (R$)">
                 <input name="price" className={control} inputMode="decimal" required />
+              </Field>
+              <Field label="Renda extra do SDR (R$)">
+                <input name="bonus" className={control} inputMode="decimal" placeholder="0,00" />
               </Field>
               <Field label="Closer">
                 <select name="closerId" className={control}>

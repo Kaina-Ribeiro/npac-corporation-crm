@@ -61,6 +61,8 @@ const DEFAULT = [
   'kpi-done',
   'kpi-missed',
   'meeting-value',
+  // Renda extra do SDR por produto vendido (NPAC-48): só no painel do SDR.
+  'sale-bonus',
   'funnel',
   'daily-leads',
   'tiers',

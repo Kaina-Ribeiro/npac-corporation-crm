@@ -64,5 +64,25 @@ Decisões do Gabriel em 17/11: "se ele tá pedindo pra notificar, temos que noti
 
 | # | Tarefa | Status |
 |---|---|---|
-| C1 | Depois da reunião realizada, o SDR tem "Marcar venda": escolhe o produto, sem valor. O lead vai para Venda como "venda a registrar" (caminho do cadastro, NPAC-39/41) e o closer recebe o aviso (com push, via B2) | ⏳ PR 3 |
-| C2 | Renda extra do SDR por produto: valor por produto no catálogo (Admin), somado no painel do SDR. Conta quando o SDR marca a venda (1A) | ⏳ PR 3 |
+| C1 | Depois da reunião realizada, o SDR tem "Marcar venda": escolhe o produto, sem valor. O lead vai para Venda como "venda a registrar" (caminho do cadastro, NPAC-39/41) e o closer recebe o aviso (com push, via B2) | ✅ PR 3 |
+| C2 | Renda extra do SDR por produto: valor por produto no catálogo (Admin), somado no painel do SDR. Conta quando o SDR marca a venda (1A) | ✅ PR 3 |
+
+### Como ficou (PR 3, 17/11/2026)
+
+- **Marcar venda** na ficha, na última reunião realizada: o SDR do lead (ou a liderança) escolhe só o produto
+  do closer da reunião. `POST /leads/:id/sale-mark`; o lead vai para Venda a registrar, o closer da reunião vira
+  o do lead e recebe `sale.pending` (sino e push). O closer registra a venda com o valor, como no cadastro.
+- **Renda extra**: tabela `sdr_sale_marks` (migration 0066), valor do catálogo no dia da marcação
+  (`products.sdr_bonus_cents`, Admin > Produtos > "Renda extra do SDR"). Sai no estorno, se o lead deixar a
+  Venda ou for excluído. Card "Renda extra por produto vendido" só no Dashboard do SDR.
+- O cadastro em Venda Fechada (o caminho que o SDR já tinha para marcar a venda) também conta a renda.
+- Catálogo: a 0066 preenche pelo código do seed ou pelo nome (Promocional, Padrão/Normal, Completo/Cheio,
+  RDV, 2M, 6M). Produto que não bater fica com R$ 0 e aparece no Admin.
+
+### Perguntas em aberto (PR 3)
+
+1. Se o closer registrar um produto diferente do que o SDR marcou, a renda segue a marcação do SDR (como está)
+   ou o produto registrado?
+2. Venda que o closer registra direto, sem o SDR ter marcado (ex.: lead em Agendou Pagamento), gera renda
+   extra? Hoje não gera.
+3. A liderança quer ver a renda extra por SDR (no Dashboard ou nos Relatórios)? Não foi pedido; não construído.
