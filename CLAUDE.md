@@ -10,6 +10,9 @@ indicar. Mantenha denso; ao mudar arquitetura, regra ou comando, atualize aqui.
 - Português, respostas curtas, execução direta quando o pedido é explícito. Commits frequentes; push só se pedirem.
 - Branch, PR, tag e release seguem `RELEASING.md` (release-kit): branch `tipo/NPAC-N-nome` a partir da
   `release/vX.Y` aberta, PR `tipo(NPAC-N): resumo` em minúsculas, squash. Tags só pela automação.
+  Kit v1.2.0 (17/11/2026): deploy manual (prod, rollback) é Actions → **Deploy** da `release/vX.Y`, não
+  mais o menu do Release; o adaptador do Cubeship lê `DEPLOY_URL` + segredo `DEPLOY_TOKEN`
+  (`docs/deploy-cubeship.md`, seção 4). Só `release/*` e `hotfix/*` entram na `main`.
 - Sem subagentes sem pedido. Plano novo grande: apresentar antes de implementar.
 - Régua: CRMs robustos (Linear, Attio).
 - Bug: teste que falha (RED) → correção → teste focado → suíte ao fechar.
