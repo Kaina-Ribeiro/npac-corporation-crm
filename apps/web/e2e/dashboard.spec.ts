@@ -75,6 +75,8 @@ test('dashboard: arrasta e reordena cards, a ordem persiste e volta ao padrão',
   page,
   context,
 }) => {
+  // Com o card da renda extra (NPAC-48) o Funil desce: a janela alta deixa origem e destino à vista.
+  await page.setViewportSize({ width: 1280, height: 1400 });
   await login(page, 'ale@npac.com.br');
   await expect.poll(() => order(page)).toEqual(DEFAULT);
   const restore = page.getByRole('button', { name: 'Ordem padrão' });
@@ -188,9 +190,12 @@ test('SDR vê comparecimento e nenhum valor de venda no dashboard', async ({ pag
   await expect(card(page, 'meeting-value')).toContainText('Valor a receber por reunião realizada');
   for (const id of ['kpi-sold', 'kpi-received', 'revenue', 'products'])
     await expect(card(page, id)).toHaveCount(0);
-  // R$ só no card do valor por reunião realizada.
+  // R$ só no valor por reunião realizada e na renda extra do próprio SDR (NPAC-48): nunca de venda.
+  await expect(card(page, 'sale-bonus')).toContainText('Renda extra por produto vendido');
   const money = await page
-    .locator('.dash-board [data-card]:not([data-card="meeting-value"])')
+    .locator(
+      '.dash-board [data-card]:not([data-card="meeting-value"]):not([data-card="sale-bonus"])',
+    )
     .allInnerTexts();
   expect(money.join('\n')).not.toContain('R$');
 });
