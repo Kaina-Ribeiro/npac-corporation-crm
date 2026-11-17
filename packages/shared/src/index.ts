@@ -29,3 +29,4 @@ export * from './mentoria/reunioes.js';
 export * from './mentoria/fila.js';
 export * from './mentoria/mensagens.js';
 export * from './reminders.js';
+export * from './activity.js';

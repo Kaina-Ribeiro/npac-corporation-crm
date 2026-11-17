@@ -8,7 +8,7 @@ import { showToast } from './toast';
 type Estado = 'off' | 'ios-home' | 'denied' | null;
 
 const TEXTO: Record<Exclude<Estado, null>, string> = {
-  off: 'Receba no celular ou no computador, mesmo com o CRM fechado, as mensagens do chat e os lembretes das suas reuniões.',
+  off: 'Receba no celular ou no computador, mesmo com o CRM fechado, os avisos do sino, as mensagens do chat e os lembretes das suas reuniões.',
   'ios-home':
     'No iPhone, os avisos só chegam com o CRM na Tela de Início: toque em Compartilhar → Adicionar à Tela de Início e abra o CRM por lá.',
   denied:

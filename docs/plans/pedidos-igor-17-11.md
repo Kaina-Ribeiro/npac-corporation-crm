@@ -14,6 +14,24 @@ Decisões do Gabriel em 17/11: "se ele tá pedindo pra notificar, temos que noti
   Nação 3500 → R$ 20,00 · Mentoria RDV → R$ 70,00 · Mentoria 2M → R$ 90,00 · Mentoria 6M → R$ 120,00.
 - Pergunta dele sobre o Forms ("com o e-mail? ou só abrir o link para público?"): ver Fase A.
 
+## Respostas do Igor para o PR 3 (17/11/2026, "1A, 2A")
+
+- **1A:** a renda extra do SDR conta **quando o SDR marca a venda** (C1), não quando o closer registra.
+- **2A:** Nação Promocional, Nação Normal e Nação Cheio são **3 produtos** no catálogo, escolhidos pelo
+  nome (sem campo de preço à parte).
+- **Valores da renda extra** (por produto vendido): Nação 2500 → R$ 5 · Nação 3000 → R$ 10 ·
+  Nação 3500 → R$ 20 · RDV → R$ 70 · 2M → R$ 90 · 6M → R$ 120.
+
+## Diagnóstico do push no iPhone (17/11/2026)
+
+- Produção (SQL só de leitura): 7 aparelhos com push, todos iPhone (`web.push.apple.com`), de 3 pessoas,
+  num universo de pelo menos 9 contas ativas. Chaves VAPID formam par e não mudaram depois das inscrições.
+- A Apple aceitou a credencial num teste com chaves novas e endereço falso (`BadWebPushToken`, não
+  `BadJwtToken`). As 7 DMs do Igor desde 16/11 foram para quem tem push e nada chegou.
+- Sobram duas hipóteses, que o log do B7 separa: (1) a saída de rede do servidor até a Apple
+  (`push sem resposta: ETIMEDOUT…`) ou (2) o iPhone com a notificação desligada (`push enviado: 201
+  web.push.apple.com` e nada no aparelho). Depois do deploy, ler o log do app `api` no Cubeship.
+
 ## O que já se sabe (17/11/2026)
 
 - ✅ Produção (`npac/production/api`): chaves do push (VAPID) presentes.
@@ -36,9 +54,9 @@ Decisões do Gabriel em 17/11: "se ele tá pedindo pra notificar, temos que noti
 |---|---|---|
 | B1 | Barra do celular: Dashboard, Hoje, Pipeline, **Chat** (selo de não lidas), Mais; Leads no Mais | ✅ PR 1 |
 | B6 | Convite "Ative os avisos neste aparelho" no Dashboard, Hoje, Chat e Fila; "Agora não" = 7 dias | ✅ PR 1 |
-| B2 | Todo aviso do sino também como push, para as mesmas pessoas (por acesso, como hoje) | ⏳ PR 2 |
-| B3 | Lembrete de 15 min e 1 min também para o closer da reunião (é do acesso dele) | ⏳ PR 2 |
-| B7 | Falha de push (fora 404/410) no log com o código HTTP, sem dados | ⏳ PR 2 |
+| B2 | Todo aviso do sino também como push, para as mesmas pessoas (por acesso, como hoje): NOTIFY no INSERT + LISTEN na API (`push/sino-push.ts`), texto = a linha do sino | ✅ PR 2 |
+| B3 | Lembrete de 15 min e 1 min também para o closer da reunião (é do acesso dele): "Reunião com X às HH:MM", sem o pedido de confirmação | ✅ PR 2 |
+| B7 | Cada envio de push no log: código HTTP, host do serviço (ex.: `web.push.apple.com`) e `reason`, sem endpoint nem dados | ✅ PR 2 |
 | B4 | Liderança recebe avisos da equipe | ❌ descartado (resposta 2 do Igor) |
 | B5 | Formulário que não vira lead também avisa | ⏸ junto com a Fase A |
 
@@ -47,4 +65,4 @@ Decisões do Gabriel em 17/11: "se ele tá pedindo pra notificar, temos que noti
 | # | Tarefa | Status |
 |---|---|---|
 | C1 | Depois da reunião realizada, o SDR tem "Marcar venda": escolhe o produto, sem valor. O lead vai para Venda como "venda a registrar" (caminho do cadastro, NPAC-39/41) e o closer recebe o aviso (com push, via B2) | ⏳ PR 3 |
-| C2 | Renda extra do SDR por produto: valor por produto no catálogo (Admin), somado no painel do SDR. Pergunta aberta: conta quando o SDR marca ou quando o closer registra a venda? | ⏳ PR 3 |
+| C2 | Renda extra do SDR por produto: valor por produto no catálogo (Admin), somado no painel do SDR. Conta quando o SDR marca a venda (1A) | ⏳ PR 3 |
