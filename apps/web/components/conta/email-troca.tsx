@@ -222,7 +222,11 @@ export function EmailTroca({
             <button type="button" className="btn btn-secondary min-h-11" onClick={fechar}>
               Cancelar
             </button>
-            <button type="submit" className="btn-dark h-11 px-5 text-[15px]" disabled={ocupado}>
+            <button
+              type="submit"
+              className="btn btn-primary min-h-11 px-5 text-[15px]"
+              disabled={ocupado}
+            >
               Enviar código
             </button>
           </div>

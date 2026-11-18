@@ -108,3 +108,36 @@ test('Mais do celular tem Meu perfil no cartão da conta', async ({ browser }) =
   ).toHaveAttribute('href', '/mais');
   await ctx.close();
 });
+
+/** Contraste (WCAG) entre o fundo do botão e o fundo atrás dele, lidos do navegador. */
+async function contrasteDoBotao(page: Page, nome: string): Promise<number> {
+  return page.getByRole('button', { name: nome }).evaluate((botao) => {
+    const rgb = (c: string) => (c.match(/[\d.]+/g) ?? []).map(Number);
+    const fundo = (el: Element | null): number[] => {
+      for (let e = el; e; e = e.parentElement) {
+        const c = rgb(getComputedStyle(e).backgroundColor);
+        if (c.length >= 3 && (c[3] ?? 1) > 0.9) return c;
+      }
+      return [255, 255, 255];
+    };
+    const lum = ([r, g, b]: number[]) =>
+      [r!, g!, b!]
+        .map((v) => v / 255)
+        .map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4))
+        .reduce((a, v, i) => a + v * [0.2126, 0.7152, 0.0722][i]!, 0);
+    const a = lum(fundo(botao));
+    const b = lum(fundo(botao.closest('dialog') ?? document.body));
+    return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+  });
+}
+
+test('no tema escuro, os botões principais aparecem (contraste de 3:1)', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('theme', 'dark'));
+  await login(page);
+  await page.goto('/conta/perfil');
+  await page.getByRole('button', { name: 'Trocar senha' }).click();
+  expect(await contrasteDoBotao(page, 'Salvar senha')).toBeGreaterThanOrEqual(3);
+  await page.getByRole('button', { name: 'Cancelar' }).click();
+  await page.getByRole('button', { name: 'Trocar e-mail' }).click();
+  expect(await contrasteDoBotao(page, 'Enviar código')).toBeGreaterThanOrEqual(3);
+});

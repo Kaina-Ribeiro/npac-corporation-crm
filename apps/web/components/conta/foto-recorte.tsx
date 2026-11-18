@@ -221,7 +221,7 @@ export function FotoRecorte({
         </button>
         <button
           type="button"
-          className="btn-dark h-11 px-5 text-[15px]"
+          className="btn btn-primary min-h-11 px-5 text-[15px]"
           disabled={ocupado}
           onClick={() => void salvar()}
         >

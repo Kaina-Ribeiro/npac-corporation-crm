@@ -206,7 +206,11 @@ function Senha() {
         </div>
       )}
       <div className="flex flex-wrap items-center gap-2.5 md:col-span-2">
-        <button className="btn-dark h-11 px-5 text-[15px]" type="submit" disabled={ocupado}>
+        <button
+          className="btn btn-primary min-h-11 px-5 text-[15px]"
+          type="submit"
+          disabled={ocupado}
+        >
           Salvar senha
         </button>
         <button

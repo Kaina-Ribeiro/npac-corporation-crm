@@ -97,61 +97,70 @@ for (const tema of ['light', 'dark'] as const) {
   });
 }
 
-test('janelinhas: recorte e e-mail', async ({ page }) => {
-  await page.emulateMedia({ reducedMotion: 'reduce' });
-  await entrar(page, 'ronaldo');
-  await page.goto('/conta/perfil');
-  await page.getByLabel('Escolher foto').setInputFiles({
-    name: 'foto.png',
-    mimeType: 'image/png',
-    buffer: retrato([216, 196, 163], [223, 164, 127], [43, 52, 66]),
+/** Tema claro ou escuro desde a primeira carga (next-themes lê o `localStorage`). */
+async function tema(page: Page, t: 'light' | 'dark') {
+  await page.emulateMedia({ colorScheme: t, reducedMotion: 'reduce' });
+  await page.addInitScript((v) => localStorage.setItem('theme', v), t);
+}
+
+for (const t of ['light', 'dark'] as const) {
+  test(`janelinhas: recorte e e-mail (${t})`, async ({ page }) => {
+    await tema(page, t);
+    await entrar(page, 'ronaldo');
+    await page.goto('/conta/perfil');
+    await page.getByLabel('Escolher foto').setInputFiles({
+      name: 'foto.png',
+      mimeType: 'image/png',
+      buffer: retrato([216, 196, 163], [223, 164, 127], [43, 52, 66]),
+    });
+    await page.getByRole('dialog', { name: 'Ajustar foto' }).waitFor();
+    await foto(page, `recorte-${t}`, [375, 1440], false);
+    await page.getByRole('button', { name: 'Cancelar' }).click();
+    await page.getByRole('button', { name: 'Trocar e-mail' }).click();
+    await page.getByLabel('Novo e-mail').fill('ronaldo.novo@exemplo.test');
+    await page.waitForTimeout(300);
+    await foto(page, `email-1-${t}`, [375, 1440], false);
+    await page.getByRole('button', { name: 'Enviar código' }).click();
+    await page.getByRole('heading', { name: 'Confirme o novo e-mail' }).waitFor();
+    await foto(page, `email-2-${t}`, [375, 1440], false);
   });
-  await page.getByRole('dialog', { name: 'Ajustar foto' }).waitFor();
-  await foto(page, 'recorte', [375, 1440], false);
-  await page.getByRole('button', { name: 'Cancelar' }).click();
-  await page.getByRole('button', { name: 'Trocar e-mail' }).click();
-  await page.getByLabel('Novo e-mail').fill('ronaldo.novo@exemplo.test');
-  await page.waitForTimeout(300);
-  await foto(page, 'email-1', [375, 1440], false);
-  await page.getByRole('button', { name: 'Enviar código' }).click();
-  await page.getByRole('heading', { name: 'Confirme o novo e-mail' }).waitFor();
-  await foto(page, 'email-2', [375, 1440], false);
-});
 
-test('telas com foto (CRM)', async ({ page }) => {
-  await page.emulateMedia({ reducedMotion: 'reduce' });
-  await entrar(page, 'diretor');
-  const [igor] = await owner<
-    { name: string }[]
-  >`select name from "user" where email = 'igor@npac.com.br'`;
-  for (const [tela, nome] of [
-    ['/equipe', 'equipe'],
-    ['/admin', 'admin'],
-    ['/hoje', 'hoje'],
-    ['/dashboard', 'dashboard'],
-  ] as const) {
-    await page.goto(tela);
-    await foto(page, nome, [375, 1440]);
-  }
-  await page.goto('/chat');
-  await page.getByLabel('Nova conversa').selectOption({ label: igor!.name });
-  await foto(page, 'chat', [375, 1440], false);
-  await page.context().clearCookies();
-  await entrar(page, 'ronaldo');
-  await page.goto('/mais');
-  await foto(page, 'mais', [375], false);
-});
+  test(`telas com foto, CRM (${t})`, async ({ page }) => {
+    await tema(page, t);
+    await entrar(page, 'diretor');
+    const [igor] = await owner<
+      { name: string }[]
+    >`select name from "user" where email = 'igor@npac.com.br'`;
+    for (const [tela, nome] of [
+      ['/equipe', 'equipe'],
+      ['/admin', 'admin'],
+      ['/hoje', 'hoje'],
+      ['/dashboard', 'dashboard'],
+      ['/relatorios', 'relatorios'],
+    ] as const) {
+      await page.goto(tela);
+      await foto(page, `${nome}-${t}`, [375, 1440]);
+    }
+    await page.goto('/chat');
+    await page.getByLabel('Nova conversa').selectOption({ label: igor!.name });
+    await foto(page, `chat-${t}`, [375, 1440], false);
+    await page.context().clearCookies();
+    await entrar(page, 'ronaldo');
+    await page.goto('/mais');
+    await foto(page, `mais-${t}`, [375], false);
+  });
 
-test('telas com foto (Acompanhamento)', async ({ page }) => {
-  await page.emulateMedia({ reducedMotion: 'reduce' });
-  await entrar(page, 'duda');
-  for (const [tela, nome] of [
-    ['/conta/perfil', 'perfil-acomp'],
-    ['/acompanhamento/mais', 'mais-acomp'],
-    ['/acompanhamento/mentorados', 'mentorados'],
-    ['/acompanhamento/fila', 'fila'],
-  ] as const) {
-    await page.goto(tela);
-    await foto(page, nome, [375, 1440]);
-  }
-});
+  test(`telas com foto, Acompanhamento (${t})`, async ({ page }) => {
+    await tema(page, t);
+    await entrar(page, 'duda');
+    for (const [tela, nome] of [
+      ['/conta/perfil', 'perfil-acomp'],
+      ['/acompanhamento/mais', 'mais-acomp'],
+      ['/acompanhamento/mentorados', 'mentorados'],
+      ['/acompanhamento/fila', 'fila'],
+    ] as const) {
+      await page.goto(tela);
+      await foto(page, `${nome}-${t}`, [375, 1440]);
+    }
+  });
+}
