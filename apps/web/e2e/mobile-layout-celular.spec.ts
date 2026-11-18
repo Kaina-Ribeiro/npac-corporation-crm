@@ -73,7 +73,10 @@ test('o menu Exportar de Leads cabe na tela e não deixa a lista aparecer por tr
   await entrar(page, 'diretor');
   await page.goto('/leads');
   const exportar = page.locator('summary', { hasText: 'Exportar' });
-  await exportar.click();
+  // Clique pelo elemento: no WebKit do Linux (CI) o vidro dos cards da lista é pintado sem placa
+  // de vídeo e a tela para de redesenhar, então o `click()` do Playwright, que espera a tela ficar
+  // estável, nunca dispara. O que se mede aqui (posição e fundo) não depende da pintura.
+  await exportar.evaluate((el) => (el as HTMLElement).click());
   const menu = page.locator('details[open] > div').first();
   await expect(menu).toBeVisible();
   const r = await menu.evaluate((el) => {
