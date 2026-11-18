@@ -151,7 +151,7 @@ export function ReuniaoRegistro({
       </div>
 
       <div className="pl-a-corpo">
-        <section className="card pa">
+        <section className="card pa rn-agenda">
           <h3>Agenda</h3>
           <div className="pr">
             <span>Data e hora</span>

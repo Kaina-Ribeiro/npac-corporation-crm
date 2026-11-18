@@ -17,7 +17,7 @@ Ferramentas prontas (scratchpad da sessão coordenadora, só leitura):
 | Fase | O quê | Status |
 |---|---|---|
 | 1 | Cores, contraste e os 3 bugs do tema escuro | ✅ feito na branch `fix/NPAC-43-cores-contraste` → `release/v0.17` (auditoria local sem falhas reais; login medido por pixel; ITODEV conferido depois do rc) |
-| 2 | Layout das páginas | ⏳ pendente (depois da Fase 1: mexe nos mesmos CSS) |
+| 2 | Layout das páginas | ✅ feito na branch `fix/NPAC-43-layout-paginas` → `release/v0.17` (6 itens; capturas 375/768/1024/1440, claro e escuro) |
 | — | Texto do login para o Acompanhamento | ❓ esperando o texto do Gabriel |
 
 ## Fase 1: cores, contraste e tema escuro (um PR)

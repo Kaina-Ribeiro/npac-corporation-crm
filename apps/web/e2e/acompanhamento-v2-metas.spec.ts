@@ -115,6 +115,10 @@ test('Duda combina 3 tarefas, define a meta, cobra na reunião seguinte e vê as
   await form.getByLabel('Alvo (opcional)').fill('10.000');
   await form.getByLabel('Unidade').fill('R$');
   await form.getByRole('button', { name: 'Adicionar meta' }).click();
+  // A meta aparece como resumo; os campos abrem com "Editar" (uma por vez).
+  await expect(metas.getByText('Juntar a reserva de emergência')).toBeVisible();
+  await expect(metas.getByLabel('Atual', { exact: true })).toHaveCount(0);
+  await metas.getByRole('button', { name: 'Editar a meta Juntar a reserva de emergência' }).click();
   await expect(metas.getByLabel('Meta', { exact: true })).toHaveValue(
     'Juntar a reserva de emergência',
   );
@@ -127,6 +131,12 @@ test('Duda combina 3 tarefas, define a meta, cobra na reunião seguinte e vê as
         (await owner<{ v: string }[]>`select valor_atual::text as v from mentoria_metas`)[0]?.v,
     )
     .toBe('2500.00');
+  // "Pronto" fecha e o resumo mostra o progresso salvo.
+  await metas
+    .getByRole('button', { name: 'Fechar a edição da meta Juntar a reserva de emergência' })
+    .click();
+  await expect(metas.getByLabel('Atual', { exact: true })).toHaveCount(0);
+  await expect(metas.getByText('2.500 de 10.000 R$')).toBeVisible();
 
   // Reunião desta semana: cobra as três.
   await page.goto(`/acompanhamento/reunioes/${atual}`);

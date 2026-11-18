@@ -30,8 +30,16 @@ export function PerfisAdmin({ inicial }: { inicial: PerfilLinha[] }) {
     <>
       <FormError message={erro} />
       <section className="card overflow-hidden">
-        {linhas.map((u, i) => (
-          <div className={`pf ${i ? '' : 'p1'}`} key={u.id}>
+        {/* Títulos das colunas, uma vez só; cada controle já tem o nome acessível completo. */}
+        {linhas.length > 0 && (
+          <div className="pf pf-cab" aria-hidden="true">
+            <span className="pf-cab-pessoa">Pessoa</span>
+            <span className="pf-cab-perfil">Perfil</span>
+            <span className="pf-cab-admin">{MODULO_ADMIN_LABEL}</span>
+          </div>
+        )}
+        {linhas.map((u) => (
+          <div className="pf" key={u.id}>
             <Rostos pessoas={[{ nome: u.nome, fotoMidiaId: null }]} />
             <div className="nm">
               <b>{u.nome}</b>
@@ -56,7 +64,6 @@ export function PerfisAdmin({ inicial }: { inicial: PerfilLinha[] }) {
               ))}
             </select>
             <div className="pf-admin">
-              <span className="pf-admin-rot">{MODULO_ADMIN_LABEL}</span>
               <button
                 type="button"
                 className={`sw ${u.admin ? 'on' : ''}`}
