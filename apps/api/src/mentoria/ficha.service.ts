@@ -36,6 +36,7 @@ import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { DB } from '../common/db/db.module.js';
 import { conflitoDeVersao, erroDoBanco } from './erros.js';
 import { exigirEdicao, registrarHistorico } from './historico.js';
+import { CheckinsService } from './checkins.service.js';
 import { CiclosService, POR_REUNIAO } from './ciclos.service.js';
 import { MetasService } from './metas.service.js';
 import { aad, MentoriaCrypto } from './mentoria-crypto.js';
@@ -53,6 +54,7 @@ export class FichaService {
     private readonly reunioes: ReunioesService,
     private readonly ciclos: CiclosService,
     private readonly metas: MetasService,
+    private readonly checkins: CheckinsService,
   ) {}
 
   /** Monta a ficha dentro da transação; RLS decide: invisível = 404. */
@@ -110,6 +112,8 @@ export class FichaService {
       pme: boolean;
       tarefa: boolean;
       meta: boolean;
+      checkin: boolean;
+      segunda_chance: boolean;
       admin: boolean;
       travado_por: string | null;
       pausa_dias: number | null;
@@ -125,6 +129,8 @@ export class FichaService {
         mentoria_edita('PME', ${id}::uuid) as pme,
         mentoria_edita('TAREFA', ${id}::uuid) as tarefa,
         mentoria_edita('META', ${id}::uuid) as meta,
+        mentoria_edita('CHECKIN', ${id}::uuid) as checkin,
+        mentoria_edita('SEGUNDA_CHANCE', ${id}::uuid) as segunda_chance,
         mentoria_admin() as admin,
         (select name from "user" where id = ${momento?.travadoPor ?? null}) as travado_por,
         (select (now() at time zone 'America/Sao_Paulo')::date - p.inicio
@@ -261,6 +267,8 @@ export class FichaService {
         sql`t.inscricao_id = ${id}::uuid and t.origem = 'REUNIAO'`,
         POR_REUNIAO,
       ),
+      ...(await this.checkins.semaforo(tx, id, hoje)),
+      checkins: await this.checkins.daInscricao(tx, id),
       pausa: pausa
         ? {
             inicio: pausa.inicio,
@@ -282,6 +290,8 @@ export class FichaService {
         pme: extra?.pme === true,
         tarefa: extra?.tarefa === true,
         meta: extra?.meta === true,
+        checkin: extra?.checkin === true,
+        segundaChance: extra?.segunda_chance === true,
         admin: extra?.admin === true,
       },
     };

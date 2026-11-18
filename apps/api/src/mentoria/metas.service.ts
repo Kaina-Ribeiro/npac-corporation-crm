@@ -15,8 +15,8 @@ const CAMPOS = ['pilar', 'pessoaId', 'valorAlvo', 'valorAtual', 'unidade', 'praz
 
 /**
  * Metas (Fase 2, Parte 2, S3). Leitura: Admin, Acompanhamento e Operação (a Especialista não vê);
- * escrita: área META (Admin, Acompanhamento). A descrição é cifrada; o % do ciclo é do banco. Sem
- * status nem exclusão até a decisão do Gabriel (spec S3; excluir não está na spec).
+ * escrita: área META (Admin, Acompanhamento). A descrição é cifrada; o % do ciclo é do banco. Status
+ * (E10, Parte 3): ATINGIDA, NAO_ATINGIDA ou sem marcação. Sem exclusão (não está na spec).
  */
 @Injectable()
 export class MetasService {
@@ -33,7 +33,7 @@ export class MetasService {
         m.descricao, m.valor_alvo::float8 as "valorAlvo", m.valor_atual::float8 as "valorAtual",
         case when m.valor_alvo is not null
           then round(100 * least(coalesce(m.valor_atual, 0) / m.valor_alvo, 1))::int end as pct,
-        m.unidade, to_char(m.prazo, 'YYYY-MM-DD') as prazo, m.criado_em as "criadoEm",
+        m.unidade, to_char(m.prazo, 'YYYY-MM-DD') as prazo, m.status, m.criado_em as "criadoEm",
         mentoria_edita('META', m.inscricao_id) as "podeEditar"
       from mentoria_metas m left join mentoria_ciclos c on c.id = m.ciclo_id
       where ${filtro}
@@ -128,6 +128,7 @@ export class MetasService {
         ...(b.valorAtual !== undefined ? { valorAtual: num(b.valorAtual) } : {}),
         ...(b.unidade !== undefined ? { unidade: b.unidade } : {}),
         ...(b.prazo !== undefined ? { prazo: b.prazo } : {}),
+        ...(b.status !== undefined ? { status: b.status } : {}),
       };
       const campos = Object.keys(set);
       if (!campos.length) throw new BadRequestException('Nada para alterar');

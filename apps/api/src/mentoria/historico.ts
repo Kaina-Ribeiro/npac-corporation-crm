@@ -21,6 +21,8 @@ export type AreaEdicao =
   | 'PLANO'
   | 'REUNIAO'
   | 'CONTATO'
+  | 'CHECKIN'
+  | 'SEGUNDA_CHANCE'
   | 'ANOTACAO'
   | 'PME'
   | 'TAREFA'
