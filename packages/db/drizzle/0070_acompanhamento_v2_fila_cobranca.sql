@@ -382,6 +382,21 @@ AS $$
     FROM mentoria_onboarding_etapas e JOIN ins ON ins.id = e.inscricao_id
   ),
   op AS (SELECT mentoria_destinatarios('OPERACAO', NULL) AS ids),
+  -- Quem opera o módulo como Acompanhamento e como Especialista (os critérios de
+  -- mentoria_destinatarios/mentoria_perfil_de), lidos uma vez para os itens da Parte 4.
+  pf AS (
+    SELECT coalesce(array_agg(u.id ORDER BY u.id) FILTER (WHERE mp.perfil = 'ACOMPANHAMENTO'),
+        '{}') AS acomp,
+      coalesce(array_agg(u.id ORDER BY u.id) FILTER (WHERE mp.perfil = 'ESPECIALISTA'), '{}') AS esp
+    FROM "user" u JOIN mentoria_perfis mp ON mp.user_id = u.id
+    WHERE u.active AND u.role::text = 'ACOMPANHAMENTO'
+  ),
+  -- = mentoria_destinatarios('ACOMPANHAMENTO', responsável), por inscrição.
+  resp AS (
+    SELECT ins.id, CASE WHEN ins.responsavel_id = ANY (pf.acomp) THEN ARRAY[ins.responsavel_id]
+      ELSE pf.acomp END AS ids
+    FROM ins CROSS JOIN pf
+  ),
   av AS (
     -- Equipe devendo o próximo passo: no 4º dia, às 8h.
     SELECT 'passo-devido:' || e.id AS k, mentoria_hora(b.dia + 4, 8) AS q,
@@ -460,20 +475,17 @@ AS $$
     -- Cobrança (E17): às 8h do dia do prazo, só nele; a mesma pessoa da Fila.
     SELECT 'cobranca:' || t.id, mentoria_hora(t.data_cobranca, 8),
       mentoria_hora(t.data_cobranca + 1, 0),
-      CASE WHEN mentoria_perfil_de(r.conduzida_por) = 'ESPECIALISTA'
-        THEN ARRAY[r.conduzida_por]
-        ELSE mentoria_destinatarios('ACOMPANHAMENTO', ins.responsavel_id) END
-    FROM mentoria_tarefas t JOIN ins ON ins.id = t.inscricao_id CROSS JOIN d
+      CASE WHEN r.conduzida_por = ANY (pf.esp) THEN ARRAY[r.conduzida_por] ELSE resp.ids END
+    FROM mentoria_tarefas t JOIN resp ON resp.id = t.inscricao_id CROSS JOIN d CROSS JOIN pf
     LEFT JOIN mentoria_reunioes r ON r.id = t.reuniao_id
     WHERE t.status = 'PENDENTE' AND t.data_cobranca >= d.hoje
 
     UNION ALL
     -- Semáforo vermelho (E18): uma vez por semana por mentorado; "visto nesta semana" não avisa.
     SELECT 'semaforo-vermelho:' || s.inscricao_id || ':' || w.semana,
-      mentoria_hora(d.hoje, 8), mentoria_hora(d.hoje + 1, 0),
-      mentoria_destinatarios('ACOMPANHAMENTO', ins.responsavel_id)
+      mentoria_hora(d.hoje, 8), mentoria_hora(d.hoje + 1, 0), resp.ids
     FROM d CROSS JOIN LATERAL mentoria_semaforo_lote_calc(d.hoje) s
-    JOIN ins ON ins.id = s.inscricao_id
+    JOIN resp ON resp.id = s.inscricao_id
     CROSS JOIN LATERAL (SELECT to_char(date_trunc('week', d.hoje::timestamp), 'YYYY-MM-DD')
       AS semana) w
     WHERE s.cor = 'VERMELHO'
@@ -485,9 +497,8 @@ AS $$
     -- enquanto o ciclo estiver aberto. Contato registrado para o degrau não avisa.
     SELECT 'pme-atrasado:' || c.id || ':' || to_char(p.pa, 'YYYY-MM-DD') || ':' || g.degrau,
       mentoria_hora(p.pa + g.degrau, 8),
-      CASE WHEN g.prox IS NOT NULL THEN mentoria_hora(p.pa + g.prox, 0) END,
-      mentoria_destinatarios('ACOMPANHAMENTO', ins.responsavel_id)
-    FROM mentoria_ciclos c JOIN ins ON ins.id = c.inscricao_id
+      CASE WHEN g.prox IS NOT NULL THEN mentoria_hora(p.pa + g.prox, 0) END, resp.ids
+    FROM mentoria_ciclos c JOIN resp ON resp.id = c.inscricao_id
     CROSS JOIN LATERAL (SELECT coalesce(c.segunda_chance_ate, c.prazo) AS pa) p
     CROSS JOIN (VALUES (3, 7), (7, 10), (10, 15), (15, NULL::int)) g(degrau, prox)
     WHERE c.concluido_em IS NULL AND c.nao_concluido_em IS NULL
