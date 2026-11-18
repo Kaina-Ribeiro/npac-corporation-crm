@@ -25,6 +25,13 @@ export function SidebarShell({
     document.cookie = `${SIDEBAR_COOKIE}=${+collapsed}; Path=/; Max-Age=31536000; SameSite=Lax`;
   }, [collapsed]);
 
+  // Carga direta numa tela do fim do menu com a janela baixa: a lista rola até o item ativo.
+  useEffect(() => {
+    document
+      .querySelector('.side-scroll [aria-current=page]')
+      ?.scrollIntoView({ block: 'nearest' });
+  }, []);
+
   useEffect(() => {
     const toggle = () => setCollapsed((c) => !c);
     const onKey = (e: KeyboardEvent) => {

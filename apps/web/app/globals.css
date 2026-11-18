@@ -1106,6 +1106,19 @@ html[data-nav-pending] .ac > :not(.top, nav, .nav-skeleton) {
   width: var(--side-w);
   transition: width var(--side-t) var(--side-ease);
 }
+/* Miolo da sidebar (navegação + filtros salvos): rola quando a janela é baixa; o rodapé com o
+   Sair fica fora dele, sempre visível. Barra fina; no trilho some (rola pela roda/toque). */
+.side-scroll {
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.18) transparent;
+}
+.dark .side-scroll {
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+[data-side='collapsed'] .side-scroll {
+  scrollbar-width: none;
+}
 .side-label,
 .side-search > :not(svg) {
   min-width: 0;

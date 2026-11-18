@@ -792,27 +792,6 @@
     color: var(--ink3);
     flex: none;
   }
-  .ml-conta {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    min-height: 72px;
-    padding: 14px 16px;
-  }
-  .ml-conta b {
-    display: block;
-    font-size: 16px;
-    font-weight: 600;
-  }
-  .ml-conta .d {
-    display: block;
-    font-size: 13px;
-    color: var(--ink2);
-  }
-  .ml-conta > div {
-    flex: 1;
-    min-width: 0;
-  }
   .ml-g {
     display: flex;
     flex-direction: column;
@@ -875,20 +854,6 @@
   .ml.off .t b,
   .ml.off .i {
     color: var(--ink2);
-  }
-  .ml.sair {
-    position: relative;
-  }
-  .ml.sair .t b,
-  .ml.sair .i {
-    color: var(--danger);
-  }
-  /* O SignOutButton do CRM cobre a linha inteira: o texto da linha fica por baixo. */
-  .ml.sair > button {
-    position: absolute;
-    inset: 0;
-    opacity: 0;
-    cursor: pointer;
   }
   .nf {
     max-width: 720px;
@@ -3950,8 +3915,7 @@
     .rn-abrir,
     .imp-det summary,
     .pme-hist summary,
-    .aviso-campo button,
-    .ml.sair > button
+    .aviso-campo button
   ) {
     transition:
       background-color var(--dur-fast) var(--ease-out),
