@@ -13,6 +13,16 @@ export type TodayDTO = {
   /** Respostas do Forms ainda não vistas pela pessoa: `id` é o do aviso. */
   formsNew: { id: string; leadId: string; name: string; at: string }[];
   charges: import('./finance.js').ChargeDTO[];
+  /**
+   * Leads em Venda sem a venda registrada (NPAC-51), para quem registra: o closer da venda vê os
+   * dele e a liderança, os de todos. `id` é o do lead; SDR recebe a lista vazia.
+   */
+  salesToRegister: {
+    id: string;
+    name: string;
+    product: string | null;
+    closer: { id: string; name: string } | null;
+  }[];
   overdue: { id: string; name: string; nextContactAt: string | null; version: number }[];
   /** Reuniões que já passaram sem resultado, de qualquer data e em qualquer etapa do lead. */
   overdueMeetings: {
