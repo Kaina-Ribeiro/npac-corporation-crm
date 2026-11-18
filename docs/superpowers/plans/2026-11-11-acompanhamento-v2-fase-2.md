@@ -317,6 +317,86 @@ Feito quando: tipos COBRANCA, SEMAFORO, ENVIAR_PME, PME_ATRASADO em `mentoria_fi
 15 dias); push conforme a spec §6; aba 7 "PMEs e ciclos" no lugar do "em breve"; CSV com PME atual, status
 do ciclo e semáforo; spec §8 inteira verde; `CLAUDE.md` e este plano fechados.
 
+## Parte 4 — tarefas
+
+Branch `feat/NPAC-43-fase-2-parte-4-fila`, a partir da `origin/release/v0.18` (Partes 1–3 e o #127). Execução nativa
+(sem subagentes). Migration `0070` (a última era a 0069).
+
+**Decidido** (Gabriel e Eduarda, 18/11; spec E17–E22): COBRANCA, SEMAFORO, ENVIAR_PME, PME_ATRASADO (escada do PDF p. 19
+contada do prazo atual), FIM_PME espera o ciclo (3A, mês 2 com teto de 15 dias), aba 7 e CSV. Fora: painel do Leo e padrinho
+(Fase 4), entrada automática pela venda do comercial, opção do pagamento (P1).
+
+**Como fica** (o decidido, mais detalhes técnicos sem efeito de negócio):
+- **COBRANCA** `cobranca:<tarefa>`: tarefa PENDENTE com `data_cobranca` ≤ hoje (qualquer origem: a spec diz "tarefa"), vence no
+  dia do prazo, atrasada depois dele; mostra o status e a descrição. Fila do responsável pela inscrição (perfil
+  Acompanhamento); tarefa de reunião conduzida por Especialista ativa, dela. Sai com o resultado. Push às 8h do dia do prazo,
+  só naquele dia.
+- **SEMAFORO** `semaforo:<inscrição>:<segunda da semana>`: ATIVO em amarelo ou vermelho, com os motivos; responsável pela
+  inscrição. Sai ao voltar a verde ou com "Visto nesta semana" (`mentoria_fila_feitos` com a chave da semana; na semana
+  seguinte volta se continuar fora do verde). Vermelho = atrasado na lista. Push só vermelho, às 8h (ou na hora em que virar,
+  se depois), uma vez por semana por mentorado (`semaforo-vermelho:<inscrição>:<segunda>`); "visto" na semana não avisa.
+  Admin, Acompanhamento e Operação veem (como o semáforo); a Especialista não.
+- **ENVIAR_PME** `enviar-pme:<ciclo>`: o ciclo mais recente está CONCLUIDO, número < 12, ATIVO e hoje ≤ término (as regras do
+  envio, `ciclos.service.ts`); Fila da Operação; "Registrar envio" chama o envio do PME. Sai com o ciclo seguinte. Sem push.
+- **PME_ATRASADO** `pme-atrasado:<ciclo>:<prazo atual>:<degrau>`: ciclo aberto com atraso ≥ 3 dias do prazo atual
+  (`coalesce(segunda_chance_ate, prazo)`); mostra só o degrau mais alto alcançado (3 "Mensagem leve no grupo", 7 "Áudio ou
+  vídeo da Duda", 10 "Avaliar segunda chance", 15 "Ligação e reunião de destravamento"). Responsável pela inscrição.
+  "Registrar contato" grava `mentoria_contatos` com `ciclo_id`, `degrau` e `degrau_prazo` (o prazo atual) e o motivo com o
+  texto do degrau; sai com esse contato ou com o ciclo fechado; segunda chance muda o prazo atual, e a escada recomeça dele.
+  Push às 8h do dia do degrau, válido até o próximo degrau.
+- **ACAO FIM_PME (3A):** `mentoria_acao_data(...)` (IMMUTABLE, sem ler tabela): sem ciclo do número do mês (ou ciclo NAO_CONCLUIDO,
+  pendência 3), a data da Fase 1; ciclo CONCLUIDO, o `concluido_em`; ciclo aberto, espera (nula), exceto mês 2 com atraso ≥ 15 do
+  prazo atual, que aparece no 15º dia. Vale na Fila e no push da ação.
+- **Fila sem função por linha que releia tabela:** o semáforo entra por `mentoria_semaforo_lote(dia)` (uma chamada por consulta,
+  conjunto inteiro; `mentoria_semaforo_lote_calc` interna = a mesma conta da `mentoria_semaforo_calc`, comparada no teste);
+  ciclos, tarefas e contatos por JOIN sob a RLS. `mentoria_perfil_de` (DEFINER, sem RLS) só nas linhas que saem, como na 0064.
+- **Despertador:** além do próximo aviso e da segunda 00:00, acorda às 8h de Brasília todo dia (o semáforo vira vermelho com a
+  troca do dia, sem escrita que rearme).
+- **Aba 7 "PMEs e ciclos"** (`/acompanhamento/pmes`, `GET mentoria/pmes-ciclos`): mentorados ATIVO com o ciclo mais recente
+  (número e título, envio, prazo atual, status com atraso, % de tarefas, extras feitas de N, encerramento feito) e o próximo PME a
+  enviar; filtros por PME e por status do ciclo (lembrados). Admin, Acompanhamento e Operação; Especialista e Mentor, 404 e fora
+  do menu. Cada linha leva à ficha.
+- **CSV de Mentorados** ganha "PME atual", "Status do PME" e "Semáforo" (sem textos cifrados).
+
+### Tarefa 4.1: Banco (0070) — Status: ⏳
+**Files:** Modify `db/src/schema/mentoria.ts` · Create `db/drizzle/0070_acompanhamento_v2_fila_cobranca.sql` + snapshot + journal ·
+Test `db/test/fila-equivalencia.test.ts`, `db/test/mentoria-v2-fila-cobranca.test.ts`
+- `mentoria_contatos` + `ciclo_id` (FK SET NULL), `degrau` (3, 7, 10, 15), `degrau_prazo`; gatilho: ciclo da mesma inscrição.
+- `mentoria_semaforo_lote_calc` (interna) e `mentoria_semaforo_lote` (Admin/Acompanhamento/Operação); `mentoria_acao_data`.
+- `mentoria_fila` refeita (4 tipos novos + ACAO com a data do ciclo); `mentoria_avisos_candidatos` refeita (COBRANCA,
+  SEMAFORO vermelho, PME_ATRASADO, ACAO com a data do ciclo).
+- [ ] Testes: equivalência com a 0053 nos tipos antigos (sem ciclo, e com ciclo fora das FIM_PME); lote = calc por inscrição em
+  vários dias; RLS do contato com degrau; continua INVOKER/STABLE.
+
+### Tarefa 4.2: API — Status: ⏳
+**Files:** Modify `sh/mentoria/fila.ts`, `sh/schemas/mentoria.ts`, `sh/mentoria/dto.ts`, `fila.service.ts`, `reunioes.service.ts`
+(contato do degrau), `avisos.scheduler.ts`, `exportacao.controller.ts`, `mentoria.module.ts` · Create `pmes-ciclos.controller.ts` ·
+Test `api/test/mentoria-v2-fila-cobranca.e2e.test.ts`
+- [ ] Testes (relógio e push falsos): cada tipo novo entra e sai; push 1x (cobrança no dia, vermelho por semana, cada degrau);
+  degraus pelo prazo atual e recomeço com segunda chance; FIM_PME espera, usa o encerramento, mês 2 com teto de 15; pausado
+  fora; Especialista só nas dela; aba 7 por perfil e filtros; CSV com as colunas novas.
+
+### Tarefa 4.3: Telas — Status: ⏳
+**Files:** Modify `components/acompanhamento/fila.tsx`, `shell/nav-menu.tsx`, `acompanhamento/mais/page.tsx`,
+`em-breve/[aba]/page.tsx`, `lib/acompanhamento-prefs.ts`, `modulo.css` · Create `app/(app)/acompanhamento/pmes/page.tsx`,
+`components/acompanhamento/pmes-ciclos.tsx`, `web/e2e/acompanhamento-v2-fila-cobranca.spec.ts`
+- [ ] Playwright: Duda cobra e registra o contato do degrau; Operação registra o envio pela Fila e vê a aba 7; Manu sem aba 7 e
+  com a cobrança das reuniões dela. Capturas 375/768/1024/1440.
+
+### Tarefa 4.4: Fechamento — Status: ⏳
+- [ ] lint, typecheck, `@npac/db`, `@npac/api`, `@npac/shared`, Playwright completo; medição da Fila no `npac_e2e_perf` antes e
+  depois; `CLAUDE.md`; Status das Partes; PR na `release/v0.18`.
+
+**Pendências da Parte 4** (sem base no PDF, na spec ou nas respostas; o sistema faz o indicado, sem decidir a regra):
+1. **Degrau não registrado:** a Fila mostra só o degrau mais alto; o de 3 dias sem contato some quando chegam os 7. Mostrar todos?
+2. **COBRANCA das tarefas do ciclo:** extras e encerramento vencem todas no prazo do PME e viram uma cobrança cada (a spec diz
+   "tarefa", sem restringir), além do PME_ATRASADO. Só as da reunião?
+3. **FIM_PME com o ciclo NAO_CONCLUIDO** (o seguinte saiu sem fechar este): a spec diz que espera "enquanto não está CONCLUIDO",
+   o que esconderia a ação para sempre; hoje volta à data da Fase 1.
+4. **Plano dos 12 meses** (aba 5 e CSV do Plano) ainda mostra a data da Fase 1 nas ações FIM_PME; só a Fila e o push esperam o ciclo.
+5. **Vermelho por várias semanas** avisa uma vez por semana (a chave é da semana); "só quando vira" pode querer dizer só na troca.
+6. **Aba 7 só ATIVO**: pausado não aparece (como o envio de PME).
+
 ## Parte 5 — Respostas da Eduarda
 
 Aplicar P1, P2 e P3 conforme a spec §9 quando ela responder. Cada uma é pequena e isolada.

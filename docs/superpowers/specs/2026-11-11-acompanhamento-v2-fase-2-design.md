@@ -1,6 +1,6 @@
 # Acompanhamento v2 — Fase 2, cobrança (design)
 
-> Status: **v2, 18/11/2026** (respostas de 18/11 em E9–E16) · ticket NPAC-43 · plano: `docs/superpowers/plans/2026-11-11-acompanhamento-v2-fase-2.md`
+> Status: **v3, 18/11/2026** (respostas de 18/11 em E9–E16; Parte 4 em E17–E22) · ticket NPAC-43 · plano: `docs/superpowers/plans/2026-11-11-acompanhamento-v2-fase-2.md`
 > Fonte: PDF da Eduarda (`docs/acompanhamento/especificacao-eduarda-2026-11-07.txt`, páginas 5, 6, 10, 15–19),
 > respostas da Eduarda de 11/11 e o design da Fase 1 (`docs/superpowers/plans/2026-11-10-acompanhamento-v2-design.md`),
 > que continua valendo em tudo o que este documento não muda. Spec > este documento > gosto.
@@ -26,6 +26,12 @@
 | E14 | **Próximo PME (P3) fica como está**: a equipe envia quando quiser pelo botão; a Fila só sugere o envio depois do encerramento. Varia por mentorado, sem regra automática | Gabriel, 18/11 (áudios da Eduarda) |
 | E15 | **Segunda chance (S1) é ação manual da equipe**, sem regra automática: botão "Dar segunda chance" no ciclo aberto da ficha; a equipe escolhe o novo prazo (sugestão: 7 dias, do PDF); Admin e Acompanhamento; a data fica no ciclo, com histórico; o status mostra "Segunda chance até DD/MM" enquanto valer | Gabriel, 18/11 (áudios da Eduarda) |
 | E16 | **Atraso do PME no semáforo conta do prazo atual**: com segunda chance dada, do novo prazo | Gabriel, 18/11 (áudios da Eduarda) |
+| E17 | **COBRANCA (PDF p. 10)**: tarefa PENDENTE com prazo ≤ hoje vira item no dia do prazo, com o status; sai com o resultado. Vai ao responsável pela inscrição; tarefa de reunião conduzida pela Especialista, a ela. Push 1x no dia | Gabriel e Eduarda, 18/11 |
+| E18 | **SEMAFORO**: amarelo ou vermelho (`mentoria_semaforo`) entra na Fila do responsável, com o motivo; sai ao voltar a verde ou com "visto nesta semana" (`fila_feitos` com a chave da semana). Push só ao virar vermelho, 1x por semana por mentorado, sem dado pessoal | Gabriel e Eduarda, 18/11 |
+| E19 | **ENVIAR_PME**: "Enviar o Nº PME" para a Operação depois do encerramento do anterior, sem ciclo seguinte, número ≤ 12 e antes do término; o botão de envio continua livre (E14). Sai quando o ciclo seguinte é registrado | Gabriel e Eduarda, 18/11 |
+| E20 | **PME_ATRASADO, escada do PDF (p. 19), só lembrete**: degraus aos 3, 7, 10 e 15 dias do **prazo atual** do ciclo aberto (com segunda chance, do prazo dela); textos: 3 "mensagem leve no grupo", 7 "áudio ou vídeo da Duda", 10 "Avaliar segunda chance" (botão da Parte 3), 15 "ligação e reunião de destravamento". Do responsável; conclui registrando o contato do degrau (o PDF manda gravar como contato) ou fechando o ciclo. Push 1x por degrau | Gabriel e Eduarda, 18/11 |
+| E21 | **FIM_PME espera o ciclo (3A)**: com o ciclo daquele número aberto, a ação espera e a data vira o `concluido_em`; sem ciclo daquele número, a data da Fase 1; mês 2 com 15 dias de atraso do 2º PME (do prazo atual) aparece mesmo sem fechar (PDF) | Gabriel e Eduarda, 18/11 |
+| E22 | **Aba 7 "PMEs e ciclos"** com o que o PDF lista (quem está em qual PME, envio, prazo, status, % de tarefas, extras feitas, encerramento, próximo PME), filtros por PME e status; **CSV** do módulo com PME atual, status do ciclo e semáforo (sem textos cifrados) | Gabriel e Eduarda, 18/11 |
 
 ## 1. Objetivo e sucesso
 
@@ -149,7 +155,7 @@ Novos tipos, calculados na leitura em `mentoria_fila` como os da Fase 1 (só ONB
 | `COBRANCA` | Tarefa PENDENTE com `data_cobranca` ≤ hoje, mostrando o status | Responsável da inscrição (ou quem conduziu a reunião, se for Especialista) | Tarefa com resultado | Sim, 1x no dia |
 | `SEMAFORO` | Mentorado em amarelo ou vermelho, com o motivo | Responsável da inscrição | Volta a verde, ou `fila_feitos` da semana | Só ao virar vermelho, 1x por semana |
 | `ENVIAR_PME` | "Enviar o Nº PME": ciclo anterior CONCLUIDO, sem ciclo seguinte, número ≤ 12, antes do término (E3, E4) | Operação | Ciclo seguinte registrado | — |
-| `PME_ATRASADO` | Degraus do PDF (página 19) no ciclo aberto: 3 dias "mensagem leve no grupo", 7 dias "áudio ou vídeo da Duda", 10 dias "segunda chance de 7 dias", 15 dias "ligação e reunião de destravamento" | Responsável da inscrição | Contato registrado para o degrau (o sistema grava como contato, PDF) ou ciclo fechado | Sim, 1x por degrau |
+| `PME_ATRASADO` | Degraus do PDF (página 19) no ciclo aberto, contados do prazo atual (E20): 3 dias "mensagem leve no grupo", 7 dias "áudio ou vídeo da Duda", 10 dias "Avaliar segunda chance", 15 dias "ligação e reunião de destravamento" | Responsável da inscrição | Contato registrado para o degrau (o sistema grava como contato, PDF) ou ciclo fechado | Sim, 1x por degrau |
 
 - **ACAO com gatilho FIM_PME (E3):** se existe o ciclo do número do mês e ele não está CONCLUIDO, a ação
   espera; a data passa a ser o `concluido_em` desse ciclo. Sem ciclo daquele número (ex.: carteira
