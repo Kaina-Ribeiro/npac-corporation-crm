@@ -2,7 +2,9 @@
 
 Origem: pedido do Gabriel de 18/11/2026 ("trocar foto, nome, e-mail e senha; o botão trocar senha sairia"), Fase 3 de
 `docs/plans/pedidos-18-11.md`. Comparação feita com Linear, Attio e HubSpot (seção da Fase 3 do plano).
-Protótipo: canvas "Meu perfil" (link no PR). Status: ⏳ esperando o ok do Gabriel no protótipo.
+Protótipo: canvas "Meu perfil" (https://claude.ai/artifact/NP1nmGBCzto7wdRf1xuwKm, 15 quadros). Status: ⏳ esperando o
+ok do Gabriel no protótipo. Revisão de design de 18/11 aplicada: senha recolhida, usuário e e-mail como texto, quadros de
+estados, do celular do Acompanhamento e do tema escuro.
 
 ## Por quê
 
@@ -17,12 +19,27 @@ todos os cargos, do comercial e do Acompanhamento.
 
 | Bloco | Como funciona |
 |---|---|
-| Foto | Enviar (JPEG, PNG ou WebP do aparelho), recortar em círculo (arrastar + zoom), salvar; "Remover" volta à inicial. |
+| Foto | Enviar (JPEG, PNG ou WebP do aparelho), recortar em círculo (arrastar + zoom; setas do teclado movem, − / + dão zoom), salvar; "Remover" volta à inicial. Sem foto, o botão é "Adicionar foto" e "Remover" some. |
 | Nome | Salva ao sair do campo e mostra "Salvo" (`showToast()`). 2 a 80 caracteres. |
-| Usuário | Só leitura (é o login). |
-| E-mail | "Trocar e-mail" → digita o novo → código de 6 dígitos enviado ao endereço novo → confirma → troca. |
-| Senha | Senha atual + nova + confirmação, dentro do perfil. Os outros aparelhos saem da conta (como hoje). |
+| Usuário | Só leitura, como texto com cadeado (sem caixa de campo): é o login. |
+| E-mail | Texto com o endereço + "Trocar e-mail" → digita o novo → código de 6 dígitos enviado ao endereço novo → confirma → troca. |
+| Senha | Recolhida: "•••••••• · Trocar senha". Abre ali mesmo senha atual + nova + confirmação, "Salvar senha" e "Cancelar". Os outros aparelhos saem da conta (como hoje). |
 | Avisos neste aparelho | O link que já existe (`/conta/avisos`). "Autenticador" só com `MFA_LIGADO`. |
+
+Celular: CRM com a barra de baixo do comercial; cargo Acompanhamento com as abas do módulo (Fila, Mentorados, +,
+Reuniões, Mais) e "‹ Mais" voltando ao Mais do módulo. Tema escuro com os tokens de `.dark`.
+
+Estados (quadro "Estados" do protótipo; textos meus, exceto o da senha, que já existe):
+
+| Caso | Texto |
+|---|---|
+| Nome vazio | "Digite o seu nome." Nada é salvo; vale o nome anterior. |
+| Imagem que não abre | "Não deu para abrir essa imagem. Use JPG, PNG ou WebP." |
+| Senha atual errada | "Não foi possível trocar a senha. Confira a senha atual." |
+| E-mail já usado | "Esse e-mail já está em uso." Não diz de quem; nenhum código sai. |
+| Código errado | "Código errado. Confira e tente de novo." Os números somem; depois de 5 erros o código deixa de valer. |
+| Código vencido | "Esse código venceu. Peça outro." + "Enviar outro código". |
+| E-mail trocado | A janelinha fecha, "Salvo", a linha mostra o endereço novo e o antigo recebe um aviso. |
 
 Menu: "Trocar senha" sai do rodapé da sidebar e do cartão do Mais (CRM e Acompanhamento); entra "Meu perfil". Clicar na
 foto ou no nome também abre a tela. `/conta/senha` fica só para o primeiro acesso (troca obrigatória); quem abre sem
