@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useId, useRef, useState, type FormEvent } from 'react';
 import { Avatar, AVATAR_EU } from '@/components/avatar';
+import type { EmailTroca as EmailTrocaType } from '@/components/conta/email-troca';
 import type { FotoRecorte as FotoRecorteType } from '@/components/conta/foto-recorte';
 import { showToast } from '@/components/toast';
 import { authClient } from '@/lib/auth-client';
@@ -361,7 +362,51 @@ function Foto({
   );
 }
 
-/** Tela Meu perfil (NPAC-53). O e-mail ganha a janelinha do código na Tarefa 7. */
+// Janelinha do código só quando a pessoa pede a troca: fora do JS das outras telas.
+const EmailTroca = dynamic(() => import('./email-troca').then((m) => m.EmailTroca), {
+  ssr: false,
+}) as typeof EmailTrocaType;
+
+/** E-mail: troca com código no endereço novo; sem envio configurado, pede à liderança (2A). */
+function Email({ inicial, ligado }: { inicial: string; ligado: boolean }) {
+  const [email, setEmail] = useState(inicial);
+  const [aberto, setAberto] = useState(false);
+  return (
+    <>
+      <div className="flex min-h-[50px] flex-wrap items-center gap-3">
+        <Valor icone={ICONE.email}>{email}</Valor>
+        {ligado && (
+          <button
+            type="button"
+            className="btn btn-secondary max-md:w-full md:ml-auto"
+            onClick={() => setAberto(true)}
+          >
+            Trocar e-mail
+          </button>
+        )}
+      </div>
+      {!ligado && (
+        <p className="flex items-start gap-2.5 rounded-[14px] bg-white/40 px-3.5 py-3 text-[13.5px] leading-[19px] text-ink2 shadow-[inset_0_0_0_0.5px_rgba(60,60,67,.18)] dark:bg-white/[0.05]">
+          <Icone d={ICONE.alerta} className="mt-0.5 size-4" />
+          Para trocar o e-mail, peça à liderança. Ela muda no Admin.
+        </p>
+      )}
+      {aberto && (
+        <EmailTroca
+          atual={email}
+          onClose={() => setAberto(false)}
+          onSaved={(novo) => {
+            setAberto(false);
+            setEmail(novo);
+            showToast();
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+/** Tela Meu perfil (NPAC-53): foto, nome, usuário, e-mail, senha e o aparelho. */
 export function Perfil({ profile, cargo }: { profile: ProfileDTO; cargo: React.ReactNode }) {
   return (
     <>
@@ -381,15 +426,7 @@ export function Perfil({ profile, cargo }: { profile: ProfileDTO; cargo: React.R
       </Secao>
 
       <Secao titulo="E-mail" texto="Recebe o link do “Esqueci minha senha”.">
-        <div className="flex min-h-[50px] flex-wrap items-center gap-3">
-          <Valor icone={ICONE.email}>{profile.email}</Valor>
-        </div>
-        {!profile.mailEnabled && (
-          <p className="flex items-start gap-2.5 rounded-[14px] bg-white/40 px-3.5 py-3 text-[13.5px] leading-[19px] text-ink2 shadow-[inset_0_0_0_0.5px_rgba(60,60,67,.18)] dark:bg-white/[0.05]">
-            <Icone d={ICONE.alerta} className="mt-0.5 size-4" />
-            Para trocar o e-mail, peça à liderança. Ela muda no Admin.
-          </p>
-        )}
+        <Email inicial={profile.email} ligado={profile.mailEnabled} />
       </Secao>
 
       <Secao titulo="Senha" texto="Ao trocar, os outros aparelhos saem da conta.">
