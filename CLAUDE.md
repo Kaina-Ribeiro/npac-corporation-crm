@@ -401,6 +401,14 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
   venda ativa dele, depois dela. Closer sem reunião que tira o lead da etapa o perde: a timeline
   grava antes do UPDATE (`lead-mutations.service.ts`).
 - Ficha: botões WhatsApp (`wa.me`, conversa) e Instagram (perfil, `instagram.com/<usuario>/`, NPAC-41 "3B").
+- **Vendas a registrar no Hoje** (NPAC-51, Gabriel 18/11/2026): `salesToRegister` em `POST /today/search`
+  (`api/today/today.service.ts`) lista os leads em Venda sem venda ativa, com o produto, para quem
+  registra venda: o closer da venda (`leads.closer_id`) vê os dele; a liderança, os de todos (filtros de
+  SDR e closer valem); o SDR recebe lista vazia. Bloco "Vendas a registrar" em `today.tsx`, só quando
+  há item, com link para `/leads/<id>#vendas`. Sai ao registrar a venda ou quando o lead deixa a Venda.
+- **Sair da Venda a registrar pede confirmação** (NPAC-51): `confirmLeaveSale` (`web/lib/leave-sale.ts`,
+  `confirm()` nativo como no Admin) na ficha ("Mover para"), no Pipeline (arrastar) e no select da lista.
+  Sair cancela a venda feita do SDR e apaga o produto. A ação em massa não pergunta.
 - Resultado de reunião só depois do horário (400 "A reunião ainda não aconteceu"). Resultados:
   `DONE`, `NO_SHOW`, `RESCHEDULED`. Valor por reunião realizada = `MEETING_VALUE_CENTS`
   (P0 900, P1 700, P2 500, DESCOBRINDO 0), pelo perfil **atual** do lead; no-show e remarcada não somam.

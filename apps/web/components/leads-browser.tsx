@@ -4,6 +4,7 @@ import { INCOME_BAND_LABELS, isLeader, TIER_LABELS } from '@npac/shared/enums';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { clientApi } from '@/lib/client-api';
+import { confirmLeaveSale } from '@/lib/leave-sale';
 import { keep, recall } from '@/lib/screen-memory';
 import { readPreference } from '@/lib/read-preference';
 import type { StageFieldsBody } from '@/lib/stage-fields';
@@ -256,6 +257,7 @@ export function LeadsBrowser({
       value={l.stageKey}
       onChange={(e) => {
         const target = e.target.value as LeadDTO['stageKey'];
+        if (!confirmLeaveSale(l, target)) return;
         if (stageNeedsFields(target)) askStage({ lead: l, target });
         else void edit(l, { stageKey: target });
       }}

@@ -16,6 +16,7 @@ import type {
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import { activityFields } from '@/lib/activity-text';
+import { confirmLeaveSale } from '@/lib/leave-sale';
 import { useReminderClock } from '@/lib/alerts';
 import { brasiliaInput, clientApi } from '@/lib/client-api';
 import {
@@ -320,6 +321,8 @@ export function LeadDetail({
             onChange={(e) => {
               const target = e.target.value;
               setError('');
+              // Sair da Venda a registrar cancela a venda feita do SDR: pede confirmação (NPAC-51).
+              if (!confirmLeaveSale(lead, target)) return;
               if (target === lead.stageKey) setMoveTo('');
               else if (stageNeedsFields(target)) setMoveTo(target);
               else {
