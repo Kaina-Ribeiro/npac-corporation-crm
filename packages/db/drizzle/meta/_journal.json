@@ -484,6 +484,13 @@
       "when": 1795017220745,
       "tag": "0068_area_do_pedido_de_acesso",
       "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "7",
+      "when": 1795027316603,
+      "tag": "0069_acompanhamento_v2_semaforo",
+      "breakpoints": true
     }
   ]
 }
