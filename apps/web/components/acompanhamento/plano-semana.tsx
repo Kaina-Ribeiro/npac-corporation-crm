@@ -68,51 +68,79 @@ export function PlanoSemana({ dados }: { dados: Semana }) {
   const router = useRouter();
   const atualizar = () => router.refresh();
   const dias = [...new Set(dados.semana.map((a) => a.dataPrevista))];
+  // Lista vazia vira uma linha no topo; com as duas cheias, as atrasadas ficam na coluna larga.
+  const semanaVazia = dias.length === 0;
+  const atrasadasVazia = dados.atrasadas.length === 0;
+  const so = semanaVazia !== atrasadasVazia;
+  const semana = (
+    <section
+      className={`card overflow-hidden ${
+        semanaVazia ? 'pl-compacta' : so ? 'pl-inteira' : 'pl-estreita'
+      }`}
+      aria-label="Vence esta semana"
+    >
+      <h2 className="ob-h">
+        Vence esta semana<span>{dados.semana.length}</span>
+        <em>
+          {dataBR(dados.inicio).slice(0, 5)} a {dataBR(dados.fim).slice(0, 5)}
+        </em>
+      </h2>
+      {semanaVazia && <p className="ob-vazio">Nenhuma ação vence esta semana.</p>}
+      {dias.map((d) => (
+        <div key={d}>
+          <h3 className="pl-dia">
+            {d === dados.hoje ? 'Hoje' : diaSemana(d)}, {dataBR(d).slice(0, 5)}
+          </h3>
+          <ul>
+            {dados.semana
+              .filter((a) => a.dataPrevista === d)
+              .map((a) => (
+                <Linha key={a.id} a={a} aoMudar={atualizar} comData={false} />
+              ))}
+          </ul>
+        </div>
+      ))}
+    </section>
+  );
+  const atrasadas = (
+    <section
+      className={`card overflow-hidden ${atrasadasVazia ? 'pl-compacta' : so ? 'pl-inteira' : ''}`}
+      aria-label="Atrasadas"
+    >
+      <h2 className="ob-h">
+        Atrasadas<span>{dados.atrasadasTotal}</span>
+      </h2>
+      {atrasadasVazia ? (
+        <p className="ob-vazio">Nada atrasado.</p>
+      ) : (
+        <ul>
+          {dados.atrasadas.map((a) => (
+            <Linha key={a.id} a={a} aoMudar={atualizar} comData />
+          ))}
+        </ul>
+      )}
+      {dados.atrasadasTotal > dados.atrasadas.length && (
+        <p className="ob-vazio">
+          Mostrando as {dados.atrasadas.length} mais antigas de {dados.atrasadasTotal}.
+        </p>
+      )}
+    </section>
+  );
   return (
     <div className="pl-corpo">
       <AvisoSalvamento />
-      <section className="card overflow-hidden" aria-label="Vence esta semana">
-        <h2 className="ob-h">
-          Vence esta semana<span>{dados.semana.length}</span>
-          <em>
-            {dataBR(dados.inicio).slice(0, 5)} a {dataBR(dados.fim).slice(0, 5)}
-          </em>
-        </h2>
-        {dias.length === 0 && <p className="ob-vazio">Nenhuma ação vence esta semana.</p>}
-        {dias.map((d) => (
-          <div key={d}>
-            <h3 className="pl-dia">
-              {d === dados.hoje ? 'Hoje' : diaSemana(d)}, {dataBR(d).slice(0, 5)}
-            </h3>
-            <ul>
-              {dados.semana
-                .filter((a) => a.dataPrevista === d)
-                .map((a) => (
-                  <Linha key={a.id} a={a} aoMudar={atualizar} comData={false} />
-                ))}
-            </ul>
-          </div>
-        ))}
-      </section>
-      <section className="card overflow-hidden pl-estreita" aria-label="Atrasadas">
-        <h2 className="ob-h">
-          Atrasadas<span>{dados.atrasadasTotal}</span>
-        </h2>
-        {dados.atrasadas.length === 0 ? (
-          <p className="ob-vazio">Nada atrasado.</p>
-        ) : (
-          <ul>
-            {dados.atrasadas.map((a) => (
-              <Linha key={a.id} a={a} aoMudar={atualizar} comData />
-            ))}
-          </ul>
-        )}
-        {dados.atrasadasTotal > dados.atrasadas.length && (
-          <p className="ob-vazio">
-            Mostrando as {dados.atrasadas.length} mais antigas de {dados.atrasadasTotal}.
-          </p>
-        )}
-      </section>
+      {/* A vazia sobe (uma linha); senão, as atrasadas vêm primeiro, na coluna larga. */}
+      {semanaVazia ? (
+        <>
+          {semana}
+          {atrasadas}
+        </>
+      ) : (
+        <>
+          {atrasadas}
+          {semana}
+        </>
+      )}
     </div>
   );
 }

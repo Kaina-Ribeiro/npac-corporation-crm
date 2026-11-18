@@ -923,8 +923,26 @@
     padding: 12px 16px;
     border-top: 1px solid var(--line);
   }
-  .pf.p1 {
+  /* Títulos das colunas (Pessoa · Perfil · Admin do Acompanhamento), uma vez no topo. */
+  .pf-cab {
     border-top: 0;
+    padding-block: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink2);
+  }
+  .pf-cab-pessoa {
+    grid-column: 1 / 3;
+  }
+  .pf-cab-perfil {
+    display: none;
+  }
+  .pf-cab-admin {
+    grid-column: 3;
+    justify-self: end;
+    max-width: 100px;
+    line-height: 1.25;
+    text-align: right;
   }
   .pf .nm b {
     display: block;
@@ -943,18 +961,13 @@
   .pf-admin {
     grid-column: 3;
     grid-row: 1;
+    justify-self: end;
     display: flex;
     align-items: center;
     gap: 4px;
     font-size: 12px;
     font-weight: 500;
     color: var(--ink2);
-  }
-  /* "Admin do Acompanhamento" (C5) quebra em duas linhas no celular sem apertar o nome. */
-  .pf-admin-rot {
-    max-width: 100px;
-    line-height: 1.25;
-    text-align: right;
   }
   .sw {
     flex: none;
@@ -1283,6 +1296,9 @@
     margin-top: 0;
     align-self: start;
   }
+  .jg .jg-aviso-topo {
+    margin-bottom: 16px;
+  }
   .mo-completar {
     margin: 0 0 12px;
   }
@@ -1497,7 +1513,12 @@
       grid-column: 4;
       grid-row: 1;
     }
-    .pf-admin-rot {
+    .pf-cab-perfil {
+      display: block;
+      grid-column: 3;
+    }
+    .pf-cab-admin {
+      grid-column: 4;
       max-width: none;
     }
   }
@@ -1648,6 +1669,9 @@
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 28px;
     }
+    .jg.jg-so {
+      grid-template-columns: minmax(0, 1fr);
+    }
     .fun {
       grid-template-columns: repeat(6, minmax(0, 1fr));
     }
@@ -1769,6 +1793,27 @@
     display: grid;
     gap: 14px;
     align-items: start;
+  }
+  /* Esta semana: a lista vazia vira uma linha; a única cheia ocupa a largura toda. */
+  .pl-compacta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .pl-compacta .ob-h {
+    flex: 0 0 auto;
+    border-bottom: 0;
+  }
+  .pl-compacta .ob-vazio {
+    flex: 1 1 auto;
+    padding: 12px 16px;
+    text-align: right;
+  }
+  @media (max-width: 767.98px) {
+    .pl-compacta .ob-vazio {
+      padding-top: 0;
+      text-align: left;
+    }
   }
   .pl-corpo ul,
   .view > .card ul {
@@ -2038,10 +2083,6 @@
       grid-column: 1/-1;
       justify-self: start;
     }
-    /* Quem veio de antes do sistema: os seis passos iguais só alongariam a tela. */
-    .jg-anterior {
-      display: none;
-    }
     .pl-m {
       min-width: 40px;
       height: 40px;
@@ -2077,6 +2118,11 @@
   @media (min-width: 1280px) {
     .pl-corpo {
       grid-template-columns: minmax(0, 1.5fr) minmax(320px, 1fr);
+    }
+    .pl-corpo > .pl-compacta,
+    .pl-corpo > .pl-inteira,
+    .pl-corpo > .aviso-campo {
+      grid-column: 1 / -1;
     }
     /* Coluna estreita: nome em cima, data e responsável embaixo. */
     .pl-estreita .pl-r {
@@ -3851,20 +3897,56 @@
     font-size: 11px;
     color: var(--ink3);
   }
-  .mt-item .pv {
-    height: 34px;
-    padding: 0 10px;
+  /* Campos da meta aberta: a mesma cara dos campos de "Tarefas da semana" (`.field`). */
+  .mt-item .pv,
+  .mt-item .pv:focus {
+    height: 42px;
+    padding: 0 12px;
+    border-radius: 12px;
     font-size: 14px;
-    background: var(--gl-solid);
-    box-shadow: inset 0 0 0 0.5px var(--line);
+    font-weight: 400;
+    background: rgba(255, 255, 255, 0.58);
+  }
+  .mt-item .pv {
+    box-shadow: inset 0 0 0 0.5px var(--fill-line);
+  }
+  .dark & .mt-item .pv,
+  .dark & .mt-item .pv:focus {
+    background: rgba(255, 255, 255, 0.1);
   }
   .mt-item select.pv {
     white-space: nowrap;
   }
   .mt-item .pr.mt-desc .pv {
-    height: 38px;
     font-size: 15px;
     font-weight: 600;
+  }
+  .mt-topo .btn {
+    flex: none;
+  }
+  .mt-topo-ed {
+    align-items: center;
+  }
+  .mt-topo-ed > span {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink2);
+  }
+  /* Agenda da reunião: o que dá para editar tem cara de campo (antes parecia texto). */
+  .rn-agenda .pv:not(:disabled):not(:read-only),
+  .rn-agenda select.pv:not(:disabled) {
+    background: rgba(255, 255, 255, 0.4);
+    box-shadow: inset 0 0 0 0.5px var(--fill-line);
+  }
+  .dark & .rn-agenda .pv:not(:disabled):not(:read-only),
+  .dark & .rn-agenda select.pv:not(:disabled) {
+    background: rgba(255, 255, 255, 0.06);
+  }
+  .rn-agenda select.pv:not(:disabled)::picker-icon {
+    opacity: 0.6;
+  }
+  .rn-agenda .pr + .pr {
+    margin-top: 2px;
   }
   .mt-grade {
     display: grid;

@@ -239,6 +239,10 @@ nao_concluido, prazo, hoje)`: aberto = em andamento com "N dias de atraso" (do `
 DEFINER`, a Especialista vê o número inteiro): só tarefas FEITA ÷ total do ciclo (PARCIAL não conta). Metas não viram número
   único (pendente com a Eduarda): cada meta com alvo tem a própria barra (`pct` na leitura); sem alvo (S4), nenhum %. Ficha >
   Jornada: card do PME (extras e encerramento + barra de tarefas), Tarefas (as da reunião por PME) e Metas.
+  **Layout** (achados de design de 17/11, plano `docs/plans/achados-design-17-11.md`, Fase 2): meta é um resumo (descrição,
+  pilar, prazo, barra); "Editar" abre os campos, uma meta por vez, e "Pronto" recarrega quando a fila de salvamento esvazia
+  (`metas.tsx`). Plano > Esta semana: lista vazia vira uma linha e as Atrasadas ficam na coluna larga. Quem veio de antes do
+  sistema não vê os seis passos do onboarding, só o aviso. Perfis tem títulos de coluna (o interruptor guarda o rótulo inteiro).
 - **Siglas das mentorias** (Gabriel, 04/11/2026): RDV = Rico de Verdade · IDR = Introdução da
   Riqueza · PME = Plano Mensal de Enriquecimento · 2M = Marco e Mudança · 6M = sem definição ainda.
   Nas telas vale o texto literal do PDF, exceto IDR: "Introdução da Riqueza" (o PDF diz "à"; corrigido).
