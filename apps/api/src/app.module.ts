@@ -18,6 +18,7 @@ import { MentoriaModule } from './mentoria/mentoria.module.js';
 import { PushModule } from './push/push.module.js';
 import { FormsModule } from './forms/forms.module.js';
 import { MailModule } from './mail/mail.module.js';
+import { ContaModule } from './conta/conta.module.js';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { MailModule } from './mail/mail.module.js';
     AdminModule,
     MentoriaModule,
     FormsModule,
+    ContaModule,
   ],
   controllers: [HealthController, MeController],
 })
