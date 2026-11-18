@@ -4525,6 +4525,15 @@
     }
     .pc-st {
       justify-self: start;
+      min-width: 0;
+    }
+    /* "Em andamento, 10 dias de atraso" não cabe numa linha da coluna: quebra dentro dela. */
+    .pc-st .tag {
+      white-space: normal;
+      height: auto;
+      min-height: 22px;
+      padding-block: 3px;
+      line-height: 16px;
     }
     .pc-mob {
       display: none;

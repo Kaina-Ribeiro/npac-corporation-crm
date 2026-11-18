@@ -106,6 +106,14 @@ async function capturar(page: Page, nome: string) {
   await page.setViewportSize({ width: 1440, height: 900 });
 }
 
+/** Clica e espera a gravação: a tela tira o item na hora (otimista), antes da resposta. */
+async function clicarEsperando(page: Page, botao: ReturnType<Page['getByRole']>, api: string) {
+  await Promise.all([
+    page.waitForResponse((r) => r.url().includes(api) && r.request().method() !== 'GET'),
+    botao.click(),
+  ]);
+}
+
 /** A linha da Fila daquele mentorado com aquele texto. */
 const linha = (page: Page, nome: string, texto: string | RegExp) =>
   page.locator('li.fr').filter({ hasText: nome }).filter({ hasText: texto });
@@ -119,17 +127,29 @@ test('Duda: cobrança, semáforo e degrau do PME na Fila, e a aba 7', async ({ p
   await expect(linha(page, ATRASADA, 'Cobrar a tarefa combinada')).toHaveCount(1);
   await capturar(page, 'duda');
 
-  await linha(page, ATRASADA, 'Avaliar segunda chance')
-    .getByRole('button', { name: 'Registrar contato' })
-    .click();
+  await clicarEsperando(
+    page,
+    linha(page, ATRASADA, 'Avaliar segunda chance').getByRole('button', {
+      name: 'Registrar contato',
+    }),
+    '/api/mentoria/contatos',
+  );
   await expect(linha(page, ATRASADA, 'Avaliar segunda chance')).toHaveCount(0);
-  await linha(page, ATRASADA, /Semáforo vermelho/)
-    .getByRole('button', { name: 'Visto nesta semana' })
-    .click();
+  await clicarEsperando(
+    page,
+    linha(page, ATRASADA, /Semáforo vermelho/).getByRole('button', {
+      name: 'Visto nesta semana',
+    }),
+    '/api/mentoria/fila/feito',
+  );
   await expect(linha(page, ATRASADA, /Semáforo vermelho/)).toHaveCount(0);
-  await linha(page, ATRASADA, 'Cobrar a tarefa combinada')
-    .getByRole('button', { name: 'Marcar feita' })
-    .click();
+  await clicarEsperando(
+    page,
+    linha(page, ATRASADA, 'Cobrar a tarefa combinada').getByRole('button', {
+      name: 'Marcar feita',
+    }),
+    '/api/mentoria/tarefas/',
+  );
   await expect(linha(page, ATRASADA, 'Cobrar a tarefa combinada')).toHaveCount(0);
   await page.reload();
   await expect(linha(page, ATRASADA, /Avaliar segunda chance|Semáforo|Cobrar/)).toHaveCount(0);
@@ -156,7 +176,11 @@ test('Operação: envia o próximo PME pela Fila e vê a aba 7', async ({ page }
   await expect(item).toBeVisible();
   await expect(linha(page, ATRASADA, 'Cobrar a tarefa combinada')).toHaveCount(0);
   await capturar(page, 'operacao');
-  await item.getByRole('button', { name: 'Registrar envio' }).click();
+  await clicarEsperando(
+    page,
+    item.getByRole('button', { name: 'Registrar envio' }),
+    '/api/mentoria/inscricoes/',
+  );
   await expect(item).toHaveCount(0);
   await menu(page, 'PMEs e ciclos', /\/acompanhamento\/pmes/);
   await expect(page.locator('.pc-row').filter({ hasText: FECHOU })).toContainText('2º PME');
