@@ -1,10 +1,12 @@
 'use client';
 import { MFA_LIGADO } from '@npac/shared/enums';
 import { cleanProfileName, PROFILE_NAME_ERROR, type ProfileDTO } from '@npac/shared/profile';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useId, useRef, useState, type FormEvent } from 'react';
 import { Avatar, AVATAR_EU } from '@/components/avatar';
+import type { FotoRecorte as FotoRecorteType } from '@/components/conta/foto-recorte';
 import { showToast } from '@/components/toast';
 import { authClient } from '@/lib/auth-client';
 import { clientApi } from '@/lib/client-api';
@@ -222,7 +224,144 @@ function Senha() {
   );
 }
 
-/** Tela Meu perfil (NPAC-53). Foto e e-mail ganham as janelinhas nas Tarefas 6 e 7. */
+const FOTO_ERRO = 'Não deu para abrir essa imagem. Use JPG, PNG ou WebP.';
+const FOTO_MAX_ORIGINAL = 30 * 1024 * 1024;
+
+// Recorte só no perfil e só quando a pessoa escolhe a foto: fora do JS das outras telas.
+const FotoRecorte = dynamic(() => import('./foto-recorte').then((m) => m.FotoRecorte), {
+  ssr: false,
+}) as typeof FotoRecorteType;
+
+/**
+ * Abre o arquivo como imagem do navegador; falha (texto, HEIC sem suporte) vira o erro da foto.
+ * Por `data:` e não `blob:`: a CSP das imagens (`proxy.ts`) só aceita `'self'` e `data:`.
+ */
+async function abrirImagem(arquivo: File): Promise<HTMLImageElement> {
+  if (arquivo.size > FOTO_MAX_ORIGINAL) throw new Error(FOTO_ERRO);
+  const img = new Image();
+  try {
+    img.src = await new Promise<string>((ok, falha) => {
+      const leitor = new FileReader();
+      leitor.onload = () => ok(String(leitor.result));
+      leitor.onerror = () => falha(leitor.error);
+      leitor.readAsDataURL(arquivo);
+    });
+    await img.decode();
+  } catch {
+    throw new Error(FOTO_ERRO);
+  }
+  return img;
+}
+
+const ICONE_CAMERA = 'M4 8h3l2-3h6l2 3h3v11H4zM12 17a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z';
+const ICONE_LIXO = 'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13';
+
+function Foto({
+  nome,
+  inicial,
+  cargo,
+}: {
+  nome: string;
+  inicial: string | null;
+  cargo: React.ReactNode;
+}) {
+  const router = useRouter();
+  const entrada = useRef<HTMLInputElement>(null);
+  const [foto, setFoto] = useState(inicial);
+  const [imagem, setImagem] = useState<HTMLImageElement | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
+  const [ocupado, setOcupado] = useState(false);
+  const fecharImagem = () => setImagem(null);
+  async function escolher(arquivo: File | undefined) {
+    if (entrada.current) entrada.current.value = '';
+    if (!arquivo) return;
+    setErro(null);
+    try {
+      setImagem(await abrirImagem(arquivo));
+    } catch (e) {
+      setErro((e as Error).message);
+    }
+  }
+  async function remover() {
+    setOcupado(true);
+    setErro(null);
+    try {
+      await clientApi('/api/me/photo', 'DELETE');
+      setFoto(null);
+      showToast();
+      router.refresh();
+    } catch (e) {
+      setErro((e as Error).message);
+    }
+    setOcupado(false);
+  }
+  return (
+    <div className="flex flex-col items-center gap-3.5 md:flex-row md:gap-5">
+      <Avatar
+        name={nome}
+        photo={foto}
+        className={`${AVATAR_EU} size-[108px] text-[40px] font-bold shadow-[0_0_0_3px_rgba(255,255,255,.85),0_12px_28px_-12px_rgba(0,0,0,.45)] md:size-[88px] md:text-[32px] dark:shadow-[0_0_0_3px_rgba(255,255,255,.14),0_12px_28px_-12px_rgba(0,0,0,.8)]`}
+      />
+      <div className="text-center md:hidden">
+        <b className="block text-xl leading-[26px] font-bold tracking-[-0.02em]">{nome}</b>
+        <span className="mt-1.5 inline-flex">{cargo}</span>
+      </div>
+      <div className="flex w-full flex-col gap-2.5 md:w-auto">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(0,1fr))] gap-2 md:flex">
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => entrada.current?.click()}
+          >
+            <Icone d={ICONE_CAMERA} className="size-[18px]" />
+            {foto ? 'Trocar foto' : 'Adicionar foto'}
+          </button>
+          {foto && (
+            <button
+              type="button"
+              className="btn btn-ghost text-ink2 max-md:shadow-[inset_0_0_0_1px_var(--line)]"
+              disabled={ocupado}
+              onClick={() => void remover()}
+            >
+              <Icone d={ICONE_LIXO} className="size-[18px]" />
+              Remover
+            </button>
+          )}
+        </div>
+        <input
+          ref={entrada}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          aria-label="Escolher foto"
+          className="sr-only"
+          tabIndex={-1}
+          onChange={(e) => void escolher(e.currentTarget.files?.[0])}
+        />
+        {erro ? (
+          <Erro>{erro}</Erro>
+        ) : (
+          <p className="text-center text-[12.5px] text-ink2 md:text-left">
+            JPG, PNG ou WebP. Você recorta em círculo antes de salvar.
+          </p>
+        )}
+      </div>
+      {imagem && (
+        <FotoRecorte
+          img={imagem}
+          onClose={fecharImagem}
+          onSaved={(url) => {
+            fecharImagem();
+            setFoto(url);
+            showToast();
+            router.refresh();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+/** Tela Meu perfil (NPAC-53). O e-mail ganha a janelinha do código na Tarefa 7. */
 export function Perfil({ profile, cargo }: { profile: ProfileDTO; cargo: React.ReactNode }) {
   return (
     <>
@@ -230,19 +369,7 @@ export function Perfil({ profile, cargo }: { profile: ProfileDTO; cargo: React.R
         titulo="Foto e nome"
         texto="Aparecem na sidebar, no Chat, na Equipe e nas listas do Acompanhamento."
       >
-        <div className="flex flex-col items-center gap-3.5 md:flex-row md:gap-5">
-          <Avatar
-            name={profile.name}
-            photo={profile.photo}
-            className={`${AVATAR_EU} size-[108px] text-[40px] font-bold shadow-[0_0_0_3px_rgba(255,255,255,.85),0_12px_28px_-12px_rgba(0,0,0,.45)] md:size-[88px] md:text-[32px] dark:shadow-[0_0_0_3px_rgba(255,255,255,.14),0_12px_28px_-12px_rgba(0,0,0,.8)]`}
-          />
-          <div className="text-center md:hidden">
-            <b className="block text-xl leading-[26px] font-bold tracking-[-0.02em]">
-              {profile.name}
-            </b>
-            <span className="mt-1.5 inline-flex">{cargo}</span>
-          </div>
-        </div>
+        <Foto nome={profile.name} inicial={profile.photo} cargo={cargo} />
         <Nome inicial={profile.name} />
         <div className="flex flex-col gap-0.5">
           <span className="text-[13px] font-semibold text-ink2">Usuário</span>
