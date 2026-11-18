@@ -39,17 +39,21 @@ CREATE TRIGGER mentoria_contato_degrau BEFORE INSERT ON mentoria_contatos
 -- Semáforo de toda a carteira ATIVO de uma vez (para a Fila e o push): a mesma conta da
 -- mentoria_semaforo_calc (0069), sem uma chamada por inscrição. Mudou uma, mude a outra: o teste
 -- db/test/fila-equivalencia.test.ts compara as duas. Interna: quem vê decide mentoria_semaforo_lote.
+-- `desde` vem como valor único e o JIT fica desligado: com a tabela de uma linha nunca analisada, o
+-- planejador estimava milhões de linhas e compilava a consulta (~700 ms num banco pequeno).
 CREATE FUNCTION mentoria_semaforo_lote_calc(dia date)
   RETURNS TABLE (inscricao_id uuid, cor text, motivos text[])
   LANGUAGE sql STABLE SECURITY DEFINER
   SET search_path = public, pg_temp
+  SET jit = off
 AS $$
   WITH x AS (
     SELECT i.id, i.inicio_jornada, s.desde,
       date_trunc('week', dia::timestamp)::date - 7 AS w1,
       date_trunc('week', dia::timestamp)::date - 14 AS w2
-    FROM mentoria_inscricoes i CROSS JOIN mentoria_semaforo_inicio s
-    WHERE i.status = 'ATIVO'
+    FROM mentoria_inscricoes i
+    CROSS JOIN (SELECT (SELECT si.desde FROM mentoria_semaforo_inicio si) AS desde) s
+    WHERE i.status = 'ATIVO' AND s.desde IS NOT NULL
   ),
   ck AS (
     SELECT x.id,
@@ -129,12 +133,14 @@ $$;
 --> statement-breakpoint
 
 -- Fila do dia (0064 + Parte 4). Continua SECURITY INVOKER e sem função por linha que releia tabela sob
--- a RLS: ciclos, tarefas e contatos entram por JOIN; o semáforo, por uma chamada só ao lote.
+-- a RLS: ciclos, tarefas e contatos entram por JOIN; o semáforo, por uma chamada só ao lote. Sem JIT:
+-- a consulta é curta, e a estimativa de custo em banco pequeno ligava a compilação (centenas de ms).
 CREATE OR REPLACE FUNCTION mentoria_fila(agora timestamptz)
   RETURNS TABLE (chave text, tipo text, inscricao_id uuid, referencia_id uuid,
     responsavel_perfil text, responsavel_id text, vence_em timestamptz, atrasado boolean)
   LANGUAGE sql STABLE SECURITY INVOKER
   SET search_path = public, pg_temp
+  SET jit = off
 AS $$
   WITH d AS (SELECT mentoria_dia(agora) AS hoje),
   ins AS (
@@ -369,6 +375,7 @@ CREATE OR REPLACE FUNCTION mentoria_avisos_candidatos(agora timestamptz)
   RETURNS TABLE (chave text, quando timestamptz, ate timestamptz, user_ids text[])
   LANGUAGE sql STABLE SECURITY DEFINER
   SET search_path = public, pg_temp
+  SET jit = off
 AS $$
   WITH d AS (SELECT mentoria_dia(agora) AS hoje),
   ins AS (

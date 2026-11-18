@@ -510,6 +510,17 @@ describe('Parte 4: tipos novos sem quebrar os antigos', () => {
     ).rejects.toThrow(/outro mentorado/);
   });
 
+  it('Fila, push e semáforo em lote rodam sem JIT (no banco pequeno a compilação levava ~700 ms)', async () => {
+    const linhas = await owner<{ proname: string; config: string[] | null }[]>`
+      select proname, proconfig as config from pg_proc
+      where proname in ('mentoria_fila', 'mentoria_avisos_candidatos', 'mentoria_semaforo_lote_calc')`;
+    expect(linhas).toHaveLength(3);
+    for (const l of linhas)
+      expect({ f: l.proname, jit: l.config }).toMatchObject({
+        jit: expect.arrayContaining(['jit=off']),
+      });
+  });
+
   it('o semáforo em lote é interno; o da Fila só responde a quem vê o semáforo', async () => {
     const [f] = await owner<{ calc: boolean; lote: boolean }[]>`
       select has_function_privilege('npac_app', 'mentoria_semaforo_lote_calc(date)', 'execute')

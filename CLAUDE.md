@@ -580,6 +580,10 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
   (única exceção: `mentoria_midia_leitura`). INSERT/UPDATE com `mentoria_edita*` seguem por linha.
   Tabela nova do módulo: política de leitura nesse formato e caso no teste de equivalência.
 - Valor novo de enum não vale na mesma transação da migration (compare como texto).
+- **JIT desligado nas funções da Fila e do push** (`SET jit = off` em `mentoria_fila`, `mentoria_avisos_candidatos` e
+  `mentoria_semaforo_lote_calc`, 0070): em banco pequeno, a tabela de uma linha `mentoria_semaforo_inicio` sem `analyze`
+  fazia o planejador estimar milhões de linhas e compilar a consulta (~700 ms por Fila; o e2e do CI estourou os 15 min).
+  Função SQL grande nova do módulo: mesma linha, e tabela de uma linha lida como valor único (`(select … )`).
 - Aplicar no dev: `pnpm --filter @npac/db build && pnpm --filter @npac/db migrate`.
   psql: `docker exec npac-corporation-postgres-1 psql -U npac_owner -d npac`.
 - Apagar lead/usuário à mão: FKs em `form_responses`, `sdr_sale_marks`, `chat_reads`, `chat_*`, `payments`, `deals`, `lead_notes`,

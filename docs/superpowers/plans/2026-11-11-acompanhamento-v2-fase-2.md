@@ -404,6 +404,11 @@ Test `api/test/mentoria-v2-fila-cobranca.e2e.test.ts`
 
   Só o SQL (duda, sob a RLS): 64 ms com 341 itens → 81 ms com 909 itens (568 itens novos: 341 cobranças, 81 degraus, 48
   envios, semáforos). Fica longe da meta de 500 ms da Fase 6 do desempenho.
+- [x] Achado no CI (o e2e estourou os 15 min duas vezes, todos os testes verdes): no banco pequeno do e2e a Fila levava ~840 ms
+  para 37 itens. A tabela de uma linha `mentoria_semaforo_inicio`, nunca analisada, virava estimativa de 2.470 linhas × as
+  inscrições, e o custo estimado ligava o JIT (~700 ms de compilação). Correção na 0070: `desde` lido como valor único e
+  `SET jit = off` na Fila, no push e no semáforo em lote. Banco do e2e e dev: Fila 840 → 29 ms, push 750 → 30 ms; no
+  `npac_e2e_perf`, Fila ~85 ms e push ~172 ms (dentro da variação). Teste-guarda em `fila-equivalencia`.
 
 **Pendências da Parte 4** (sem base no PDF, na spec ou nas respostas; o sistema faz o indicado, sem decidir a regra):
 1. **Degrau não registrado:** a Fila mostra só o degrau mais alto; o de 3 dias sem contato some quando chegam os 7. Mostrar todos?
