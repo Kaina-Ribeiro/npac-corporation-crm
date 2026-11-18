@@ -43,11 +43,15 @@ test.afterAll(async () => {
 });
 
 test('troca o e-mail com o código do endereço novo', async ({ page }) => {
+  // Relógio parado: a contagem do "Reenviar" fica no valor inicial.
+  await page.clock.install();
   const janela = await abrir(page);
   await expect(janela.getByText(`Hoje: ${EMAIL}`)).toBeVisible();
   await janela.getByLabel('Novo e-mail').fill(NOVO);
   await janela.getByRole('button', { name: 'Enviar código' }).click();
   await expect(janela.getByRole('heading', { name: 'Confirme o novo e-mail' })).toBeVisible();
+  // Contagem em m:ss: começa em 1:00 (nunca "0:60").
+  await expect(janela.getByText(/Reenviar em 1:00$/)).toBeVisible();
   await janela.getByLabel('Código de 6 dígitos').fill(await codigo(NOVO));
   await expect(page.getByRole('status').filter({ hasText: 'Salvo' })).toBeVisible();
   await expect(page.getByRole('dialog')).toBeHidden();

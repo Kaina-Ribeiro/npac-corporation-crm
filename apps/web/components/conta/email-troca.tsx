@@ -240,7 +240,8 @@ export function EmailTroca({
           <div className="flex flex-wrap items-center justify-between gap-x-3 text-[13px]">
             {espera > 0 ? (
               <span className="text-ink2">
-                Não chegou? Veja o spam. Reenviar em 0:{String(espera).padStart(2, '0')}
+                Não chegou? Veja o spam. Reenviar em {Math.floor(espera / 60)}:
+                {String(espera % 60).padStart(2, '0')}
               </span>
             ) : (
               <button

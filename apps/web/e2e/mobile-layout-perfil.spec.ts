@@ -7,7 +7,8 @@ import { CAIXA_URL, E2E_DB, E2E_PASSWORD } from './env.js';
 // as telas que ganharam foto não rolam de lado, nada sai da tela (nem dentro de `overflow: hidden`,
 // que a varredura por `scrollWidth` não vê), os toques têm 44 px e os campos 16 px (sem zoom).
 const owner = ownerSql(E2E_DB);
-const LARGURAS = [375, 390];
+// Celular e tablet (768 e 1024 com a sidebar aberta: o perfil já quebrou em 768).
+const LARGURAS = [375, 390, 768, 1024];
 const RONALDO = 'ronaldo@npac.com.br';
 const IGOR = 'igor@npac.com.br';
 
@@ -118,11 +119,13 @@ async function alvoCurto(alvo: Locator): Promise<string | null> {
   });
 }
 
-async function conferir(page: Page, onde: string) {
-  for (const largura of LARGURAS) {
+async function conferir(page: Page, onde: string, larguras = LARGURAS) {
+  for (const largura of larguras) {
     await page.setViewportSize({ width: largura, height: 812 });
     expect(await foraDaTela(page), `${onde} em ${largura}px`).toEqual([]);
   }
+  // Volta ao celular: os toques de 44 px e o "‹ Mais" são medidos nele.
+  await page.setViewportSize({ width: 390, height: 812 });
 }
 
 test.beforeAll(async () => {
@@ -149,11 +152,14 @@ test('a medida pega o que um overflow: hidden esconderia', async ({ page }) => {
   await entrar(page, 'ronaldo');
   await page.goto('/conta/perfil');
   await page.setViewportSize({ width: 375, height: 812 });
+  // Depois de o React montar a página (antes disso, a hidratação tiraria o elemento de teste).
+  await expect(page.getByRole('button', { name: 'Trocar senha' })).toBeEnabled();
+  await page.waitForTimeout(300);
   await page.evaluate(() => {
     const caixa = document.createElement('div');
     caixa.style.cssText = 'overflow:hidden;width:100%';
     caixa.innerHTML = '<div style="width:600px;height:20px;background:red">largo</div>';
-    document.querySelector('main')!.append(caixa);
+    document.querySelector('h1')!.parentElement!.append(caixa);
   });
   expect((await foraDaTela(page)).join()).toContain('largo');
 });
@@ -229,19 +235,26 @@ test('telas com foto cabem no celular (CRM)', async ({ page }) => {
 
 test('telas com foto cabem no celular (Acompanhamento)', async ({ page }) => {
   await entrar(page, 'duda');
-  for (const tela of [
-    '/conta/perfil',
-    '/acompanhamento/mais',
-    '/acompanhamento/fila',
-    '/acompanhamento/mentorados',
-  ]) {
+  for (const tela of ['/conta/perfil', '/acompanhamento/mais', '/acompanhamento/fila']) {
     await page.goto(tela);
     await conferir(page, tela);
   }
+  // Mentorados em 1024 fica no teste abaixo (anterior ao NPAC-53).
+  await page.goto('/acompanhamento/mentorados');
+  await conferir(page, '/acompanhamento/mentorados', [375, 390, 768]);
   // O Meu perfil do cargo tem as abas do módulo e volta ao Mais do módulo.
   await page.goto('/conta/perfil');
   await expect(page.getByRole('navigation', { name: 'Abas do acompanhamento' })).toBeVisible();
   await expect(
     page.locator('main').getByRole('link', { name: 'Mais', exact: true }).first(),
   ).toHaveAttribute('href', '/acompanhamento/mais');
+});
+
+// Achado de 18/11/2026 (anterior ao NPAC-53): em 1024 com a sidebar aberta, a tabela de Mentorados
+// pede ~858 px (colunas mínimas de `modulo.css`, `@media (min-width: 1024px)`) e sobram ~714:
+// "Último contato" passa ~96 px da tela. Fica como pendência até o ajuste da tabela.
+test.fixme('Mentorados em 1024 px com a sidebar aberta cabe na tela', async ({ page }) => {
+  await entrar(page, 'duda');
+  await page.goto('/acompanhamento/mentorados');
+  await conferir(page, '/acompanhamento/mentorados', [1024]);
 });

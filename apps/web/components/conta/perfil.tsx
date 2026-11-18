@@ -67,11 +67,11 @@ function Secao({
   return (
     <section
       aria-label={titulo}
-      className="glass-card grid gap-3 p-[18px] md:grid-cols-[220px_minmax(0,1fr)] md:gap-8 md:px-7 md:py-[26px]"
+      className="glass-card grid gap-3 p-[18px] md:px-7 md:py-6 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-8 lg:py-[26px]"
     >
       <div>
         <h2 className="text-[15px] font-bold tracking-[-0.01em]">{titulo}</h2>
-        <p className="mt-0.5 text-[12.5px] leading-[18px] text-ink2 md:mt-1.5 md:text-[13px] md:leading-[19px]">
+        <p className="mt-0.5 text-[12.5px] leading-[18px] text-ink2 lg:mt-1.5 lg:text-[13px] lg:leading-[19px]">
           {texto}
         </p>
       </div>
@@ -83,7 +83,7 @@ function Secao({
 /** Valor só de leitura: texto com ícone, sem caixa de campo (não parece editável). */
 function Valor({ icone, children }: { icone: string; children: React.ReactNode }) {
   return (
-    <span className="inline-flex min-w-0 items-center gap-2 text-[15px] break-all">
+    <span className="inline-flex min-w-0 items-center gap-2 text-[15px] [overflow-wrap:anywhere]">
       <Icone d={icone} className="size-4 text-ink3" />
       {children}
     </span>
@@ -297,18 +297,18 @@ function Foto({
     setOcupado(false);
   }
   return (
-    <div className="flex flex-col items-center gap-3.5 md:flex-row md:gap-5">
+    <div className="flex flex-col items-center gap-3.5 lg:flex-row lg:gap-5">
       <Avatar
         name={nome}
         photo={foto}
-        className={`${AVATAR_EU} size-[108px] text-[40px] font-bold shadow-[0_0_0_3px_rgba(255,255,255,.85),0_12px_28px_-12px_rgba(0,0,0,.45)] md:size-[88px] md:text-[32px] dark:shadow-[0_0_0_3px_rgba(255,255,255,.14),0_12px_28px_-12px_rgba(0,0,0,.8)]`}
+        className={`${AVATAR_EU} size-[108px] text-[40px] font-bold shadow-[0_0_0_3px_rgba(255,255,255,.85),0_12px_28px_-12px_rgba(0,0,0,.45)] lg:size-[88px] lg:text-[32px] dark:shadow-[0_0_0_3px_rgba(255,255,255,.14),0_12px_28px_-12px_rgba(0,0,0,.8)]`}
       />
-      <div className="text-center md:hidden">
+      <div className="text-center lg:hidden">
         <b className="block text-xl leading-[26px] font-bold tracking-[-0.02em]">{nome}</b>
         <span className="mt-1.5 inline-flex">{cargo}</span>
       </div>
-      <div className="flex w-full flex-col gap-2.5 md:w-auto">
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(0,1fr))] gap-2 md:flex">
+      <div className="flex w-full flex-col gap-2.5 lg:w-auto">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(0,1fr))] gap-2 lg:flex">
           <button
             type="button"
             className="btn btn-secondary"
@@ -320,7 +320,7 @@ function Foto({
           {foto && (
             <button
               type="button"
-              className="btn btn-ghost text-ink2 max-md:shadow-[inset_0_0_0_1px_var(--line)]"
+              className="btn btn-ghost text-ink2 max-lg:shadow-[inset_0_0_0_1px_var(--line)]"
               disabled={ocupado}
               onClick={() => void remover()}
             >
@@ -341,7 +341,7 @@ function Foto({
         {erro ? (
           <Erro>{erro}</Erro>
         ) : (
-          <p className="text-center text-[12.5px] text-ink2 md:text-left">
+          <p className="text-center text-[12.5px] text-ink2 lg:text-left">
             JPG, PNG ou WebP. Você recorta em círculo antes de salvar.
           </p>
         )}
