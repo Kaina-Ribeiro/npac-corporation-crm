@@ -77,6 +77,13 @@
     line-height: 1.4;
     resize: vertical;
   }
+  /* Texto de exemplo de qualquer campo do módulo (também os sem classe, como o dinheiro do
+     Momento inicial): legível nos dois temas. `.pv` e a busca mantêm o próprio. */
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--placeholder);
+    opacity: 1;
+  }
 
   /* Acima de .view mesmo durante a entrada animada da página: a lista da busca abre por cima. */
   .top {
