@@ -102,12 +102,14 @@ export default async function MaisPage() {
             icone: ICONES.plano,
             href: '/acompanhamento/plano',
           },
+          ...(podeCadastrar(eu)
+            ? [{ rotulo: 'PMEs e ciclos', icone: ICONES.pmes, href: '/acompanhamento/pmes' }]
+            : []),
         ]}
       />
       <Grupo
         titulo="Em breve"
         itens={[
-          breve('PMEs e ciclos', ICONES.pmes, 'pmes'),
           breve('Linha do tempo e conquistas', ICONES.linha, 'linha-do-tempo'),
           breve('Envios físicos', ICONES.envios, 'envios'),
           breve('Eventos e agenda', ICONES.eventos, 'eventos'),
