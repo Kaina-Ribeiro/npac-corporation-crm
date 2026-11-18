@@ -70,7 +70,7 @@ Google: `docs/integracao-forms/README.md`.
 E-mail (opcional, só no app `api`; "Esqueci minha senha" por e-mail): `SMTP_HOST`, `SMTP_PORT`
 (465 = TLS direto; 587 = STARTTLS), `SMTP_USER`, `SMTP_PASS` e `MAIL_FROM`. Gmail de hoje:
 `smtp.gmail.com`, 465, o endereço da conta em `SMTP_USER` e a senha de app (16 caracteres, sem
-espaços) em `SMTP_PASS`; `MAIL_FROM=NPAC <endereço da conta>`. Trocar por Resend, SES ou Brevo é só
+espaços) em `SMTP_PASS`; `MAIL_FROM=NPAC Corporation <endereço da conta>`. Trocar por Resend, SES ou Brevo é só
 mudar as cinco variáveis. Sem `SMTP_HOST`, a tela manda pedir à liderança. O log da api diz
 `e-mail enviado: <servidor>` ou `e-mail não enviado: <código> <servidor>` (ETIMEDOUT/ECONNECTION =
 porta 465/587 bloqueada na saída do servidor).

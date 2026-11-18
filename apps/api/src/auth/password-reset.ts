@@ -11,6 +11,7 @@ import { resetPasswordMail } from '../mail/templates.js';
 export const FORGOT_PATH = '/forgot-password';
 export const FORGOT_STATUS_PATH = '/forgot-password/status';
 export const RESET_PATH = '/forgot-password/reset';
+export const CHECK_PATH = '/forgot-password/check';
 /** O link vale 1 hora; a conta recebe no máximo 3 por hora (o IP também: rate limit da rota). */
 export const RESET_TTL_MS = 60 * 60_000;
 export const RESET_MAX_PER_ACCOUNT = 3;
@@ -28,11 +29,26 @@ const INVALID = {
   message: 'Este link venceu ou já foi usado. Peça outro.',
 };
 
+/** Dono de um link ainda válido, se a conta estiver ativa; senão `null` (vencido, usado ou desativada). */
+async function linkOwner(db: Db, id: string) {
+  const [v] = await db
+    .select({ userId: verification.value })
+    .from(verification)
+    .where(and(eq(verification.identifier, id), gt(verification.expiresAt, new Date())));
+  if (!v) return null;
+  const [u] = await db
+    .select({ id: user.id, username: user.username, active: user.active })
+    .from(user)
+    .where(eq(user.id, v.userId));
+  return u?.active && u.username ? { id: u.id, username: u.username } : null;
+}
+
 /**
  * "Esqueci minha senha" por e-mail. Endpoints do Better Auth para herdar o rate limit em banco.
  * O pedido aceita usuário ou e-mail, responde igual (e no mesmo tempo) exista ou não a conta e
  * manda o link `/login/nova-senha#t=<token>` (o fragmento não vai a servidor nenhum). A troca
- * consome o link, derruba todas as sessões da conta e devolve o usuário para a tela entrar.
+ * consome o link, derruba todas as sessões da conta e devolve o usuário para a tela entrar. A tela
+ * confere o link ao abrir (`/check`) para mostrar o usuário ("Para o usuário ana") ou "Link vencido".
  * Os caminhos do próprio Better Auth (`/request-password-reset`, `/reset-password`) ficam desligados.
  */
 export function passwordResetPlugin(
@@ -122,6 +138,15 @@ export function passwordResetPlugin(
           return ctx.json({ ok: true as const });
         },
       ),
+      checkResetLink: createAuthEndpoint(
+        CHECK_PATH,
+        { method: 'POST', body: z.object({ token: z.string().min(16).max(200) }) },
+        async (ctx) => {
+          const owner = await linkOwner(db, digest(ctx.body.token));
+          if (!owner) throw APIError.from('BAD_REQUEST', INVALID);
+          return ctx.json({ username: owner.username });
+        },
+      ),
       resetPassword: createAuthEndpoint(
         RESET_PATH,
         {
@@ -142,17 +167,8 @@ export function passwordResetPlugin(
               message: `A senha pode ter até ${maxPasswordLength} caracteres.`,
             });
           const id = digest(token);
-          const [v] = await db
-            .select({ userId: verification.value })
-            .from(verification)
-            .where(and(eq(verification.identifier, id), gt(verification.expiresAt, new Date())));
-          const [u] = v
-            ? await db
-                .select({ id: user.id, username: user.username, active: user.active })
-                .from(user)
-                .where(eq(user.id, v.userId))
-            : [];
-          if (!u?.active || !u.username) throw APIError.from('BAD_REQUEST', INVALID);
+          const u = await linkOwner(db, id);
+          if (!u) throw APIError.from('BAD_REQUEST', INVALID);
           const passwordHash = await ctx.context.password.hash(newPassword);
           const done = await db.transaction(async (tx) => {
             // Uso único: só um pedido consegue apagar a linha (o outro espera e apaga zero).

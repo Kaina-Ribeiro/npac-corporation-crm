@@ -11,7 +11,7 @@ import { eq } from 'drizzle-orm';
 import type { AuditService } from '../audit/audit.service.js';
 import type { Env } from '../config/env.js';
 import type { MailSender } from '../mail/mail.js';
-import { FORGOT_PATH, RESET_PATH, passwordResetPlugin } from './password-reset.js';
+import { CHECK_PATH, FORGOT_PATH, RESET_PATH, passwordResetPlugin } from './password-reset.js';
 import { REQUEST_ACCESS_PATH, requestAccessPlugin } from './request-access.js';
 
 // Login é por usuário + senha; o login por e-mail fica desligado (disabledPaths).
@@ -162,6 +162,7 @@ export function createAuth(db: Db, env: Env, audit: AuditService, mail: MailSend
         // "Esqueci minha senha": 3 por hora por IP (a conta tem o mesmo limite em password-reset.ts).
         [FORGOT_PATH]: { window: 3600, max: 3 },
         [RESET_PATH]: { window: 600, max: 10 },
+        [CHECK_PATH]: { window: 600, max: 20 },
       },
     },
     user: {

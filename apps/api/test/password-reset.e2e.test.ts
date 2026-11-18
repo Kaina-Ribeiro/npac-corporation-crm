@@ -22,6 +22,7 @@ let originalHash = '';
 const FORGOT = '/api/auth/forgot-password';
 const RESET = '/api/auth/forgot-password/reset';
 const STATUS = '/api/auth/forgot-password/status';
+const CHECK = '/api/auth/forgot-password/check';
 const EMAIL = 'murilo@npac.com.br';
 
 /** Pedido "de outro IP": o rate limit por IP é zerado antes (o limite por conta não). */
@@ -94,10 +95,10 @@ describe('esqueci minha senha', () => {
       await owner`update "user" set name = 'Murilo' where email = ${EMAIL}`;
     }
     const m = mail.sent[0]!;
-    expect(m.subject).toBe('Criar nova senha');
-    expect(m.text).toContain('Olá, Murilo.');
+    expect(m.subject).toBe('Crie a sua senha nova');
+    expect(m.text).toContain('Oi, Murilo.');
     expect(m.text).not.toContain('Silva');
-    expect(m.html).toContain('>Criar nova senha</a>');
+    expect(m.html).toContain('>Criar senha nova</a>');
     expect(m.text).toContain('1 hora');
     const url = /(\S+\/login\/nova-senha#t=\S+)/.exec(m.text)?.[1] ?? '';
     expect(url.startsWith(`${ORIGIN}/login/nova-senha#t=`)).toBe(true);
@@ -121,6 +122,19 @@ describe('esqueci minha senha', () => {
     const [u] = await owner<{ must: boolean }[]>`
       select must_change_password as must from "user" where email = ${EMAIL}`;
     expect(u?.must).toBe(false);
+  });
+
+  it('a tela confere o link ao abrir: mostra o usuário; vencido ou usado, não', async () => {
+    await forgot('murilo');
+    const token = tokenOf();
+    const ok = await h.post(CHECK, { token });
+    expect(ok.status).toBe(200);
+    expect(ok.body).toEqual({ username: 'murilo' });
+    const bogus = await h.post(CHECK, { token: 'x'.repeat(43) });
+    expect(bogus.status).toBe(400);
+    expect(bogus.body.code).toBe('INVALID_TOKEN');
+    expect((await h.post(RESET, { token, newPassword: 'senha-nova-1' })).status).toBe(200);
+    expect((await h.post(CHECK, { token })).status).toBe(400);
   });
 
   it('link de uso único', async () => {
@@ -151,6 +165,7 @@ describe('esqueci minha senha', () => {
     expect(v?.mins).toBe(60);
     await owner`update verification set expires_at = now() - interval '1 second'
       where identifier like 'npac-reset:%'`;
+    expect((await h.post(CHECK, { token: tokenOf() })).status).toBe(400);
     const res = await h.post(RESET, { token: tokenOf(), newPassword: 'senha-nova-1' });
     expect(res.status).toBe(400);
     expect(res.body.code).toBe('INVALID_TOKEN');

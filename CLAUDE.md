@@ -186,9 +186,10 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   sempre, para o tempo não revelar). A liderança segue redefinindo a senha no Admin;
   Diretoria trancada: `reset-password-cli.js <usuário> [--mfa]` no shell da api (`db/src/reset-password.ts`).
 - **Esqueci minha senha por e-mail** (NPAC-50, 18/11/2026, plano `docs/plans/pedidos-18-11.md`, Fase 2):
-  `/login/esqueci` (usuário ou e-mail) → `POST /api/auth/forgot-password` → e-mail "Criar nova senha" com
-  `/login/nova-senha#t=<token>` (fragmento: não vai a servidor nenhum; sem e-mail ou usuário no link) →
-  `POST /api/auth/forgot-password/reset` troca a senha, apaga `must_change_password`, derruba **todas** as
+  `/login/esqueci` (usuário ou e-mail) → `POST /api/auth/forgot-password` → e-mail "Crie a sua senha nova"
+  com o botão "Criar senha nova" e `/login/nova-senha#t=<token>` (fragmento: não vai a servidor nenhum; sem
+  e-mail ou usuário no link) → a tela confere o link ao abrir (`POST …/forgot-password/check` → usuário, para
+  "Para o usuário ana", ou "Link vencido") → `POST /api/auth/forgot-password/reset` troca a senha, apaga `must_change_password`, derruba **todas** as
   sessões e devolve o usuário, e a tela entra pelo login normal (`signIn.username`, mesma auditoria e TOTP).
   Plugin `api/auth/password-reset.ts`: resposta igual e com piso de 400 ms exista ou não a conta; 3/hora por IP
   (rate limit da rota) e por conta (linhas `npac-reset:` em `verification`, advisory lock); link de uso único
@@ -196,6 +197,8 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   desativada não recebe nem usa link; auditoria `auth.password_reset.requested`/`auth.password_reset` sem
   e-mail. `/request-password-reset` e `/reset-password` do Better Auth ficam em `disabledPaths`. Sem envio
   configurado, `GET forgot-password/status` diz `enabled: false`, o POST dá 404 e a tela manda pedir à liderança.
+  Telas e textos seguem o protótipo do canvas "Login da equipe" (linha "Esqueci minha senha (fase 2)", 4 telas);
+  "Enviar de novo" libera 1 minuto depois de cada envio. "Link vencido" e o aviso sem SMTP não estão no protótipo.
 - **Envio de e-mail** (`api/mail/*`): `MailSender` (`MAIL_SENDER`, módulo global) com SMTP pelo nodemailer;
   variáveis `SMTP_HOST`, `SMTP_PORT` (465 = TLS; 587 = STARTTLS), `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` (Zod em
   `api/config/env.ts`; `MAIL_FROM` obrigatória com host; usuário e senha juntos). Gmail do sistema hoje

@@ -33,6 +33,8 @@ async function pedirLink(page: Page, login: string) {
   await page.getByLabel('Usuário ou e-mail', { exact: true }).fill(login);
   await page.getByRole('button', { name: 'Enviar link' }).click();
   await expect(page.getByRole('heading', { name: 'Confira o seu e-mail' })).toBeVisible();
+  // "Dá para pedir de novo em 1 minuto".
+  await expect(page.getByRole('button', { name: 'Enviar de novo' })).toBeDisabled();
 }
 
 let originalHash = '';
@@ -59,17 +61,18 @@ test('esqueci a senha: e-mail com o link, nova senha e já entra', async ({ page
   await page.screenshot({ path: 'test-results/esqueci-senha.png' });
 
   const [m] = (await caixa()).filter((x) => x.to.includes(EMAIL));
-  expect(m?.subject).toBe('Criar nova senha');
-  expect(m?.text).toContain('Olá, Murilo.');
+  expect(m?.subject).toBe('Crie a sua senha nova');
+  expect(m?.text).toContain('Oi, Murilo.');
   const link = await linkDoEmail();
   // Sem e-mail nem usuário no endereço; o token vai no fragmento, que não chega a servidor nenhum.
   expect(link).toMatch(new RegExp(`^${WEB_ORIGIN}/login/nova-senha#t=[A-Za-z0-9_-]+$`));
   expect(link).not.toContain('murilo');
 
   await page.goto(link);
-  await expect(page.getByRole('heading', { name: 'Criar nova senha' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Crie a sua senha nova' })).toBeVisible();
+  await expect(page.getByText('Para o usuário murilo.')).toBeVisible();
   await page.screenshot({ path: 'test-results/nova-senha.png' });
-  await page.getByLabel('Nova senha', { exact: true }).fill('senha-nova-do-e2e');
+  await page.getByLabel('Senha nova', { exact: true }).fill('senha-nova-do-e2e');
   await page.getByLabel('Confirme a senha', { exact: true }).fill('senha-nova-do-e2e');
   await page.getByRole('button', { name: 'Salvar e entrar' }).click();
   await page.waitForURL(/\/dashboard/);
@@ -78,10 +81,8 @@ test('esqueci a senha: e-mail com o link, nova senha e já entra', async ({ page
   // limpar os cookies: sem sessão, a tela aberta redirecionaria no meio da próxima navegação.
   await page.goto('about:blank');
   await page.context().clearCookies();
+  // Já usado: a tela confere ao abrir e nem mostra o formulário.
   await page.goto(link);
-  await page.getByLabel('Nova senha', { exact: true }).fill('outra-senha');
-  await page.getByLabel('Confirme a senha', { exact: true }).fill('outra-senha');
-  await page.getByRole('button', { name: 'Salvar e entrar' }).click();
   await expect(page.getByRole('heading', { name: 'Link vencido' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Pedir outro link' })).toHaveAttribute(
     'href',
@@ -99,24 +100,26 @@ test('esqueci a senha: e-mail com o link, nova senha e já entra', async ({ page
 
 test('usuário que não existe vê a mesma tela e nada é enviado', async ({ page }) => {
   await pedirLink(page, 'ninguem@npac.com.br');
-  await expect(
-    page.getByText('Se houver uma conta ativa com esse usuário ou e-mail'),
-  ).toBeVisible();
+  await expect(page.getByText('Se os dados estiverem certos')).toBeVisible();
   // Dá tempo para um envio que não deveria acontecer.
   await page.waitForTimeout(1_000);
   expect(await caixa()).toHaveLength(0);
 });
 
-test('link sem token mostra "Link vencido" com o caminho para pedir outro', async ({ page }) => {
+test('link sem token ou inválido mostra "Link vencido" e o caminho para pedir outro', async ({
+  page,
+}) => {
   await page.goto('/login/nova-senha');
   await expect(page.getByRole('heading', { name: 'Link vencido' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Pedir outro link' })).toBeVisible();
+  await page.goto(`/login/nova-senha#t=${'x'.repeat(43)}`);
+  await expect(page.getByRole('heading', { name: 'Link vencido' })).toBeVisible();
 });
 
 test('senhas diferentes não saem da tela', async ({ page }) => {
   await pedirLink(page, 'murilo');
   await page.goto(await linkDoEmail());
-  await page.getByLabel('Nova senha', { exact: true }).fill('senha-a-123');
+  await page.getByLabel('Senha nova', { exact: true }).fill('senha-a-123');
   await page.getByLabel('Confirme a senha', { exact: true }).fill('senha-b-123');
   await page.getByRole('button', { name: 'Salvar e entrar' }).click();
   await expect(page.getByRole('alert').and(page.getByText('As senhas não conferem'))).toBeVisible();

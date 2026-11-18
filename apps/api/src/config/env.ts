@@ -47,7 +47,7 @@ const envSchema = z
     SMTP_PORT: z.coerce.number().int().positive().default(465),
     SMTP_USER: z.string().min(1).optional(),
     SMTP_PASS: z.string().min(1).optional(),
-    /** Remetente, ex.: `NPAC <npac.crm.sistema@gmail.com>` (no Gmail, o endereço da conta). */
+    /** Remetente, ex.: `NPAC Corporation <npac.crm.sistema@gmail.com>` (no Gmail, o endereço da conta). */
     MAIL_FROM: z.string().min(3).optional(),
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   })

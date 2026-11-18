@@ -44,11 +44,11 @@ describe('envio por SMTP', () => {
     spy.mockRestore();
     const m = caixa.mensagens.at(-1)!;
     expect(m.to).toEqual(['pessoa@npac.test']);
-    expect(m.subject).toBe('Criar nova senha');
-    expect(m.text).toContain('Olá, Ana.');
+    expect(m.subject).toBe('Crie a sua senha nova');
+    expect(m.text).toContain('Oi, Ana.');
     expect(m.text).toContain(url);
     expect(m.html).toContain(`href="${url}"`);
-    expect(m.html).toContain('Recebemos um pedido para criar uma nova senha');
+    expect(m.html).toContain('Recebemos um pedido para criar uma senha nova no sistema da NPAC.');
     expect(logs.join('\n')).toContain('e-mail enviado: 127.0.0.1');
     expect(logs.join('\n')).not.toContain('@');
   });

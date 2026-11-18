@@ -1,8 +1,9 @@
 'use client';
 import Link from 'next/link';
-import { useRef, useState, useSyncExternalStore, type FormEvent } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent } from 'react';
 import { authClient } from '@/lib/auth-client';
 import { rememberUser } from '@/lib/last-user';
+import { Note } from './note';
 import { SubmitButton } from './submit-button';
 
 /**
@@ -18,9 +19,13 @@ const readToken = (hash: string) => {
   return /^[A-Za-z0-9_-]{16,200}$/.test(t) ? t : '';
 };
 
+const EXPIRED = 'Este link venceu ou já foi usado. Peça outro.';
 type Outcome = { kind: 'invalid'; message: string } | { kind: 'signin' };
 
-/** Nova senha pelo link do e-mail: salva, derruba as outras sessões (na API) e entra. */
+/**
+ * Senha nova pelo link do e-mail (protótipo "Login da equipe", tela 4). Ao abrir, confere o link
+ * (mostra o usuário ou "Link vencido"); ao salvar, a API derruba as outras sessões e a tela entra.
+ */
 export function NewPasswordForm() {
   const hash = useSyncExternalStore(
     subscribe,
@@ -28,6 +33,7 @@ export function NewPasswordForm() {
     () => null,
   );
   const token = hash === null ? null : readToken(hash);
+  const [checked, setChecked] = useState<{ token: string; username: string } | null>(null);
   const [outcome, setOutcome] = useState<Outcome | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -37,6 +43,31 @@ export function NewPasswordForm() {
     setBusy(false);
     setError(message);
   };
+
+  useEffect(() => {
+    if (!token) return;
+    const abort = new AbortController();
+    void fetch('/api/auth/forgot-password/check', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ token }),
+      signal: abort.signal,
+    })
+      .then(async (res) => {
+        const body = (await res.json().catch(() => null)) as {
+          username?: string;
+          code?: string;
+          message?: string;
+        } | null;
+        if (res.ok && body?.username) setChecked({ token, username: body.username });
+        else if (body?.code === 'INVALID_TOKEN')
+          setOutcome({ kind: 'invalid', message: body.message ?? EXPIRED });
+      })
+      // Sem rede ou abortado: o formulário fica; a troca confere o link de novo.
+      .catch(() => undefined);
+    return () => abort.abort();
+  }, [token]);
+  const username = checked && checked.token === token ? checked.username : null;
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -59,7 +90,7 @@ export function NewPasswordForm() {
     } | null;
     if (!res?.ok || !body?.username) {
       if (body?.code === 'INVALID_TOKEN')
-        return setOutcome({ kind: 'invalid', message: body.message ?? '' });
+        return setOutcome({ kind: 'invalid', message: body.message ?? EXPIRED });
       if (res?.status === 429) return fail('Muitas tentativas. Aguarde alguns minutos.');
       return fail(
         res?.status === 400 && body?.message
@@ -96,15 +127,14 @@ export function NewPasswordForm() {
       <div className="flex flex-col gap-4" role="status">
         <h2 className="text-[28px] font-bold tracking-[-0.035em]">Link vencido</h2>
         <p className="-mt-2 text-[15px] text-[#333336]">
-          {(outcome?.kind === 'invalid' && outcome.message) ||
-            'Este link venceu ou já foi usado. Peça outro.'}
+          {outcome?.kind === 'invalid' ? outcome.message : EXPIRED}
         </p>
         <Link href="/login/esqueci" className="btn-dark flex items-center justify-center">
           Pedir outro link
         </Link>
         <Link
           href="/login"
-          className="self-center text-sm font-medium text-[#333336] underline-offset-2 hover:underline"
+          className="flex min-h-11 items-center justify-center text-sm font-medium text-[#333336] underline-offset-2 hover:underline"
         >
           Voltar ao login
         </Link>
@@ -113,18 +143,23 @@ export function NewPasswordForm() {
   }
 
   return (
-    <form className="flex flex-col gap-4" aria-label="Criar nova senha" onSubmit={onSubmit}>
-      <h2 className="text-[28px] font-bold tracking-[-0.035em]">Criar nova senha</h2>
-      <p className="-mt-2 mb-1 text-[15px] text-[#333336]">
-        Escolha a senha que você vai usar para entrar. As sessões abertas em outros aparelhos são
-        encerradas.
+    <form className="flex flex-col gap-4" aria-label="Crie a sua senha nova" onSubmit={onSubmit}>
+      <h2 className="text-[28px] font-bold tracking-[-0.035em]">Crie a sua senha nova</h2>
+      {/* Altura reservada: a linha do usuário chega depois da conferência do link, sem pular. */}
+      <p className="-mt-2 mb-1 min-h-[1.5em] text-[15px] text-[#333336]">
+        {username && (
+          <>
+            Para o usuário <b className="font-semibold text-ink">{username}</b>.
+          </>
+        )}
       </p>
       <label className="flex flex-col gap-2 text-[13px] font-semibold text-ink">
-        Nova senha
+        Senha nova
         <input
           name="password"
           type="password"
           className="field"
+          placeholder="Senha nova"
           autoComplete="new-password"
           minLength={3}
           maxLength={128}
@@ -138,6 +173,7 @@ export function NewPasswordForm() {
           name="confirm"
           type="password"
           className="field"
+          placeholder="Repita a senha"
           autoComplete="new-password"
           maxLength={128}
           required
@@ -151,6 +187,7 @@ export function NewPasswordForm() {
       <SubmitButton busy={busy} pending="Salvando…">
         Salvar e entrar
       </SubmitButton>
+      <Note>Ao salvar, a sua conta sai dos outros aparelhos e entra neste.</Note>
     </form>
   );
 }
