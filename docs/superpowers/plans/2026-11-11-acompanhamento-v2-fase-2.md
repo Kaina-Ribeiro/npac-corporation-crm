@@ -26,7 +26,7 @@ da Fase 1 (`docs/superpowers/plans/2026-11-10-acompanhamento-v2-design.md`) e o 
 |---|---|---|
 | 1 | Catálogo de PMEs, ciclos e tarefas do ciclo (envio, extras, encerramento, status derivado) + Configurações > PMEs + card "PME atual" na ficha | ✅ 11/11 (PR na `release/v0.14`) |
 | 2 | Metas, tarefas da reunião (até 3, prazo), cobrança da reunião anterior, % do PME (tarefas e metas) | ✅ 12/11 (sem S1/S3/S4; PR na `release/v0.15`) |
-| 3 | Check-ins lançados pela equipe, semáforo (função, histórico semanal, sequência), colunas em Mentorados | ⏳ |
+| 3 | Check-ins lançados pela equipe, semáforo (função, histórico semanal, sequência), colunas em Mentorados, status da meta, segunda chance manual | ⏳ em andamento (18/11, `release/v0.18`) |
 | 4 | Fila (COBRANCA, SEMAFORO, ENVIAR_PME, PME_ATRASADO, FIM_PME espera o ciclo), push, aba 7 "PMEs e ciclos", CSV, fechamento | ⏳ |
 | 5 | Depois da Eduarda: P1, P2, P3 da spec §9 (pequenas) | aguardando respostas |
 
@@ -230,6 +230,79 @@ Feito quando: `mentoria_checkins` e `mentoria_semaforo_historico`; lançar check
 respondeu, avanço, travou, próximo passo); `mentoria_semaforo(inscricao, dia)` com os 6 motivos;
 histórico gravado na virada da semana pelo timer único e completado ao subir a API (idempotente);
 sequência de semanas; Mentorados com PME atual, semáforo e % do PME, filtro por semáforo.
+Entram também o status da meta (E10) e a segunda chance manual (E15, E16).
+
+## Parte 3 — tarefas
+
+Branch `feat/NPAC-43-fase-2-parte-3-semaforo`, a partir da `origin/release/v0.18`. Execução nativa (sem
+subagentes). Migration `0069` (a última era a 0068).
+
+**Como ficou** (spec E9–E16, mais detalhes técnicos sem efeito de negócio):
+- **Entrada no ar (E13):** tabela de uma linha `mentoria_semaforo_inicio(desde)`, preenchida pela migration com o
+  dia de Brasília em que ela roda; sem grant para `npac_app` (só as funções leem). Semana válida = começa depois de
+  `desde` e depois de `inicio_jornada`. Para "todo mundo começa verde": tarefas contam com prazo a partir de
+  `desde`; o atraso do PME no semáforo conta de `greatest(prazo atual, desde)`.
+- **Check-in (E9):** `mentoria_checkins`; `semana` = coluna gerada, segunda-feira de Brasília do `enviado_em` (um por
+  semana por inscrição); `respondeu` ⇔ `respondido_em` preenchido (CHECK); resposta não antes do envio; envio e
+  resposta nunca no futuro (API). Avanço, travou e próximo passo cifrados. Leitura: Admin, Acompanhamento, Operação
+  (`(select mentoria_ve_todas())`); escrita: área nova `CHECKIN` (Admin, Acompanhamento). Sem DELETE. LGPD zera os
+  textos. Histórico `checkin.lancado` / `checkin.editado` (nomes de campos).
+- **Semáforo:** `mentoria_semaforo_calc(inscricao, dia)` (interna, sem grant) e `mentoria_semaforo(inscricao, dia)`
+  (para a API: nada para quem não é Admin, Acompanhamento ou Operação). Devolve `cor` e `motivos` (um por par, o mais
+  grave). Tarefas: só origem REUNIAO (PDF p. 10, passo 6; as do ciclo já estão no `PME_*`), ordem prazo desc,
+  criado_em desc, id desc.
+- **Sequência:** `mentoria_sequencia_checkins(inscricao, dia)`: semanas seguidas com check-in respondido, da última
+  encerrada para trás.
+- **Histórico:** `mentoria_semaforo_historico` (semana, cor, motivos; único por inscrição e semana), escrita só por
+  `mentoria_semaforo_gravar(hoje)` (SECURITY DEFINER, `ON CONFLICT DO NOTHING`): para cada ATIVO, as semanas que
+  acabaram depois da entrada no ar e do início da jornada, a partir da última gravada, cor calculada na segunda
+  seguinte. O `AvisosScheduler` chama em todo disparo (ao subir e na virada) e arma o timer também para a próxima
+  segunda 00:00 de Brasília.
+- **Segunda chance (E15, E16):** `mentoria_ciclos.segunda_chance_ate`; `PATCH ciclos/:id` aceita `segundaChanceAte`
+  (área nova `SEGUNDA_CHANCE`: Admin, Acompanhamento; o gatilho barra a Operação e ciclo fechado). Data depois do prazo
+  original e não antes de hoje; nula desfaz. `mentoria_ciclo_status` ganha a versão com `segunda_chance_ate`
+  (`SEGUNDA_CHANCE` enquanto hoje ≤ data); `diasAtraso` do card e do semáforo contam do prazo atual. Histórico
+  `pme.segunda_chance`. A tela sugere hoje + 7 dias.
+- **Status da meta (E10):** `mentoria_metas.status` (ATINGIDA, NAO_ATINGIDA, nulo); `PATCH metas/:id` aceita `status`.
+- **Mentorados:** colunas PME atual (número do ciclo mais recente e status), semáforo e % do PME (tarefas do ciclo
+  mais recente); filtro por semáforo (lembrado com os outros filtros da tela).
+- `app_revision`: o módulo não usa o canal ao vivo (nenhuma tabela `mentoria_*` tem o gatilho); as novas também não.
+
+### Tarefa 3.1: Banco (0069) — Status: ⏳
+**Files:** Modify `db/src/schema/mentoria.ts` · Create `db/drizzle/0069_acompanhamento_v2_semaforo.sql` + snapshot +
+journal · Test `db/test/mentoria-v2-semaforo.test.ts`, `db/test/rls-por-consulta.test.ts`, `db/test/mentoria-v2-metas.test.ts`
+- [ ] Testes RED: RLS de check-ins e histórico por perfil (Operação lê sem escrever, Manu e Leo não veem, sem DELETE),
+  um check-in por semana, cada motivo, entrada no ar verde, pausado sem semáforo, segunda chance, gravar idempotente.
+- [ ] Schema + `generate` + SQL manual; `pnpm --filter @npac/db test` verde. Commit.
+
+### Tarefa 3.2: API — Status: ⏳
+**Files:** Create `api/mentoria/checkins.service.ts`, `checkins.controller.ts`, `semaforo.service.ts`,
+`sh/mentoria/semaforo.ts` · Modify `sh/schemas/mentoria.ts`, `sh/mentoria/dto.ts`, `sh/mentoria/pmes.ts`,
+`ciclos.*`, `metas.service.ts`, `ficha.service.ts`, `inscricoes.service.ts`, `avisos.scheduler.ts`, `mentoria.module.ts` ·
+Test `api/test/mentoria-v2-semaforo.e2e.test.ts`
+- [ ] Testes RED (spec §8 da parte): cada motivo; todo mundo verde na entrada no ar; PENDENTE vencida conta; PARCIAL
+  não; pausado sem semáforo; histórico idempotente ao subir duas vezes; segunda chance (status, prazo atual, Operação
+  404); check-in (Operação e Manu 404, um por semana); status da meta; lista com colunas e filtro.
+- [ ] Implementar; suítes do módulo verdes. Commit.
+
+### Tarefa 3.3: Telas — Status: ⏳
+**Files:** Create `components/acompanhamento/semaforo.tsx` (selo, motivos, histórico, sequência, check-ins),
+`web/e2e/acompanhamento-v2-semaforo.spec.ts` · Modify `ficha.tsx`, `pme-atual.tsx`, `metas.tsx`,
+`mentorados-lista.tsx`, `lib/acompanhamento-prefs.ts`, `historico-lista.tsx`, `modulo.css`
+- [ ] Playwright por perfil (Duda lança check-in, dá segunda chance, marca meta, filtra por semáforo; Operação vê sem
+  editar; Manu sem semáforo nem check-ins). Capturas 375/768/1024/1440. Commit.
+
+### Tarefa 3.4: Fechamento — Status: ⏳
+- [ ] `pnpm lint && pnpm typecheck`, `@npac/db`, `@npac/api`, Playwright completo; `CLAUDE.md`; Status acima; PR.
+
+**Pendências da Parte 3** (sem base no PDF, na spec ou nas respostas de 18/11; nada decidido):
+1. **Pausa e o semáforo:** quem volta da pausa pode voltar vermelho, porque as semanas e tarefas vencidas durante a
+   pausa contam. As semanas pausadas deveriam ficar de fora?
+2. **Tarefas do ciclo no semáforo:** só as da reunião contam (PDF p. 10). Confirmar que as extras e o encerramento
+   ficam só no `PME_7`/`PME_15`.
+3. **Segunda chance:** pode ser dada mais de uma vez ou corrigida? Hoje a data muda enquanto o ciclo está aberto, e
+   cada mudança vai para o histórico.
+4. **Especialista:** não vê semáforo nem check-ins (§2, "só"). Confirmar.
 
 ## Parte 4 — Fila, avisos e aba 7
 
