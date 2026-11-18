@@ -4,13 +4,22 @@ import { useRef, useState, type FormEvent } from 'react';
 import { authClient } from '@/lib/auth-client';
 import { submitWhenComplete } from '@/lib/otp-input';
 import { forgetUser, rememberUser } from '@/lib/last-user';
+import type { AccessArea } from '@npac/shared/enums';
+import { LOGIN_AREA } from './area';
 import { Note } from './note';
 import { SubmitButton } from './submit-button';
 
 const GENERIC_ERROR = 'Usuário ou senha inválidos';
 
 /** Login em dois passos: usuário + senha, depois o código do autenticador (se exigido). */
-export function LoginForm({ lastUser }: { lastUser?: string }) {
+export function LoginForm({
+  lastUser,
+  area = 'COMERCIAL',
+}: {
+  lastUser?: string;
+  area?: AccessArea;
+}) {
+  const tela = LOGIN_AREA[area];
   const [remembered, setRemembered] = useState(lastUser);
   const [suggest, setSuggest] = useState(false);
   const userRef = useRef<HTMLInputElement>(null);
@@ -54,8 +63,9 @@ export function LoginForm({ lastUser }: { lastUser?: string }) {
       return setStep('totp');
     }
     // Segue "Entrando…" até a navegação trocar a tela: nada de liberar o botão antes.
-    // Carga completa: o servidor manda cada cargo para a sua tela inicial (Acompanhamento → módulo).
-    window.location.replace('/');
+    // Carga completa: o servidor manda cada cargo para a sua tela inicial (Acompanhamento → módulo;
+    // pela tela do Acompanhamento, quem vê os dois cai na Fila).
+    window.location.replace(tela.destino);
   }
 
   async function onTotp(e: FormEvent<HTMLFormElement>) {
@@ -64,8 +74,7 @@ export function LoginForm({ lastUser }: { lastUser?: string }) {
     if (!start()) return; // envio automático + clique não mandam o código duas vezes
     const { error: err } = await authClient.twoFactor.verifyTotp({ code });
     if (err) return fail('Código inválido. Tente de novo.');
-    // Carga completa: o servidor manda cada cargo para a sua tela inicial (Acompanhamento → módulo).
-    window.location.replace('/');
+    window.location.replace(tela.destino);
   }
 
   if (step === 'totp') {
@@ -120,9 +129,17 @@ export function LoginForm({ lastUser }: { lastUser?: string }) {
   }
 
   return (
-    <form key="password" className="flex flex-col gap-4" aria-label="Login" onSubmit={onPassword}>
-      <h2 className="text-[28px] font-bold tracking-[-0.035em]">Bem-vindo de volta</h2>
-      <p className="-mt-2 mb-1 text-[15px] text-[#333336]">
+    // Celular: espaços e letras do protótipo, para o formulário inteiro caber sem rolar.
+    <form
+      key="password"
+      className="flex flex-col gap-3 sm:gap-4"
+      aria-label="Login"
+      onSubmit={onPassword}
+    >
+      <h2 className="text-2xl font-bold tracking-[-0.03em] sm:text-[28px] sm:tracking-[-0.035em]">
+        Bem-vindo de volta
+      </h2>
+      <p className="-mt-1.5 mb-0.5 text-sm text-[#333336] sm:-mt-2 sm:mb-1 sm:text-[15px]">
         Entre com o seu usuário da NPAC e a sua senha.
       </p>
       <div className="flex flex-col gap-2">
@@ -196,7 +213,7 @@ export function LoginForm({ lastUser }: { lastUser?: string }) {
           ref={passwordRef}
           name="password"
           type="password"
-          className="field"
+          className="field font-normal"
           placeholder="Sua senha"
           autoComplete="current-password"
           required
@@ -209,7 +226,7 @@ export function LoginForm({ lastUser }: { lastUser?: string }) {
       )}
       <div className="-mt-1 text-sm">
         <Link
-          href="/login/esqueci"
+          href={`${tela.base}/esqueci`}
           className="inline-flex min-h-8 items-center font-medium text-[#333336] underline-offset-2 hover:underline"
         >
           Esqueci minha senha
@@ -224,7 +241,7 @@ export function LoginForm({ lastUser }: { lastUser?: string }) {
       <p className="-mt-1 text-center text-sm text-[#333336]">
         Não tem conta?{' '}
         <Link
-          href="/login/solicitar"
+          href={`${tela.base}/solicitar`}
           className="font-semibold text-ink underline-offset-2 hover:underline"
         >
           Solicitar acesso

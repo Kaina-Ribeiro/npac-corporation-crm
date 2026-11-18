@@ -65,6 +65,29 @@ describe('pedido de acesso', () => {
   it('valida campos', async () => {
     expect((await h.post(REQUEST, { ...nova, username: 'Com Espaço' })).status).toBe(400);
     expect((await h.post(REQUEST, { ...nova, role: 'HEAD' })).status).toBe(400);
+    expect((await h.post(REQUEST, { ...nova, area: 'FINANCEIRO' })).status).toBe(400);
+  });
+
+  it('guarda a área da tela de onde veio o pedido (sem área, comercial)', async () => {
+    expect((await h.post(REQUEST, { ...nova, area: 'ACOMPANHAMENTO' })).status).toBe(200);
+    expect((await h.post(REQUEST, { ...nova, username: 'outra.pessoa' })).status).toBe(200);
+    expect(
+      (await h.post(REQUEST, { ...nova, username: 'mais.uma', area: 'COMERCIAL' })).status,
+    ).toBe(200);
+    const rows = await owner<{ username: string; area: string }[]>`
+      select username, area from access_requests order by username`;
+    expect(rows).toEqual([
+      { username: 'mais.uma', area: 'COMERCIAL' },
+      { username: 'nova.pessoa', area: 'ACOMPANHAMENTO' },
+      { username: 'outra.pessoa', area: 'COMERCIAL' },
+    ]);
+  });
+
+  it('o banco recusa área fora da lista', async () => {
+    await expect(
+      owner`insert into access_requests (name, username, email, password_hash, area)
+            values ('X', 'xx.yy', 'x@novo.test', 'h', 'FINANCEIRO')`,
+    ).rejects.toThrow(/access_requests_area_check/);
   });
 
   it('limita a 3 por hora por IP', async () => {
@@ -115,7 +138,13 @@ describe('aprovação', () => {
     expect((await h.post(`${LIST}/${id}/approve`, SDR, ale)).status).toBe(403);
   });
 
-  it('liderança lista os pedidos sem a senha', async () => {
+  it('liderança lista os pedidos sem a senha, com a área de cada um', async () => {
+    await h.post(REQUEST, {
+      ...nova,
+      username: 'da.mentoria',
+      email: 'mentoria@novo.test',
+      area: 'ACOMPANHAMENTO',
+    });
     const res = await h.get(LIST, head);
     expect(res.status).toBe(200);
     expect(res.body).toEqual([
@@ -124,6 +153,15 @@ describe('aprovação', () => {
         name: 'Nova Pessoa',
         username: 'nova.pessoa',
         email: 'nova@novo.test',
+        area: 'COMERCIAL',
+        createdAt: expect.any(String),
+      },
+      {
+        id: expect.any(String),
+        name: 'Nova Pessoa',
+        username: 'da.mentoria',
+        email: 'mentoria@novo.test',
+        area: 'ACOMPANHAMENTO',
         createdAt: expect.any(String),
       },
     ]);

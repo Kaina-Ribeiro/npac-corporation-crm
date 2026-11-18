@@ -121,7 +121,13 @@ export function LeadsBrowser({
   }, [canAssign]);
   const sdrs = catalog.team.filter((u) => u.canProspect);
   const closers = catalog.team.filter((u) => u.canClose);
-  useCrmRefresh(() => search(q, data.page));
+  // Aviso ao vivo repete o último pedido feito, não o último que voltou: com a busca ainda em voo,
+  // o `q` da tela é o anterior, e repetir ele trocava o resultado pela lista inteira.
+  const lastRequest = useRef({ term: q, target: data.page, selected: filters });
+  useCrmRefresh(() => {
+    const { term, target, selected } = lastRequest.current;
+    return search(term, target, selected);
+  });
   const page = data.page;
   const pages = Math.max(1, Math.ceil(data.total / data.pageSize));
 
@@ -164,6 +170,7 @@ export function LeadsBrowser({
 
   async function search(term: string, target = 1, selected = filters) {
     const mine = ++seq.current;
+    lastRequest.current = { term, target, selected };
     setBusy(true);
     setError('');
     try {

@@ -1,18 +1,17 @@
 'use client';
 import Link from 'next/link';
+import type { AccessArea } from '@npac/shared/enums';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { LOGIN_AREA } from './area';
 import { Note } from './note';
 import { SubmitButton } from './submit-button';
 
 /** "Dá para pedir de novo em 1 minuto" (protótipo, tela 2). */
 const RESEND_AFTER_MS = 60_000;
 
-function Back() {
+function Back({ href }: { href: string }) {
   return (
-    <Link
-      href="/login"
-      className="flex min-h-8 items-center gap-1 self-start text-sm text-[#333336]"
-    >
+    <Link href={href} className="flex min-h-8 items-center gap-1 self-start text-sm text-[#333336]">
       ‹ Voltar
     </Link>
   );
@@ -26,10 +25,14 @@ function Back() {
 export function ForgotPasswordForm({
   enabled: initiallyEnabled,
   lastUser,
+  area = 'COMERCIAL',
 }: {
   enabled: boolean;
   lastUser?: string;
+  /** Tela de onde veio: o "Voltar" leva de volta a ela. */
+  area?: AccessArea;
 }) {
+  const loginHref = LOGIN_AREA[area].base;
   const [enabled, setEnabled] = useState(initiallyEnabled);
   const [login, setLogin] = useState<string | null>(null);
   const [cooling, setCooling] = useState(false);
@@ -74,13 +77,13 @@ export function ForgotPasswordForm({
   if (!enabled) {
     return (
       <div className="flex flex-col gap-4">
-        <Back />
+        <Back href={loginHref} />
         <h2 className="text-[28px] font-bold tracking-[-0.035em]">Esqueci minha senha</h2>
         <p role="status" className="-mt-2 text-[15px] text-[#333336]">
           Peça para a liderança redefinir a sua senha em Admin. Depois, entre com o seu usuário e a
           senha nova.
         </p>
-        <Link href="/login" className="btn-dark flex items-center justify-center">
+        <Link href={loginHref} className="btn-dark flex items-center justify-center">
           Voltar ao login
         </Link>
       </div>
@@ -122,7 +125,7 @@ export function ForgotPasswordForm({
             {error}
           </p>
         )}
-        <Link href="/login" className="btn-dark mt-1 flex items-center justify-center">
+        <Link href={loginHref} className="btn-dark mt-1 flex items-center justify-center">
           Voltar ao login
         </Link>
         <button
@@ -140,7 +143,7 @@ export function ForgotPasswordForm({
 
   return (
     <form className="flex flex-col gap-4" aria-label="Esqueci minha senha" onSubmit={onSubmit}>
-      <Back />
+      <Back href={loginHref} />
       <h2 className="text-[28px] font-bold tracking-[-0.035em]">Esqueci minha senha</h2>
       <p className="-mt-2 mb-1 text-[15px] text-[#333336]">
         Digite o seu usuário ou o e-mail cadastrado. Enviamos um link para você criar uma senha

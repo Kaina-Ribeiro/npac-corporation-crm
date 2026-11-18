@@ -74,7 +74,7 @@ async function enviar(key: string, patch: Record<string, unknown>, version: numb
   } catch {
     throw new ErroDeEnvio('Sem conexão');
   }
-  if (res.status === 401) window.location.replace('/login');
+  if (res.status === 401) window.location.replace('/login/acompanhamento');
   if (!res.ok) {
     const data = (await res.json().catch(() => ({}))) as { message?: unknown };
     const msg = typeof data.message === 'string' ? data.message : 'Não foi possível salvar.';

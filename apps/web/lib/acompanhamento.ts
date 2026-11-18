@@ -21,7 +21,7 @@ export const precisaMfa = (me: Me) =>
  */
 export async function sessaoDoModulo(): Promise<Me | null> {
   const me = await getSession();
-  if (!me) redirect('/login');
+  if (!me) redirect('/login/acompanhamento');
   if (!me.modules.mentoria) notFound();
   return precisaMfa(me) ? null : me;
 }
