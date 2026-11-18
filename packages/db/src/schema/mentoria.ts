@@ -617,10 +617,25 @@ export const mentoriaContatos = pgTable(
     respondeu: boolean('respondeu'),
     tempoRespostaMin: integer('tempo_resposta_min'),
     observacao: text('observacao'),
+    /** Contato de um degrau da escada de atraso do PME (PDF p. 19, Fase 2, Parte 4). */
+    cicloId: uuid('ciclo_id').references((): AnyPgColumn => mentoriaCiclos.id, {
+      onDelete: 'set null',
+    }),
+    degrau: smallint('degrau'),
+    /** O prazo atual do ciclo quando o degrau foi registrado: com segunda chance, a escada recomeça. */
+    degrauPrazo: date('degrau_prazo'),
     criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     index('mentoria_contatos_inscricao').on(t.inscricaoId, t.quando),
+    index('mentoria_contatos_degrau')
+      .on(t.cicloId, t.degrau)
+      .where(sql`${t.degrau} is not null`),
+    check('mentoria_contatos_degrau', sql`${t.degrau} in (3, 7, 10, 15)`),
+    check(
+      'mentoria_contatos_degrau_prazo',
+      sql`(${t.degrau} is null) = (${t.degrauPrazo} is null)`,
+    ),
     check(
       'mentoria_contatos_canal',
       sql`${t.canal} in ('WHATSAPP', 'LIGACAO', 'EMAIL', 'REUNIAO', 'OUTRO')`,

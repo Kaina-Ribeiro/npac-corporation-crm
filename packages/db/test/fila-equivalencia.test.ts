@@ -2,6 +2,10 @@
 // função por linha que relê pausas sob a RLS. A versão da 0053 é recriada aqui com outro nome, a
 // partir do texto da migration, e as duas têm de devolver exatamente as mesmas linhas, na mesma
 // ordem, para cada usuário e horário, sobre dados variados (gerados com semente fixa).
+// Fase 2, Parte 4 (0070): a Fila ganha COBRANCA, SEMAFORO, ENVIAR_PME e PME_ATRASADO e a ação FIM_PME
+// espera o ciclo. Sem ciclos, tarefas e com o semáforo desligado (entrada no ar no futuro), tudo igual à
+// 0053; com eles, os tipos antigos continuam iguais (menos as FIM_PME com ciclo) e o semáforo em lote
+// (`mentoria_semaforo_lote_calc`) = o da 0069 por inscrição (`mentoria_semaforo_calc`).
 import { readFileSync } from 'node:fs';
 import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -181,7 +185,14 @@ const fila = (u: string, agora: string, fn: 'mentoria_fila' | 'mentoria_fila_005
     )),
   ]);
 
+let desdeOriginal = '';
+
 beforeAll(async () => {
+  const [s] = await owner<{ desde: string }[]>`
+    select to_char(desde, 'YYYY-MM-DD') as desde from mentoria_semaforo_inicio`;
+  desdeOriginal = s!.desde;
+  // Semáforo desligado na primeira parte: nenhuma semana vale e nenhuma tarefa conta.
+  await owner`update mentoria_semaforo_inicio set desde = '2999-01-01'`;
   await owner`truncate mentoria_inscricoes cascade`;
   await owner`delete from mentoria_fila_feitos`;
   await owner`delete from mentoria_perfis where user_id like 'fq-%'`;
@@ -220,6 +231,7 @@ beforeAll(async () => {
 }, 120_000);
 
 afterAll(async () => {
+  await owner`update mentoria_semaforo_inicio set desde = ${desdeOriginal}`;
   await owner`drop function if exists mentoria_fila_0053(timestamptz)`;
   await owner`truncate mentoria_inscricoes cascade`;
   await owner`delete from mentoria_fila_feitos`;
@@ -228,7 +240,7 @@ afterAll(async () => {
   await closeTestConnections();
 });
 
-describe('mentoria_fila da 0064 = a da 0053', () => {
+describe('mentoria_fila da 0070 = a da 0053 sem ciclos nem semáforo', () => {
   it.each(TODOS)('%s: mesmas linhas, na mesma ordem, em cada horário', async (u) => {
     for (const agora of AGORAS) {
       const antiga = await fila(u, agora, 'mentoria_fila_0053');
@@ -290,5 +302,228 @@ describe('mentoria_fila da 0064 = a da 0053', () => {
         has_function_privilege('npac_app', p.oid, 'execute') as app
       from pg_proc p where p.proname = 'mentoria_fila'`;
     expect(f).toEqual({ secdef: false, vol: 's', dono: 'npac_owner', publico: false, app: true });
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// Parte 4: ciclos, tarefas, check-ins e contatos dos degraus sobre os mesmos mentorados.
+
+/** Data `n` dias depois de `iso` (YYYY-MM-DD). */
+const mais = (iso: string, n: number) =>
+  new Date(Date.parse(`${iso}T12:00:00Z`) + n * DIA).toISOString().slice(0, 10);
+const NOVOS = ['COBRANCA', 'SEMAFORO', 'ENVIAR_PME', 'PME_ATRASADO'];
+const diaDe = (agora: string) =>
+  new Date(agora).toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+/** Dias de Brasília dos horários testados. */
+const DIAS = [...new Set(AGORAS.map(diaDe))];
+let fimComCiclo = new Set<string>();
+
+async function gerarParte4() {
+  const ativos = await owner<{ id: string }[]>`
+    select id from mentoria_inscricoes where status in ('ATIVO', 'PAUSADO') order by id`;
+  for (const a of ativos) {
+    if (chance(0.25)) continue;
+    // Ciclos 1..n: os anteriores fechados ou não concluídos, o último aberto ou fechado.
+    const n = int(1, 5);
+    let envio = data(int(70, 160));
+    for (let k = 1; k <= n; k++) {
+      const proximo = mais(envio, int(25, 40));
+      const ultimo = k === n || Date.parse(proximo) > BASE;
+      const fechado = ultimo ? chance(0.35) : chance(0.7);
+      const concluido = fechado ? mais(envio, int(3, 40)) : null;
+      const naoConcluido = !ultimo && !fechado ? proximo : null;
+      const segunda = ultimo && !fechado && chance(0.3) ? mais(envio, 30 + int(1, 12)) : null;
+      const [c] = await owner<{ id: string }[]>`
+        insert into mentoria_ciclos (inscricao_id, numero, enviado_em, concluido_em,
+          nao_concluido_em, segunda_chance_ate)
+        values (${a.id}, ${k}, ${envio}, ${concluido}, ${naoConcluido}, ${segunda})
+        returning id`;
+      if (ultimo && !fechado) {
+        for (let e = int(0, 2); e > 0; e--)
+          await owner`insert into mentoria_tarefas (inscricao_id, origem, ciclo_id, descricao,
+              prazo, status)
+            values (${a.id}, 'EXTRA', ${c!.id}, 'cifrado', ${mais(envio, 30)},
+              ${pick(['PENDENTE', 'PENDENTE', 'FEITA'])})`;
+        await owner`insert into mentoria_tarefas (inscricao_id, origem, ciclo_id, descricao, prazo)
+          values (${a.id}, 'ENCERRAMENTO', ${c!.id}, 'cifrado', ${mais(envio, 30)})`;
+        if (chance(0.4))
+          await owner`insert into mentoria_contatos (inscricao_id, feito_por, quando, canal,
+              ciclo_id, degrau)
+            values (${a.id}, ${DUDA}, now(), 'WHATSAPP', ${c!.id}, ${pick([3, 7, 10, 15])})`;
+      }
+      if (ultimo) break;
+      envio = proximo;
+    }
+    // Tarefas da reunião: a da Manu é dela; as outras, do responsável.
+    for (let r = int(0, 2); r > 0; r--) {
+      const [reuniao] = await owner<{ id: string }[]>`
+        insert into mentoria_reunioes (inscricao_id, tipo, conduzida_por, inicio, status)
+        values (${a.id}, 'POSICIONAMENTO', ${pick([MANU, MANU2, DUDA, ACOMP, INATIVO])},
+          ${ts(int(5, 40))}, 'REALIZADA') returning id`;
+      for (let t = int(1, 3); t > 0; t--)
+        await owner`insert into mentoria_tarefas (inscricao_id, origem, reuniao_id, descricao,
+            prazo, status)
+          values (${a.id}, 'REUNIAO', ${reuniao!.id}, 'cifrado', ${data(int(-10, 40))},
+            ${pick(['PENDENTE', 'PENDENTE', 'FEITA', 'PARCIAL', 'NAO_FEITA'])})`;
+    }
+    // Check-ins de semanas diferentes, respondidos ou não.
+    for (const k of [0, 7, 14, 21, 28, 35])
+      if (chance(0.5)) {
+        const respondeu = chance(0.6);
+        await owner`insert into mentoria_checkins (inscricao_id, enviado_em, respondeu,
+            respondido_em)
+          values (${a.id}, ${ts(k, 12)}, ${respondeu}, ${respondeu ? ts(k, 14) : null})
+          on conflict do nothing`;
+      }
+  }
+}
+
+describe('Parte 4: tipos novos sem quebrar os antigos', () => {
+  beforeAll(async () => {
+    await gerarParte4();
+    // Semáforo ligado 30 dias antes do dia-base: semanas e tarefas passam a contar.
+    await owner`update mentoria_semaforo_inicio set desde = ${data(30)}`;
+    // Alguns "visto nesta semana".
+    const semana = await owner<{ chave: string }[]>`
+      select chave from mentoria_fila(${AGORAS[0]!}::timestamptz) where tipo = 'SEMAFORO'`;
+    const vistos = semana
+      .filter((_, k) => k % 4 === 0)
+      .map((l) => ({ chave: l.chave, feito_por: DUDA }));
+    if (vistos.length)
+      await owner`insert into mentoria_fila_feitos ${owner(vistos)} on conflict do nothing`;
+    fimComCiclo = new Set(
+      (
+        await owner<{ id: string }[]>`
+          select a.id from mentoria_acoes a join mentoria_ciclos c
+            on c.inscricao_id = a.inscricao_id and c.numero = a.mes
+          where a.gatilho = 'FIM_PME'`
+      ).map((r) => `acao:${r.id}`),
+    );
+    await owner`analyze`;
+  }, 120_000);
+
+  it('semáforo em lote = o da 0069, inscrição por inscrição, em vários dias', async () => {
+    const dias = [...DIAS, data(-3), data(10), data(-20)];
+    let vermelhos = 0;
+    let amarelos = 0;
+    for (const dia of dias) {
+      const lote = await owner<{ id: string; cor: string; motivos: string[] }[]>`
+        select inscricao_id as id, cor, motivos from mentoria_semaforo_lote_calc(${dia}::date)
+        order by inscricao_id`;
+      const um = await owner<{ id: string; cor: string; motivos: string[] }[]>`
+        select i.id, s.cor, s.motivos from mentoria_inscricoes i
+        cross join lateral mentoria_semaforo_calc(i.id, ${dia}::date) s
+        order by i.id`;
+      expect({ dia, lote: [...lote] }).toEqual({ dia, lote: [...um] });
+      vermelhos += lote.filter((l) => l.cor === 'VERMELHO').length;
+      amarelos += lote.filter((l) => l.cor === 'AMARELO').length;
+    }
+    expect(vermelhos).toBeGreaterThan(0);
+    expect(amarelos).toBeGreaterThan(0);
+  });
+
+  it.each(TODOS)('%s: os tipos antigos continuam iguais aos da 0053', async (u) => {
+    const antigo = (l: { chave: string; tipo: string }) =>
+      !NOVOS.includes(l.tipo) && !fimComCiclo.has(l.chave);
+    for (const agora of AGORAS) {
+      const antiga = (await fila(u, agora, 'mentoria_fila_0053')).filter(antigo);
+      const nova = (await fila(u, agora, 'mentoria_fila')).filter(antigo);
+      expect({ u, agora, linhas: nova }).toEqual({ u, agora, linhas: antiga });
+    }
+  });
+
+  it('SEMAFORO = fora do verde no semáforo da 0069, menos o visto, só para quem vê o semáforo', async () => {
+    const feitos = new Set(
+      (await owner<{ chave: string }[]>`select chave from mentoria_fila_feitos`).map(
+        (f) => f.chave,
+      ),
+    );
+    let total = 0;
+    for (const agora of AGORAS) {
+      const dia = diaDe(agora);
+      const esperado = await owner<{ chave: string; atrasado: boolean }[]>`
+        select 'semaforo:' || i.id || ':'
+            || to_char(date_trunc('week', ${dia}::date), 'YYYY-MM-DD') as chave,
+          s.cor = 'VERMELHO' as atrasado
+        from mentoria_inscricoes i
+        cross join lateral mentoria_semaforo_calc(i.id, ${dia}::date) s
+        where s.cor <> 'VERDE'`;
+      const ref = esperado
+        .filter((e) => !feitos.has(e.chave))
+        .map((e) => `${e.chave}|${e.atrasado}`)
+        .sort();
+      total += ref.length;
+      for (const u of [DIRETOR, DUDA, OPERACAO]) {
+        const sem = (await fila(u, agora, 'mentoria_fila'))
+          .filter((l) => l.tipo === 'SEMAFORO')
+          .map((l) => `${l.chave}|${(l as unknown as { atrasado: boolean }).atrasado}`)
+          .sort();
+        expect({ u, agora, sem }).toEqual({ u, agora, sem: ref });
+      }
+      for (const u of [MANU, MANU2, LEO, CARLA, SDR])
+        expect(
+          (await fila(u, agora, 'mentoria_fila')).filter((l) => l.tipo === 'SEMAFORO'),
+        ).toEqual([]);
+    }
+    expect(total).toBeGreaterThan(0);
+  });
+
+  it('os dados exercitam os quatro tipos novos; a Especialista só cobra as reuniões dela', async () => {
+    const tipos = new Set<string>();
+    for (const agora of AGORAS)
+      for (const l of await fila(DIRETOR, agora, 'mentoria_fila')) tipos.add(l.tipo);
+    for (const t of NOVOS) expect(tipos).toContain(t);
+
+    const manu = (await fila(MANU, AGORAS[0]!, 'mentoria_fila')).filter(
+      (l) => l.tipo === 'COBRANCA',
+    );
+    expect(manu.length).toBeGreaterThan(0);
+    const refs = manu.map((l) => (l as unknown as { referencia_id: string }).referencia_id);
+    const [fora] = await owner<{ n: number }[]>`
+      select count(*)::int as n from mentoria_tarefas t
+      left join mentoria_reunioes r on r.id = t.reuniao_id
+      where t.id = any(${refs}::uuid[]) and r.conduzida_por is distinct from ${MANU}`;
+    expect(fora!.n).toBe(0);
+  });
+
+  it('o contato do degrau pega o prazo atual do ciclo e recusa ciclo de outro mentorado', async () => {
+    const [c] = await owner<{ id: string; inscricao_id: string; pa: string }[]>`
+      select id, inscricao_id, to_char(coalesce(segunda_chance_ate, prazo), 'YYYY-MM-DD') as pa
+      from mentoria_ciclos where concluido_em is null and nao_concluido_em is null
+      order by id limit 1`;
+    const [outra] = await owner<{ id: string }[]>`
+      select id from mentoria_inscricoes where id <> ${c!.inscricao_id} order by id limit 1`;
+    const [ct] = await withUser(db, OPERACAO, (tx) =>
+      tx.execute<{ degrau_prazo: string }>(sql`
+        insert into mentoria_contatos (inscricao_id, feito_por, quando, canal, ciclo_id, degrau)
+        values (${c!.inscricao_id}::uuid, app_user_id(), now(), 'WHATSAPP', ${c!.id}::uuid, 3)
+        returning to_char(degrau_prazo, 'YYYY-MM-DD') as degrau_prazo`),
+    );
+    expect(ct!.degrau_prazo).toBe(c!.pa);
+    await expect(
+      owner`insert into mentoria_contatos (inscricao_id, feito_por, quando, canal, ciclo_id, degrau)
+        values (${outra!.id}, ${DUDA}, now(), 'WHATSAPP', ${c!.id}, 7)`,
+    ).rejects.toThrow(/outro mentorado/);
+    await expect(
+      owner`insert into mentoria_contatos (inscricao_id, feito_por, quando, canal, degrau)
+        values (${c!.inscricao_id}, ${DUDA}, now(), 'WHATSAPP', 7)`,
+    ).rejects.toThrow(/outro mentorado/);
+  });
+
+  it('o semáforo em lote é interno; o da Fila só responde a quem vê o semáforo', async () => {
+    const [f] = await owner<{ calc: boolean; lote: boolean }[]>`
+      select has_function_privilege('npac_app', 'mentoria_semaforo_lote_calc(date)', 'execute')
+          as calc,
+        has_function_privilege('npac_app', 'mentoria_semaforo_lote(date)', 'execute') as lote`;
+    expect(f).toEqual({ calc: false, lote: true });
+    const n = async (u: string) =>
+      (
+        await withUser(db, u, (tx) =>
+          tx.execute(sql`select * from mentoria_semaforo_lote(${DIAS[0]!}::date)`),
+        )
+      ).length;
+    expect(await n(OPERACAO)).toBeGreaterThan(0);
+    expect(await n(MANU)).toBe(0);
+    expect(await n(SDR)).toBe(0);
   });
 });
