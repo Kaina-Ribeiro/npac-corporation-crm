@@ -121,14 +121,15 @@ test('Duda: vermelho sem check-in, lança o check-in, dá segunda chance e marca
 
   await abrirFicha(page);
   const sem = page.getByRole('region', { name: 'Semáforo e check-ins' });
-  await expect(sem.getByText('2 semanas sem resposta')).toBeVisible();
+  const motivos = sem.getByRole('list', { name: 'Motivos do semáforo' });
+  await expect(motivos.getByText('2 semanas sem resposta')).toBeVisible();
 
   // PME enviado há 45 dias: 15 dias de atraso desde a entrada no ar = vermelho.
   const pme = page.getByRole('region', { name: 'PME atual' });
   await pme.getByRole('button', { name: 'Registrar envio do 1º PME' }).click();
   await page.getByLabel('Data do envio').fill(diaBR(-45));
   await page.getByRole('button', { name: 'Registrar envio', exact: true }).click();
-  await expect(sem.getByText('15 dias de atraso no PME')).toBeVisible();
+  await expect(motivos.getByText('15 dias de atraso no PME')).toBeVisible();
 
   // Check-in da semana passada, respondido.
   await sem.getByRole('button', { name: 'Lançar check-in' }).click();
@@ -139,7 +140,7 @@ test('Duda: vermelho sem check-in, lança o check-in, dá segunda chance e marca
   await page.getByLabel('Próximo passo').fill('Montar a planilha');
   await page.getByRole('button', { name: 'Salvar', exact: true }).click();
   await expect(sem.getByText('Anotou os gastos da semana')).toBeVisible();
-  await expect(sem.getByText('2 semanas sem resposta')).toHaveCount(0);
+  await expect(motivos.getByText('2 semanas sem resposta')).toHaveCount(0);
 
   // Segunda chance: sugestão de 7 dias; o status mostra até quando.
   await pme.getByRole('button', { name: 'Dar segunda chance no 1º PME' }).click();
@@ -147,7 +148,7 @@ test('Duda: vermelho sem check-in, lança o check-in, dá segunda chance e marca
   await page.getByRole('button', { name: 'Dar segunda chance', exact: true }).click();
   const [, m, d] = diaBR(7).split('-');
   await expect(pme.getByText(`Segunda chance até ${d}/${m}`)).toBeVisible();
-  await expect(sem.getByText('15 dias de atraso no PME')).toHaveCount(0);
+  await expect(motivos.getByText('15 dias de atraso no PME')).toHaveCount(0);
 
   // Meta marcada como atingida (E10).
   const metas = page.getByRole('region', { name: 'Metas' });

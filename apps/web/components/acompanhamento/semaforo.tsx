@@ -233,7 +233,7 @@ export function SemaforoFicha({ ficha, atualizar }: { ficha: FichaDTO; atualizar
       </div>
       {s ? (
         s.motivos.length > 0 ? (
-          <ul className="sem-motivos">
+          <ul className="sem-motivos" aria-label="Motivos do semáforo">
             {s.motivos.map((m) => (
               <li key={m} className={m.endsWith('_2') || m === 'PME_15' ? 'grave' : ''}>
                 {SEMAFORO_MOTIVO_LABEL[m]}

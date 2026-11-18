@@ -4336,7 +4336,39 @@
     align-items: center;
     gap: 6px 10px;
   }
-  @media (min-width: 1024px) {
+  /*
+   * 1024–1279 px: com a barra lateral, as 8 colunas não cabem (Responsável e Último contato eram
+   * cortados): a lista fica em cartões, como no celular, e a tabela volta a partir de 1280.
+   */
+  @media (min-width: 1024px) and (max-width: 1279.98px) {
+    .lhead {
+      display: none;
+    }
+    .row {
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 2px 12px;
+      padding: 14px 16px;
+    }
+    .row .st-tag {
+      grid-column: 2;
+      grid-row: 1;
+    }
+    .row .jm {
+      grid-column: 1/-1;
+      margin-top: 10px;
+    }
+    .row .tp,
+    .row .rs,
+    .row .lc {
+      display: none;
+    }
+    .row .mobmeta {
+      display: grid;
+      grid-column: 1/-1;
+      margin-top: 6px;
+    }
+  }
+  @media (min-width: 1280px) {
     .lhead,
     .row {
       grid-template-columns:

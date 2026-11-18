@@ -26,9 +26,9 @@ da Fase 1 (`docs/superpowers/plans/2026-11-10-acompanhamento-v2-design.md`) e o 
 |---|---|---|
 | 1 | Catálogo de PMEs, ciclos e tarefas do ciclo (envio, extras, encerramento, status derivado) + Configurações > PMEs + card "PME atual" na ficha | ✅ 11/11 (PR na `release/v0.14`) |
 | 2 | Metas, tarefas da reunião (até 3, prazo), cobrança da reunião anterior, % do PME (tarefas e metas) | ✅ 12/11 (sem S1/S3/S4; PR na `release/v0.15`) |
-| 3 | Check-ins lançados pela equipe, semáforo (função, histórico semanal, sequência), colunas em Mentorados, status da meta, segunda chance manual | ⏳ em andamento (18/11, `release/v0.18`) |
+| 3 | Check-ins lançados pela equipe, semáforo (função, histórico semanal, sequência), colunas em Mentorados, status da meta, segunda chance manual | ✅ 18/11 (PR na `release/v0.18`; pendências na seção da parte) |
 | 4 | Fila (COBRANCA, SEMAFORO, ENVIAR_PME, PME_ATRASADO, FIM_PME espera o ciclo), push, aba 7 "PMEs e ciclos", CSV, fechamento | ⏳ |
-| 5 | Depois da Eduarda: P1, P2, P3 da spec §9 (pequenas) | aguardando respostas |
+| 5 | Depois da Eduarda: P1 da spec §9 (P2, P3 e S1 respondidas em 18/11, entraram na Parte 3) | aguardando P1 |
 
 ## Parte 1 — PMEs e ciclos
 
@@ -268,32 +268,32 @@ subagentes). Migration `0069` (a última era a 0068).
   mais recente); filtro por semáforo (lembrado com os outros filtros da tela).
 - `app_revision`: o módulo não usa o canal ao vivo (nenhuma tabela `mentoria_*` tem o gatilho); as novas também não.
 
-### Tarefa 3.1: Banco (0069) — Status: ⏳
+### Tarefa 3.1: Banco (0069) — Status: ✅
 **Files:** Modify `db/src/schema/mentoria.ts` · Create `db/drizzle/0069_acompanhamento_v2_semaforo.sql` + snapshot +
 journal · Test `db/test/mentoria-v2-semaforo.test.ts`, `db/test/rls-por-consulta.test.ts`, `db/test/mentoria-v2-metas.test.ts`
-- [ ] Testes RED: RLS de check-ins e histórico por perfil (Operação lê sem escrever, Manu e Leo não veem, sem DELETE),
+- [x] Testes RED: RLS de check-ins e histórico por perfil (Operação lê sem escrever, Manu e Leo não veem, sem DELETE),
   um check-in por semana, cada motivo, entrada no ar verde, pausado sem semáforo, segunda chance, gravar idempotente.
-- [ ] Schema + `generate` + SQL manual; `pnpm --filter @npac/db test` verde. Commit.
+- [x] Schema + `generate` + SQL manual; `pnpm --filter @npac/db test` verde. Commit.
 
-### Tarefa 3.2: API — Status: ⏳
+### Tarefa 3.2: API — Status: ✅
 **Files:** Create `api/mentoria/checkins.service.ts`, `checkins.controller.ts`, `semaforo.service.ts`,
 `sh/mentoria/semaforo.ts` · Modify `sh/schemas/mentoria.ts`, `sh/mentoria/dto.ts`, `sh/mentoria/pmes.ts`,
 `ciclos.*`, `metas.service.ts`, `ficha.service.ts`, `inscricoes.service.ts`, `avisos.scheduler.ts`, `mentoria.module.ts` ·
 Test `api/test/mentoria-v2-semaforo.e2e.test.ts`
-- [ ] Testes RED (spec §8 da parte): cada motivo; todo mundo verde na entrada no ar; PENDENTE vencida conta; PARCIAL
+- [x] Testes RED (spec §8 da parte): cada motivo; todo mundo verde na entrada no ar; PENDENTE vencida conta; PARCIAL
   não; pausado sem semáforo; histórico idempotente ao subir duas vezes; segunda chance (status, prazo atual, Operação
   404); check-in (Operação e Manu 404, um por semana); status da meta; lista com colunas e filtro.
-- [ ] Implementar; suítes do módulo verdes. Commit.
+- [x] Implementar; suítes do módulo verdes. Commit.
 
-### Tarefa 3.3: Telas — Status: ⏳
+### Tarefa 3.3: Telas — Status: ✅
 **Files:** Create `components/acompanhamento/semaforo.tsx` (selo, motivos, histórico, sequência, check-ins),
 `web/e2e/acompanhamento-v2-semaforo.spec.ts` · Modify `ficha.tsx`, `pme-atual.tsx`, `metas.tsx`,
 `mentorados-lista.tsx`, `lib/acompanhamento-prefs.ts`, `historico-lista.tsx`, `modulo.css`
-- [ ] Playwright por perfil (Duda lança check-in, dá segunda chance, marca meta, filtra por semáforo; Operação vê sem
+- [x] Playwright por perfil (Duda lança check-in, dá segunda chance, marca meta, filtra por semáforo; Operação vê sem
   editar; Manu sem semáforo nem check-ins). Capturas 375/768/1024/1440. Commit.
 
-### Tarefa 3.4: Fechamento — Status: ⏳
-- [ ] `pnpm lint && pnpm typecheck`, `@npac/db`, `@npac/api`, Playwright completo; `CLAUDE.md`; Status acima; PR.
+### Tarefa 3.4: Fechamento — Status: ✅
+- [x] `pnpm lint && pnpm typecheck`, `@npac/db`, `@npac/api`, Playwright completo; `CLAUDE.md`; Status acima; PR.
 
 **Pendências da Parte 3** (sem base no PDF, na spec ou nas respostas de 18/11; nada decidido):
 1. **Pausa e o semáforo:** quem volta da pausa pode voltar vermelho, porque as semanas e tarefas vencidas durante a
@@ -303,6 +303,12 @@ Test `api/test/mentoria-v2-semaforo.e2e.test.ts`
 3. **Segunda chance:** pode ser dada mais de uma vez ou corrigida? Hoje a data muda enquanto o ciclo está aberto, e
    cada mudança vai para o histórico.
 4. **Especialista:** não vê semáforo nem check-ins (§2, "só"). Confirmar.
+5. **Histórico congela a semana:** a cor gravada na virada não muda se a equipe lançar depois um check-in daquela semana.
+6. **Cor amarela nova** (`--tag-warn`): o PDF pede amarelo; o CLAUDE.md pede confirmar cor nova.
+
+Fora da Parte 3 (Parte 4 ou depois): item SEMAFORO na Fila e push, escada de atraso (PME_ATRASADO), CSV com semáforo, P1.
+Achado de layout: a tabela de Mentorados já não cabia em 1024 px com a barra lateral (colunas cortadas); entre 1024 e
+1279 px ela vira cartões, como no celular.
 
 ## Parte 4 — Fila, avisos e aba 7
 
