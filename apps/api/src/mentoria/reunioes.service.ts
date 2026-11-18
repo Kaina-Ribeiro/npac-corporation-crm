@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { mentoriaReunioes, withUser, type Db, type Tx } from '@npac/db';
 import {
+  DEGRAU_LABEL,
   SEM_REUNIAO_DIAS,
   taxaComparecimento,
   type AgendaFiltro,
@@ -582,6 +583,22 @@ export class ReunioesService {
     });
   }
 
+  /**
+   * Contato de um degrau da escada de atraso (E20, PDF p. 19): só no PME em andamento do mentorado e
+   * depois de o atraso (do prazo atual) chegar ao degrau. Sem motivo escrito, vai o texto do degrau.
+   */
+  private async motivoDoDegrau(tx: Tx, b: ContatoCriar): Promise<string> {
+    const [c] = await tx.execute<{ numero: number; atraso: number }>(sql`
+      select numero, ${this.ciclos.hoje()}::date - coalesce(segunda_chance_ate, prazo) as atraso
+      from mentoria_ciclos
+      where id = ${b.cicloId!}::uuid and inscricao_id = ${b.inscricaoId}::uuid
+        and concluido_em is null and nao_concluido_em is null`);
+    if (!c) throw new BadRequestException('Este PME não está em andamento');
+    if (c.atraso < b.degrau!)
+      throw new BadRequestException(`O PME ainda não tem ${b.degrau} dias de atraso`);
+    return b.motivo ?? `${c.numero}º PME, ${b.degrau} dias de atraso: ${DEGRAU_LABEL[b.degrau!]}`;
+  }
+
   registrarContato(u: AuthUser, b: ContatoCriar) {
     const id = randomUUID();
     const observacao = this.crypto.cifrarOpcional(
@@ -590,12 +607,14 @@ export class ReunioesService {
     );
     return withUser(this.db, u.id, async (tx) => {
       await exigirEdicao(tx, 'CONTATO', b.inscricaoId);
+      const motivo = b.degrau ? await this.motivoDoDegrau(tx, b) : (b.motivo ?? null);
       await tx.execute(sql`
         insert into mentoria_contatos (id, inscricao_id, feito_por, quando, canal, motivo, respondeu,
-          tempo_resposta_min, observacao)
+          tempo_resposta_min, observacao, ciclo_id, degrau)
         values (${id}::uuid, ${b.inscricaoId}::uuid, app_user_id(),
-          ${b.quando ? instante(b.quando) : sql`now()`}, ${b.canal}, ${b.motivo ?? null},
-          ${b.respondeu ?? null}, ${b.tempoRespostaMin ?? null}, ${observacao})`);
+          ${b.quando ? instante(b.quando) : sql`now()`}, ${b.canal}, ${motivo},
+          ${b.respondeu ?? null}, ${b.tempoRespostaMin ?? null}, ${observacao},
+          ${b.cicloId ?? null}::uuid, ${b.degrau ?? null}::smallint)`);
       await registrarHistorico(tx, b.inscricaoId, 'contato.registrado', [b.canal]);
       return { id };
     }).catch((e) => erroDoBanco(e));

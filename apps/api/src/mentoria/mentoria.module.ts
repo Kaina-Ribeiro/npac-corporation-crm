@@ -29,6 +29,7 @@ import { MetasController } from './metas.controller.js';
 import { MetasService } from './metas.service.js';
 import { ContatosController } from './contatos.controller.js';
 import { PmesController, PmesService } from './pmes.controller.js';
+import { PmesCiclosController, PmesCiclosService } from './pmes-ciclos.controller.js';
 import { FilaController, Pme1Controller } from './fila.controller.js';
 import { FilaService } from './fila.service.js';
 import { MensagensController, MensagensService } from './mensagens.controller.js';
@@ -60,6 +61,7 @@ import { ReunioesService } from './reunioes.service.js';
     CiclosController,
     MetasController,
     CheckinsController,
+    PmesCiclosController,
   ],
   providers: [
     MentoriaGuard,
@@ -78,6 +80,7 @@ import { ReunioesService } from './reunioes.service.js';
     AvisosRearme,
     ExportacaoService,
     CarteiraService,
+    PmesCiclosService,
     PmesService,
     CiclosService,
     MetasService,
