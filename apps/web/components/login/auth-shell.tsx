@@ -39,7 +39,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
       </div>
 
       <footer className="absolute right-4 bottom-4 left-4 z-10 flex justify-between text-xs text-white/55 md:right-[72px] md:bottom-7 md:left-24">
-        <span>Uso restrito à equipe comercial da NPAC</span>
+        <span>Uso restrito à equipe da NPAC</span>
         <span>© 2026 NPAC Corporation</span>
       </footer>
     </main>
