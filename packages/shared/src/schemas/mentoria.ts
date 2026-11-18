@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { dataCalendarioValida } from '../mentoria/datas.js';
+import { AVISO_DATA, dataCalendarioValida } from '../mentoria/datas.js';
 import {
   INSCRICAO_STATUS,
   MENTORIAS,
@@ -33,7 +33,7 @@ const vazioNulo = (v: unknown) => (typeof v === 'string' && v.trim() === '' ? nu
 const opc = <T extends z.ZodType>(s: T) => z.preprocess(vazioNulo, s.nullable()).optional();
 
 const texto = (max: number) => opc(z.string().trim().max(max));
-const dataIso = z.string().refine(dataCalendarioValida, 'Data inválida');
+const dataIso = z.string().refine(dataCalendarioValida, AVISO_DATA);
 const data = opc(dataIso);
 const centavos = opc(z.number().int().min(0).max(100_000_000_000));
 const nota = opc(z.number().int().min(0).max(10));
