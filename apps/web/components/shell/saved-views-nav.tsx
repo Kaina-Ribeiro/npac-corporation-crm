@@ -28,7 +28,7 @@ export function SavedViewsNav() {
   const current = useSearchParams().get('view');
   if (!views.length) return null;
   return (
-    <nav aria-label="Filtros salvos" className="flex min-h-0 flex-col gap-px overflow-y-auto">
+    <nav aria-label="Filtros salvos" className="flex flex-col gap-px">
       <h2 className="px-2.5 pb-1 text-[11px] font-semibold tracking-wide text-ink3 uppercase">
         Filtros salvos
       </h2>

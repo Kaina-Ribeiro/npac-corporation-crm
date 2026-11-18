@@ -2,7 +2,14 @@
 import { ghostButton } from '@/lib/button';
 
 // fetch direto (sem o client do Better Auth) para manter o JS das telas do app enxuto.
-export function SignOutButton({ className }: { className?: string }) {
+export function SignOutButton({
+  className,
+  children = 'Sair',
+}: {
+  className?: string;
+  /** Conteúdo do botão; o nome acessível continua "Sair" (ícone com aria-hidden). */
+  children?: React.ReactNode;
+}) {
   return (
     <button
       type="button"
@@ -19,7 +26,7 @@ export function SignOutButton({ className }: { className?: string }) {
         window.location.replace('/login');
       }}
     >
-      Sair
+      {children}
     </button>
   );
 }

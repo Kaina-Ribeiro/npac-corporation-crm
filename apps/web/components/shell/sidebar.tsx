@@ -61,47 +61,50 @@ export function Sidebar({
       </div>
       {/* Mesmo preenchimento dos campos (.field): claro sobre o vidro, não um contorno cinza. */}
       <SearchButton className="side-search flex h-[34px] flex-none items-center gap-2.5 rounded-lg bg-white/60 px-2.5 text-sm font-medium text-ink2 shadow-[inset_0_0_0_0.5px_rgba(60,60,67,0.2),inset_0_1px_2px_rgba(0,0,0,0.05)] transition-colors hover:bg-white/85 hover:text-ink dark:bg-white/[0.06] dark:shadow-[inset_0_0_0_0.5px_rgba(235,235,245,0.14)] dark:hover:bg-white/10 [&_svg]:h-4 [&_svg]:w-4 [&_svg]:flex-none" />
-      <nav aria-label="Navegação lateral" className="side-nav flex flex-col gap-px">
-        {commercial && <InboxLink />}
-        {navItems({ head, mentoria, commercial, mentoriaAdmin }).map((item, i, all) =>
-          item.children ? (
-            <NavGroup
-              key={item.href}
-              item={item}
-              linkClass={LINK}
-              activeClass={ACTIVE}
-              rotulo={rotulo}
-            />
-          ) : (
-            <Fragment key={item.href}>
-              {item.section && item.section !== all[i - 1]?.section && (
-                <NavSection title={item.section} />
-              )}
-              <NavLink item={item} className={LINK} activeClassName={ACTIVE}>
-                {item.icon}
-                {rotulo(item)}
-                {item.href === '/chat' && <ChatBadge />}
-                {item.href === ADMIN_ITEM.href && adminBadge > 0 && (
-                  <CountBadge n={adminBadge} label={`${adminBadge} pedidos de acesso`} />
+      {/* Só o miolo rola (tela baixa, notebook): topo e rodapé com o Sair ficam sempre à vista. */}
+      <div className="side-scroll -mx-2.5 -my-1 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-2.5 py-1">
+        <nav aria-label="Navegação lateral" className="side-nav flex flex-none flex-col gap-px">
+          {commercial && <InboxLink />}
+          {navItems({ head, mentoria, commercial, mentoriaAdmin }).map((item, i, all) =>
+            item.children ? (
+              <NavGroup
+                key={item.href}
+                item={item}
+                linkClass={LINK}
+                activeClass={ACTIVE}
+                rotulo={rotulo}
+              />
+            ) : (
+              <Fragment key={item.href}>
+                {item.section && item.section !== all[i - 1]?.section && (
+                  <NavSection title={item.section} />
                 )}
-                {!item.ready && (
-                  <span className="side-label ml-auto text-[11px] font-medium text-ink3">
-                    Em breve
-                  </span>
-                )}
-              </NavLink>
-            </Fragment>
-          ),
+                <NavLink item={item} className={LINK} activeClassName={ACTIVE}>
+                  {item.icon}
+                  {rotulo(item)}
+                  {item.href === '/chat' && <ChatBadge />}
+                  {item.href === ADMIN_ITEM.href && adminBadge > 0 && (
+                    <CountBadge n={adminBadge} label={`${adminBadge} pedidos de acesso`} />
+                  )}
+                  {!item.ready && (
+                    <span className="side-label ml-auto text-[11px] font-medium text-ink3">
+                      Em breve
+                    </span>
+                  )}
+                </NavLink>
+              </Fragment>
+            ),
+          )}
+        </nav>
+        {commercial && (
+          <div className="side-hide flex flex-none flex-col">
+            <Suspense>
+              <SavedViewsNav />
+            </Suspense>
+          </div>
         )}
-      </nav>
-      {commercial && (
-        <div className="side-hide flex min-h-0 flex-col">
-          <Suspense>
-            <SavedViewsNav />
-          </Suspense>
-        </div>
-      )}
-      {footer && <div className="side-foot mt-auto border-t border-line px-1 pt-3">{footer}</div>}
+      </div>
+      {footer && <div className="side-foot flex-none border-t border-line px-1 pt-3">{footer}</div>}
     </aside>
   );
 }

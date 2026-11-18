@@ -46,7 +46,10 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   mock do protótipo `api/dev/mock-prototype.ts`
 - **Web:** layout/sidebar/bottom nav `web/app/(app)/layout.tsx`, `web/components/shell/*` (menu da
   sidebar e do Ctrl+K, grupos e sub-itens do Acompanhamento: `shell/nav-menu.tsx`, só servidor, para
-  não pesar no JS; `nav-items.tsx` também fica no servidor, a barra inferior é componente de servidor) · classes de botão `lib/button.ts` · dropdown (todos os `<select>`) com o visual do CRM só por CSS
+  não pesar no JS; `nav-items.tsx` também fica no servidor, a barra inferior é componente de servidor) · na sidebar só o
+  miolo rola (`.side-scroll`: navegação + filtros salvos); topo e rodapé com o Sair ficam fixos, e a carga direta rola até o
+  item ativo (`sidebar-shell.tsx`) · Sair no celular (17/11/2026): o mesmo cartão `shell/conta-card.tsx` (foto, nome, cargo,
+  Trocar senha, Sair) no topo do `/mais` e do `/acompanhamento/mais`; nada de outro Sair nessas telas (e2e `e2e/sair.spec.ts`) · classes de botão `lib/button.ts` · dropdown (todos os `<select>`) com o visual do CRM só por CSS
   (`appearance: base-select` + `::picker(select)` no fim de `globals.css`; Safari fica com o do
   sistema; Lightning CSS não aceita pseudo-classe depois de `::picker`, use `select:open::picker(select)`) · login,
   pedir acesso `web/components/login/*` · senha/MFA `components/conta/*`, `app/(conta)/*` · API
