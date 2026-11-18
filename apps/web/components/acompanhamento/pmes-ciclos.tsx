@@ -78,7 +78,14 @@ function Linha({ l, primeira }: { l: PmeCicloLinha; primeira: boolean }) {
         )}
         {c && (
           <span>
-            Tarefas {pct}, extras {extras}, encerramento {encerramento.toLowerCase()}
+            {[
+              c.pctTarefas != null ? `${pct} das tarefas` : null,
+              c.extrasTotal > 0 ? `extras ${extras}` : null,
+              `encerramento ${encerramento.toLowerCase()}`,
+            ]
+              .filter(Boolean)
+              .join(', ')
+              .replace(/^./, (x) => x.toUpperCase())}
           </span>
         )}
         {l.proximoPme && <b>Próximo a enviar: {proximo}</b>}

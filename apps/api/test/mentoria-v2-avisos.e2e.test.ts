@@ -232,14 +232,14 @@ describe('avisos da Fila no celular', () => {
     const s = await h.signIn('carla@npac.com.br');
     const r = await h.post(
       '/api/mentoria/reunioes',
-      { inscricaoId: i, tipo: 'IDR', inicio: '2026-12-11T21:00', conduzidaPor: ids.carla },
+      { inscricaoId: i, tipo: 'IDR', inicio: '2026-12-11T07:00', conduzidaPor: ids.carla },
       s,
     );
     expect(r.status, r.text).toBe(201);
     await avisos.settled();
     expect(avisos.armedAt).not.toBe(antesDe);
-    // O lembrete das 8h do dia da IDR é o próximo aviso.
-    expect(avisos.armedAt).toBe(brasilia('2026-12-11T08:00:00'));
+    // O link 30 minutos antes da IDR é o próximo aviso, antes do despertar das 8h (Parte 4).
+    expect(avisos.armedAt).toBe(brasilia('2026-12-11T06:30:00'));
   });
 
   it('cargo Acompanhamento se inscreve no push; SDR continua igual', async () => {
