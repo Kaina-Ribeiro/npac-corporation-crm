@@ -78,7 +78,8 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
 - **Cores e contraste** (achados de design de 17/11/2026, plano `docs/plans/achados-design-17-11.md`): todo texto
   passa de 4,5:1 (WCAG AA) no claro e no escuro. Cada cor tem um significado: **dourado = marca, progresso e
   seleção** (barras da jornada, do PME e das metas; `--gold-deep` em barra/borda, `--gold-text` em texto dourado);
-  **vermelho único = atraso e erro** (`--danger` e `--tag-bad`, mesma família); **cinza neutro = estado sem alarme**
+  **vermelho único = atraso e erro** (`--danger` e `--tag-bad`, mesma família); **amarelo = só o semáforo do Acompanhamento**
+  (`--tag-warn`, Parte 3: o PDF pede verde, amarelo e vermelho); **cinza neutro = estado sem alarme**
   (Cancelado, Pausado, "N a cobrar", etiqueta RDV/2M/6M em toda tela); azul `--tag-info` = informação/link de meta.
   Avatares com pouca saturação. Na Fila, "X dias" fica vermelho só acima de `ATRASO_ALARME_DIAS` (14, `fila.tsx`).
   `.field` tem versão escura em `globals.css`; a caixa do login (`.auth-card`) fixa os tokens claros nos dois temas.
@@ -121,7 +122,9 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   ciclos e tarefas do ciclo `ciclos.*` + `sh/mentoria/pmes.ts`, card "PME atual" na Jornada (`components/acompanhamento/pme-atual.tsx`);
   Parte 2 (0058): metas `metas.*` + `sh/mentoria/metas.ts`, tarefas da reunião (`POST reunioes/:id/tarefas`, `DELETE tarefas/:id` em
   `ciclos.*`), cobrança e blocos do registro (`components/acompanhamento/tarefas-reuniao.tsx`, `metas.tsx`), % do PME em SQL
-  (`mentoria_pct_tarefas`; barra por meta); 0059 tira a segunda chance do status do ciclo
+  (`mentoria_pct_tarefas`; barra por meta); 0059 tira a segunda chance do status do ciclo;
+  Parte 3 (0069): check-ins `checkins.*`, semáforo (`mentoria_semaforo`, histórico gravado pelo `avisos.scheduler.ts`), rótulos
+  `sh/mentoria/semaforo.ts`, tela `components/acompanhamento/semaforo.tsx`, colunas e filtro em `mentorados-lista.tsx`
   · banco `db/src/schema/mentoria.ts`
   - 0044–0045 (`mentoria_perfil()`, `mentoria_admin()`, `mentoria_ve()`, `mentoria_edita()`, funções `mentoria_*`) ·
     seed `db/src/seed-mentoria.ts` · lógica pura `sh/mentoria/*` (cliente: `@npac/shared/mentoria`, sem zod) ·
@@ -266,21 +269,26 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   (`mentoria.csv`), contato só para Admin, nunca dor, sonho, meta, anotações ou textos de reunião. Excluir e
   anonimizar (LGPD) só Admin, pela ficha; anonimizar mantém inscrição, reuniões e ações para as contagens.
   Salvar ao sair do campo: em 409 a fila reaplica se o outro não mexeu naquele campo; se mexeu, avisa e mantém o dele (`resolverConflito`).
+  Datas (18/11/2026, print da Eduarda): campo de data do módulo leva `min={DATA_MIN}`/`max={DATA_MAX}` (`sh/mentoria/datas.ts`,
+  1900 a 2999, a faixa da API); sem eles o Chrome aceita ano "25" (0025) ou de 6 dígitos e a API recusava. `CampoPr` de data
+  confere antes de enviar (`DATA` em `campo.tsx`, aviso `AVISO_DATA`); no cadastro o aviso de erro sai quando a pessoa mexe num campo.
+  e2e `e2e/acompanhamento-datas.spec.ts`.
   **PMEs e ciclos** (Fase 2, Parte 1, 11/11/2026): cada PME dura 30 dias do envio (`prazo` e `data_cobranca` são colunas
   geradas); o envio (`POST inscricoes/:id/ciclos`, Admin, Acompanhamento e Operação, área `PME` de `mentoria_edita`) cria o
   ciclo do número seguinte (1 a 12) com uma tarefa EXTRA por atividade do catálogo e uma ENCERRAMENTO (texto cifrado; sem texto
   no catálogo, "Encerramento do Nº PME"); só ATIVO, antes do término; ciclo aberto vira `nao_concluido_em`; o 1º preenche
   `pme1_enviado_em`, e o "Enviado" do 1º PME na Fila também abre o ciclo 1. Status derivado em `mentoria_ciclo_status(concluido,
 nao_concluido, prazo, hoje)`: aberto = em andamento com "N dias de atraso" (do `MENTORIA_CLOCK`); não concluído só com o
-  seguinte enviado (0059: a segunda chance, S1, está pendente com a Eduarda). Encerramento FEITA fecha o ciclo por gatilho; voltar reabre (recusa se o seguinte já saiu). Ciclo anterior ao sistema
+  seguinte enviado. Encerramento FEITA fecha o ciclo por gatilho; voltar reabre (recusa se o seguinte já saiu). Ciclo anterior ao sistema
   (`ciclos/anterior`) sem tarefas, fecha à mão (área `TAREFA`). Marcar tarefa (resultado, motivo só em parcial/não feita,
   comprovante foto/vídeo/PDF em `tarefa-comprovante/:id/midia`): Admin e Acompanhamento; Especialista só as REUNIAO das próprias
   reuniões (`mentoria_ve_tarefa`/`mentoria_edita_tarefa`); Operação envia mas não marca. Até 3 tarefas por reunião (gatilho, para a
   Parte 2). Pausa não estica o prazo do PME (pergunta aberta à Eduarda).
   **Metas e tarefas da reunião** (Fase 2, Parte 2, 12/11/2026): metas (`mentoria_metas`, casal ou de uma pessoa, pilar, alvo/atual
   `numeric`, unidade, prazo, descrição cifrada) leem Admin, Acompanhamento e Operação (`mentoria_ve_meta`); escrevem Admin e
-  Acompanhamento (área `META`); a **Especialista não vê metas**. Meta nasce no ciclo aberto (se houver). **Sem status da meta (S3) e
-  sem exclusão de meta ou tarefa**: esperam decisão do Gabriel (pendências no plano da Fase 2, Parte 2). Registro da reunião:
+  Acompanhamento (área `META`); a **Especialista não vê metas**. Meta nasce no ciclo aberto (se houver). Status da meta (E10,
+  Parte 3): ATINGIDA, NAO_ATINGIDA ou nulo (sem marcação; sem "Em andamento"), nunca num %. **Sem exclusão de meta ou tarefa**
+  (não está na spec; pendências no plano da Fase 2, Parte 2). Registro da reunião:
   "Cobrança da reunião anterior" (tarefas REUNIAO da última reunião REALIZADA antes desta, entre as que quem abre vê), "Tarefas da
   semana" (até 3, prazo obrigatório, meta opcional, entra no ciclo aberto) e "Metas definidas ou ajustadas"; os textos da Fase 1
   continuam. Só a tarefa REUNIAO muda texto, prazo e meta; reunião com tarefa/meta não se exclui (a FK apagaria as tarefas).
@@ -292,6 +300,22 @@ DEFINER`, a Especialista vê o número inteiro): só tarefas FEITA ÷ total do c
   pilar, prazo, barra); "Editar" abre os campos, uma meta por vez, e "Pronto" recarrega quando a fila de salvamento esvazia
   (`metas.tsx`). Plano > Esta semana: lista vazia vira uma linha e as Atrasadas ficam na coluna larga. Quem veio de antes do
   sistema não vê os seis passos do onboarding, só o aviso. Perfis tem títulos de coluna (o interruptor guarda o rótulo inteiro).
+  **Check-in e semáforo** (Fase 2, Parte 3, 18/11/2026, spec E9–E16 e §5): check-in (`mentoria_checkins`) lançado na ficha por Admin
+  e Acompanhamento (área `CHECKIN`), um por semana (segunda a domingo de Brasília; `semana` = coluna gerada do `enviado_em`);
+  `respondeu` ⇔ `respondido_em`; avanço, o que travou e próximo passo cifrados; Operação lê; **a Especialista não vê check-in nem
+  semáforo**. Semáforo só ATIVO, em SQL (`mentoria_semaforo_calc`, interna; `mentoria_semaforo(inscricao, dia)` para a API, nada
+  para quem não é Admin/Acompanhamento/Operação): `CHECKIN_1/2` = a última/as 2 últimas semanas encerradas sem check-in
+  respondido (enviado ou não); `TAREFA_1/2` = a última/as 2 últimas tarefas **da reunião** vencidas (prazo < hoje) NAO_FEITA ou
+  PENDENTE; `PME_7/15` = atraso do ciclo aberto contado do prazo atual. Pior cor; sem motivo, verde. **Conta só da entrada no
+  ar**: `mentoria_semaforo_inicio.desde` (a 0069 grava o dia em que roda, cada ambiente o seu); semanas válidas começam depois
+  dele e do início da jornada; tarefas com prazo a partir dele; o atraso do PME conta de `greatest(prazo atual, desde)`. Testes
+  mudam `desde` e restauram. Histórico (`mentoria_semaforo_historico`, só `mentoria_semaforo_gravar(hoje)`, idempotente): o
+  `AvisosScheduler` grava em todo disparo e arma o timer também para a segunda 00:00 de Brasília. Sequência de semanas com
+  check-in: `mentoria_sequencia_checkins`. **Segunda chance** (E15, E16): `PATCH ciclos/:id {segundaChanceAte}` (área
+  `SEGUNDA_CHANCE`: Admin e Acompanhamento; o gatilho barra a Operação), só no ciclo aberto, depois do prazo e não antes de hoje
+  (a tela sugere hoje + 7); status `SEGUNDA_CHANCE` ("Segunda chance até DD/MM") enquanto vale, depois "Em andamento" com o
+  atraso do novo prazo; histórico `pme.segunda_chance`. Mentorados: PME atual, semáforo e % do PME, filtro por semáforo
+  (lembrado). Amarelo do semáforo é token novo (`--tag-warn`, `--sem-amarelo` em `modulo.css`). Pendências no plano.
 - **Siglas das mentorias** (Gabriel, 04/11/2026): RDV = Rico de Verdade · IDR = Introdução da
   Riqueza · PME = Plano Mensal de Enriquecimento · 2M = Marco e Mudança · 6M = sem definição ainda.
   Nas telas vale o texto literal do PDF, exceto IDR: "Introdução da Riqueza" (o PDF diz "à"; corrigido).

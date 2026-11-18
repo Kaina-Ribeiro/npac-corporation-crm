@@ -1,5 +1,7 @@
 'use client';
 import {
+  DATA_MAX,
+  DATA_MIN,
   MENTORIAS,
   ORIGEM_LABEL,
   ORIGENS,
@@ -46,7 +48,7 @@ export function NovaInscricao({
   const [tipo, setTipo] = useState<TipoInscricao>('INDIVIDUAL');
   const [mentoria, setMentoria] = useState<Mentoria>('RDV');
   const [pessoas, setPessoas] = useState<PessoaForm[]>([NOVA, NOVA]);
-  const [compra, setCompra] = useState({
+  const [compra, setCompraBruto] = useState({
     dataCompra: '',
     valor: '',
     formaPagamento: '',
@@ -60,8 +62,15 @@ export function NovaInscricao({
   const casal = tipo === 'CASAL';
   const visiveis = casal ? pessoas : pessoas.slice(0, 1);
 
-  const mudarPessoa = (i: number, campo: keyof PessoaForm, v: string) =>
+  // Mexeu num campo, o aviso do envio anterior sai: ele falava de um valor que já mudou.
+  const setCompra = (c: typeof compra) => {
+    setErro('');
+    setCompraBruto(c);
+  };
+  const mudarPessoa = (i: number, campo: keyof PessoaForm, v: string) => {
+    setErro('');
     setPessoas((ps) => ps.map((p, k) => (k === i ? { ...p, [campo]: v } : p)));
+  };
 
   async function cadastrar(e: FormEvent) {
     e.preventDefault();
@@ -191,6 +200,8 @@ export function NovaInscricao({
               <input
                 className={control}
                 type="date"
+                min={DATA_MIN}
+                max={DATA_MAX}
                 value={compra.dataCompra}
                 onChange={(e) => setCompra({ ...compra, dataCompra: e.target.value })}
               />

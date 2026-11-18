@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { dataCalendarioValida } from '../mentoria/datas.js';
+import { AVISO_DATA, dataCalendarioValida } from '../mentoria/datas.js';
 import {
   INSCRICAO_STATUS,
   MENTORIAS,
@@ -19,6 +19,7 @@ import { MOMENTOS_MENSAGEM } from '../mentoria/mensagens.js';
 import { ENVIO_STATUS } from '../mentoria/onboarding.js';
 import { ACAO_STATUS, GATILHOS, PERFIS_ACAO, REUNIAO_TIPOS } from '../mentoria/plano.js';
 import { PILARES } from '../mentoria/metas.js';
+import { META_STATUS, SEMAFORO_CORES } from '../mentoria/semaforo.js';
 import { TAREFA_STATUS } from '../mentoria/pmes.js';
 import {
   CANAIS_CONTATO,
@@ -33,7 +34,7 @@ const vazioNulo = (v: unknown) => (typeof v === 'string' && v.trim() === '' ? nu
 const opc = <T extends z.ZodType>(s: T) => z.preprocess(vazioNulo, s.nullable()).optional();
 
 const texto = (max: number) => opc(z.string().trim().max(max));
-const dataIso = z.string().refine(dataCalendarioValida, 'Data inválida');
+const dataIso = z.string().refine(dataCalendarioValida, AVISO_DATA);
 const data = opc(dataIso);
 const centavos = opc(z.number().int().min(0).max(100_000_000_000));
 const nota = opc(z.number().int().min(0).max(10));
@@ -119,6 +120,7 @@ export const inscricoesListaSchema = z
     status: z.enum(INSCRICAO_STATUS).optional(),
     responsavelId: z.string().min(1).max(100).optional(),
     completar: z.boolean().optional(),
+    semaforo: z.enum(SEMAFORO_CORES).optional(),
     cursor: z.string().max(400).optional(),
   })
   .strict();
@@ -332,7 +334,7 @@ export type CicloAnterior = z.output<typeof cicloAnteriorSchema>;
 
 /** Corrigir a data de envio; fechar ou reabrir à mão o ciclo sem tarefa de encerramento. */
 export const cicloPatchSchema = z
-  .object({ version, enviadoEm: dataIso.optional(), concluidoEm: data })
+  .object({ version, enviadoEm: dataIso.optional(), concluidoEm: data, segundaChanceAte: data })
   .strict();
 export type CicloPatch = z.output<typeof cicloPatchSchema>;
 
@@ -378,6 +380,7 @@ export const metaPatchSchema = z
     version,
     descricao: descricaoMeta.optional(),
     ...camposMeta,
+    status: opc(z.enum(META_STATUS)),
   })
   .strict();
 export type MetaPatch = z.output<typeof metaPatchSchema>;
@@ -529,3 +532,19 @@ export const transferirCarteiraSchema = z
   .object({ de: z.string().min(1).max(100), para: z.string().min(1).max(100) })
   .strict();
 export type TransferirCarteira = z.output<typeof transferirCarteiraSchema>;
+
+// Check-in da semana (Parte 3, E9): data e hora como o `datetime-local` da tela, em Brasília.
+const textoCheckin = texto(4000);
+const camposCheckin = {
+  respondeu: z.boolean().optional(),
+  respondidoEm: opc(dataHora),
+  avanco: textoCheckin,
+  travou: textoCheckin,
+  proximoPasso: textoCheckin,
+};
+export const checkinCriarSchema = z.object({ enviadoEm: dataHora, ...camposCheckin }).strict();
+export type CheckinCriar = z.output<typeof checkinCriarSchema>;
+export const checkinPatchSchema = z
+  .object({ version, enviadoEm: dataHora.optional(), ...camposCheckin })
+  .strict();
+export type CheckinPatch = z.output<typeof checkinPatchSchema>;

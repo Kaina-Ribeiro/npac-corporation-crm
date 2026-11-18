@@ -1,6 +1,6 @@
 # Acompanhamento v2 — Fase 2, cobrança (design)
 
-> Status: **v1, 11/11/2026** · ticket NPAC-43 · plano: `docs/superpowers/plans/2026-11-11-acompanhamento-v2-fase-2.md`
+> Status: **v2, 18/11/2026** (respostas de 18/11 em E9–E16) · ticket NPAC-43 · plano: `docs/superpowers/plans/2026-11-11-acompanhamento-v2-fase-2.md`
 > Fonte: PDF da Eduarda (`docs/acompanhamento/especificacao-eduarda-2026-11-07.txt`, páginas 5, 6, 10, 15–19),
 > respostas da Eduarda de 11/11 e o design da Fase 1 (`docs/superpowers/plans/2026-11-10-acompanhamento-v2-design.md`),
 > que continua valendo em tudo o que este documento não muda. Spec > este documento > gosto.
@@ -18,6 +18,14 @@
 | E6 | **Check-in é mensagem manual e pessoal**, enviada pela equipe no WhatsApp (6, 6.3B). Sem BotConversa na Fase 2; sem perguntas fixas. A equipe lança no sistema o envio e a resposta | Eduarda, 11/11 |
 | E7 | **2M e 6M têm PME, check-in e semáforo** como o RDV (6A) | Eduarda, 11/11 |
 | E8 | **"Fiz" e comprovante são lançados pela equipe** até a área do mentorado (Fase 3). O campo de quem marcou já nasce pensando nela | Decorre de E6 |
+| E9 | **Check-in varia por mentorado** (4B, responde P2): sem dia fixo e sem item "enviar check-in" na Fila. A semana é a do calendário, de segunda a domingo, em Brasília. A equipe lança na ficha os campos do PDF (enviado em, respondido em, respondeu, avanço, o que travou, próximo passo; os três últimos cifrados e opcionais). Lançam Admin e Acompanhamento | Eduarda, 18/11 |
+| E10 | **A meta também é marcada** (5B, responde S3): status ATINGIDA ou NAO_ATINGIDA; vazio = sem marcação (sem rótulo "Em andamento"). Meta sem alvo mostra a marcação e continua fora de qualquer %; as metas seguem sem número único | Eduarda, 18/11 |
+| E11 | **Semana sem check-in respondido conta** (6B, substitui S2), mesmo que a equipe não tenha enviado: a última semana encerrada sem resposta = amarelo; as 2 últimas = vermelho | Eduarda, 18/11 |
+| E12 | **Tarefa vencida e não cobrada já conta como não feita** (7B, substitui S5): prazo antes de hoje e NAO_FEITA ou ainda PENDENTE. A última assim = amarelo; as 2 últimas = vermelho. PARCIAL e FEITA não contam | Eduarda, 18/11 |
+| E13 | **O semáforo conta só a partir da entrada no ar**: valem as semanas que começam depois da data em que a migration da Parte 3 roda (guardada no banco; cada ambiente tem a sua) e depois do início da jornada. Na entrada no ar, todo mundo começa verde | Gabriel, 18/11 |
+| E14 | **Próximo PME (P3) fica como está**: a equipe envia quando quiser pelo botão; a Fila só sugere o envio depois do encerramento. Varia por mentorado, sem regra automática | Gabriel, 18/11 (áudios da Eduarda) |
+| E15 | **Segunda chance (S1) é ação manual da equipe**, sem regra automática: botão "Dar segunda chance" no ciclo aberto da ficha; a equipe escolhe o novo prazo (sugestão: 7 dias, do PDF); Admin e Acompanhamento; a data fica no ciclo, com histórico; o status mostra "Segunda chance até DD/MM" enquanto valer | Gabriel, 18/11 (áudios da Eduarda) |
+| E16 | **Atraso do PME no semáforo conta do prazo atual**: com segunda chance dada, do novo prazo | Gabriel, 18/11 (áudios da Eduarda) |
 
 ## 1. Objetivo e sucesso
 
@@ -58,16 +66,18 @@ calendário em `date`, fuso de Brasília.
 | `pmes` | `numero` (0 = aquecimento, 1 a 12, **único**), `titulo` (opcional; a tela mostra "Nº PME" quando vazio), `foco`, `link_material` (pasta no Drive), `atividades_extras` (lista de textos), `encerramento` (texto da tarefa de encerramento; opcional), `ativo`. Não é cifrado: é catálogo, sem dado pessoal |
 | `ciclos` | `inscricao_id`, `pme_id`, `numero` (cópia do número do PME, **único por inscrição**), `enviado_em` (date), `prazo` (= envio + 30 dias, E2; guardado), `concluido_em` (date, nulo até o encerramento), `nao_concluido_em` (date: quando um ciclo seguinte foi enviado sem este fechar), `anterior_ao_sistema` (bool, para a carteira importada). **Um ciclo aberto por inscrição** (índice parcial) |
 | `tarefas` | `inscricao_id`, `origem` (REUNIAO, PME, EXTRA, ENCERRAMENTO), `reuniao_id`, `ciclo_id`, `meta_id`, `descricao` (cifrada), `prazo` (date; obrigatório em REUNIAO), `status` (PENDENTE, FEITA, PARCIAL, NAO_FEITA), `motivo` (cifrado, quando NAO_FEITA ou PARCIAL), `comprovante_midia_id` (mídia do módulo; FOTO, VIDEO ou PDF), `data_cobranca` (= prazo), `cobrada_em`/`cobrada_por` (quando a equipe registrou o resultado), `marcada_por_mentorado_em` (Fase 3; nulo na Fase 2), `visivel_ao_mentorado` (padrão sim) |
-| `metas` | `inscricao_id`, `ciclo_id` (opcional), `reuniao_id` (onde nasceu, opcional), `pessoa_id` (nulo = do casal ou do individual; preenchido = de uma pessoa do casal), `pilar` (FE, SAUDE, DINHEIRO, RELACIONAMENTOS; opcional), `descricao` (cifrada), `valor_alvo`, `valor_atual` (numéricos, opcionais), `unidade` (texto curto), `prazo`, `status` (**pendente com a Eduarda**, S3: sem campo até a resposta), `visivel_ao_mentorado` (padrão sim) |
-| `checkins` | `inscricao_id`, `semana` (segunda-feira da semana, Brasília; **único por inscrição**), `enviado_em`, `respondido_em` (timestamptz), `respondeu` (bool), `avanco`, `travou`, `proximo_passo` (cifrados, opcionais: o resumo da resposta nos campos do PDF) |
+| `metas` | `inscricao_id`, `ciclo_id` (opcional), `reuniao_id` (onde nasceu, opcional), `pessoa_id` (nulo = do casal ou do individual; preenchido = de uma pessoa do casal), `pilar` (FE, SAUDE, DINHEIRO, RELACIONAMENTOS; opcional), `descricao` (cifrada), `valor_alvo`, `valor_atual` (numéricos, opcionais), `unidade` (texto curto), `prazo`, `status` (ATINGIDA, NAO_ATINGIDA; nulo = sem marcação, E10), `visivel_ao_mentorado` (padrão sim) |
+| `ciclos` (Parte 3) | ganha `segunda_chance_ate` (date, nulo sem segunda chance, E15). Prazo atual = `segunda_chance_ate` ou, sem ela, `prazo` |
+| `checkins` | `inscricao_id`, `semana` (segunda-feira da semana do envio, Brasília; **único por inscrição**), `enviado_em`, `respondido_em` (timestamptz), `respondeu` (bool), `avanco`, `travou`, `proximo_passo` (cifrados, opcionais: o resumo da resposta nos campos do PDF) |
 | `semaforo_historico` | `inscricao_id`, `semana` (segunda-feira), `cor` (VERDE, AMARELO, VERMELHO), `motivos` (lista de códigos, §5), **único por inscrição e semana** |
 
 Regras de dados:
 - **Ciclo derivado, não editado à mão:**
   `CONCLUIDO` se `concluido_em`; senão `NAO_CONCLUIDO` se `nao_concluido_em` (o ciclo seguinte foi enviado sem
-  este fechar); senão `EM_ANDAMENTO`, com "N dias de atraso" depois do prazo. A segunda chance (S1) está
-  **pendente com a Eduarda**: até a resposta não há degrau por dias de atraso (Gabriel, 12/11; migration 0059).
-  Uma implementação só, em SQL (`mentoria_ciclo_status`).
+  este fechar); senão `SEGUNDA_CHANCE` enquanto hoje ≤ `segunda_chance_ate` (E15); senão `EM_ANDAMENTO`, com
+  "N dias de atraso" depois do prazo atual (E16). Não há degrau automático por dias de atraso: a segunda chance é
+  dada à mão. Uma implementação só, em SQL (`mentoria_ciclo_status`).
+- **Segunda chance (E15)**: só no ciclo aberto, Admin e Acompanhamento; histórico `pme.segunda_chance`.
 - **Encerramento:** a tarefa ENCERRAMENTO marcada FEITA grava `concluido_em` na mesma transação;
   desfazer (voltar para PENDENTE) limpa. Ciclo sem tarefa de encerramento (anterior ao sistema) fecha à mão.
 - **Envio do PME** (Admin, ACOMPANHAMENTO, OPERACAO): cria o ciclo do número seguinte, com uma tarefa
@@ -102,20 +112,27 @@ Regras de dados:
 
 ## 5. Semáforo
 
-Só inscrições ATIVO. Calculado em SQL (`mentoria_semaforo(inscricao_id, dia)`), devolvendo cor e motivos:
+Só inscrições ATIVO; pausado não tem semáforo. Calculado em SQL (`mentoria_semaforo(inscricao_id, dia)`),
+devolvendo cor e motivos. "Semana" = segunda a domingo de Brasília (E9); "valida" = começa depois da data de
+entrada no ar (E13) e depois de `inicio_jornada`.
 
 | Cor | Motivo (código) | Regra |
 |---|---|---|
-| Amarelo | `CHECKIN_1` | O check-in da última semana encerrada foi enviado e não teve resposta |
-| Amarelo | `TAREFA_1` | A última tarefa cobrada (por `data_cobranca`) está NAO_FEITA |
-| Amarelo | `PME_7` | O ciclo aberto tem 7 ou mais dias de atraso (PDF, página 19) |
-| Vermelho | `CHECKIN_2` | As 2 últimas semanas encerradas tiveram check-in enviado e sem resposta |
-| Vermelho | `TAREFA_2` | As 2 últimas tarefas cobradas estão NAO_FEITA |
-| Vermelho | `PME_15` | O ciclo aberto tem 15 ou mais dias de atraso |
+| Amarelo | `CHECKIN_1` | A última semana encerrada é válida e não teve check-in respondido, enviado ou não (E11) |
+| Amarelo | `TAREFA_1` | A última tarefa vencida (prazo antes de hoje, a mais recente pelo prazo) está NAO_FEITA ou PENDENTE (E12) |
+| Amarelo | `PME_7` | O ciclo aberto tem 7 ou mais dias de atraso, contados do prazo atual (PDF, página 19; E16) |
+| Vermelho | `CHECKIN_2` | As 2 últimas semanas encerradas são válidas e nenhuma teve check-in respondido |
+| Vermelho | `TAREFA_2` | As 2 últimas tarefas vencidas estão NAO_FEITA ou PENDENTE |
+| Vermelho | `PME_15` | O ciclo aberto tem 15 ou mais dias de atraso, contados do prazo atual |
 
-- A cor é a pior entre os motivos; sem motivo, verde.
-- **Semana sem check-in enviado não conta** (S2): a falta é da equipe, não do mentorado, e a carteira
-  importada não nasce toda em vermelho.
+- A cor é a pior entre os motivos; sem motivo, verde. De cada par fica só o mais grave (`CHECKIN_2` no lugar
+  de `CHECKIN_1`).
+- **Todo mundo começa verde (E13)**: entram só as tarefas com prazo a partir da entrada no ar, e o atraso do
+  PME conta a partir do prazo atual ou da entrada no ar, o que vier depois.
+- **Tarefas que contam**: as da reunião (origem REUNIAO), o "ciclo semanal de cobrança" do PDF (página 10,
+  passo 6). As do ciclo (extras e encerramento) vencem juntas no prazo do PME, que já tem `PME_7`/`PME_15`.
+- **Quem vê**: Admin, Acompanhamento e Operação. A Especialista não vê o semáforo nem os check-ins (§2: "só as
+  tarefas e a cobrança das próprias reuniões").
 - **Histórico semana a semana** (`semaforo_historico`): na virada da semana (segunda 00:00 de Brasília)
   grava a cor da semana que acabou. Usa o timer único do push (`avisos.scheduler.ts`) e, ao subir a API,
   completa as semanas que faltarem desde a última gravada (idempotente). A ficha mostra o histórico e a
@@ -162,8 +179,9 @@ Novos tipos, calculados na leitura em `mentoria_fila` como os da Fase 1 (só ONB
   gatilho das 3 tarefas, um ciclo aberto, migrations.
 - `@npac/api` (relógio `MENTORIA_CLOCK`, `PUSH_SENDER` falso): envio cria ciclo e tarefas; encerramento
   fecha e desfazer reabre; status do ciclo nos dias 9, 10, 16 e 17 de atraso; envio com ciclo aberto
-  marca NAO_CONCLUIDO; 4ª tarefa da reunião dá 400; % de tarefas e de metas; semáforo em cada motivo e
-  semana sem envio não contando; histórico idempotente ao subir duas vezes; Fila COBRANCA, SEMAFORO,
+  marca NAO_CONCLUIDO; 4ª tarefa da reunião dá 400; % de tarefas e de metas; semáforo em cada motivo,
+  semana sem resposta contando, todo mundo verde na entrada no ar, PENDENTE vencida contando,
+  segunda chance mudando o prazo atual; histórico idempotente ao subir duas vezes; Fila COBRANCA, SEMAFORO,
   ENVIAR_PME, PME_ATRASADO e a ação FIM_PME esperando o ciclo; pausado fora de tudo; Especialista só nas
   próprias reuniões; importação continua sem criar itens.
 - `@npac/web`: Playwright por perfil no registro da reunião, na ficha, na aba 7 e em Configurações > PMEs;
@@ -175,22 +193,13 @@ Novos tipos, calculados na leitura em `mentoria_fila` como os da Fase 1 (só ONB
 | # | Pergunta | Hoje o sistema faz | Quando ela responder |
 |---|---|---|---|
 | P1 | Situação do pagamento: qual opção falta? | Mantém EM_DIA, EM_ATRASO, QUITADO e "Não informado" (Fase 1) | Migration acrescenta o valor ao CHECK + rótulo. Fora das partes da Fase 2 |
-| P2 | Check-in sai sempre no mesmo dia? | A semana é de segunda a domingo; a equipe lança quando enviar. **Sem item "enviar check-in" na Fila** | Mesmo dia: item na Fila nesse dia para quem ainda não recebeu. Varia: campo "dia do check-in" na inscrição |
-| P3 | PME não fechado nem na segunda chance: o próximo sai? | Segue E3: o item ENVIAR_PME só aparece depois do encerramento; a equipe pode registrar o envio a qualquer momento (o aberto vira NAO_CONCLUIDO) | Se "sai mesmo assim": ENVIAR_PME também aparece com o ciclo NAO_CONCLUIDO (uma condição em `mentoria_fila`) |
+
+Respondidas em 18/11: P2 (E9), P3 (E14), S1 (E15, E16), S2 (E11), S3 (E10), S4 (E10: meta sem alvo fica fora
+de qualquer %), S5 (E12).
 
 ## 10. Suposições (validar com a Eduarda quando der)
 
-- **S1** (**pendente com a Eduarda**; não implementada) A segunda chance começaria com **10 dias de atraso**
-  e duraria 7 (escada da página 19). A tabela de regras da página 17 diz "PME não fechado no prazo abre a
-  segunda chance". Até a resposta, o ciclo aberto fica "Em andamento" com os dias de atraso.
-- **S2** Semana sem check-in enviado não conta para o semáforo.
-- **S3** (**pendente com a Eduarda**; não implementada) Status da meta: Em andamento, Atingida, Não
-  atingida? O PDF só diz "status". Até a resposta, a meta não tem status.
-- **S4** (**pendente com a Eduarda**; não implementada) Meta sem alvo numérico contaria pelo status no %
-  de metas. Até a resposta, não entra em nenhum %.
 - **Gabriel, 12/11:** tudo o que é suposição vai para a Eduarda e não entra até ela responder. Também
   pendente com ela: como juntar as metas num % do PME (§3).
-- **S5** "Tarefa não feita" no semáforo é só NAO_FEITA registrada; PENDENTE vencida ainda não conta (vira
-  cobrança na Fila).
 - **S6** Os "10 maiores erros" do 1º PME continuam no campo da Fase 1 (`erros_pme1_concluidos_em`); a
   atividade extra do ciclo 1 é independente. Juntar os dois fica para a Fase 3, quando o mentorado vir as tarefas.

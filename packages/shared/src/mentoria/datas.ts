@@ -7,6 +7,15 @@ export type DataParseada = { texto: string; data: string | null };
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
+/**
+ * Faixa de datas aceita no módulo. Vai também no `min`/`max` dos campos de data: sem eles o
+ * Chrome aceita ano de 2 dígitos ("25" vira 0025) e de até 6, e a API recusava ao salvar.
+ */
+export const DATA_MIN = '1900-01-01';
+export const DATA_MAX = '2999-12-31';
+/** Aviso de data fora do calendário ou da faixa (tela e API). */
+export const AVISO_DATA = 'Data inválida. Confira o ano (4 dígitos, como 2025).';
+
 function iso(dia: number, mes: number, ano: number): string | null {
   if (mes < 1 || mes > 12 || ano < 1900 || ano > 2999) return null;
   const d = new Date(Date.UTC(ano, mes - 1, dia));

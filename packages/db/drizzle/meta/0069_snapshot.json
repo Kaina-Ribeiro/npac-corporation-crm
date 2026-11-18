@@ -1,5 +1,5 @@
 {
-  "id": "ae1801db-04e4-4dde-8dc9-298c72999ed9",
+  "id": "30a562ff-fd45-4f3d-a330-c3ea9393967c",
   "prevId": "a81ee5d6-eb24-429d-8985-bfe6f669243f",
   "version": "7",
   "dialect": "postgresql",
@@ -440,73 +440,6 @@
         "user_cargo_caixas": {
           "name": "user_cargo_caixas",
           "value": "case \"user\".\"role\"::text\n        when 'SDR' then \"user\".\"can_prospect\" and not \"user\".\"can_close\"\n        when 'CLOSER' then \"user\".\"can_close\" and not \"user\".\"can_prospect\"\n        when 'ACOMPANHAMENTO' then not \"user\".\"can_prospect\" and not \"user\".\"can_close\"\n        else true end"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.user_photos": {
-      "name": "user_photos",
-      "schema": "",
-      "columns": {
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "bytes": {
-          "name": "bytes",
-          "type": "bytea",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "mime": {
-          "name": "mime",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "size": {
-          "name": "size",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "user_photos_user_id_user_id_fk": {
-          "name": "user_photos_user_id_user_id_fk",
-          "tableFrom": "user_photos",
-          "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "user_photos_mime": {
-          "name": "user_photos_mime",
-          "value": "\"user_photos\".\"mime\" in ('image/jpeg', 'image/png', 'image/webp')"
-        },
-        "user_photos_size": {
-          "name": "user_photos_size",
-          "value": "\"user_photos\".\"size\" between 1 and 204800"
         }
       },
       "isRLSEnabled": false
@@ -3837,6 +3770,170 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.mentoria_checkins": {
+      "name": "mentoria_checkins",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "inscricao_id": {
+          "name": "inscricao_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "enviado_em": {
+          "name": "enviado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "semana": {
+          "name": "semana",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true,
+          "generated": {
+            "as": "(date_trunc('week', enviado_em at time zone 'America/Sao_Paulo'))::date",
+            "type": "stored"
+          }
+        },
+        "respondeu": {
+          "name": "respondeu",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "respondido_em": {
+          "name": "respondido_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "avanco": {
+          "name": "avanco",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "travou": {
+          "name": "travou",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "proximo_passo": {
+          "name": "proximo_passo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "visivel_ao_mentorado": {
+          "name": "visivel_ao_mentorado",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "criado_por": {
+          "name": "criado_por",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "atualizado_em": {
+          "name": "atualizado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "mentoria_checkins_inscricao_id_mentoria_inscricoes_id_fk": {
+          "name": "mentoria_checkins_inscricao_id_mentoria_inscricoes_id_fk",
+          "tableFrom": "mentoria_checkins",
+          "tableTo": "mentoria_inscricoes",
+          "columnsFrom": [
+            "inscricao_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "mentoria_checkins_criado_por_user_id_fk": {
+          "name": "mentoria_checkins_criado_por_user_id_fk",
+          "tableFrom": "mentoria_checkins",
+          "tableTo": "user",
+          "columnsFrom": [
+            "criado_por"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "mentoria_checkins_semana_unica": {
+          "name": "mentoria_checkins_semana_unica",
+          "nullsNotDistinct": false,
+          "columns": [
+            "inscricao_id",
+            "semana"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "mentoria_checkins_respondeu": {
+          "name": "mentoria_checkins_respondeu",
+          "value": "\"mentoria_checkins\".\"respondeu\" = (\"mentoria_checkins\".\"respondido_em\" is not null)"
+        },
+        "mentoria_checkins_ordem": {
+          "name": "mentoria_checkins_ordem",
+          "value": "\"mentoria_checkins\".\"respondido_em\" >= \"mentoria_checkins\".\"enviado_em\""
+        },
+        "mentoria_checkins_avanco": {
+          "name": "mentoria_checkins_avanco",
+          "value": "octet_length(\"mentoria_checkins\".\"avanco\") <= 400000"
+        },
+        "mentoria_checkins_travou": {
+          "name": "mentoria_checkins_travou",
+          "value": "octet_length(\"mentoria_checkins\".\"travou\") <= 400000"
+        },
+        "mentoria_checkins_proximo": {
+          "name": "mentoria_checkins_proximo",
+          "value": "octet_length(\"mentoria_checkins\".\"proximo_passo\") <= 400000"
+        }
+      },
+      "isRLSEnabled": false
+    },
     "public.mentoria_ciclos": {
       "name": "mentoria_ciclos",
       "schema": "",
@@ -3890,6 +3987,12 @@
         },
         "nao_concluido_em": {
           "name": "nao_concluido_em",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "segunda_chance_ate": {
+          "name": "segunda_chance_ate",
           "type": "date",
           "primaryKey": false,
           "notNull": false
@@ -5083,6 +5186,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "visivel_ao_mentorado": {
           "name": "visivel_ao_mentorado",
           "type": "boolean",
@@ -5227,6 +5336,10 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {
+        "mentoria_metas_status": {
+          "name": "mentoria_metas_status",
+          "value": "\"mentoria_metas\".\"status\" in ('ATINGIDA', 'NAO_ATINGIDA')"
+        },
         "mentoria_metas_pilar": {
           "name": "mentoria_metas_pilar",
           "value": "\"mentoria_metas\".\"pilar\" in ('FE', 'SAUDE', 'DINHEIRO', 'RELACIONAMENTOS')"
@@ -6942,6 +7055,117 @@
         "mentoria_reunioes_anotacao": {
           "name": "mentoria_reunioes_anotacao",
           "value": "octet_length(\"mentoria_reunioes\".\"anotacao_interna\") <= 400000"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.mentoria_semaforo_historico": {
+      "name": "mentoria_semaforo_historico",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "inscricao_id": {
+          "name": "inscricao_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "semana": {
+          "name": "semana",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cor": {
+          "name": "cor",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "motivos": {
+          "name": "motivos",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::text[]"
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "mentoria_semaforo_historico_inscricao_id_mentoria_inscricoes_id_fk": {
+          "name": "mentoria_semaforo_historico_inscricao_id_mentoria_inscricoes_id_fk",
+          "tableFrom": "mentoria_semaforo_historico",
+          "tableTo": "mentoria_inscricoes",
+          "columnsFrom": [
+            "inscricao_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "mentoria_semaforo_historico_semana": {
+          "name": "mentoria_semaforo_historico_semana",
+          "nullsNotDistinct": false,
+          "columns": [
+            "inscricao_id",
+            "semana"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "mentoria_semaforo_historico_cor": {
+          "name": "mentoria_semaforo_historico_cor",
+          "value": "\"mentoria_semaforo_historico\".\"cor\" in ('VERDE', 'AMARELO', 'VERMELHO')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.mentoria_semaforo_inicio": {
+      "name": "mentoria_semaforo_inicio",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "boolean",
+          "primaryKey": true,
+          "notNull": true,
+          "default": true
+        },
+        "desde": {
+          "name": "desde",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "mentoria_semaforo_inicio_uma": {
+          "name": "mentoria_semaforo_inicio_uma",
+          "value": "\"mentoria_semaforo_inicio\".\"id\""
         }
       },
       "isRLSEnabled": false

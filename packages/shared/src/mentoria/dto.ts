@@ -15,6 +15,7 @@ import type { AcaoStatus, Gatilho, PerfilAcao, ReuniaoTipo } from './plano.js';
 import type { CanalContato, Plataforma, ReuniaoStatus } from './reunioes.js';
 import type { Pilar } from './metas.js';
 import type { CicloStatus, TarefaOrigem, TarefaStatus } from './pmes.js';
+import type { MetaStatus, SemaforoCor, SemaforoMotivo } from './semaforo.js';
 
 /** `GET mentoria/eu`: o perfil operacional e o selo de Admin de quem está logado. */
 export type EuMentoria = { perfil: Perfil | null; admin: boolean };
@@ -51,6 +52,36 @@ export type InscricaoItem = {
   pessoas: PessoaResumo[];
   /** Ações do plano: quantas há, feitas e atrasadas. */
   plano: { total: number; feitas: number; atrasadas: number };
+  /** Semáforo de hoje (Parte 3): nulo fora de ATIVO ou para quem não vê (Especialista). */
+  semaforo: SemaforoDTO | null;
+  /** PME atual: o ciclo mais recente, com o status e o % de tarefas (E5). */
+  pme: {
+    numero: number;
+    status: CicloStatus;
+    diasAtraso: number;
+    pctTarefas: number | null;
+  } | null;
+};
+
+/** Semáforo (§5): a pior cor entre os motivos; sem motivo, verde. */
+export type SemaforoDTO = { cor: SemaforoCor; motivos: SemaforoMotivo[] };
+
+/** Semana encerrada do histórico do semáforo. `semana` = segunda-feira (`AAAA-MM-DD`). */
+export type SemaforoSemanaDTO = SemaforoDTO & { semana: string };
+
+/** Check-in da semana (E9), lançado pela equipe. Instantes em ISO (UTC). */
+export type CheckinDTO = {
+  id: string;
+  version: number;
+  /** Segunda-feira da semana do envio (`AAAA-MM-DD`). */
+  semana: string;
+  enviadoEm: string;
+  respondeu: boolean;
+  respondidoEm: string | null;
+  avanco: string | null;
+  travou: string | null;
+  proximoPasso: string | null;
+  podeEditar: boolean;
 };
 
 /** Página da lista: 50 itens e cursor opaco (só o id do último, assinado). */
@@ -333,6 +364,15 @@ export type FichaDTO = {
   metas: MetaDTO[];
   /** Tarefas combinadas nas reuniões (as que a pessoa logada vê), mais recentes primeiro. */
   tarefasReuniao: TarefaDTO[];
+  /**
+   * Semáforo de hoje, histórico semana a semana (mais recentes primeiro) e sequência de semanas com
+   * check-in respondido (Parte 3). Nulos e vazios para quem não vê (Especialista) e fora de ATIVO.
+   */
+  semaforo: SemaforoDTO | null;
+  semaforoHistorico: SemaforoSemanaDTO[];
+  sequenciaCheckins: number | null;
+  /** Check-ins, da semana mais recente para trás; vazio para quem não vê (Especialista). */
+  checkins: CheckinDTO[];
   pode: {
     inscricao: boolean;
     momento: boolean;
@@ -347,6 +387,10 @@ export type FichaDTO = {
     tarefa: boolean;
     /** Criar e editar metas (Admin, Acompanhamento). */
     meta: boolean;
+    /** Lançar check-in (Admin, Acompanhamento). */
+    checkin: boolean;
+    /** Dar segunda chance no PME aberto (Admin, Acompanhamento). */
+    segundaChance: boolean;
     admin: boolean;
   };
 };
@@ -390,7 +434,7 @@ export type TarefaDTO = {
   podeEditar: boolean;
 };
 
-/** Meta (Parte 2). `pessoaId` nulo = do casal ou do individual. Sem status até a decisão (S3). */
+/** Meta (Parte 2). `pessoaId` nulo = do casal ou do individual. `status` nulo = sem marcação (E10). */
 export type MetaDTO = {
   id: string;
   version: number;
@@ -408,6 +452,7 @@ export type MetaDTO = {
   pct: number | null;
   unidade: string | null;
   prazo: string | null;
+  status: MetaStatus | null;
   criadoEm: string;
   podeEditar: boolean;
 };
@@ -423,8 +468,10 @@ export type CicloDTO = {
   concluidoEm: string | null;
   naoConcluidoEm: string | null;
   anteriorAoSistema: boolean;
+  /** Segunda chance dada à mão (E15): o novo prazo. */
+  segundaChanceAte: string | null;
   status: CicloStatus;
-  /** Dias depois do prazo, só enquanto aberto (0 antes do prazo). */
+  /** Dias depois do prazo atual (a segunda chance ou o prazo), só enquanto aberto (0 antes dele). */
   diasAtraso: number;
   /**
    * % do PME (E5), do banco: tarefas FEITA ÷ total do ciclo; nulo sem tarefas. Juntar as metas num
