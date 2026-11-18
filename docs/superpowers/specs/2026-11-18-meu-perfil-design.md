@@ -2,8 +2,9 @@
 
 Origem: pedido do Gabriel de 18/11/2026 ("trocar foto, nome, e-mail e senha; o botão trocar senha sairia"), Fase 3 de
 `docs/plans/pedidos-18-11.md`. Comparação feita com Linear, Attio e HubSpot (seção da Fase 3 do plano).
-Protótipo: canvas "Meu perfil" (https://claude.ai/artifact/NP1nmGBCzto7wdRf1xuwKm, 15 quadros). Status: ⏳ esperando o
-ok do Gabriel no protótipo. Revisão de design de 18/11 aplicada: senha recolhida, usuário e e-mail como texto, quadros de
+Protótipo: canvas "Meu perfil" (https://claude.ai/artifact/NP1nmGBCzto7wdRf1xuwKm, 15 quadros). Status: ✅ aprovado pelo
+Gabriel em 18/11/2026 ("1A, 2A, 3A": protótipo como está; sem envio de e-mail, "peça à liderança"; foto também no Chat e
+no Admin). Plano: `docs/superpowers/plans/2026-11-18-meu-perfil.md`. Revisão de design de 18/11 aplicada: senha recolhida, usuário e e-mail como texto, quadros de
 estados, do celular do Acompanhamento e do tema escuro.
 
 ## Por quê
