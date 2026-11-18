@@ -195,14 +195,17 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   marcação ativa vale pela venda dela; venda registrada sem marcação conta no dia da venda. Closer =
   o da reunião da marcação. Liderança e closer seguem contando só a venda registrada (`deals`).
   Relatórios do SDR mostra o card "Valor a receber por venda feita"; o resumo copiado e o CSV do
-  período levam Vendas e esse valor.
+  período levam Vendas e esse valor. **Vendas a registrar anteriores à 0066** (Gabriel, 18/11/2026,
+  "1B"): a 0067 deu a cada uma a marcação que faltava (SDR do lead, produto informado, reunião
+  realizada mais recente, renda extra do catálogo de hoje, data do `sale.pending` da timeline); venda
+  já registrada e lead sem produto ficaram de fora (`db/test/renda-extra-vendas-antigas.test.ts`).
 - Login por **usuário** (`/sign-in/username`, `[a-z0-9_.]{3,30}`, minúsculo); login por e-mail e
   `/is-username-available` desligados. Senha mínima 3 (provisório, decisão de 29/10/2026: no dev
   todas são `123`; as regras voltam no fim).
 - **Pedido de acesso** (29/10/2026): `/login/solicitar` grava em `access_requests`, fora de `user`
   (pendente não loga). Head/Diretoria aprovam no Admin escolhendo o cargo (`guardLeadership`);
   recusar apaga; expira em 7 dias; 3/hora por IP; resposta igual exista ou não o usuário (hash
-  sempre, para o tempo não revelar). Guarda a **área** da tela (`access_requests.area`, 0067: `COMERCIAL` por
+  sempre, para o tempo não revelar). Guarda a **área** da tela (`access_requests.area`, 0068: `COMERCIAL` por
   `/login/solicitar`, `ACOMPANHAMENTO` por `/login/acompanhamento/solicitar`; `ACCESS_AREAS` em `sh/enums.ts`) e o
   Admin mostra a etiqueta; quem aprova é o mesmo (a fila da Head do Acompanhamento é a Fase 5). A liderança segue redefinindo a senha no Admin;
   Diretoria trancada: `reset-password-cli.js <usuário> [--mfa]` no shell da api (`db/src/reset-password.ts`).
@@ -409,6 +412,14 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
   venda ativa dele, depois dela. Closer sem reunião que tira o lead da etapa o perde: a timeline
   grava antes do UPDATE (`lead-mutations.service.ts`).
 - Ficha: botões WhatsApp (`wa.me`, conversa) e Instagram (perfil, `instagram.com/<usuario>/`, NPAC-41 "3B").
+- **Vendas a registrar no Hoje** (NPAC-51, Gabriel 18/11/2026): `salesToRegister` em `POST /today/search`
+  (`api/today/today.service.ts`) lista os leads em Venda sem venda ativa, com o produto, para quem
+  registra venda: o closer da venda (`leads.closer_id`) vê os dele; a liderança, os de todos (filtros de
+  SDR e closer valem); o SDR recebe lista vazia. Bloco "Vendas a registrar" em `today.tsx`, só quando
+  há item, com link para `/leads/<id>#vendas`. Sai ao registrar a venda ou quando o lead deixa a Venda.
+- **Sair da Venda a registrar pede confirmação** (NPAC-51): `confirmLeaveSale` (`web/lib/leave-sale.ts`,
+  `confirm()` nativo como no Admin) na ficha ("Mover para"), no Pipeline (arrastar) e no select da lista.
+  Sair cancela a venda feita do SDR e apaga o produto. A ação em massa não pergunta.
 - Resultado de reunião só depois do horário (400 "A reunião ainda não aconteceu"). Resultados:
   `DONE`, `NO_SHOW`, `RESCHEDULED`. Valor por reunião realizada = `MEETING_VALUE_CENTS`
   (P0 900, P1 700, P2 500, DESCOBRINDO 0), pelo perfil **atual** do lead; no-show e remarcada não somam.

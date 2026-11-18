@@ -506,3 +506,43 @@ describe('para o SDR a venda conta ao marcar (1A)', () => {
     expect(csv.text).not.toContain('Vendido');
   });
 });
+
+// NPAC-51 (Gabriel, 18/11/2026): a venda marcada pelo SDR fica parada até o closer pôr o valor, e ele
+// só tinha o aviso do sino. O Hoje de quem registra venda lista as vendas a registrar.
+describe('Hoje de quem registra a venda lista as vendas a registrar', () => {
+  const hoje = async (cookie: Cookie) =>
+    (await h.post('/api/today/search', {}, cookie)).body.salesToRegister as {
+      id: string;
+      name: string;
+      product: string | null;
+      closer: { id: string; name: string } | null;
+    }[];
+
+  it('closer da venda e liderança veem o lead com o produto; SDR e outro closer não', async () => {
+    const id = await leadWithMeeting();
+    await mark(id);
+    const name = (await h.get(`/api/leads/${id}`, ale)).body.name as string;
+    const item = { id, name, product: 'Nação Padrão', closer: { id: ids.sonia, name: 'Sônia' } };
+    expect(await hoje(sonia)).toEqual([item]);
+    expect(await hoje(ronaldo)).toEqual([item]);
+    expect(await hoje(ale)).toEqual([]);
+    // Liderança filtrando por outro closer: a venda é da Sônia.
+    const other = await h.post('/api/today/search', { closerId: ids.ronaldo }, ronaldo);
+    expect(other.body.salesToRegister).toEqual([]);
+  });
+
+  it('sai da lista quando a venda é registrada ou o lead deixa a Venda', async () => {
+    const sold = await leadWithMeeting();
+    await mark(sold);
+    const left = await leadWithMeeting();
+    await mark(left);
+    expect((await hoje(sonia)).map((s) => s.id).sort()).toEqual([sold, left].sort());
+    expect((await register(sold)).status).toBe(201);
+    await h.patch(
+      `/api/leads/${left}`,
+      { version: await version(left), stageKey: 'EM_FOLLOW' },
+      ale,
+    );
+    expect(await hoje(sonia)).toEqual([]);
+  });
+});

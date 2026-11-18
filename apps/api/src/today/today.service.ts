@@ -8,6 +8,7 @@ import {
   meetingConfirmations,
   meetings,
   pipelineStages,
+  products,
   user,
   withUser,
   type Db,
@@ -153,6 +154,41 @@ export class TodayService {
       const isLate = (t: (typeof openTasks)[number]) => t.dueAt !== null && t.dueAt < now;
       const overdueTasks = openTasks.filter(isLate);
       const tasks = openTasks.filter((t) => !isLate(t));
+      // Vendas a registrar (NPAC-51): lead em Venda sem venda ativa. Quem registra é o closer da
+      // venda (`leads.closer_id`, definido ao marcar a venda ou no cadastro) ou a liderança.
+      const pendingSales = !can(u, 'sale:register')
+        ? []
+        : await tx
+            .select({
+              id: leads.id,
+              name: leads.name,
+              product: products.name,
+              closerId: leads.closerId,
+              closerName: user.name,
+            })
+            .from(leads)
+            .innerJoin(pipelineStages, eq(pipelineStages.id, leads.stageId))
+            .leftJoin(products, eq(products.id, leads.soldProductId))
+            .leftJoin(user, eq(user.id, leads.closerId))
+            .where(
+              and(
+                isNull(leads.deletedAt),
+                eq(pipelineStages.key, 'VENDA'),
+                sql`not exists(select 1 from ${deals} where ${deals.leadId} = ${leads.id} and ${deals.reversedAt} is null)`,
+                filters.sdrId ? eq(leads.sdrId, filters.sdrId) : undefined,
+                isLeader(u.role)
+                  ? filters.closerId
+                    ? eq(leads.closerId, filters.closerId)
+                    : undefined
+                  : eq(leads.closerId, u.id),
+              ),
+            )
+            .orderBy(asc(leads.updatedAt), asc(leads.id))
+            .limit(100);
+      const salesToRegister = pendingSales.map(({ closerId, closerName, ...s }) => ({
+        ...s,
+        closer: closerId && closerName ? { id: closerId, name: closerName } : null,
+      }));
       await tx.insert(auditLog).values({
         actorId: u.id,
         action: 'today.view',
@@ -165,6 +201,7 @@ export class TodayService {
             ...overdueMeetings,
             ...overdueTasks,
             ...tasks,
+            ...salesToRegister,
           ].map((r) => ('leadId' in r ? r.leadId : r.id)),
         },
       });
@@ -243,6 +280,7 @@ export class TodayService {
         meetings: withReminders,
         tasks,
         charges,
+        salesToRegister,
       };
     });
   }

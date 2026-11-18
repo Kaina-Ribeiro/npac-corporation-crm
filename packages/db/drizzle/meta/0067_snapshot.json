@@ -1,5 +1,5 @@
 {
-  "id": "a81ee5d6-eb24-429d-8985-bfe6f669243f",
+  "id": "473d9bfb-54be-4f69-b247-3518be865fd6",
   "prevId": "e2a13eb2-b791-4de9-8e2b-094a448cf5f8",
   "version": "7",
   "dialect": "postgresql",
@@ -3135,13 +3135,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "area": {
-          "name": "area",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'COMERCIAL'"
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -3163,12 +3156,7 @@
         }
       },
       "policies": {},
-      "checkConstraints": {
-        "access_requests_area_check": {
-          "name": "access_requests_area_check",
-          "value": "\"access_requests\".\"area\" in ('COMERCIAL', 'ACOMPANHAMENTO')"
-        }
-      },
+      "checkConstraints": {},
       "isRLSEnabled": false
     },
     "public.mentoria_acoes": {

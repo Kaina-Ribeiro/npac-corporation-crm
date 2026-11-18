@@ -28,6 +28,7 @@ import {
   type FormEvent,
 } from 'react';
 import { clientApi } from '@/lib/client-api';
+import { confirmLeaveSale } from '@/lib/leave-sale';
 import { parseHidden, PIPE_COOKIE_PATH, serializeHidden } from '@/lib/pipeline-columns';
 import { stageNeedsFields, type StageFieldsBody } from '@/lib/stage-fields';
 import { keep, recall } from '@/lib/screen-memory';
@@ -151,6 +152,7 @@ export function Pipeline({
       );
       return;
     }
+    if (!confirmLeaveSale(lead, target)) return;
     if (stageNeedsFields(target)) {
       setPending({ lead, target, n: ++aberturas });
       return;

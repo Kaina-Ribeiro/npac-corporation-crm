@@ -474,8 +474,15 @@
     {
       "idx": 67,
       "version": "7",
-      "when": 1795010214277,
-      "tag": "0067_area_do_pedido_de_acesso",
+      "when": 1795016793089,
+      "tag": "0067_renda_extra_vendas_antigas",
+      "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1795017220745,
+      "tag": "0068_area_do_pedido_de_acesso",
       "breakpoints": true
     }
   ]

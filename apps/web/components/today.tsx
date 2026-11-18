@@ -412,7 +412,7 @@ export function Today({
           {canCreate && (
             <Link
               href="/leads/new"
-              className="rounded-xl bg-ink px-4 py-2 text-sm font-semibold text-[var(--bg)] active:scale-[.97]"
+              className="toque rounded-xl bg-ink px-4 py-2 text-sm font-semibold text-[var(--bg)] active:scale-[.97]"
             >
               Novo lead
             </Link>
@@ -584,6 +584,28 @@ export function Today({
               </ol>
             )}
           </Panel>
+
+          {data.salesToRegister.length > 0 && (
+            // Venda marcada pelo SDR esperando o valor (NPAC-51): some quando a venda é registrada.
+            <Panel
+              id="hoje-vendas-a-registrar"
+              title="Vendas a registrar"
+              count={data.salesToRegister.length}
+            >
+              {data.salesToRegister.map((s) => (
+                <div key={s.id} className={row}>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold">{s.name}</p>
+                    <p className="truncate text-xs text-ink2">
+                      {s.product ? `Produto: ${s.product}` : 'Venda a registrar'}
+                      {head && s.closer ? ` · ${s.closer.name}` : ''}
+                    </p>
+                  </div>
+                  <OpenLead href={`/leads/${s.id}#vendas`} name={s.name} />
+                </div>
+              ))}
+            </Panel>
+          )}
 
           {charges && (
             <Panel id="hoje-cobrancas" title="Cobranças até hoje" count={data.charges.length}>
