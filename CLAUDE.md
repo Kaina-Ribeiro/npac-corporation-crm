@@ -504,7 +504,7 @@ protótipo no canvas "Meu perfil". Gabriel aprovou com "1A, 2A, 3A".
 - Foto: o navegador lê o arquivo como `data:` (a CSP de imagens só aceita `'self'` e `data:`), recorta em círculo
   (`components/conta/foto-recorte.tsx` por `next/dynamic`, matemática em `lib/crop.ts`; arrastar, setas, − / +) e manda
   256 px em WebP 0,85 (JPEG se o navegador não gerar WebP). `PUT /api/me/photo` (multipart, até 200 KB, tipo pelos bytes
-  com `farejar`/`semMetadados`, nunca SVG), `DELETE /api/me/photo`. Banco: `user_photos` (0069, sem RLS como `user`,
+  com `farejar`/`semMetadados`, nunca SVG), `DELETE /api/me/photo`. Banco: `user_photos` (0070, sem RLS como `user`,
   CHECK de tipo e tamanho) e a versão em `user.image`. `GET /api/users/:id/photo?v=` para quem está logado, com
   `private, max-age=31536000, immutable` e `nosniff`. `/update-user` e `/change-email` do Better Auth em `disabledPaths`.
 - Foto dos outros: `GET /api/team/photos` → `{ photos: id → URL, names: nome único → URL }` (o feed da equipe só traz o
