@@ -619,7 +619,7 @@ export function Ficha({
         <div className="fc-quem">
           <Rostos pessoas={ficha.pessoas} />
           <div className="fc-id">
-            <Link className="fc-voltar" href="/acompanhamento/mentorados">
+            <Link className="fc-voltar toque" href="/acompanhamento/mentorados">
               Mentorados
             </Link>
             <h1>{ficha.nome}</h1>

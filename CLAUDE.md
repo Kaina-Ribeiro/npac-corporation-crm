@@ -84,6 +84,13 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   modal, depois `close()`) · aviso "Salvo" `components/toast.ts` (`showToast()`, sem React: região `role="status"` do layout, um por vez, 2,5 s;
   único texto aprovado, D3) · `startNavProgress(href)` (`shell/nav-progress.tsx`) antes de `router.push` ·
   movimento reduzido zera duração e atraso (`globals.css`, `prefers-reduced-motion`) · e2e `e2e/resposta-imediata.spec.ts`
+- **Celular** (Fase 1, 18/11/2026; regras no fim de `globals.css`, e2e `e2e/mobile-layout-celular.spec.ts`, projeto `iphone`):
+  na tela de toque (`pointer: coarse`) campo de texto e select têm 16 px (abaixo disso o iPhone dá zoom ao tocar; campo
+  novo maior que 16 px entra na exceção da regra), `.btn` tem 44 px de altura e `.toque` aumenta a área de toque para 44 px
+  sem mudar o desenho (`::after`; não serve com `overflow: hidden`; caixa pequena vai dentro de `<label class="toque">`) ·
+  barra de baixo do celular leva `barra-celular` (some enquanto um campo de texto tem foco) · `viewport-fit=cover`
+  (`app/layout.tsx`): o que encosta na borda usa `env(safe-area-inset-*)` (`.shell` nas laterais, barras e `.nf-barra`
+  embaixo) · ícone da Tela de Início `app/apple-icon.png` (180 px) · menu de CSV fica dentro da tela (`caberNaTela`)
 - **Acompanhamento (mentorados), v2 em 5 partes** (plano `docs/superpowers/plans/2026-11-10-acompanhamento-v2-fase-1.md`, protótipo `docs/acompanhamento/prototipo/canvas/`):
   API `api/mentoria/*` (guarda 404 + MFA: `MentoriaController` em `mentoria.guard.ts`; perfil `perfil.guard.ts`,
   `perfis.*`; inscrição e ficha `inscricoes.*`, `ficha.service.ts`, `historico.ts`; mídia `midia.controller.ts`,
@@ -505,6 +512,9 @@ node scripts/perf/medir-sql.mjs igor sonia                # count(*) e canal ao 
 # Varredura por cargo num ambiente publicado (só lê): login → cada item do menu em 1440/1024/768/375,
 # com erro na tela, console, 4xx/5xx da API e rolagem lateral; relatório e capturas em VARREDURA_OUT
 VARREDURA_URL=https://crm-itodev… VARREDURA_SENHA=… VARREDURA_OUT=<pasta> node apps/web/scripts/varredura-por-cargo.mjs <usuário>…
+# Varredura do celular (WebKit, 375 e 768, claro e escuro): toque < 44 px, zoom ao tocar, barra cobrindo,
+# teclado, janelinha e tabela larga; local, aponte para um `next start` (o `API_INTERNAL_URL` entra no build)
+VARREDURA_URL=http://localhost:3150 VARREDURA_SENHA=senha-do-e2e-123 VARREDURA_OUT=<pasta> node apps/web/scripts/varredura-celular.mjs <usuário>…
 ```
 
 - Endereço que não existe é 404 com a navegação do cargo (`app/not-found.tsx`); não há mais a página

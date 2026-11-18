@@ -327,10 +327,10 @@ export function Pipeline({
         onClear={filtered ? clearFilters : undefined}
       />
       <details className="text-sm">
-        <summary className="cursor-pointer font-semibold">Colunas visíveis</summary>
+        <summary className="toque cursor-pointer font-semibold">Colunas visíveis</summary>
         <div className="mt-3 flex flex-wrap gap-3">
           {stages.map((s) => (
-            <label key={s.id} className="flex items-center gap-2">
+            <label key={s.id} className="flex items-center gap-2 pointer-coarse:min-h-11">
               <input
                 type="checkbox"
                 checked={!hidden.includes(s.key)}

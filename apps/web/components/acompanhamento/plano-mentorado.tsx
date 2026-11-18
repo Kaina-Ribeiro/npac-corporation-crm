@@ -68,7 +68,7 @@ export function BotaoFeita({
   return (
     <button
       type="button"
-      className={`check sm ${feita ? 'done' : ''}`}
+      className={`check sm toque ${feita ? 'done' : ''}`}
       aria-pressed={feita}
       aria-label={`${feita ? 'Reabrir' : 'Marcar feita'}: ${rotulo}`}
       disabled={!a.podeEditar}

@@ -17,7 +17,7 @@ function Trigger({ busy, onClick }: { busy: boolean; onClick: () => void }) {
       title="Ação rápida"
       disabled={busy}
       onClick={onClick}
-      className="grid size-9 flex-none place-items-center rounded-full text-ink2 duration-150 hover:bg-black/[.06] hover:text-ink active:scale-90 disabled:opacity-40 dark:hover:bg-white/10 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/row:opacity-100 [@media(hover:hover)]:group-focus-within/row:opacity-100 [&_svg]:size-[18px]"
+      className="toque grid size-9 flex-none place-items-center rounded-full text-ink2 duration-150 hover:bg-black/[.06] hover:text-ink active:scale-90 disabled:opacity-40 dark:hover:bg-white/10 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/row:opacity-100 [@media(hover:hover)]:group-focus-within/row:opacity-100 [&_svg]:size-[18px]"
     >
       <svg
         viewBox="0 0 24 24"

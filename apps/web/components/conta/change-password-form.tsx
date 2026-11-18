@@ -65,7 +65,7 @@ export function ChangePasswordForm({ first = true }: { first?: boolean }) {
       {!first && (
         <Link
           href="/dashboard"
-          className="text-center text-sm font-semibold text-ink2 hover:text-ink"
+          className="toque text-center text-sm font-semibold text-ink2 hover:text-ink"
         >
           Cancelar
         </Link>

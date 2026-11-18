@@ -81,7 +81,7 @@ export default async function EquipePage() {
                 Números visíveis só para a própria pessoa e HEADs.
               </p>
             )}
-            <a href="/chat" className="text-sm font-semibold underline">
+            <a href="/chat" className="toque self-start text-sm font-semibold underline">
               Conversar no chat
             </a>
           </li>

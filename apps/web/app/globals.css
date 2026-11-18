@@ -1881,3 +1881,79 @@ html[data-nav-pending] .ac > :not(.top, nav, .nav-skeleton) {
     }
   }
 }
+
+/* Celular (Fase 1, 18/11/2026; varredura `scripts/varredura-celular.mjs`). ---------------------- */
+
+/* Campo com letra < 16 px faz o Safari do iPhone dar zoom na tela ao tocar (e ela fica torta).
+   Na tela de toque, campo de texto e select têm 16 px. Fora de camada e com `!important` para
+   vencer `text-xs` e o CSS do módulo; ficam de fora os campos maiores (código do autenticador,
+   título do plano). */
+@media (pointer: coarse) {
+  :is(
+    input:not(
+      [type='checkbox'],
+      [type='radio'],
+      [type='range'],
+      [type='file'],
+      [type='color'],
+      [type='button'],
+      [type='submit'],
+      [type='reset'],
+      [type='image']
+    ),
+    select,
+    textarea
+  ):not(.text-2xl, .pl input) {
+    font-size: 16px !important;
+  }
+}
+
+/* Teclado aberto (campo de texto com foco): a barra de baixo do celular sai da frente do campo. */
+html:has(
+    :is(
+      input:not(
+        [type='checkbox'],
+        [type='radio'],
+        [type='range'],
+        [type='file'],
+        [type='color'],
+        [type='button'],
+        [type='submit'],
+        [type='reset'],
+        [type='image']
+      ),
+      textarea
+    ):focus
+  )
+  .barra-celular {
+  display: none;
+}
+
+/* iPhone deitado (`viewport-fit=cover`): o conteúdo não entra embaixo do entalhe. */
+.shell {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+@layer components {
+  /* Alvo de toque de 44 px (Apple) sem mudar o desenho: na tela de toque, o ::after estende a
+     área que recebe o toque em volta do controle pequeno. Em elemento já `absolute`, o utilitário
+     vence o `relative` daqui (camada de utilitários). Não serve em quem tem `overflow: hidden`. */
+  @media (pointer: coarse) {
+    .btn {
+      min-height: 44px;
+    }
+    .toque {
+      position: relative;
+    }
+    .toque::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: max(100%, 44px);
+      height: max(100%, 44px);
+      translate: -50% -50%;
+    }
+  }
+}

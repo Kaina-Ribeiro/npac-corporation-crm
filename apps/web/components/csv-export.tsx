@@ -29,6 +29,20 @@ export async function downloadCsv(endpoint: string, body: object, filename: stri
 }
 
 /**
+ * Menu aberto sempre dentro da tela (16 px de folga): no celular o botão fica no meio da linha e
+ * o menu ancorado nele saía pela esquerda.
+ */
+function caberNaTela(details: HTMLDetailsElement) {
+  const menu = details.querySelector<HTMLElement>('[data-menu]');
+  if (!menu || !details.open) return;
+  menu.style.translate = '';
+  const r = menu.getBoundingClientRect();
+  const tela = document.documentElement.clientWidth;
+  const dx = r.left < 16 ? 16 - r.left : r.right > tela - 16 ? tela - 16 - r.right : 0;
+  if (dx) menu.style.translate = `${Math.round(dx)}px 0`;
+}
+
+/**
  * Menu "exportar CSV": por período, com os filtros da tela ou tudo. Corpo por POST (nada de
  * filtro ou contato em URL); o servidor audita e recusa acima de 10 mil linhas.
  */
@@ -65,14 +79,16 @@ export function CsvExport({
     }
   }
   return (
-    <details className="group relative">
+    <details className="group relative" onToggle={(e) => caberNaTela(e.currentTarget)}>
       <summary
         className={`${quietButton} cursor-pointer list-none select-none [&::-webkit-details-marker]:hidden`}
       >
         {label}
       </summary>
+      {/* Fundo sólido: o vidro deixava a lista aparecer por trás do menu (celular). */}
       <div
-        className={`glass-card absolute ${align === 'left' ? 'left-0' : 'right-0'} z-20 mt-2 flex w-72 max-w-[calc(100vw-32px)] flex-col gap-2 p-3 shadow-xl`}
+        data-menu
+        className={`glass-card absolute ${align === 'left' ? 'left-0' : 'right-0'} z-20 mt-2 flex w-72 max-w-[calc(100vw-32px)] flex-col gap-2 bg-[var(--bg)] p-3 shadow-xl`}
       >
         {period && (
           <div className="flex flex-col gap-2 border-b border-line pb-3">

@@ -627,7 +627,7 @@ export function Reports({
                   aria-pressed={preset === p}
                   disabled={busy}
                   onClick={() => void pick(p)}
-                  className={`min-h-9 rounded-full px-4 text-sm font-semibold whitespace-nowrap transition-all first-letter:uppercase ${
+                  className={`toque min-h-9 rounded-full px-4 text-sm font-semibold whitespace-nowrap transition-all first-letter:uppercase ${
                     preset === p
                       ? 'bg-[var(--on)] text-ink shadow-[0_2px_10px_rgba(0,0,0,.08)]'
                       : 'text-ink2'

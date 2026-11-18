@@ -172,7 +172,7 @@ export function Tarefa({
     <li className={`pme-tarefa ${encerramento ? 'enc' : ''} ${feita ? 'feita' : ''}`}>
       <button
         type="button"
-        className={`check sm ${feita ? 'done' : ''}`}
+        className={`check sm toque ${feita ? 'done' : ''}`}
         aria-pressed={feita}
         aria-label={`${feita ? 'Desmarcar' : 'Marcar feita'}: ${descricao}`}
         disabled={!ed}

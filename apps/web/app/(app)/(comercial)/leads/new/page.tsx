@@ -19,7 +19,7 @@ export default async function NewLeadPage() {
   ]);
   return (
     <div className="flex w-full flex-col gap-5">
-      <Link href="/leads" className="text-sm text-ink2">
+      <Link href="/leads" className="toque text-sm text-ink2">
         ‹ Leads
       </Link>
       <h1 className="text-3xl font-bold tracking-tight">Novo lead</h1>
