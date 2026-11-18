@@ -46,3 +46,69 @@ export function resetPasswordMail(
 </html>`;
   return { to, subject: 'Crie a sua senha nova', text, html };
 }
+
+/** E-mail curto do sistema (Meu perfil, NPAC-53): saudação, um destaque opcional e parágrafos. */
+function simpleMail(
+  to: string,
+  subject: string,
+  name: string,
+  paragraphs: string[],
+  highlight?: string,
+): MailMessage {
+  const nome = firstName(name);
+  const oi = nome ? `Oi, ${nome}.` : 'Oi.';
+  const rodape = 'NPAC Corporation · Uso restrito à equipe da NPAC';
+  const text = [
+    oi,
+    '',
+    ...(highlight ? [highlight, ''] : []),
+    ...paragraphs.flatMap((p) => [p, '']),
+    rodape,
+  ].join('\n');
+  const destaque = highlight
+    ? `<p style="margin:0 0 18px;font-size:30px;font-weight:700;letter-spacing:6px;color:#1d1d1f">${esc(highlight)}</p>`
+    : '';
+  const corpo = paragraphs
+    .map(
+      (p) =>
+        `<p style="margin:0 0 14px;font-size:15px;line-height:1.55;color:#333336">${esc(p)}</p>`,
+    )
+    .join('\n      ');
+  const html = `<!doctype html>
+<html lang="pt-BR">
+<body style="margin:0;padding:24px 12px;background:#f2f2f4;font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;color:#1d1d1f">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;margin:0 auto;background:#ffffff;border-radius:18px">
+    <tr><td style="padding:26px 22px">
+      <p style="margin:0 0 14px">${mark}</p>
+      <p style="margin:0 0 14px;font-size:16px;font-weight:600">${esc(oi)}</p>
+      ${destaque}
+      ${corpo}
+      <p style="margin:0;padding-top:12px;border-top:1px solid #ececef;font-size:12px;color:#6a6a6f">${esc(rodape)}</p>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+  return { to, subject, text, html };
+}
+
+/** Código para confirmar o e-mail novo (vai ao endereço novo). Só o primeiro nome e o código. */
+export function emailCodeMail(to: string, name: string, code: string): MailMessage {
+  return simpleMail(
+    to,
+    'Seu código para trocar o e-mail',
+    name,
+    [
+      'Use este código no sistema da NPAC para confirmar o seu e-mail novo. Vale por 10 minutos.',
+      'Se não foi você, ignore este e-mail: nada muda na sua conta.',
+    ],
+    code,
+  );
+}
+
+/** Aviso ao endereço antigo depois da troca, sem o endereço novo. */
+export function emailChangedMail(to: string, name: string): MailMessage {
+  return simpleMail(to, 'O e-mail da sua conta foi trocado', name, [
+    'O e-mail da sua conta no sistema da NPAC acabou de ser trocado. Daqui em diante, os avisos vão para o endereço novo.',
+    'Não foi você? Fale com a liderança.',
+  ]);
+}
