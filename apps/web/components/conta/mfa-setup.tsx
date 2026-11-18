@@ -28,7 +28,10 @@ function PasswordField() {
 }
 
 const back = (
-  <Link href="/dashboard" className="text-center text-sm font-semibold text-ink2 hover:text-ink">
+  <Link
+    href="/dashboard"
+    className="toque text-center text-sm font-semibold text-ink2 hover:text-ink"
+  >
     Voltar
   </Link>
 );

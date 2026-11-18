@@ -268,14 +268,17 @@ export function LeadsBrowser({
       />
     </select>
   );
+  // `label.toque`: no toque, a caixa de 16 px recebe o dedo numa área de 44 px.
   const checkbox = (l: LeadDTO) => (
-    <input
-      type="checkbox"
-      aria-label={`Selecionar ${l.name}`}
-      checked={selected.includes(l.id)}
-      onChange={(e) => toggle(l.id, e.target.checked)}
-      className="size-4 accent-[var(--ink)]"
-    />
+    <label className="toque inline-flex flex-none">
+      <input
+        type="checkbox"
+        aria-label={`Selecionar ${l.name}`}
+        checked={selected.includes(l.id)}
+        onChange={(e) => toggle(l.id, e.target.checked)}
+        className="size-4 accent-[var(--ink)]"
+      />
+    </label>
   );
   const bar = (
     label: string,

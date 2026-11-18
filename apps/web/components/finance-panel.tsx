@@ -90,7 +90,7 @@ export function FinancePanel({
           ))}
           {isLeader(me.role) && !d.reversedAt && (
             <details>
-              <summary className="cursor-pointer text-sm text-danger">Estornar venda</summary>
+              <summary className="toque cursor-pointer text-sm text-danger">Estornar venda</summary>
               <p className="my-2 text-xs text-ink2">
                 O estorno retira a venda dos totais. Os registros de recebimento ficam preservados.
               </p>

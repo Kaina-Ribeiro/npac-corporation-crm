@@ -12,7 +12,7 @@ export function BottomNav() {
     <ForaDoModulo>
       <nav
         aria-label="Navegação inferior"
-        className="glass fixed right-3.5 bottom-[max(16px,env(safe-area-inset-bottom))] left-3.5 z-20 grid h-[68px] grid-cols-5 rounded-[34px] p-1.5 md:hidden"
+        className="barra-celular glass fixed right-3.5 bottom-[max(16px,env(safe-area-inset-bottom))] left-3.5 z-20 grid h-[68px] grid-cols-5 rounded-[34px] p-1.5 md:hidden"
       >
         {BOTTOM_ITEMS.map(({ href, label, icon }) => (
           <NavLink

@@ -17,6 +17,9 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
+  // Tela inteira do iPhone: sem isso `env(safe-area-inset-*)` vale 0 e as barras de baixo encostam
+  // na faixa do gesto de início (app na Tela de Início). Margens laterais em `.shell` (globals.css).
+  viewportFit: 'cover',
   themeColor: '#e1e0e4',
 };
 

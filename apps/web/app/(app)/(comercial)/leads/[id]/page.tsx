@@ -34,7 +34,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
     ]);
     return (
       <div className="flex w-full flex-col gap-5">
-        <Link href="/leads" className="text-sm text-ink2">
+        <Link href="/leads" className="toque text-sm text-ink2">
           ‹ Leads
         </Link>
         <LeadDetail

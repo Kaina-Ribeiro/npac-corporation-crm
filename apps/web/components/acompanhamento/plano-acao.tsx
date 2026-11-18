@@ -172,7 +172,7 @@ export function PlanoAcao({ acao }: { acao: AcaoDTO }) {
                         role="checkbox"
                         aria-checked={on}
                         aria-label={item}
-                        className={`check sm ${on ? 'done' : ''}`}
+                        className={`check sm toque ${on ? 'done' : ''}`}
                         disabled={!ed}
                         onClick={() => marcar(item)}
                       >
