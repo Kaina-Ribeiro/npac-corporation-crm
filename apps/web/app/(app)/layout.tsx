@@ -18,7 +18,7 @@ import { Avatar, AVATAR_EU } from '@/components/avatar';
 import { RoleTag } from '@/components/role-tag';
 import { pendingAccessRequests } from '@/lib/access-requests';
 import { getSession, pendingStep } from '@/lib/session';
-import { lerEu, precisaMfa, ultimaFicha } from '@/lib/acompanhamento';
+import { lerEu, podeCadastrar, precisaMfa, ultimaFicha } from '@/lib/acompanhamento';
 import { SemAcesso } from '@/components/acompanhamento/sem-acesso';
 import { SIDEBAR_COOKIE } from '@/lib/sidebar';
 
@@ -67,6 +67,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           mentoria: me.modules.mentoria,
           commercial,
           mentoriaAdmin: eu?.admin,
+          mentoriaCiclos: podeCadastrar(eu),
         })}
         commercial={commercial}
       />
@@ -75,6 +76,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         mentoria={me.modules.mentoria}
         commercial={commercial}
         mentoriaAdmin={eu?.admin}
+        mentoriaCiclos={podeCadastrar(eu)}
         adminBadge={requests}
         ultimaFicha={ultima?.nome ?? null}
         footer={

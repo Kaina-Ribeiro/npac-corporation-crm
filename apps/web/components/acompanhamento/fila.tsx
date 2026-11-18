@@ -1,7 +1,13 @@
 'use client';
 import {
+  CANAL_CONTATO_LABEL,
+  DEGRAU_CANAL,
+  DEGRAU_DETALHE,
   ETAPA_LABEL,
   FILA_GRUPOS,
+  SEMAFORO_COR_LABEL,
+  SEMAFORO_MOTIVO_LABEL,
+  TAREFA_STATUS_LABEL,
   PERFIL_LABEL,
   REUNIAO_STATUS_LABEL,
   REUNIAO_TIPO_LABEL,
@@ -104,8 +110,47 @@ function acaoDe(item: FilaItemDTO): Acao | null {
       return item.reuniao && reuniaoAberta(item.reuniao.status)
         ? { label: 'Registrar', href: `/acompanhamento/reunioes/${ref}` }
         : { label: 'Abrir', href: `/acompanhamento/reunioes/${ref}` };
+    // Fase 2, Parte 4 (E17–E20).
+    case 'COBRANCA':
+      return item.tarefa
+        ? {
+            label: 'Marcar feita',
+            run: () =>
+              clientApi(`/api/mentoria/tarefas/${ref}`, 'PATCH', {
+                version: item.tarefa!.version,
+                status: 'FEITA',
+              }),
+          }
+        : null;
+    case 'SEMAFORO':
+      return { label: 'Visto nesta semana', run: feito };
+    case 'ENVIAR_PME':
+      return insc
+        ? {
+            label: 'Registrar envio',
+            run: () => clientApi(`/api/mentoria/inscricoes/${insc}/ciclos`, 'POST', {}),
+          }
+        : null;
+    case 'PME_ATRASADO': {
+      const degrau = item.ciclo?.degrau;
+      return insc && degrau
+        ? {
+            label: 'Registrar contato',
+            run: () =>
+              clientApi('/api/mentoria/contatos', 'POST', {
+                inscricaoId: insc,
+                canal: DEGRAU_CANAL[degrau],
+                cicloId: ref,
+                degrau,
+              }),
+          }
+        : null;
+    }
   }
 }
+
+const motivosDe = (item: FilaItemDTO) =>
+  (item.semaforo?.motivos ?? []).map((m) => SEMAFORO_MOTIVO_LABEL[m]).join(', ');
 
 /** A linha da lista: o que fazer, com o contexto que cabe numa linha. */
 function oQue(item: FilaItemDTO, agora: Date): string {
@@ -122,6 +167,10 @@ function oQue(item: FilaItemDTO, agora: Date): string {
       return item.reuniao
         ? `${REUNIAO_TIPO_LABEL[item.reuniao.tipo]}${item.reuniao.condutor ? `, com ${item.reuniao.condutor}` : ''}`
         : filaTitulo(item);
+    case 'COBRANCA':
+      return item.tarefa?.descricao ? `Cobrar: ${item.tarefa.descricao}` : filaTitulo(item);
+    case 'SEMAFORO':
+      return item.semaforo ? `${filaTitulo(item)}: ${motivosDe(item)}` : filaTitulo(item);
     default:
       return filaTitulo(item);
   }
@@ -167,10 +216,35 @@ function explicacao(item: FilaItemDTO, agora: Date): string {
       return item.reuniao
         ? `Hoje às ${horaBR(item.reuniao.inicio)}, ${REUNIAO_STATUS_LABEL[item.reuniao.status].toLowerCase()}.`
         : '';
+    case 'COBRANCA': {
+      const t = item.tarefa;
+      if (!t) return '';
+      const onde = t.origem === 'REUNIAO' ? 'na reunião' : `no ${t.cicloNumero ?? ''}º PME`;
+      return `Tarefa combinada ${onde}, com prazo em ${dataBR(t.prazo)}. Status: ${TAREFA_STATUS_LABEL[t.status].toLowerCase()}. Parcial ou não feita pede o motivo, na ficha.`;
+    }
+    case 'SEMAFORO':
+      return `${motivosDe(item)}. Sai quando voltar ao verde ou com "Visto nesta semana".`;
+    case 'ENVIAR_PME':
+      return item.ciclo
+        ? `O ${item.ciclo.numero}º PME foi encerrado em ${desde}. O ${item.ciclo.numero + 1}º sai quando a equipe decidir.`
+        : '';
+    case 'PME_ATRASADO':
+      return item.ciclo?.degrau
+        ? `${DEGRAU_DETALHE[item.ciclo.degrau]} O contato fica registrado na ficha.`
+        : '';
   }
 }
 
 type Linha = { item: FilaItemDTO; link: FilaItemDTO | null };
+
+/** Itens sem mensagem-modelo que ainda levam os botões de WhatsApp do mentorado. */
+const COM_WHATSAPP: FilaItemDTO['tipo'][] = [
+  'REUNIAO_HOJE',
+  'ENVIAR_PME1',
+  'COBRANCA',
+  'SEMAFORO',
+  'PME_ATRASADO',
+];
 
 function prazo(l: Linha, agora: Date): { texto: string; classe: string } {
   const { item, link } = l;
@@ -186,6 +260,11 @@ function prazo(l: Linha, agora: Date): { texto: string; classe: string } {
       classe: st === 'LINK_ENVIADO' || st === 'REALIZADA' ? 'okc' : '',
     };
   }
+  if (item.tipo === 'PME_ATRASADO' && item.ciclo)
+    return {
+      texto: `${dias(item.ciclo.diasAtraso)} de atraso`,
+      classe: item.ciclo.diasAtraso > ATRASO_ALARME_DIAS ? 'late' : '',
+    };
   const n = diasParado(item.venceEm, agora);
   if (item.atrasado)
     return { texto: n > 0 ? dias(n) : 'Hoje', classe: n > ATRASO_ALARME_DIAS ? 'late' : '' };
@@ -530,6 +609,17 @@ function Painel({
     ctx.push(['Prevista para', dataBR(diaBR(item.venceEm))]);
   }
   if (item.etapa) ctx.push(['Etapa', ETAPA_LABEL[item.etapa.nome]]);
+  if (item.tarefa) {
+    ctx.push(['Prazo', dataBR(item.tarefa.prazo)]);
+    ctx.push(['Status', TAREFA_STATUS_LABEL[item.tarefa.status]]);
+  }
+  if (item.semaforo) ctx.push(['Semáforo', SEMAFORO_COR_LABEL[item.semaforo.cor]]);
+  if (item.ciclo && item.tipo === 'PME_ATRASADO') {
+    ctx.push(['PME', `${item.ciclo.numero}º PME`]);
+    ctx.push(['Prazo atual', dataBR(item.ciclo.prazoAtual)]);
+    if (item.ciclo.degrau)
+      ctx.push(['Contato registrado como', CANAL_CONTATO_LABEL[DEGRAU_CANAL[item.ciclo.degrau]]]);
+  }
   ctx.push(['Responsável', quem(item, euId)]);
 
   return (
@@ -571,7 +661,7 @@ function Painel({
           </Link>
         )}
       </div>
-      {m && (momento || item.tipo === 'REUNIAO_HOJE' || item.tipo === 'ENVIAR_PME1') && (
+      {m && (momento || COM_WHATSAPP.includes(item.tipo)) && (
         <div className="pn-msg">
           <div className="pn-msg-h">
             <b>{texto ? 'Mensagem pronta' : 'WhatsApp'}</b>

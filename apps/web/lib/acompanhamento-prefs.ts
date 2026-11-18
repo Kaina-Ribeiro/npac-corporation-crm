@@ -1,4 +1,10 @@
-import { ETAPA_LABEL, FILA_GRUPOS, INSCRICAO_STATUS, SEMAFORO_CORES } from '@npac/shared/mentoria';
+import {
+  CICLO_STATUS,
+  ETAPA_LABEL,
+  FILA_GRUPOS,
+  INSCRICAO_STATUS,
+  SEMAFORO_CORES,
+} from '@npac/shared/mentoria';
 import { oneOf, readPrefs, writePrefs, type PrefRules } from '@npac/shared/screen-prefs';
 import { readPreference } from './read-preference';
 import { rememberAt } from './screen-prefs';
@@ -16,6 +22,7 @@ export const AC_PREFS = {
   mentorados: { prefix: 'npac_f_ac_ment', path: '/acompanhamento/mentorados' },
   onboarding: { prefix: 'npac_f_ac_onb', path: '/acompanhamento/onboarding' },
   ficha: { prefix: 'npac_f_ac_ficha', path: '/acompanhamento/ficha' },
+  pmes: { prefix: 'npac_f_ac_pmes', path: '/acompanhamento/pmes' },
 } as const;
 
 export type AcScreen = keyof typeof AC_PREFS;
@@ -48,6 +55,25 @@ export const ONBOARDING_REGRAS: PrefRules = {
   etapa: oneOf(Object.keys(ETAPA_LABEL)),
   painel: oneOf(['caixas', 'idrs']),
 };
+
+/** PMEs e ciclos (aba 7): número do PME e status do ciclo ("Sem PME" = nenhum enviado). */
+export const PMES_REGRAS: PrefRules = {
+  numero: oneOf(Array.from({ length: 12 }, (_, i) => String(i + 1))),
+  status: oneOf([...CICLO_STATUS, 'SEM_PME']),
+};
+
+export type FiltroPmes = {
+  numero?: number;
+  status?: (typeof CICLO_STATUS)[number] | 'SEM_PME';
+};
+export const filtroDasPrefs = (p: Record<string, string>): FiltroPmes => ({
+  ...(p.numero ? { numero: Number(p.numero) } : {}),
+  ...(p.status ? { status: p.status as FiltroPmes['status'] } : {}),
+});
+export const prefsDoFiltro = (f: FiltroPmes) => ({
+  numero: f.numero ? String(f.numero) : undefined,
+  status: f.status,
+});
 
 /** Ficha: a aba (vale para qualquer mentorado) e o filtro do histórico ("Tudo" é o padrão). */
 export const FICHA_REGRAS: PrefRules = {

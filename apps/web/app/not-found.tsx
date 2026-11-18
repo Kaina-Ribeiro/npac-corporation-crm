@@ -3,7 +3,7 @@ import { hasCommercialAccess, isLeader } from '@npac/shared/enums';
 import { Sidebar } from '@/components/shell/sidebar';
 import { SignOutButton } from '@/components/shell/sign-out-button';
 import { RoleTag } from '@/components/role-tag';
-import { lerEu } from '@/lib/acompanhamento';
+import { lerEu, podeCadastrar } from '@/lib/acompanhamento';
 import { getSession } from '@/lib/session';
 
 export const metadata = { title: 'Página não encontrada' };
@@ -55,6 +55,7 @@ export default async function NotFound() {
         mentoria={usaModulo}
         commercial={hasCommercialAccess(me.role)}
         mentoriaAdmin={eu?.admin}
+        mentoriaCiclos={podeCadastrar(eu)}
         footer={
           <div className="flex flex-col gap-2 px-1">
             <b className="truncate text-sm font-semibold">{me.name}</b>

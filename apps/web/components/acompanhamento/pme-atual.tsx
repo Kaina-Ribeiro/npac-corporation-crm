@@ -36,7 +36,11 @@ const chaveTarefa = (t: TarefaDTO) => `tarefa:${t.inscricaoId}:${t.id}`;
 const diaBR = (iso: string) =>
   dataBR(new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date(iso)));
 
-export function TagCiclo({ c }: { c: CicloDTO }) {
+export function TagCiclo({
+  c,
+}: {
+  c: Pick<CicloDTO, 'status' | 'diasAtraso' | 'segundaChanceAte'>;
+}) {
   const atraso =
     c.diasAtraso > 0 && c.status !== 'NAO_CONCLUIDO'
       ? `, ${c.diasAtraso} dia${c.diasAtraso > 1 ? 's' : ''} de atraso`

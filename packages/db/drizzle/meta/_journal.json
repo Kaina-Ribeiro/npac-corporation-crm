@@ -495,8 +495,15 @@
     {
       "idx": 70,
       "version": "7",
-      "when": 1795040972083,
-      "tag": "0070_meu_perfil",
+      "when": 1795035651972,
+      "tag": "0070_acompanhamento_v2_fila_cobranca",
+      "breakpoints": true
+    },
+    {
+      "idx": 71,
+      "version": "7",
+      "when": 1795043963576,
+      "tag": "0071_meu_perfil",
       "breakpoints": true
     }
   ]

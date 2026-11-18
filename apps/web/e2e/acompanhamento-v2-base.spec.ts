@@ -142,12 +142,14 @@ test('Manu não abre ficha de quem não é dela (404)', async ({ page }) => {
   expect((await page.goto(`/acompanhamento/ficha/${FICHA_01}`))?.status()).toBe(200);
 });
 
-test('as 5 abas futuras mostram "em breve"', async ({ page }) => {
+test('as 4 abas futuras mostram "em breve"; a 7 saiu (Fase 2)', async ({ page }) => {
   await entrar(page, 'duda');
   await page.waitForURL(/\/acompanhamento\/fila/);
+  await page.goto('/acompanhamento/em-breve/pmes');
+  await page.waitForURL(/\/acompanhamento\/pmes$/);
+  await expect(page.getByRole('heading', { name: 'PMEs e ciclos' })).toBeVisible();
   await page.goto('/acompanhamento/mentorados');
   for (const nome of [
-    'PMEs e ciclos',
     'Linha do tempo e conquistas',
     'Envios físicos',
     'Eventos e agenda',

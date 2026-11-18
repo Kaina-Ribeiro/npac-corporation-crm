@@ -1,5 +1,5 @@
 {
-  "id": "776c28b1-57ab-4bff-a42a-a65b171846d6",
+  "id": "a4e2d15f-34b9-4237-9467-9e77df23434e",
   "prevId": "30a562ff-fd45-4f3d-a330-c3ea9393967c",
   "version": "7",
   "dialect": "postgresql",
@@ -440,73 +440,6 @@
         "user_cargo_caixas": {
           "name": "user_cargo_caixas",
           "value": "case \"user\".\"role\"::text\n        when 'SDR' then \"user\".\"can_prospect\" and not \"user\".\"can_close\"\n        when 'CLOSER' then \"user\".\"can_close\" and not \"user\".\"can_prospect\"\n        when 'ACOMPANHAMENTO' then not \"user\".\"can_prospect\" and not \"user\".\"can_close\"\n        else true end"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.user_photos": {
-      "name": "user_photos",
-      "schema": "",
-      "columns": {
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "bytes": {
-          "name": "bytes",
-          "type": "bytea",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "mime": {
-          "name": "mime",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "size": {
-          "name": "size",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "user_photos_user_id_user_id_fk": {
-          "name": "user_photos_user_id_user_id_fk",
-          "tableFrom": "user_photos",
-          "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "user_photos_mime": {
-          "name": "user_photos_mime",
-          "value": "\"user_photos\".\"mime\" in ('image/jpeg', 'image/png', 'image/webp')"
-        },
-        "user_photos_size": {
-          "name": "user_photos_size",
-          "value": "\"user_photos\".\"size\" between 1 and 204800"
         }
       },
       "isRLSEnabled": false
@@ -4237,6 +4170,24 @@
           "primaryKey": false,
           "notNull": false
         },
+        "ciclo_id": {
+          "name": "ciclo_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "degrau": {
+          "name": "degrau",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "degrau_prazo": {
+          "name": "degrau_prazo",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
         "criado_em": {
           "name": "criado_em",
           "type": "timestamp with time zone",
@@ -4263,6 +4214,28 @@
             }
           ],
           "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "mentoria_contatos_degrau": {
+          "name": "mentoria_contatos_degrau",
+          "columns": [
+            {
+              "expression": "ciclo_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "degrau",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"mentoria_contatos\".\"degrau\" is not null",
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -4294,12 +4267,33 @@
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
+        },
+        "mentoria_contatos_ciclo_id_mentoria_ciclos_id_fk": {
+          "name": "mentoria_contatos_ciclo_id_mentoria_ciclos_id_fk",
+          "tableFrom": "mentoria_contatos",
+          "tableTo": "mentoria_ciclos",
+          "columnsFrom": [
+            "ciclo_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {
+        "mentoria_contatos_degrau": {
+          "name": "mentoria_contatos_degrau",
+          "value": "\"mentoria_contatos\".\"degrau\" in (3, 7, 10, 15)"
+        },
+        "mentoria_contatos_degrau_prazo": {
+          "name": "mentoria_contatos_degrau_prazo",
+          "value": "(\"mentoria_contatos\".\"degrau\" is null) = (\"mentoria_contatos\".\"degrau_prazo\" is null)"
+        },
         "mentoria_contatos_canal": {
           "name": "mentoria_contatos_canal",
           "value": "\"mentoria_contatos\".\"canal\" in ('WHATSAPP', 'LIGACAO', 'EMAIL', 'REUNIAO', 'OUTRO')"

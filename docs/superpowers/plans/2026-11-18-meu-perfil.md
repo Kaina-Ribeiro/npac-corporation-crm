@@ -19,7 +19,7 @@ Status por tarefa: ⏳ pendente · 🔄 em andamento · ✅ feita.
 
 | Tarefa | Status |
 |---|---|
-| 1 Banco 0070 (renumerada no merge com o #128) | ✅ |
+| 1 Banco 0071 (renumerada nos merges com o #128 e o #129) | ✅ |
 | 2 API foto | ✅ |
 | 3 API perfil e nome | ✅ |
 | 4 API e-mail com código | ✅ |

@@ -1,6 +1,8 @@
 import { BadRequestException, Body, HttpCode, Inject, Injectable, Post, Res } from '@nestjs/common';
 import { withUser, type Db, type Tx } from '@npac/db';
 import {
+  CICLO_STATUS_LABEL,
+  SEMAFORO_COR_LABEL,
   exportarSchema,
   FILA_TIPO_LABEL,
   filaTitulo,
@@ -13,6 +15,7 @@ import {
   STATUS_FINANCEIRO_LABEL,
   TIPO_INSCRICAO_LABEL,
   type AuthUser,
+  type CicloStatus,
   type Exportar,
   type FilaTipo,
   type InscricaoStatus,
@@ -21,6 +24,7 @@ import {
   type Plataforma,
   type ReuniaoStatus,
   type ReuniaoTipo,
+  type SemaforoCor,
   type StatusFinanceiro,
   type TipoInscricao,
 } from '@npac/shared';
@@ -65,6 +69,9 @@ type LinhaMentorado = {
   financeiro: StatusFinanceiro | null;
   valor: number | null;
   ultimo: string | null;
+  pme: number | null;
+  pme_status: CicloStatus | null;
+  semaforo: SemaforoCor | null;
   pessoas: {
     id: string;
     nome: string;
@@ -78,6 +85,7 @@ type LinhaMentorado = {
 /**
  * Planilha das abas (§6): Admin e Acompanhamento, auditada, fórmulas neutralizadas (`toCsv`).
  * WhatsApp e e-mail só para Admin; dor, sonho, meta, anotações e textos de reunião nunca saem.
+ * Mentorados leva o PME atual, o status do ciclo e o semáforo (E22), sem textos cifrados.
  */
 @Injectable()
 export class ExportacaoService {
@@ -145,12 +153,19 @@ export class ExportacaoService {
         to_char(i.data_idr, 'YYYY-MM-DD') as idr, u.name as responsavel, i.origem,
         i.status_financeiro as financeiro, i.valor_centavos as valor,
         to_char(mentoria_ultimo_contato(i.id), 'YYYY-MM-DD') as ultimo,
+        c.numero as pme,
+        case when c.id is not null then mentoria_ciclo_status(c.concluido_em, c.nao_concluido_em,
+          c.prazo, c.segunda_chance_ate, ${HOJE}) end as pme_status,
+        s.cor as semaforo,
         (select json_agg(json_build_object('id', p.id, 'nome', p.nome, 'cidade', p.cidade,
            'uf', p.uf, 'whatsapp', p.whatsapp, 'email', p.email) order by p.ordem)
          from mentoria_pessoas p where p.inscricao_id = i.id) as pessoas
       from mentoria_inscricoes i
       join mentoria_pessoas p1 on p1.inscricao_id = i.id and p1.ordem = 1
       left join "user" u on u.id = i.responsavel_id
+      left join lateral (select x.* from mentoria_ciclos x where x.inscricao_id = i.id
+        order by x.numero desc limit 1) c on true
+      left join mentoria_semaforo_lote(${HOJE}) s on s.inscricao_id = i.id
       ${this.filtro(this.where(b))}
       order by p1.nome_norm, i.id
       limit ${LIMITE + 1}`);
@@ -170,6 +185,9 @@ export class ExportacaoService {
       'Valor',
       'Cidade',
       'Último contato',
+      'PME atual',
+      'Status do PME',
+      'Semáforo',
       ...(admin ? ['WhatsApp', 'E-mail'] : []),
     ];
     const abrir = (blob: string | null, id: string, campo: 'whatsapp' | 'email') =>
@@ -197,6 +215,9 @@ export class ExportacaoService {
             .filter(Boolean)
             .join(' e '),
           data(l.ultimo),
+          l.pme === null ? '' : `${l.pme}º PME`,
+          l.pme_status ? CICLO_STATUS_LABEL[l.pme_status] : '',
+          l.semaforo ? SEMAFORO_COR_LABEL[l.semaforo] : '',
           ...(admin
             ? [
                 pessoas

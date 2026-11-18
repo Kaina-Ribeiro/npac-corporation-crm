@@ -63,7 +63,7 @@ Sair dos outros aparelhos como ação separada, idioma, fuso, telefone, foto por
 
 ## Desenho técnico
 
-- **Banco** (migration 0070; a 0069 ficou com o semáforo do Acompanhamento): tabela `user_photos` (`user_id` PK → `user` com `on delete cascade`, `bytes bytea`,
+- **Banco** (migration 0071; a 0069 e a 0070 ficaram com o Acompanhamento, #128 e #129): tabela `user_photos` (`user_id` PK → `user` com `on delete cascade`, `bytes bytea`,
   `mime text`, `updated_at`) e a versão em `user.image` (texto curto, ex.: carimbo de tempo). A tabela `user` não tem
   RLS: só a API grava, pela sessão da própria pessoa. `npac_app` com SELECT/INSERT/UPDATE/DELETE em `user_photos`.
 - **API** (`api/conta/*`, `@AllRoles()`):
