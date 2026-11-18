@@ -309,9 +309,10 @@ describe('metas', () => {
       select id from mentoria_pessoas where inscricao_id = ${outra}`;
     expect((await novaMeta(s, i, { pessoaId: p!.id })).status).toBe(400);
     expect((await novaMeta(s, i, { valorAlvo: 0 })).status).toBe(400);
-    // Status da meta (S3) espera decisão: o campo não existe.
+    // Status da meta (E10, Parte 3): só ATINGIDA, NAO_ATINGIDA ou sem marcação.
     expect(
-      (await h.patch(`/api/mentoria/metas/${m.id}`, { version: 2, status: 'ATINGIDA' }, s)).status,
+      (await h.patch(`/api/mentoria/metas/${m.id}`, { version: 2, status: 'EM_ANDAMENTO' }, s))
+        .status,
     ).toBe(400);
 
     const so = await operacao();

@@ -2,7 +2,11 @@
 import {
   INSCRICAO_STATUS,
   INSCRICAO_STATUS_LABEL,
+  nomePme,
+  SEMAFORO_COR_LABEL,
+  SEMAFORO_CORES,
   TIPO_INSCRICAO_LABEL,
+  type SemaforoCor,
   type InscricaoItem,
   type InscricaoStatus,
   type PaginaInscricoes,
@@ -23,6 +27,7 @@ import { useLatestPrefs } from '@/lib/use-latest-prefs';
 import { Dialogo } from './dialogo';
 import { dataBR, ICONES, Icone, Rostos, rotuloMes, TagStatus, Trilha } from './ui';
 import { ExportarBotao } from './exportar-botao';
+import { SeloSemaforo } from './semaforo';
 
 type Filtros = FiltrosMentorados;
 type Pessoa = { id: string; nome: string };
@@ -31,6 +36,8 @@ const MESES = Array.from({ length: 12 }, (_, i) => i + 1);
 
 function Linha({ r, primeira }: { r: InscricaoItem; primeira: boolean }) {
   const ultimo = r.ultimoContato ? dataBR(r.ultimoContato) : '—';
+  const pme = r.pme ? nomePme(r.pme.numero) : '—';
+  const pct = r.pme?.pctTarefas != null ? `${r.pme.pctTarefas}%` : '—';
   return (
     <Link
       className={`row ${primeira ? 'primeira' : ''}`}
@@ -54,11 +61,27 @@ function Linha({ r, primeira }: { r: InscricaoItem; primeira: boolean }) {
         </b>
         {r.mesJornada !== null && <Trilha mes={r.mesJornada} alerta={r.completar} />}
       </div>
+      <span className="pm">{pme}</span>
+      <span className="sf">{r.semaforo ? <SeloSemaforo s={r.semaforo} /> : '—'}</span>
+      <span className="pc">{pct}</span>
       <TagStatus status={r.status} className="st-tag justify-self-start" />
       <span className="rs">{r.responsavel?.nome ?? '—'}</span>
       <span className="lc">{ultimo}</span>
       <div className="mobmeta">
-        {r.responsavel?.nome ?? 'Sem responsável'}, último contato: {ultimo}
+        {(r.pme || r.semaforo) && (
+          <span className="mob-pme">
+            {r.semaforo && <SeloSemaforo s={r.semaforo} />}
+            {r.pme && (
+              <span>
+                {pme}
+                {r.pme.pctTarefas !== null ? `, ${pct} do PME` : ''}
+              </span>
+            )}
+          </span>
+        )}
+        <span>
+          {r.responsavel?.nome ?? 'Sem responsável'}, último contato: {ultimo}
+        </span>
       </div>
     </Link>
   );
@@ -105,6 +128,21 @@ function CamposFiltro({
         ))}
       </select>
       <select
+        className={control}
+        aria-label="Semáforo"
+        value={f.semaforo ?? ''}
+        onChange={(e) =>
+          mudar({ ...f, semaforo: (e.target.value || undefined) as SemaforoCor | undefined })
+        }
+      >
+        <option value="">Todos os semáforos</option>
+        {SEMAFORO_CORES.map((c) => (
+          <option key={c} value={c}>
+            {SEMAFORO_COR_LABEL[c]}
+          </option>
+        ))}
+      </select>
+      <select
         className={`${control} todo`}
         aria-label="Responsável"
         value={f.responsavelId ?? ''}
@@ -121,7 +159,7 @@ function CamposFiltro({
   );
 }
 
-/** Carteira com filtros por mês, status e responsável e a lista "completar a ficha". */
+/** Carteira com filtros por mês, status, semáforo e responsável e a lista "completar a ficha". */
 export function MentoradosLista({
   pagina,
   responsaveis,
@@ -187,7 +225,7 @@ export function MentoradosLista({
   }
 
   const { resumo } = dados;
-  const filtrando = !!(f.mes || f.status || f.responsavelId || f.completar);
+  const filtrando = !!(f.mes || f.status || f.responsavelId || f.semaforo || f.completar);
   const abrirJanela = () => {
     setRascunho(f);
     setJanela(true);
@@ -241,6 +279,7 @@ export function MentoradosLista({
         </button>
         {chip('Mês', f.mes ? `Mês ${f.mes}` : undefined)}
         {chip('Status', f.status && INSCRICAO_STATUS_LABEL[f.status])}
+        {chip('Semáforo', f.semaforo && SEMAFORO_COR_LABEL[f.semaforo])}
         {chip('Responsável', responsaveis.find((r) => r.id === f.responsavelId)?.nome)}
         {filtrando && (
           <button type="button" className="fchip" onClick={() => setF({})}>
@@ -276,8 +315,11 @@ export function MentoradosLista({
         {dados.itens.length > 0 && (
           <div className="lhead">
             <span>Mentorado</span>
-            <span>Mentoria</span>
+            <span className="h-tp">Mentoria</span>
             <span>Mês da jornada</span>
+            <span>PME atual</span>
+            <span>Semáforo</span>
+            <span>% do PME</span>
             <span>Status</span>
             <span>Responsável</span>
             <span>Último contato</span>

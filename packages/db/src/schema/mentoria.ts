@@ -776,6 +776,8 @@ export const mentoriaCiclos = pgTable(
     concluidoEm: date('concluido_em'),
     /** Um ciclo seguinte foi enviado sem este fechar. */
     naoConcluidoEm: date('nao_concluido_em'),
+    /** Segunda chance dada à mão (E15): o novo prazo. O prazo atual é ela ou, sem ela, `prazo`. */
+    segundaChanceAte: date('segunda_chance_ate'),
     anteriorAoSistema: boolean('anterior_ao_sistema').notNull().default(false),
     version: integer('version').notNull().default(1),
     ...autoria,
@@ -859,8 +861,8 @@ export const mentoriaTarefas = pgTable(
 
 /**
  * Metas (Fase 2, Parte 2): do casal ou individual (`pessoa_id` nulo) ou de uma pessoa do casal.
- * Descrição cifrada. Nasce no ciclo aberto, se houver, e conta no % de metas dele (E5). O status da
- * meta (spec S3) espera decisão do Gabriel: sem coluna até lá.
+ * Descrição cifrada. Nasce no ciclo aberto, se houver. Status (E10, Parte 3): ATINGIDA ou
+ * NAO_ATINGIDA; nulo = sem marcação. Nunca entra num %.
  */
 export const mentoriaMetas = pgTable(
   'mentoria_metas',
@@ -881,12 +883,14 @@ export const mentoriaMetas = pgTable(
     valorAtual: numeric('valor_atual', { precision: 14, scale: 2 }),
     unidade: text('unidade'),
     prazo: date('prazo'),
+    status: text('status'),
     visivelAoMentorado: boolean('visivel_ao_mentorado').notNull().default(true),
     version: integer('version').notNull().default(1),
     ...autoria,
   },
   (t) => [
     index('mentoria_metas_inscricao').on(t.inscricaoId, t.criadoEm),
+    check('mentoria_metas_status', sql`${t.status} in ('ATINGIDA', 'NAO_ATINGIDA')`),
     index('mentoria_metas_ciclo').on(t.cicloId),
     check(
       'mentoria_metas_pilar',
@@ -897,4 +901,79 @@ export const mentoriaMetas = pgTable(
     check('mentoria_metas_unidade', sql`char_length(${t.unidade}) between 1 and 20`),
     check('mentoria_metas_descricao', cifradoCabe(t.descricao)),
   ],
+);
+
+/**
+ * Check-in da semana (Fase 2, Parte 3, E9): mensagem manual da equipe no WhatsApp, lançada na ficha.
+ * `semana` = segunda-feira (Brasília) da semana do envio: um por semana por inscrição. Avanço, o que
+ * travou e próximo passo chegam cifrados. `respondeu` vale só com `respondido_em`.
+ */
+export const mentoriaCheckins = pgTable(
+  'mentoria_checkins',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    inscricaoId: uuid('inscricao_id')
+      .notNull()
+      .references(() => mentoriaInscricoes.id, { onDelete: 'cascade' }),
+    enviadoEm: timestamp('enviado_em', { withTimezone: true }).notNull(),
+    semana: date('semana')
+      .notNull()
+      .generatedAlwaysAs(
+        sql`(date_trunc('week', enviado_em at time zone 'America/Sao_Paulo'))::date`,
+      ),
+    respondeu: boolean('respondeu').notNull().default(false),
+    respondidoEm: timestamp('respondido_em', { withTimezone: true }),
+    avanco: text('avanco'),
+    travou: text('travou'),
+    proximoPasso: text('proximo_passo'),
+    visivelAoMentorado: boolean('visivel_ao_mentorado').notNull().default(true),
+    version: integer('version').notNull().default(1),
+    ...autoria,
+  },
+  (t) => [
+    unique('mentoria_checkins_semana_unica').on(t.inscricaoId, t.semana),
+    check('mentoria_checkins_respondeu', sql`${t.respondeu} = (${t.respondidoEm} is not null)`),
+    check('mentoria_checkins_ordem', sql`${t.respondidoEm} >= ${t.enviadoEm}`),
+    check('mentoria_checkins_avanco', cifradoCabe(t.avanco)),
+    check('mentoria_checkins_travou', cifradoCabe(t.travou)),
+    check('mentoria_checkins_proximo', cifradoCabe(t.proximoPasso)),
+  ],
+);
+
+/**
+ * Semáforo de cada semana encerrada (Parte 3): gravado na virada da semana e completado ao subir a
+ * API, só pela função `mentoria_semaforo_gravar` (idempotente). `semana` = segunda-feira.
+ */
+export const mentoriaSemaforoHistorico = pgTable(
+  'mentoria_semaforo_historico',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    inscricaoId: uuid('inscricao_id')
+      .notNull()
+      .references(() => mentoriaInscricoes.id, { onDelete: 'cascade' }),
+    semana: date('semana').notNull(),
+    cor: text('cor').notNull(),
+    motivos: text('motivos')
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique('mentoria_semaforo_historico_semana').on(t.inscricaoId, t.semana),
+    check('mentoria_semaforo_historico_cor', sql`${t.cor} in ('VERDE', 'AMARELO', 'VERMELHO')`),
+  ],
+);
+
+/**
+ * Entrada no ar do semáforo (E13): uma linha, gravada pela migration da Parte 3 com o dia em que ela
+ * roda em cada ambiente. Só as funções do semáforo leem.
+ */
+export const mentoriaSemaforoInicio = pgTable(
+  'mentoria_semaforo_inicio',
+  {
+    id: boolean('id').primaryKey().default(true),
+    desde: date('desde').notNull(),
+  },
+  (t) => [check('mentoria_semaforo_inicio_uma', sql`${t.id}`)],
 );

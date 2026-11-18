@@ -289,6 +289,9 @@ describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => 
     await owner`insert into mentoria_tarefas (inscricao_id, origem, reuniao_id, descricao, prazo)
       values (${b}, 'REUNIAO', ${reuniaoDudaB}, 'cifrado', '2026-12-01')`;
     await owner`insert into mentoria_metas (inscricao_id, descricao) values (${a}, 'cifrado'), (${b}, 'cifrado')`;
+    await owner`insert into mentoria_checkins (inscricao_id, enviado_em) values (${a}, now()), (${b}, now())`;
+    await owner`insert into mentoria_semaforo_historico (inscricao_id, semana, cor)
+      values (${a}, '2026-11-16', 'VERDE')`;
   });
 
   afterAll(async () => {
@@ -333,6 +336,16 @@ describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => 
       );
       expect(metas).toHaveLength(2);
       for (const r of metas) expect({ u, v: r.depois }).toEqual({ u, v: r.antes });
+
+      // Check-ins e histórico do semáforo (Parte 3): quem vê as metas, sem função por linha.
+      const checkins = await comoOwner(
+        u,
+        (s) => s<{ antes: boolean; depois: boolean }[]>`
+          select mentoria_ve_meta(c.inscricao_id) as antes, coalesce(mentoria_ve_todas(), false) as depois
+          from mentoria_checkins c`,
+      );
+      expect(checkins).toHaveLength(2);
+      for (const r of checkins) expect({ u, v: r.depois }).toEqual({ u, v: r.antes });
     }
   });
 
@@ -349,54 +362,72 @@ describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => 
         mentoria_reunioes: 4,
         mentoria_tarefas: 3,
         mentoria_metas: 2,
+        mentoria_checkins: 2,
+        mentoria_semaforo_historico: 1,
       },
       [DUDA]: {
         mentoria_inscricoes: 2,
         mentoria_reunioes: 4,
         mentoria_tarefas: 3,
         mentoria_metas: 2,
+        mentoria_checkins: 2,
+        mentoria_semaforo_historico: 1,
       },
       [ACOMP]: {
         mentoria_inscricoes: 2,
         mentoria_reunioes: 4,
         mentoria_tarefas: 3,
         mentoria_metas: 2,
+        mentoria_checkins: 2,
+        mentoria_semaforo_historico: 1,
       },
       [OPERACAO]: {
         mentoria_inscricoes: 2,
         mentoria_reunioes: 4,
         mentoria_tarefas: 3,
         mentoria_metas: 2,
+        mentoria_checkins: 2,
+        mentoria_semaforo_historico: 1,
       },
       [MANU]: {
         mentoria_inscricoes: 1,
         mentoria_reunioes: 1,
         mentoria_tarefas: 1,
         mentoria_metas: 0,
+        mentoria_checkins: 0,
+        mentoria_semaforo_historico: 0,
       },
       [MANU2]: {
         mentoria_inscricoes: 0,
         mentoria_reunioes: 0,
         mentoria_tarefas: 0,
         mentoria_metas: 0,
+        mentoria_checkins: 0,
+        mentoria_semaforo_historico: 0,
       },
       [LEO]: {
         mentoria_inscricoes: 0,
         mentoria_reunioes: 0,
         mentoria_tarefas: 0,
         mentoria_metas: 0,
+        mentoria_checkins: 0,
+        mentoria_semaforo_historico: 0,
       },
       [CARLA]: {
         mentoria_inscricoes: 0,
         mentoria_reunioes: 0,
         mentoria_tarefas: 0,
         mentoria_metas: 0,
+        mentoria_checkins: 0,
+        mentoria_semaforo_historico: 0,
       },
       [SDR2]: {
         mentoria_inscricoes: 0,
         mentoria_reunioes: 0,
         mentoria_tarefas: 0,
         mentoria_metas: 0,
+        mentoria_checkins: 0,
+        mentoria_semaforo_historico: 0,
       },
     };
     for (const [u, tabelas] of Object.entries(esperado)) {

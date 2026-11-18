@@ -1,4 +1,4 @@
-import { ETAPA_LABEL, FILA_GRUPOS, INSCRICAO_STATUS } from '@npac/shared/mentoria';
+import { ETAPA_LABEL, FILA_GRUPOS, INSCRICAO_STATUS, SEMAFORO_CORES } from '@npac/shared/mentoria';
 import { oneOf, readPrefs, writePrefs, type PrefRules } from '@npac/shared/screen-prefs';
 import { readPreference } from './read-preference';
 import { rememberAt } from './screen-prefs';
@@ -55,11 +55,12 @@ export const FICHA_REGRAS: PrefRules = {
   historico: oneOf(['REUNIOES', 'CONTATOS', 'ANOTACOES', 'ALTERACOES']),
 };
 
-/** Mentorados: mês da jornada (o select vai de 1 a 12), status, responsável e "completar". */
+/** Mentorados: mês da jornada (o select vai de 1 a 12), status, responsável, semáforo e "completar". */
 export type FiltrosMentorados = {
   mes?: number;
   status?: (typeof INSCRICAO_STATUS)[number];
   responsavelId?: string;
+  semaforo?: (typeof SEMAFORO_CORES)[number];
   completar?: boolean;
 };
 
@@ -67,6 +68,7 @@ export const mentoradosRegras = (responsaveis: readonly string[]): PrefRules => 
   mes: oneOf(Array.from({ length: 12 }, (_, i) => String(i + 1))),
   status: oneOf(INSCRICAO_STATUS),
   responsavelId: oneOf(responsaveis),
+  semaforo: oneOf(SEMAFORO_CORES),
   completar: oneOf(['1']),
 });
 
@@ -74,6 +76,7 @@ export const filtrosParaPrefs = (f: FiltrosMentorados) => ({
   mes: f.mes ? String(f.mes) : undefined,
   status: f.status,
   responsavelId: f.responsavelId,
+  semaforo: f.semaforo,
   completar: f.completar ? '1' : undefined,
 });
 
@@ -82,6 +85,7 @@ export function prefsParaFiltros(p: Record<string, string>): FiltrosMentorados {
     ...(p.mes ? { mes: Number(p.mes) } : {}),
     ...(p.status ? { status: p.status as FiltrosMentorados['status'] } : {}),
     ...(p.responsavelId ? { responsavelId: p.responsavelId } : {}),
+    ...(p.semaforo ? { semaforo: p.semaforo as FiltrosMentorados['semaforo'] } : {}),
     ...(p.completar ? { completar: true } : {}),
   };
 }
