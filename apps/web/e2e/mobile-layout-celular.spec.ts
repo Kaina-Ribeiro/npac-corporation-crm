@@ -180,7 +180,13 @@ test('os controles pequenos do comercial aceitam um toque de 44 px', async ({ pa
       if (r) curtos.push(r);
     };
     await page.goto('/leads');
-    await conferir(page.getByRole('checkbox', { name: 'Selecionar Lead do Ale' }));
+    // Qualquer lead da 1ª página (na suíte inteira o Ale tem dezenas e o dele sai da página).
+    await conferir(
+      page
+        .getByRole('checkbox', { name: /^Selecionar (?!todos)/ })
+        .filter({ visible: true })
+        .first(),
+    );
     await page.goto('/hoje');
     await conferir(page.getByRole('button', { name: 'Concluir Tarefa do toque' }));
     await page.goto('/pipeline');
