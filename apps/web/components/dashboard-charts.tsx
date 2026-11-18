@@ -257,9 +257,10 @@ export function RevenueHero({
                 stroke={GOLD}
                 strokeWidth="2.5"
               />
+              {/* Total "redondo" (ex.: R$ 10,00) põe o ponto no teto: o rótulo vai para o lado do ponto. */}
               <text
-                x={x(last)}
-                y={y(sold) - 12}
+                x={y(sold) - 12 < 14 ? x(last) - 12 : x(last)}
+                y={y(sold) - 12 < 14 ? y(sold) + 4 : y(sold) - 12}
                 textAnchor="end"
                 fontSize="12"
                 fontWeight="700"

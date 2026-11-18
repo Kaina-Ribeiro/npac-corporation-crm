@@ -47,6 +47,18 @@ export type ReportDTO = {
   leads: { id: string; name: string; stage: string; tier: string }[];
   from: string;
   to: string;
+  /**
+   * Renda extra do SDR pelas vendas que marcou no período (NPAC-48, 5B), pela data da marcação.
+   * O SDR recebe a dele; a liderança, a de todos (respeita o filtro de SDR) com `bySdr`. Closer não.
+   */
+  saleBonus?: {
+    cents: number;
+    count: number;
+    byProduct: { id: string; name: string; count: number; cents: number }[];
+    bySdr?: { id: string; name: string; count: number; cents: number }[];
+    /** Por dia de Brasília (AAAA-MM-DD), só dias com venda marcada: o balão acumula. */
+    daily: { date: string; cents: number }[];
+  };
 };
 export type ReportRow = {
   id: string;

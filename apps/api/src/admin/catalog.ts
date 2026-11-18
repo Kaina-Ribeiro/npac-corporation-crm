@@ -43,9 +43,15 @@ const productFields = {
   name: z.string().trim().min(1).max(120),
   closerId: z.string().min(1),
   priceCents: cents,
+  // Renda extra do SDR por venda do produto (NPAC-48); zero = sem renda extra.
+  sdrBonusCents: z.number().int().min(0).max(100_000_000),
   active: z.boolean(),
 };
-const productCreate = z.object(productFields).omit({ active: true }).strict();
+const productCreate = z
+  .object(productFields)
+  .omit({ active: true })
+  .partial({ sdrBonusCents: true })
+  .strict();
 const productUpdate = z
   .object(productFields)
   .omit({ code: true })
@@ -81,6 +87,7 @@ export class AdminCatalogService {
           closerId: products.closerId,
           closerName: user.name,
           priceCents: products.priceCents,
+          sdrBonusCents: products.sdrBonusCents,
           active: products.active,
         })
         .from(products)

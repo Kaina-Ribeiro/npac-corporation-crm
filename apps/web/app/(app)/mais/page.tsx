@@ -7,7 +7,7 @@ import { ACOMPANHAMENTO_ITEM, ADMIN_ITEM, MORE_ITEMS } from '@/components/shell/
 import { AbasMobile } from '@/components/acompanhamento/abas-mobile';
 import { ChatBadge, InboxCard } from '@/components/inbox';
 import { SearchButton } from '@/components/shell/command-palette';
-import { SignOutButton } from '@/components/shell/sign-out-button';
+import { ContaCard } from '@/components/shell/conta-card';
 import { ThemeSwitch } from '@/components/shell/theme-switch';
 import { RoleTag } from '@/components/role-tag';
 import { getSession } from '@/lib/session';
@@ -15,6 +15,7 @@ import { getSession } from '@/lib/session';
 export const metadata = { title: 'Mais' };
 
 const HINT: Record<string, string> = {
+  '/leads': 'Busca, filtros e CSV',
   '/relatorios': 'Filtros, CSV e resumo',
   '/chat': 'Geral e conversas',
   '/equipe': 'Pessoas e números',
@@ -23,7 +24,7 @@ const HINT: Record<string, string> = {
   '/acompanhamento': 'Mentorados e fichas',
 };
 
-/** No celular: perfil, demais seções (mesma ordem do desktop), aparência e sair. */
+/** No celular: conta (com Trocar senha e Sair), demais seções (mesma ordem do desktop) e aparência. */
 export default async function MorePage() {
   const me = await getSession();
   if (!me) redirect('/login');
@@ -44,28 +45,18 @@ export default async function MorePage() {
     : [];
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-5 pt-2">
-      <section className="glass-card flex items-center gap-4 p-5">
-        <span
-          aria-hidden="true"
-          className="inline-flex size-16 flex-none items-center justify-center rounded-full bg-[linear-gradient(160deg,#7fe0a6,#1e9e70)] text-2xl font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,.28),0_10px_24px_-10px_rgba(30,158,112,.6)]"
-        >
-          {me.name.slice(0, 1)}
-        </span>
-        <div className="min-w-0">
-          <h1 className="truncate text-2xl font-bold tracking-[-0.03em]">{me.name}</h1>
-          <div className="mt-1.5 flex flex-wrap gap-1.5">
-            <RoleTag role={me.role} className="h-[22px]" />
-            {flags.map((f) => (
-              <span
-                key={String(f)}
-                className="rounded-full border border-line px-2.5 py-0.5 text-xs font-medium text-ink2"
-              >
-                {f}
-              </span>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Mesmo cartão do Mais do Acompanhamento: Trocar senha e Sair no topo, sem rolar. */}
+      <ContaCard nome={me.name} titulo>
+        <RoleTag role={me.role} className="h-[22px]" />
+        {flags.map((f) => (
+          <span
+            key={String(f)}
+            className="rounded-full border border-line px-2.5 py-0.5 text-xs font-medium text-ink2"
+          >
+            {f}
+          </span>
+        ))}
+      </ContaCard>
 
       <SearchButton className="glass-card flex min-h-12 items-center gap-3 px-4 text-sm font-medium text-ink2 [&_kbd]:hidden [&_svg]:size-5" />
 
@@ -101,12 +92,6 @@ export default async function MorePage() {
         <ThemeSwitch />
       </section>
 
-      <Link
-        href="/conta/senha"
-        className="glass-card flex min-h-14 w-full items-center justify-center text-base font-semibold"
-      >
-        Trocar senha
-      </Link>
       {MFA_LIGADO && (
         <Link
           href="/conta/mfa"
@@ -123,8 +108,6 @@ export default async function MorePage() {
           Avisos neste aparelho
         </Link>
       )}
-      <SignOutButton className="glass-card min-h-14 w-full text-base font-semibold text-danger" />
-
       <p className="text-center text-xs text-ink3">
         NPAC Corporation · {commercial ? 'área comercial' : 'acompanhamento de mentorados'}
       </p>

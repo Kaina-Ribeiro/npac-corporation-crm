@@ -10,6 +10,9 @@ indicar. Mantenha denso; ao mudar arquitetura, regra ou comando, atualize aqui.
 - Português, respostas curtas, execução direta quando o pedido é explícito. Commits frequentes; push só se pedirem.
 - Branch, PR, tag e release seguem `RELEASING.md` (release-kit): branch `tipo/NPAC-N-nome` a partir da
   `release/vX.Y` aberta, PR `tipo(NPAC-N): resumo` em minúsculas, squash. Tags só pela automação.
+  Kit v1.2.0 (17/11/2026): deploy manual (prod, rollback) é Actions → **Deploy** da `release/vX.Y`, não
+  mais o menu do Release; o adaptador do Cubeship lê `DEPLOY_URL` + segredo `DEPLOY_TOKEN`
+  (`docs/deploy-cubeship.md`, seção 4). Só `release/*` e `hotfix/*` entram na `main`.
 - Sem subagentes sem pedido. Plano novo grande: apresentar antes de implementar.
 - Régua: CRMs robustos (Linear, Attio).
 - Bug: teste que falha (RED) → correção → teste focado → suíte ao fechar.
@@ -43,7 +46,10 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   mock do protótipo `api/dev/mock-prototype.ts`
 - **Web:** layout/sidebar/bottom nav `web/app/(app)/layout.tsx`, `web/components/shell/*` (menu da
   sidebar e do Ctrl+K, grupos e sub-itens do Acompanhamento: `shell/nav-menu.tsx`, só servidor, para
-  não pesar no JS; `nav-items.tsx` também fica no servidor, a barra inferior é componente de servidor) · classes de botão `lib/button.ts` · dropdown (todos os `<select>`) com o visual do CRM só por CSS
+  não pesar no JS; `nav-items.tsx` também fica no servidor, a barra inferior é componente de servidor) · na sidebar só o
+  miolo rola (`.side-scroll`: navegação + filtros salvos); topo e rodapé com o Sair ficam fixos, e a carga direta rola até o
+  item ativo (`sidebar-shell.tsx`) · Sair no celular (17/11/2026): o mesmo cartão `shell/conta-card.tsx` (foto, nome, cargo,
+  Trocar senha, Sair) no topo do `/mais` e do `/acompanhamento/mais`; nada de outro Sair nessas telas (e2e `e2e/sair.spec.ts`) · classes de botão `lib/button.ts` · dropdown (todos os `<select>`) com o visual do CRM só por CSS
   (`appearance: base-select` + `::picker(select)` no fim de `globals.css`; Safari fica com o do
   sistema; Lightning CSS não aceita pseudo-classe depois de `::picker`, use `select:open::picker(select)`) · login,
   pedir acesso `web/components/login/*` · senha/MFA `components/conta/*`, `app/(conta)/*` · API
@@ -58,9 +64,10 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   admin `admin.tsx`, `access-requests.tsx` · Ctrl+K `shell/command-palette.tsx` · avisos `inbox.tsx` ·
   textos de atividade `lib/activity-text.ts` · campos por etapa `stage-fields.tsx` (+ `lib/stage-fields.ts`,
   `lib/stage-kind.ts`) e janelinha `stage-move-dialog.tsx` (Pipeline, lista, massa) · editor de colunas `pipeline-columns-editor.tsx` · ação
-  rápida do Hoje `today-quick-action.tsx` · closer completa o pagamento `payment-complete.tsx` · menu de CSV `csv-export.tsx` (API: `api/common/csv.ts`) ·
+  rápida do Hoje `today-quick-action.tsx` · closer completa o pagamento `payment-complete.tsx` · SDR marca a
+  venda `sale-mark.tsx` · menu de CSV `csv-export.tsx` (API: `api/common/csv.ts`) ·
   avisos compartilhados (selo do chat, `(N)` na aba, lembretes) `lib/alerts.ts`, `meeting-reminder.tsx` ·
-  push no aparelho `lib/push.ts`, `public/sw.js`, `/conta/avisos`
+  push no aparelho `lib/push.ts`, `public/sw.js`, `/conta/avisos`, convite `components/push-invite.tsx`
 - **Movimento e resposta** (NPAC-47, Fase 4): entrada de página em `globals.css` (`.page-reveal`, `.reveal`,
   `.reveal-grid`; opção B do Gabriel: sobe 6 px, `--dur-enter` 220 ms, cascata de 3 blocos × `--stagger` 30 ms,
   tudo pronto em 280 ms, sem desfoque; cards do Pipeline não animam um a um) · janelinhas `<dialog class="dlg">`
@@ -157,7 +164,9 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   e `/team` cortam no servidor (`dropSales`), o lead vem sem valor e entrada (`toDTO`) e
   `/finance/products` sem preço; o Dashboard do SDR mostra comparecimento. Closer igual a
   antes; liderança vê venda + comparecimento, com filtro por SDR. Vendas e pagamentos (ficha,
-  cobranças do Hoje, `sale:register`) são do closer e da liderança; o SDR só marca o resultado da reunião.
+  cobranças do Hoje, `sale:register`) são do closer e da liderança; o SDR marca o resultado da reunião
+  e, depois dela, a venda só com o produto (NPAC-48, abaixo em "Marcar venda"). A renda extra do SDR
+  (`saleBonus`) é renda dele, não R$ de venda: o SDR vê só a dele; a liderança vê a de todos.
 - Login por **usuário** (`/sign-in/username`, `[a-z0-9_.]{3,30}`, minúsculo); login por e-mail e
   `/is-username-available` desligados. Senha mínima 3 (provisório, decisão de 29/10/2026: no dev
   todas são `123`; as regras voltam no fim).
@@ -302,6 +311,26 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
     da reunião (409 `PRODUCT_REQUIRED`); SDR vê só o nome, sem R$. Sem a venda fica em
     `leads.sold_product_id` (0039): "Produto: X" na ficha e pré-preenche o registro; apagado ao
     registrar ou sair da Venda (o gatilho deixa o closer zerá-lo sem trocar a etapa).
+- **Marcar venda** (NPAC-48, Igor 16–17/11/2026, "4A, 5B, 1A, 2A"): depois da reunião realizada, o SDR
+  do lead (ou a liderança; closer não, 403) usa `POST /leads/:id/sale-mark` `{ version, productId }`
+  (`markSale` em `api/leads/lead-mutations.service.ts`; tela `components/sale-mark.tsx`, na última
+  reunião realizada da ficha). Um produto por venda, do closer da reunião realizada mais recente (pelo
+  horário); sem ela, 409 `MEETING_DONE_REQUIRED`; já em Venda, 409 `ALREADY_SOLD`. O lead vai para
+  Venda como **venda a registrar** (`sold_product_id`), o closer da reunião vira o do lead (gatilho
+  `leads_guard_owner_columns` da 0066 deixa o SDR só nesse caso) e recebe `sale.pending` (sino + push);
+  ele põe o valor registrando a venda, como no cadastro. **Renda extra do SDR** (`sdr_sale_marks`, 0066):
+  cada marcação guarda o SDR do lead, o produto e `bonus_cents` = `products.sdr_bonus_cents` do dia
+  (valor editável em Admin > Produtos, "Renda extra do SDR"; mudar não altera o já ganho). O cadastro
+  em Venda Fechada também grava a marcação (`recordSaleMark` em `api/leads/sale-mark.ts`). Conta na
+  data da marcação (1A); sai (`canceled_at`, por gatilho) no estorno, quando o lead deixa a Venda ou é
+  excluído. Leitura por RLS: o próprio SDR e a liderança; `npac_app` só SELECT/INSERT. Aparece no
+  Dashboard como o balão preto "Valor a receber por venda feita" (card `sale-bonus`, o `RevenueHero` do valor
+  por reunião, linha acumulada por `saleBonus.daily`; Igor, 17/11: "outro balão desse preto das reuniões
+  realizadas, só que das vendas feitas"), pelo período de `/reports/search`: **cada SDR vê o dele (rodapé por
+  produto); a liderança vê o de todos (rodapé por SDR, `bySdr`) ou do SDR filtrado** (Gabriel, 17/11/2026);
+  o closer não recebe. Igor, 17/11 ("1A, 2B"): a renda segue o produto que o SDR marcou, mesmo que o
+  closer registre outro; venda registrada direto pelo closer, sem marcação, não gera renda. Valores do Igor: Nação Promocional R$ 5, Padrão (Normal) R$ 10, Completo (Cheio) R$ 20,
+  RDV R$ 70, 2M R$ 90, 6M R$ 120 (seed e 0066, por código ou nome).
 - **Campos por etapa** (NPAC-38, 05/11/2026, "1A 2A 3A"): Agendados pedem `meeting` (criada na
   mesma transação, origem pela etapa, `rearm()` depois do commit; reunião futura aberta dispensa),
   Agendou Pagamento pede data (`next_contact_at`) + produto + valor, Sem Perfil pede `lost_reason`
@@ -370,16 +399,40 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
 
 - Chat: selo de não lidas (`chatUnread` em `/notifications`) e `(N)` no título, pelo SSE. Push sem
   texto: "Nova mensagem no Chat" (Geral → todos menos o autor) ou "de <nome>" (DM → destinatário).
-- Lembretes só para o dono do lead (`leads.sdr_id`): `H1` (60 min) e `M15` (15 min) com
+- Lembretes do dono do lead (`leads.sdr_id`): `H1` (60 min) e `M15` (15 min) com
   "Confirmação enviada" (`POST /meetings/:id/confirm`, `meeting_confirmations` por horário, timeline
   `meeting.confirmed`); `M1` só aviso. Etapa vigente calculada no navegador (`sh/reminders.ts`).
   Liderança vê "1 h: não confirmada" na ficha. Remarcar recomeça; cancelada/resultado não avisa.
+  O **closer da reunião** (`meetings.closer_id`, NPAC-48, 17/11/2026) recebe só o push de `M15` e `M1`
+  ("Reunião com X às HH:MM", `closerReminderPayload`), sem o pedido de confirmação; se for o próprio dono, um só.
 - Push dos lembretes: `ReminderScheduler` = um único timer para o próximo (`meeting_reminder_next`),
   rearmado ao subir a API e depois de criar/remarcar/cancelar/resultado/transferir. Disparo via
-  `meeting_reminder_claim` (advisory lock + `meeting_reminders_sent`): uma vez por etapa, só a mais
-  recente se a API ficou parada. Sem polling. Testes trocam `PUSH_SENDER` e `REMINDER_CLOCK`.
+  `meeting_reminder_claim` (advisory lock + `meeting_reminders_sent`; 0065 devolve `sdr_id` e `closer_id`,
+  nulo se desativado): uma vez por etapa, só a mais recente se a API ficou parada. Sem polling. Testes
+  trocam `PUSH_SENDER` e `REMINDER_CLOCK`.
+- **Push do sino** (NPAC-48, Igor 17/11/2026: "cada um recebe os avisos do seu acesso"): todo aviso que
+  entra em `notifications` também vai como push às mesmas pessoas (a liderança não ganha os da equipe).
+  Sem polling: gatilho `notifications_push` faz `pg_notify('npac_aviso', id)` (entregue no commit) e
+  `push/sino-push.ts` (`SinoPush`) ouve com o LISTEN do postgres-js (`DB_SQL`, conexão própria, reconecta
+  sozinho). `notification_push_claim` grava em `notification_pushes` (fora do `app_revision`, sem FK,
+  apaga o que passou de 1 dia): um push por aviso entre instâncias; ao (re)conectar, recupera os dos
+  últimos 10 min ainda não lidos. Texto = a linha do sino (`activityVerb` em `sh/activity.ts`, o mesmo do
+  web): "Ana agendou João"; o nome do lead é lido como a pessoa (RLS), fora do acesso sai "um lead fora do
+  seu acesso". `form.received` fica fora (o webhook já manda o push dele). Testes: `vi.waitFor` + `settled()`.
 - Push: VAPID opcional no env (sem chaves = desligado). Inscrição por `push_subscribe` (o aparelho
-  vai para quem logou por último); sair e desativar usuário apagam; 404/410 apaga.
+  vai para quem logou por último); sair e desativar usuário apagam; 404/410 apaga. **Log de cada envio**
+  (`WebPushSender`, NPAC-48): `push enviado: 201 web.push.apple.com`, `push recusado: <código> <host>
+<reason>`, `push expirado…` (404/410) e `push sem resposta: <ETIMEDOUT…> <host>`; nunca o endpoint
+  inteiro, o texto do aviso ou dados da pessoa.
+- **Convite para ativar** (NPAC-48, pedido do Igor 16/11/2026: a equipe não sabia que dava):
+  `components/push-invite.tsx` no topo do Dashboard, Hoje, Chat (dentro da coluna, para o campo não sair
+  da tela) e Fila do Acompanhamento; fora do layout para não pesar no JS de `/leads`. Só aparece se dá
+  para ligar e ainda não está ligado neste aparelho (`conviteState` em `lib/push.ts`): notificação
+  bloqueada, sem suporte ou sem VAPID não convida; iPhone fora da Tela de Início recebe o passo a passo.
+  "Agora não"/"Entendi" = cookie `npac_push_convite` (`Path=/`, 7 dias, por aparelho). O Chromium do e2e
+  começa com notificação "denied": `e2e/avisos-no-celular.spec.ts` simula "default" e a chave.
+- **Barra do celular** (NPAC-48, Igor 16/11/2026): Dashboard, Hoje, Pipeline, **Chat** (com selo de não
+  lidas), Mais; Leads vai para a tela Mais (`BOTTOM_HREFS` em `shell/nav-items.tsx`). Desktop sem mudança.
 
 ## Google Forms (NPAC-42, 10/11/2026)
 
@@ -390,7 +443,7 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
   `FORMS_OWNER_USERNAME`, origem `FORMULARIO`, etapa Criando Relacionamento; senão descarta, sem guardar.
 - `form_responses`: respostas cifradas, gravação só por `form_response_record` (timeline
   `form.received` + auditoria), LGPD zera. Aviso ao dono e à liderança, sem excluir o autor; bloco
-  "Formulários novos" no Hoje e card na ficha. `truncate leads` nos testes inclui `form_responses`.
+  "Formulários novos" no Hoje e card na ficha. `truncate leads` nos testes inclui `form_responses` e `sdr_sale_marks`.
 
 ## Banco
 
@@ -416,7 +469,7 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
 - Valor novo de enum não vale na mesma transação da migration (compare como texto).
 - Aplicar no dev: `pnpm --filter @npac/db build && pnpm --filter @npac/db migrate`.
   psql: `docker exec npac-corporation-postgres-1 psql -U npac_owner -d npac`.
-- Apagar lead/usuário à mão: FKs em `form_responses`, `chat_reads`, `chat_*`, `payments`, `deals`, `lead_notes`,
+- Apagar lead/usuário à mão: FKs em `form_responses`, `sdr_sale_marks`, `chat_reads`, `chat_*`, `payments`, `deals`, `lead_notes`,
   `lead_tasks`, `notifications`, `lead_timeline`, `meetings` (`meeting_confirmations` e
   `meeting_reminders_sent` em cascata), `lgpd_requests` (usuário: também `session`, `account`,
   `push_subscriptions`). `truncate` de `meetings` nos testes lista as duas tabelas de lembretes.

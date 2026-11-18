@@ -6,6 +6,8 @@ import { FieldCrypto } from '../crypto/field-crypto.js';
 /** `Db` conectado como npac_app (sujeito a RLS). */
 export const DB = Symbol('DB');
 const DB_CLIENT = Symbol('DB_CLIENT');
+/** Cliente postgres-js cru (só para LISTEN: o push do sino, `push/sino-push.ts`). */
+export const DB_SQL = Symbol('DB_SQL');
 
 @Global()
 @Module({
@@ -17,13 +19,14 @@ const DB_CLIENT = Symbol('DB_CLIENT');
       useFactory: (env: Env) => createDb(env.APP_DATABASE_URL),
     },
     { provide: DB, inject: [DB_CLIENT], useFactory: (c: DbClient) => c.db },
+    { provide: DB_SQL, inject: [DB_CLIENT], useFactory: (c: DbClient) => c.sql },
     {
       provide: FieldCrypto,
       inject: [ENV],
       useFactory: (env: Env) => new FieldCrypto(env.FIELD_ENCRYPTION_KEY, env.BLIND_INDEX_KEY),
     },
   ],
-  exports: [ENV, DB, FieldCrypto],
+  exports: [ENV, DB, DB_SQL, FieldCrypto],
 })
 export class DbModule implements OnApplicationShutdown {
   constructor(@Inject(DB_CLIENT) private readonly client: DbClient) {}

@@ -1,6 +1,6 @@
-import { PERFIL_LABEL } from '@npac/shared/mentoria';
 import Link from 'next/link';
-import { SignOutButton } from '@/components/shell/sign-out-button';
+import { CargoTag } from '@/components/role-tag';
+import { ContaCard } from '@/components/shell/conta-card';
 import { ICONES, Icone } from '@/components/acompanhamento/ui';
 import { lerEu, podeCadastrar, sessaoDoModulo, ultimaFicha } from '@/lib/acompanhamento';
 
@@ -66,8 +66,6 @@ export default async function MaisPage() {
   const me = await sessaoDoModulo();
   if (!me) return null;
   const [eu, ultima] = await Promise.all([lerEu(), ultimaFicha()]);
-  const perfil = eu?.perfil ? PERFIL_LABEL[eu.perfil] : 'Diretoria';
-  const cargo = eu?.admin && eu.perfil ? `${perfil} e Admin` : perfil;
   const avisos: Item = {
     rotulo: 'Avisos neste aparelho',
     icone: ICONES.sino,
@@ -77,14 +75,10 @@ export default async function MaisPage() {
   return (
     <section className="view">
       <h1 className="h1">Mais</h1>
-      <Link className="card ml-conta" href="/conta/senha">
-        <span className="ava me">{me.name.slice(0, 1)}</span>
-        <div>
-          <b>{me.name}</b>
-          <span className="d">{cargo}</span>
-        </div>
-        <Icone d={ICONES.seta} className="seta" />
-      </Link>
+      {/* Mesmo cartão do Mais do CRM: Trocar senha e Sair no topo, sem rolar. */}
+      <ContaCard nome={me.name}>
+        <CargoTag role={me.role} perfil={eu?.perfil} moduloAdmin={!!(eu?.admin && eu.perfil)} />
+      </ContaCard>
       <Grupo
         titulo="Acompanhamento"
         itens={[
@@ -137,15 +131,6 @@ export default async function MaisPage() {
         <h2>Conta</h2>
         <div className="card">
           <Linha item={avisos} primeira />
-          <div className="ml sair">
-            <span className="i">
-              <Icone d={ICONES.sair} />
-            </span>
-            <div className="t">
-              <b>Sair</b>
-            </div>
-            <SignOutButton className="" />
-          </div>
         </div>
       </div>
     </section>

@@ -9,6 +9,7 @@ import { dashCookieName } from '@/lib/dashboard-layout';
 import { presetFilters, type Preset } from '@/lib/report-presets';
 import { prefsCookie } from '@/lib/screen-prefs';
 import { getSession } from '@/lib/session';
+import { PushInvite } from '@/components/push-invite';
 export const metadata = { title: 'Dashboard' };
 export default async function DashboardPage() {
   const me = await getSession();
@@ -30,18 +31,21 @@ export default async function DashboardPage() {
     ...(saved.sdrId ? { sdrId: saved.sdrId } : {}),
   });
   return (
-    <Reports
-      initial={initial}
-      catalog={catalog}
-      products={products}
-      role={me.role}
-      head={head}
-      dashboard
-      name={me.name}
-      activity={activity}
-      layout={{ cookie, saved: jar.get(cookie)?.value }}
-      prefs={{ cookie: prefs, value: writePrefs(saved, rules) }}
-      initialFilters={saved}
-    />
+    <>
+      <PushInvite className="mb-5" />
+      <Reports
+        initial={initial}
+        catalog={catalog}
+        products={products}
+        role={me.role}
+        head={head}
+        dashboard
+        name={me.name}
+        activity={activity}
+        layout={{ cookie, saved: jar.get(cookie)?.value }}
+        prefs={{ cookie: prefs, value: writePrefs(saved, rules) }}
+        initialFilters={saved}
+      />
+    </>
   );
 }

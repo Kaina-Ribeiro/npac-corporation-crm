@@ -69,3 +69,13 @@ export const meetingRemindersSent = pgTable(
     check('meeting_reminders_step', sql`${t.step} in ('H1','M15','M1')`),
   ],
 );
+
+/**
+ * Avisos do sino já enviados como push (NPAC-48, 17/11/2026). Fora do contador `app_revision`:
+ * gravar aqui não acorda as telas. Sem FK para `notifications` (os testes zeram a tabela sem
+ * listar esta); `notification_push_claim` apaga o que passou de 1 dia.
+ */
+export const notificationPushes = pgTable('notification_pushes', {
+  notificationId: uuid('notification_id').primaryKey(),
+  sentAt: timestamp('sent_at', { withTimezone: true }).notNull().defaultNow(),
+});

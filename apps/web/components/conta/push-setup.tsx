@@ -10,8 +10,8 @@ const TEXT: Record<PushState, string> = {
     'No iPhone, os avisos só chegam com o CRM na tela inicial (iOS 16.4 ou mais novo): toque em Compartilhar → Adicionar à Tela de Início, abra o CRM por lá e volte aqui.',
   denied:
     'Os avisos foram bloqueados neste navegador. Libere em Configurações do site → Notificações e recarregue a página.',
-  off: 'Receba no celular ou no computador, mesmo com o CRM fechado: mensagens novas do chat e os lembretes de confirmação das suas reuniões (1 h, 15 min e 1 min antes).',
-  on: 'Este aparelho recebe os avisos do chat e os lembretes das suas reuniões.',
+  off: 'Receba no celular ou no computador, mesmo com o CRM fechado: os avisos do sino, as mensagens novas do chat e os lembretes das suas reuniões.',
+  on: 'Este aparelho recebe os avisos do sino, as mensagens do chat e os lembretes das suas reuniões.',
   'server-off': 'Os avisos fora do CRM ainda não foram ligados no servidor. Fale com a liderança.',
 };
 
@@ -43,8 +43,8 @@ export function PushSetup() {
         {state ? TEXT[state] : 'Verificando este aparelho…'}
       </p>
       <p className="rounded-2xl bg-black/[.04] p-3 text-[13px] text-ink2 dark:bg-white/5">
-        Por segurança, o aviso traz só o nome de quem mandou ou o nome do lead e o horário. Nunca o
-        texto da mensagem, telefone ou Instagram.
+        Por segurança, o aviso traz só nomes (de quem fez e do lead) e o horário. Nunca o texto da
+        mensagem, telefone, Instagram, e-mail ou valor.
       </p>
       {error && (
         <p role="alert" className="text-sm font-medium text-danger">

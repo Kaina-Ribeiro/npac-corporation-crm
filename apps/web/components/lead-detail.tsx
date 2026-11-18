@@ -27,6 +27,7 @@ import {
 import { button, control, Field, FormError, quietButton, StageOptions } from './crm-ui';
 import { LeadForm } from './lead-form';
 import { PaymentComplete } from './payment-complete';
+import { SaleMark } from './sale-mark';
 import { StageFields } from './stage-fields';
 import { FinancePanel } from './finance-panel';
 import { useCrmRefresh } from './shell/live-updates';
@@ -180,6 +181,15 @@ export function LeadDetail({
     meetings.some((m) => m.closerId === me.id && !m.canceledAt) ||
     Boolean(deals?.some((d) => !d.reversedAt));
   const afterMove = () => (keepsLead ? router.refresh() : router.push('/pipeline'));
+  // Marcar venda (NPAC-48): depois da reunião realizada mais recente, pelo SDR do lead ou a liderança.
+  const lastDone = meetings
+    .filter((m) => !m.canceledAt && m.outcome === 'DONE')
+    .sort((a, b) => b.scheduledAt.localeCompare(a.scheduledAt))[0];
+  const canMarkSale =
+    Boolean(lastDone) &&
+    lead.stageKey !== 'VENDA' &&
+    lead.tier !== 'DESCOBRINDO' &&
+    (isLeader(me.role) || (me.role === 'SDR' && lead.sdr.id === me.id));
   function move(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     let body;
@@ -502,6 +512,16 @@ export function LeadDetail({
                         : 'Agendada'}
               </p>
               {isLeader(me.role) && !m.canceledAt && <ConfirmationSteps meeting={m} />}
+              {canMarkSale && m.id === lastDone?.id && (
+                <SaleMark
+                  key={lead.version}
+                  leadId={lead.id}
+                  version={lead.version}
+                  closerName={person(m.closerId)}
+                  products={products.filter((p) => p.closerId === m.closerId)}
+                  onDone={() => router.refresh()}
+                />
+              )}
               {!m.canceledAt && (
                 <>
                   <div className="flex flex-wrap gap-2">

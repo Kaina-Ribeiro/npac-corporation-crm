@@ -1,4 +1,4 @@
-import { InboxDot } from '../inbox';
+import { ChatBadge, InboxDot } from '../inbox';
 import { BOTTOM_ITEMS } from './nav-items';
 import { ForaDoModulo, NavLink } from './nav-link';
 
@@ -24,6 +24,11 @@ export function BottomNav() {
             {icon}
             {label}
             {href === '/mais' && <InboxDot />}
+            {href === '/chat' && (
+              <span className="absolute top-1 right-[18%]">
+                <ChatBadge />
+              </span>
+            )}
           </NavLink>
         ))}
       </nav>

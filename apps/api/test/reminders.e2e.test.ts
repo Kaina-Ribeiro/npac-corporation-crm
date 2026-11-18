@@ -37,7 +37,7 @@ beforeAll(async () => {
 afterAll(async () => closeTestApp(app));
 beforeEach(async () => {
   await resetAuthState();
-  await owner`truncate push_subscriptions, lgpd_requests, chat_reads, chat_messages, chat_members, payments, deals, lead_notes, lead_tasks, notifications, lead_timeline, meeting_reminders_sent, meeting_confirmations, meetings, form_responses, leads`;
+  await owner`truncate push_subscriptions, lgpd_requests, chat_reads, chat_messages, chat_members, payments, deals, lead_notes, lead_tasks, notifications, lead_timeline, meeting_reminders_sent, meeting_confirmations, meetings, form_responses, sdr_sale_marks, leads`;
   await owner`delete from chat_channels where kind = 'DM'`;
   ale = await h.signIn('ale@npac.com.br');
   sonia = await h.signIn('sonia@npac.com.br');
@@ -239,6 +239,52 @@ describe('despertador dos lembretes', () => {
       'Reunião com Lead lembrete começa em 1 min',
     ]);
     expect(scheduler.armedAt).toBeNull();
+  });
+
+  it('closer da reunião recebe 15 min e 1 min, sem o pedido de confirmação', async () => {
+    await subscribe(sonia, 'sonia');
+    const at = future(90 * MIN);
+    const m = await schedule(at);
+    const tag = `meeting-${m.id}`;
+    // O agendamento também entra no sino da Sônia (push do sino): aqui só os lembretes.
+    const lembretes = (who: string) =>
+      push.sent.filter((s) => s.endpoint === device(who) && s.payload.tag === tag);
+    await advance(at - 60 * MIN);
+    expect(lembretes('sonia')).toEqual([]);
+    await advance(at - 15 * MIN);
+    await advance(at - MIN);
+    const title = /^Reunião com Lead lembrete às \d\d:\d\d$/;
+    expect(lembretes('sonia').map((s) => s.payload)).toEqual([
+      { title: expect.stringMatching(title), body: '15 min antes', url: '/avisos', tag },
+      { title: expect.stringMatching(title), body: '1 min antes', url: '/avisos', tag },
+    ]);
+    expect(lembretes('ale').map((s) => s.payload.body ?? s.payload.title)).toEqual([
+      '1 h antes',
+      '15 min antes',
+      'Reunião com Lead lembrete começa em 1 min',
+    ]);
+    expect(JSON.stringify(lembretes('sonia'))).not.toMatch(/confirmação|987654321/);
+  });
+
+  it('dono do lead desativado: o closer ainda recebe; closer desativado não', async () => {
+    await subscribe(sonia, 'sonia');
+    const at = future(90 * MIN);
+    const m = await schedule(at);
+    const tag = `meeting-${m.id}`;
+    try {
+      await owner`update "user" set active = false where id = ${ids.ale!}`;
+      await advance(at - 15 * MIN);
+      await owner`update "user" set active = true where id = ${ids.ale!}`;
+      await owner`update "user" set active = false where id = ${ids.sonia!}`;
+      await advance(at - MIN);
+    } finally {
+      await owner`update "user" set active = true where id in (${ids.ale!}, ${ids.sonia!})`;
+    }
+    const sent = push.sent.filter((s) => s.payload.tag === tag);
+    expect(sent.map((s) => [s.endpoint, s.payload.body ?? s.payload.title])).toEqual([
+      [device('sonia'), '15 min antes'],
+      [device('ale'), 'Reunião com Lead lembrete começa em 1 min'],
+    ]);
   });
 
   it('remarcar rearma para o novo horário; cancelar desarma', async () => {

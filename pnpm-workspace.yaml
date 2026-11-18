@@ -11,3 +11,10 @@ allowBuilds:
 overrides:
   fastify: 5.12.7
   vitest: 5.0.5
+
+# Alertas aceitos no `pnpm audit` (CI). Revisar quando sair correção.
+auditConfig:
+  ignoreGhsas:
+    # picomatch <= 4.0.7, ReDoS (17/11/2026): só nas ferramentas de teste (vitest/vite), sem versão
+    # corrigida publicada. Remover quando houver e atualizar.
+    - GHSA-fc5q-39xc-vjpf

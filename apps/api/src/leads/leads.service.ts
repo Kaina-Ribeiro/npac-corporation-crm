@@ -39,6 +39,7 @@ import { insertSale, requestHash } from '../finance/finance.service.js';
 import { scheduleMeeting } from '../meetings/meetings.service.js';
 import { ReminderScheduler } from '../push/reminders.js';
 import { recordActivity } from './activity.js';
+import { recordSaleMark } from './sale-mark.js';
 import { assertIncomeStage, EMPTY_STAGE_STATE, resolveStageFields } from './stage-fields.js';
 import {
   LeadsRepository,
@@ -347,6 +348,7 @@ export class LeadsService {
       outcomeAt: meeting.scheduledAt,
     });
     await recordActivity(tx, u, lead.id, 'meeting.outcome', ['outcome'], m.id);
+    const mark = { leadId: lead.id, sdrId: lead.sdrId, meetingId: m.id };
     if (!input.sale) {
       // Produto vendido: ativo e do closer da reunião (o closer da venda).
       const [p] = await tx
@@ -360,6 +362,8 @@ export class LeadsService {
           ),
         );
       if (!p) throw new BadRequestException('Produto inválido para o closer da reunião');
+      // Cadastrar em Venda Fechada é o SDR marcando a venda (NPAC-48): conta a renda extra.
+      await recordSaleMark(tx, u, { ...mark, productId: p.id });
       await recordActivity(tx, u, lead.id, 'sale.pending', [], m.id);
       return;
     }
@@ -376,6 +380,7 @@ export class LeadsService {
       hash,
       closedAt,
     );
+    await recordSaleMark(tx, u, { ...mark, productId: sale.productId });
     await recordActivity(tx, u, lead.id, 'sale.registered', [], d.id);
   }
 

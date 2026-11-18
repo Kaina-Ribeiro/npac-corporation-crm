@@ -30,7 +30,7 @@ afterAll(async () => {
 beforeEach(async () => {
   await resetAuthState();
   await limpar();
-  await owner`truncate lead_timeline, notifications, form_responses, leads cascade`;
+  await owner`truncate lead_timeline, notifications, form_responses, sdr_sale_marks, leads cascade`;
   await owner`update "user" set role = 'SDR', can_prospect = true, can_close = false where email = 'ale@npac.com.br'`;
   await owner`delete from mentoria_perfis where user_id = (select id from "user" where email = 'carla@npac.com.br')`;
   await owner`update "user" set role = 'DIRETOR' where email = 'ana@npac.com.br'`;
