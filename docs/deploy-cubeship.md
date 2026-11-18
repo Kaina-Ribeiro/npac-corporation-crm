@@ -67,6 +67,14 @@ Google Forms (opcional, só no app `api`): `FORMS_WEBHOOK_TOKEN` (32 caracteres 
 rota responde 404) e `FORMS_OWNER_USERNAME` (dono dos leads criados). Passo a passo do lado do
 Google: `docs/integracao-forms/README.md`.
 
+E-mail (opcional, só no app `api`; "Esqueci minha senha" por e-mail): `SMTP_HOST`, `SMTP_PORT`
+(465 = TLS direto; 587 = STARTTLS), `SMTP_USER`, `SMTP_PASS` e `MAIL_FROM`. Gmail de hoje:
+`smtp.gmail.com`, 465, o endereço da conta em `SMTP_USER` e a senha de app (16 caracteres, sem
+espaços) em `SMTP_PASS`; `MAIL_FROM=NPAC Corporation <endereço da conta>`. Trocar por Resend, SES ou Brevo é só
+mudar as cinco variáveis. Sem `SMTP_HOST`, a tela manda pedir à liderança. O log da api diz
+`e-mail enviado: <servidor>` ou `e-mail não enviado: <código> <servidor>` (ETIMEDOUT/ECONNECTION =
+porta 465/587 bloqueada na saída do servidor).
+
 As chaves VAPID ligam o push do navegador (avisos do chat e lembretes de reunião). Sem elas
 a API sobe normalmente e só a tela avisa. Trocar o par invalida as inscrições dos aparelhos:
 cada pessoa ativa de novo em `/conta/avisos`.
