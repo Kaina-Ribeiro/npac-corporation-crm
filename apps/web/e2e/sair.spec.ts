@@ -5,7 +5,7 @@ import { E2E_DB, E2E_PASSWORD } from './env.js';
 // Sair sempre à mão (17/11/2026): no notebook com a janela baixa a sidebar cortava o rodapé sem
 // rolagem (o Igor não conseguia sair), e no celular o Sair do Acompanhamento ficava perdido no
 // fim do Mais. Agora a lista da sidebar rola e o Mais do CRM e o do Acompanhamento abrem com o
-// mesmo cartão da conta (Trocar senha e Sair) no topo.
+// mesmo cartão da conta (Meu perfil e Sair) no topo.
 
 const owner = ownerSql(E2E_DB);
 
@@ -83,11 +83,13 @@ test('celular: o Mais do CRM e o do Acompanhamento abrem com o mesmo cartão da 
     await page.goto(c.mais);
     const conta = page.getByRole('region', { name: 'Sua conta' });
     const nome = `${c.usuario} ${c.mais}`;
-    // Sem rolar: o cartão está no topo, com Trocar senha e Sair.
+    // Sem rolar: o cartão está no topo, com Meu perfil e Sair.
     await expect(conta.getByRole('button', { name: 'Sair' }), nome).toBeInViewport({ ratio: 1 });
-    await expect(conta.getByRole('link', { name: 'Trocar senha' }), nome).toBeInViewport({
-      ratio: 1,
-    });
+    await expect(conta.getByRole('link', { name: 'Meu perfil', exact: true }), nome).toBeInViewport(
+      {
+        ratio: 1,
+      },
+    );
     // Um Sair só por tela (o da sidebar fica escondido no celular).
     await expect(page.getByRole('button', { name: 'Sair' }).filter({ visible: true })).toHaveCount(
       1,

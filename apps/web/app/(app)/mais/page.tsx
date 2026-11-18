@@ -24,7 +24,7 @@ const HINT: Record<string, string> = {
   '/acompanhamento': 'Mentorados e fichas',
 };
 
-/** No celular: conta (com Trocar senha e Sair), demais seções (mesma ordem do desktop) e aparência. */
+/** No celular: conta (com Meu perfil e Sair), demais seções (mesma ordem do desktop) e aparência. */
 export default async function MorePage() {
   const me = await getSession();
   if (!me) redirect('/login');
@@ -45,8 +45,8 @@ export default async function MorePage() {
     : [];
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-5 pt-2">
-      {/* Mesmo cartão do Mais do Acompanhamento: Trocar senha e Sair no topo, sem rolar. */}
-      <ContaCard nome={me.name} titulo>
+      {/* Mesmo cartão do Mais do Acompanhamento: Meu perfil e Sair no topo, sem rolar. */}
+      <ContaCard nome={me.name} foto={me.photo} titulo>
         <RoleTag role={me.role} className="h-[22px]" />
         {flags.map((f) => (
           <span

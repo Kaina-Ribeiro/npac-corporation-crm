@@ -1,6 +1,6 @@
 import { BadRequestException, Body, Controller, Get, Inject, Patch } from '@nestjs/common';
 import { user, type Db } from '@npac/db';
-import { cleanProfileName, PROFILE_NAME_ERROR, type ProfileDTO } from '@npac/shared';
+import { cleanProfileName, PROFILE_NAME_ERROR, type ProfileDTO } from '@npac/shared/profile';
 import { eq } from 'drizzle-orm';
 import { AuditService } from '../audit/audit.service.js';
 import { AllRoles } from '../auth/all-roles.decorator.js';
