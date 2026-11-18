@@ -190,7 +190,10 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   marcação ativa vale pela venda dela; venda registrada sem marcação conta no dia da venda. Closer =
   o da reunião da marcação. Liderança e closer seguem contando só a venda registrada (`deals`).
   Relatórios do SDR mostra o card "Valor a receber por venda feita"; o resumo copiado e o CSV do
-  período levam Vendas e esse valor.
+  período levam Vendas e esse valor. **Vendas a registrar anteriores à 0066** (Gabriel, 18/11/2026,
+  "1B"): a 0067 deu a cada uma a marcação que faltava (SDR do lead, produto informado, reunião
+  realizada mais recente, renda extra do catálogo de hoje, data do `sale.pending` da timeline); venda
+  já registrada e lead sem produto ficaram de fora (`db/test/renda-extra-vendas-antigas.test.ts`).
 - Login por **usuário** (`/sign-in/username`, `[a-z0-9_.]{3,30}`, minúsculo); login por e-mail e
   `/is-username-available` desligados. Senha mínima 3 (provisório, decisão de 29/10/2026: no dev
   todas são `123`; as regras voltam no fim).
