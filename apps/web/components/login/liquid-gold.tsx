@@ -36,7 +36,7 @@ export type LiquidGoldTom = keyof typeof FRAG;
 
 /**
  * Fundo de ouro líquido (WebGL) das telas de entrada: `noite` no CRM, `dia` no Acompanhamento.
- * Velocidade 0,22, segue o mouse e fica parado com prefers-reduced-motion.
+ * Velocidade 0,22, segue o mouse e fica parado com prefers-reduced-motion e em automação.
  */
 export function LiquidGold({ tom = 'noite' }: { tom?: LiquidGoldTom }) {
   const ref = useRef<HTMLCanvasElement>(null);
@@ -66,7 +66,10 @@ export function LiquidGold({ tom = 'noite' }: { tom?: LiquidGoldTom }) {
     const uR = gl.getUniformLocation(pr, 'r');
     const uM = gl.getUniformLocation(pr, 'm');
 
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // Navegador automatizado (e2e): quadro parado. No WebKit do CI o WebGL é por software e
+    // redesenhar a cada quadro travava a tela de login.
+    const reduce =
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches || navigator.webdriver;
     const mouse = [0, 0];
     const target = [0, 0];
     const t0 = performance.now();

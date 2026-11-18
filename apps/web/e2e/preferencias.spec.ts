@@ -270,6 +270,29 @@ test.describe('filtros lembrados: leads', () => {
     await expect(visible(page, `Outro ${id}`)).toBeVisible();
   });
 
+  test('aviso ao vivo no meio da busca repete a busca, não a lista inteira', async ({ page }) => {
+    await login(page, 'ale@npac.com.br');
+    const id = rid();
+    const term = `@pref.vivo.${id}`;
+    await ownLead(page, `Buscado ${id}`, 'R8_15K', term);
+    await ownLead(page, `Outro ${id}`, 'R8_15K');
+    await page.goto('/leads');
+    const box = page.getByLabel('Buscar por nome, WhatsApp, Instagram ou e-mail');
+    await box.fill(term);
+    // O canal ao vivo avisa enquanto a busca do termo ainda não voltou.
+    await box.press('Enter');
+    await page.evaluate(() => window.dispatchEvent(new Event('crm:invalidate')));
+    await expect(page.getByText('1 lead', { exact: true })).toBeVisible();
+    await expect(visible(page, `Outro ${id}`)).toHaveCount(0);
+
+    await menu(page, 'Hoje');
+    await page.waitForURL(/\/hoje/);
+    await menu(page, 'Leads');
+    await page.waitForURL(/\/leads$/);
+    await expect(box).toHaveValue(term);
+    await expect(page.getByText('1 lead', { exact: true })).toBeVisible();
+  });
+
   test('filtro salvo aberto pela barra lateral fica lembrado', async ({ page }) => {
     await login(page, 'ale@npac.com.br');
     const name = `Visao ${rid()}`;
