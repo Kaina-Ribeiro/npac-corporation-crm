@@ -138,6 +138,10 @@ export function createAuth(db: Db, env: Env, audit: AuditService, mail: MailSend
     disabledPaths: [
       '/sign-in/email',
       '/is-username-available',
+      // Meu perfil (NPAC-53): nome e foto por /api/me/*, com validação e auditoria; o e-mail só
+      // com o código do endereço novo. O /update-user aceitaria uma foto por URL qualquer.
+      '/update-user',
+      '/change-email',
       '/request-password-reset',
       '/reset-password',
     ],

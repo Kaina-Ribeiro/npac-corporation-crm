@@ -6,6 +6,10 @@ export interface SessionUser extends AuthUser {
   name: string;
   twoFactorEnabled: boolean;
   mustChangePassword: boolean;
+  /** Meu perfil (NPAC-53): versão da foto (`user.image`), e-mail e usuário de login. */
+  image: string | null;
+  email: string;
+  username: string;
 }
 
 declare module 'fastify' {
