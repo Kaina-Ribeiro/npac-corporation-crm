@@ -6,6 +6,7 @@ import { lerEu, podeExportar, sessaoDoModulo } from '@/lib/acompanhamento';
 import { FILA_REGRAS, acCookie } from '@/lib/acompanhamento-prefs';
 import { apiGet, apiPost } from '@/lib/api';
 import { PushInvite } from '@/components/push-invite';
+import { getTeamPhotos } from '@/lib/team-photos';
 
 export const metadata = { title: 'Fila do dia' };
 
@@ -34,6 +35,7 @@ export default async function FilaPage({
     <>
       <PushInvite className="mb-5" />
       <Fila
+        photos={await getTeamPhotos()}
         dados={dados}
         mensagens={mensagens}
         euId={me.id}

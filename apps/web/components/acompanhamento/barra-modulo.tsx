@@ -11,14 +11,15 @@ const SEM_TOPO = [
 ];
 
 /** Topo do módulo: busca em todas as abas; no celular, o avatar leva ao Mais. */
-export function BarraModulo({ inicial }: { inicial: string }) {
+export function BarraModulo({ inicial, foto }: { inicial: string; foto: string | null }) {
   const path = usePathname();
   if (SEM_TOPO.includes(path)) return null;
   return (
     <div className="top">
       <BuscaModulo />
       <Link className="ava me so-cel" href="/acompanhamento/mais" aria-label="Menu e conta">
-        {inicial}
+        {/* Foto do perfil (NPAC-53): `.ava img` já cobre o círculo. */}
+        {foto ? <img src={foto} alt="" /> : inicial}
       </Link>
     </div>
   );

@@ -38,6 +38,7 @@ import {
 } from './dashboard-charts';
 import { BoardProvider, DashboardBoard, RestoreOrder, type BoardCard } from './dashboard-board';
 import { CsvExport, downloadCsv } from './csv-export';
+import type { TeamPhotos } from './avatar';
 import { CloserDesk, SdrTable, TeamFeed } from './dashboard-team';
 import { CountUp } from './count-up';
 import { useCrmRefresh } from './shell/live-updates';
@@ -195,6 +196,7 @@ export function Reports({
   layout,
   prefs,
   initialFilters = {},
+  photos,
 }: {
   initial: ReportDTO;
   catalog: LeadCatalog;
@@ -212,6 +214,8 @@ export function Reports({
   prefs?: { cookie: string; value: string; force?: boolean };
   /** Filtros lembrados já aplicados na busca do servidor (sem o período padrão). */
   initialFilters?: Record<string, string>;
+  /** Fotos da equipe (NPAC-53) para a mesa dos closers, a tabela por SDR e o feed. */
+  photos?: TeamPhotos;
 }) {
   const [data, setData] = useState(initial),
     [preset, setPreset] = useState<Preset>((initialFilters.preset as Preset) ?? 'MONTH'),
@@ -519,7 +523,7 @@ export function Reports({
           id: 'closers',
           title: 'Mesa dos closers',
           size: 'half',
-          node: <CloserDesk rows={data.byCloser} />,
+          node: <CloserDesk rows={data.byCloser} photos={photos} />,
         },
         {
           id: 'sdrs',
@@ -527,6 +531,7 @@ export function Reports({
           size: 'half',
           node: (
             <SdrTable
+              photos={photos}
               rows={data.bySdr}
               period={
                 preset === 'TODAY' ? 'Hoje' : preset === 'WEEK' ? 'Últimos 7 dias' : monthName()
@@ -556,7 +561,7 @@ export function Reports({
                 id: 'feed',
                 title: 'Atividade da equipe',
                 size: 'wide',
-                node: <TeamFeed initial={activity} />,
+                node: <TeamFeed initial={activity} photos={photos} />,
               } satisfies BoardCard,
             ]
           : []),

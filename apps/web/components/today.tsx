@@ -13,6 +13,7 @@ import {
 import { readPreference, savePreference } from '@/lib/user-cookie';
 import { button, control, Field, FormError, quietButton } from './crm-ui';
 import { useCrmRefresh } from './shell/live-updates';
+import { SEM_FOTOS, type TeamPhotos } from './avatar';
 import { MeetingReminder } from './meeting-reminder';
 import { MeetingAction, QuickAction } from './today-quick-action';
 
@@ -108,13 +109,18 @@ function Dot({ className }: { className: string }) {
   return <span aria-hidden="true" className={`size-2 flex-none rounded-full ${className}`} />;
 }
 
-/** Selo com a inicial do closer da reunião; dourado quando a reunião é da própria pessoa. */
+/**
+ * Selo do closer da reunião: a foto (NPAC-53) ou a inicial; a reunião da própria pessoa fica
+ * dourada (fundo dourado na inicial, anel dourado na foto).
+ */
 function CloserMark({
   closer,
   mine,
+  photo,
 }: {
   closer: TodayDTO['meetings'][number]['closer'];
   mine: boolean;
+  photo?: string;
 }) {
   const label = mine ? 'Sua reunião' : `Reunião de ${closer.name}`;
   return (
@@ -122,11 +128,21 @@ function CloserMark({
       role="img"
       aria-label={label}
       title={label}
-      className={`relative z-[1] grid size-6 flex-none place-items-center rounded-full text-[11px] font-bold ${
-        mine ? 'bg-gold text-black' : 'bg-black/5 text-ink2 dark:bg-white/10'
+      className={`relative z-[1] grid size-6 flex-none place-items-center overflow-hidden rounded-full text-[11px] font-bold ${
+        photo
+          ? mine
+            ? 'shadow-[0_0_0_2px_var(--gold)]'
+            : ''
+          : mine
+            ? 'bg-gold text-black'
+            : 'bg-black/5 text-ink2 dark:bg-white/10'
       }`}
     >
-      {closer.name.charAt(0).toUpperCase()}
+      {photo ? (
+        <img src={photo} alt="" className="size-full object-cover" />
+      ) : (
+        closer.name.charAt(0).toUpperCase()
+      )}
     </span>
   );
 }
@@ -187,6 +203,7 @@ export function Today({
   cookie,
   initialFilters,
   closerMarkFor,
+  photos = SEM_FOTOS,
 }: {
   initial: TodayDTO;
   name: string;
@@ -203,6 +220,8 @@ export function Today({
   initialFilters: TodayFilters;
   /** ID de quem é liderança e também atende: mostra de quem é cada reunião do dia. */
   closerMarkFor?: string;
+  /** Fotos da equipe (NPAC-53) para o selo do closer. */
+  photos?: TeamPhotos;
 }) {
   const [data, setData] = useState(initial);
   const receiptKeys = useRef(new Map<string, string>());
@@ -339,7 +358,11 @@ export function Today({
       title: m.name,
       detail: when(m.scheduledAt),
       mark: closerMarkFor ? (
-        <CloserMark closer={m.closer} mine={m.closer.id === closerMarkFor} />
+        <CloserMark
+          closer={m.closer}
+          mine={m.closer.id === closerMarkFor}
+          photo={photos.photos[m.closer.id]}
+        />
       ) : null,
       actions: (
         <>
@@ -553,7 +576,11 @@ export function Today({
                             {hourMinute.format(new Date(m.scheduledAt))}
                           </span>
                           {closerMarkFor && (
-                            <CloserMark closer={m.closer} mine={m.closer.id === closerMarkFor} />
+                            <CloserMark
+                              closer={m.closer}
+                              mine={m.closer.id === closerMarkFor}
+                              photo={photos.photos[m.closer.id]}
+                            />
                           )}
                           <div className="min-w-0 flex-1">
                             <p

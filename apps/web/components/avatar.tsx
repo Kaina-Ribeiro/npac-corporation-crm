@@ -30,3 +30,10 @@ export function Avatar({
 /** Fundo verde da própria pessoa (sidebar, Mais, topo do módulo), igual ao de antes da foto. */
 export const AVATAR_EU =
   'bg-[linear-gradient(160deg,#7fe0a6,#1e9e70)] font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,.28)]';
+
+/** Inicial de outra pessoa da equipe (Equipe, Dashboard, Chat, Admin): círculo escuro de antes. */
+export const AVATAR_OUTRO = 'bg-ink font-bold text-[var(--bg)]';
+
+/** Mapa de fotos da equipe (`GET /api/team/photos`): id → URL e nome único → URL. */
+export type TeamPhotos = { photos: Record<string, string>; names: Record<string, string> };
+export const SEM_FOTOS: TeamPhotos = { photos: {}, names: {} };

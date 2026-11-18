@@ -6,6 +6,7 @@ import { rotuloResponsavel } from '@/components/acompanhamento/ui';
 import { lerEu, podeCadastrar, podeExportar, sessaoDoModulo } from '@/lib/acompanhamento';
 import { acCookie, mentoradosRegras, prefsParaFiltros } from '@/lib/acompanhamento-prefs';
 import { apiGet, apiPost } from '@/lib/api';
+import { getTeamPhotos } from '@/lib/team-photos';
 
 export const metadata = { title: 'Mentorados' };
 
@@ -25,6 +26,7 @@ export default async function MentoradosPage() {
   const pagina = await apiPost<PaginaInscricoes>('/api/mentoria/inscricoes/lista', inicial);
   return (
     <MentoradosLista
+      photos={await getTeamPhotos()}
       pagina={pagina}
       // O filtro acha também quem saiu e ainda tem carteira.
       responsaveis={responsaveis.map((r) => ({ id: r.id, nome: rotuloResponsavel(r) }))}

@@ -23,13 +23,22 @@ import { useLatestPrefs } from '@/lib/use-latest-prefs';
 import { Dialogo } from './dialogo';
 import { dataBR, ICONES, Icone, Rostos, rotuloMes, TagStatus, Trilha } from './ui';
 import { ExportarBotao } from './exportar-botao';
+import { Avatar, AVATAR_OUTRO, SEM_FOTOS, type TeamPhotos } from '@/components/avatar';
 
 type Filtros = FiltrosMentorados;
 type Pessoa = { id: string; nome: string };
 
 const MESES = Array.from({ length: 12 }, (_, i) => i + 1);
 
-function Linha({ r, primeira }: { r: InscricaoItem; primeira: boolean }) {
+function Linha({
+  r,
+  primeira,
+  photos,
+}: {
+  r: InscricaoItem;
+  primeira: boolean;
+  photos: TeamPhotos;
+}) {
   const ultimo = r.ultimoContato ? dataBR(r.ultimoContato) : '—';
   return (
     <Link
@@ -55,7 +64,21 @@ function Linha({ r, primeira }: { r: InscricaoItem; primeira: boolean }) {
         {r.mesJornada !== null && <Trilha mes={r.mesJornada} alerta={r.completar} />}
       </div>
       <TagStatus status={r.status} className="st-tag justify-self-start" />
-      <span className="rs">{r.responsavel?.nome ?? '—'}</span>
+      <span className="rs">
+        {r.responsavel ? (
+          // Foto de quem responde (NPAC-53), ou a inicial.
+          <span className="inline-flex max-w-full items-center gap-1.5">
+            <Avatar
+              name={r.responsavel.nome}
+              photo={photos.photos[r.responsavel.id]}
+              className={`${AVATAR_OUTRO} size-5 text-[10px]`}
+            />
+            <span className="truncate">{r.responsavel.nome}</span>
+          </span>
+        ) : (
+          '—'
+        )}
+      </span>
       <span className="lc">{ultimo}</span>
       <div className="mobmeta">
         {r.responsavel?.nome ?? 'Sem responsável'}, último contato: {ultimo}
@@ -129,6 +152,7 @@ export function MentoradosLista({
   exportar = false,
   inicial,
   lembrar,
+  photos = SEM_FOTOS,
 }: {
   pagina: PaginaInscricoes;
   responsaveis: Pessoa[];
@@ -137,6 +161,8 @@ export function MentoradosLista({
   inicial: Filtros;
   /** Cookie dos filtros lembrados (NPAC-46) e o valor que o servidor usou. */
   lembrar: { cookie: string; valor: string };
+  /** Fotos da equipe (NPAC-53): responsável de cada inscrição. */
+  photos?: TeamPhotos;
 }) {
   const [f, setF] = useState<Filtros>(inicial);
   const regras = mentoradosRegras(responsaveis.map((r) => r.id));
@@ -284,7 +310,7 @@ export function MentoradosLista({
           </div>
         )}
         {dados.itens.map((r, i) => (
-          <Linha key={r.id} r={r} primeira={i === 0} />
+          <Linha key={r.id} r={r} primeira={i === 0} photos={photos} />
         ))}
         {dados.itens.length === 0 && (
           <div className="vazio">

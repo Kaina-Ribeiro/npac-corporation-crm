@@ -36,7 +36,7 @@ export default async function AcompanhamentoLayout({ children }: { children: Rea
   const eu = await lerEu();
   return (
     <div className="ac">
-      <BarraModulo inicial={me.name.slice(0, 1)} />
+      <BarraModulo inicial={me.name.slice(0, 1)} foto={me.photo} />
       {children}
       <PageSkeleton />
       <AbasMobile podeCriar={podeCadastrar(eu)} />

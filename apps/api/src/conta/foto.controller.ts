@@ -14,7 +14,7 @@ import {
   StreamableFile,
 } from '@nestjs/common';
 import { user, userPhotos, type Db } from '@npac/db';
-import { eq, isNotNull } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { AuditService } from '../audit/audit.service.js';
 import { AllRoles } from '../auth/all-roles.decorator.js';
@@ -108,13 +108,25 @@ export class FotoController {
     return new StreamableFile(Buffer.from(row.bytes), { type: row.mime, disposition: 'inline' });
   }
 
-  /** Mapa id → URL de quem tem foto: as telas mostram a foto dos outros sem mudar cada DTO. */
+  /**
+   * Mapa id → URL de quem tem foto: as telas mostram a foto dos outros sem mudar cada DTO. `names`
+   * (nome → URL, só nome sem repetição na equipe) serve o feed da equipe, que só traz o nome.
+   */
   @Get('team/photos')
-  async equipe(): Promise<{ photos: Record<string, string> }> {
+  async equipe(): Promise<{ photos: Record<string, string>; names: Record<string, string> }> {
     const rows = await this.db
-      .select({ id: user.id, image: user.image })
-      .from(user)
-      .where(isNotNull(user.image));
-    return { photos: Object.fromEntries(rows.map((r) => [r.id, photoUrl(r.id, r.image)!])) };
+      .select({ id: user.id, name: user.name, image: user.image })
+      .from(user);
+    const vezes = new Map<string, number>();
+    for (const r of rows) vezes.set(r.name, (vezes.get(r.name) ?? 0) + 1);
+    const comFoto = rows.filter((r) => r.image);
+    return {
+      photos: Object.fromEntries(comFoto.map((r) => [r.id, photoUrl(r.id, r.image)!])),
+      names: Object.fromEntries(
+        comFoto
+          .filter((r) => vezes.get(r.name) === 1)
+          .map((r) => [r.name, photoUrl(r.id, r.image)!]),
+      ),
+    };
   }
 }

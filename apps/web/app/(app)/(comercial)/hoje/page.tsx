@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { Today } from '@/components/today';
 import { apiGet, apiPost } from '@/lib/api';
 import { getSession } from '@/lib/session';
+import { getTeamPhotos } from '@/lib/team-photos';
 import { parseTodayFilters, todayCookieName } from '@/lib/today-filters';
 import { PushInvite } from '@/components/push-invite';
 
@@ -17,7 +18,10 @@ export default async function HojePage() {
   const [catalog, jar] = await Promise.all([apiGet<LeadCatalog>('/api/leads/catalog'), cookies()]);
   // O filtro salvo vale desde a primeira busca: a tela já chega filtrada.
   const filters = head ? parseTodayFilters(jar.get(cookie)?.value, catalog.team) : {};
-  const initial = await apiPost<TodayDTO>('/api/today/search', filters);
+  const [initial, photos] = await Promise.all([
+    apiPost<TodayDTO>('/api/today/search', filters),
+    getTeamPhotos(),
+  ]);
   return (
     <>
       <PushInvite className="mb-5" />
@@ -32,6 +36,7 @@ export default async function HojePage() {
         cookie={cookie}
         initialFilters={filters}
         closerMarkFor={head && me.canClose ? me.id : undefined}
+        photos={photos}
       />
     </>
   );

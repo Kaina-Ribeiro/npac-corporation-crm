@@ -129,11 +129,26 @@ describe('foto do perfil', () => {
     expect((await h.get('/api/team/photos', carla)).status).toBe(200);
   });
 
-  it('o mapa da equipe lista só quem tem foto', async () => {
+  it('o mapa da equipe lista só quem tem foto, por id e por nome único', async () => {
     const ana = await h.signIn(ANA);
     const url = (await enviar(ana, pngComTexto())).body.photo as string;
+    const [u] = await owner<{ name: string }[]>`select name from "user" where email = ${ANA}`;
     const res = await h.get('/api/team/photos', await h.signIn(IGOR));
-    expect(res.body).toEqual({ photos: { [await idOf(ANA)]: url } });
+    expect(res.body).toEqual({ photos: { [await idOf(ANA)]: url }, names: { [u!.name]: url } });
+  });
+
+  it('nome repetido na equipe não entra no mapa por nome', async () => {
+    const ana = await h.signIn(ANA);
+    await enviar(ana, pngComTexto());
+    const [u] = await owner<{ name: string }[]>`select name from "user" where email = ${ANA}`;
+    const [igor] = await owner<{ name: string }[]>`select name from "user" where email = ${IGOR}`;
+    await owner`update "user" set name = ${u!.name} where email = ${IGOR}`;
+    try {
+      const res = await h.get('/api/team/photos', ana);
+      expect(res.body.names).toEqual({});
+    } finally {
+      await owner`update "user" set name = ${igor!.name} where email = ${IGOR}`;
+    }
   });
 
   it('audita sem nome, e-mail ou foto', async () => {
