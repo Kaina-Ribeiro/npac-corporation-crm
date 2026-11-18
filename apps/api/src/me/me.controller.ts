@@ -2,6 +2,7 @@ import { Controller, Get } from '@nestjs/common';
 import { AllRoles } from '../auth/all-roles.decorator.js';
 import { AllowIncomplete } from '../auth/public.decorator.js';
 import { CurrentUser, type SessionUser } from '../auth/current-user.decorator.js';
+import { photoUrl } from '../conta/photo-url.js';
 import { RevisionService } from '../events/revision.service.js';
 
 @AllRoles()
@@ -15,6 +16,7 @@ export class MeController {
     return {
       id: u.id,
       name: u.name,
+      photo: photoUrl(u.id, u.image),
       role: u.role,
       canProspect: u.canProspect,
       canClose: u.canClose,

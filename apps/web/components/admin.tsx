@@ -28,12 +28,15 @@ import {
   SEM_EXTRAS,
   type Extras,
 } from './cargo-field';
+import { Avatar, AVATAR_OUTRO } from './avatar';
 import { CargoTag } from './role-tag';
 import { button, control, Field, FormError, quietButton } from './crm-ui';
 
 type User = {
   id: string;
   name: string;
+  /** Foto do perfil (NPAC-53), ou null. */
+  photo: string | null;
   email: string;
   username: string | null;
   role: Role;
@@ -327,23 +330,30 @@ export function Admin({
             <ul className="divide-y divide-line">
               {data.users.map((u) => (
                 <li key={u.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
-                  <div>
-                    <p className="flex flex-wrap items-center gap-2 font-semibold">
-                      {u.name}{' '}
-                      <CargoTag
-                        role={u.role}
-                        perfil={u.perfil}
-                        moduloAdmin={u.moduloAdmin}
-                        faltaPerfil={diretor && u.role === 'ACOMPANHAMENTO' && !u.perfil}
-                      />
-                      {!u.active && <span className="text-xs text-danger">inativo</span>}
-                    </p>
-                    <p className="text-xs text-ink2">
-                      {u.username && <b className="font-semibold text-ink">{u.username} · </b>}
-                      {u.email}
-                      {u.twoFactorEnabled ? ' · MFA ativo' : ''}
-                      {u.leads > 0 && ` · ${u.leads} ${u.leads === 1 ? 'lead' : 'leads'}`}
-                    </p>
+                  <div className="flex min-w-0 items-center gap-3">
+                    <Avatar
+                      name={u.name}
+                      photo={u.photo}
+                      className={`${AVATAR_OUTRO} size-9 text-sm`}
+                    />
+                    <div className="min-w-0">
+                      <p className="flex flex-wrap items-center gap-2 font-semibold">
+                        {u.name}{' '}
+                        <CargoTag
+                          role={u.role}
+                          perfil={u.perfil}
+                          moduloAdmin={u.moduloAdmin}
+                          faltaPerfil={diretor && u.role === 'ACOMPANHAMENTO' && !u.perfil}
+                        />
+                        {!u.active && <span className="text-xs text-danger">inativo</span>}
+                      </p>
+                      <p className="text-xs text-ink2">
+                        {u.username && <b className="font-semibold text-ink">{u.username} · </b>}
+                        {u.email}
+                        {u.twoFactorEnabled ? ' · MFA ativo' : ''}
+                        {u.leads > 0 && ` · ${u.leads} ${u.leads === 1 ? 'lead' : 'leads'}`}
+                      </p>
+                    </div>
                   </div>
                   {u.id !== meId && !podeAlterar(u) && (
                     <p className="text-xs text-ink3">Só a Diretoria altera esta conta</p>

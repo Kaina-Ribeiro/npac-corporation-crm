@@ -44,6 +44,7 @@ import { Can } from '../auth/can.decorator.js';
 import { CurrentUser, type SessionUser } from '../auth/current-user.decorator.js';
 import { DB } from '../common/db/db.module.js';
 import { validate } from '../common/validate.js';
+import { photoUrl } from '../conta/photo-url.js';
 import { camposDoCargo, cargoAtual, gravarPerfil, resolverOuRecusar } from './cargo.js';
 
 const CAMPOS_DO_CARGO = ['role', 'perfil', 'moduloAdmin', 'canProspect', 'canClose'] as const;
@@ -85,6 +86,7 @@ export class AdminUsersService {
         active: user.active,
         twoFactorEnabled: user.twoFactorEnabled,
         mustChangePassword: user.mustChangePassword,
+        image: user.image,
       })
       .from(user)
       .orderBy(asc(user.active), asc(user.name));
@@ -102,11 +104,12 @@ export class AdminUsersService {
           )
         : [];
     const perfilDe = new Map(perfis.map((p) => [p.id, p]));
-    return rows.map((r) => {
+    return rows.map(({ image, ...r }) => {
       const p = perfilDe.get(r.id);
       const veAcomp = actor.role === 'DIRETOR' && r.role === 'ACOMPANHAMENTO';
       return {
         ...r,
+        photo: photoUrl(r.id, image),
         perfil: veAcomp ? ((p?.perfil as Perfil | undefined) ?? null) : null,
         moduloAdmin: veAcomp ? (p?.admin ?? false) : null,
         leads: byUser.get(r.id) ?? 0,

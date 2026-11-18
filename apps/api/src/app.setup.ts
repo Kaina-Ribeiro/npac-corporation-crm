@@ -20,12 +20,13 @@ export async function configureApp(app: NestFastifyApplication): Promise<void> {
       if (/^\/api\/mentoria\/[^/]+\/importar(\/previa)?$/.test(route.url))
         route.bodyLimit = 25 * 1024 * 1024;
     });
-  // Respostas podem carregar dado pessoal: nada vai para cache.
+  // Respostas podem carregar dado pessoal: nada vai para cache. A rota que define o próprio
+  // Cache-Control fica com ele (foto do perfil, com a versão na URL: NPAC-53).
   app
     .getHttpAdapter()
     .getInstance()
     .addHook('onSend', async (_req, reply) => {
-      reply.header('Cache-Control', 'no-store');
+      if (!reply.hasHeader('Cache-Control')) reply.header('Cache-Control', 'no-store');
     });
   app.enableShutdownHooks();
 }

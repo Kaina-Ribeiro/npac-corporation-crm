@@ -7,6 +7,7 @@ import { useLatestPrefs } from '@/lib/use-latest-prefs';
 import { clientApi } from '@/lib/client-api';
 import { button, control, FormError, quietButton } from './crm-ui';
 import { useCrmRefresh } from './shell/live-updates';
+import { Avatar, AVATAR_OUTRO, SEM_FOTOS, type TeamPhotos } from './avatar';
 import { PushInvite } from './push-invite';
 
 export type Channel = {
@@ -44,6 +45,7 @@ export function Chat({
   meId,
   prefs,
   initialActive,
+  photos = SEM_FOTOS,
 }: {
   initial: Channel[];
   users: ChatUser[];
@@ -51,6 +53,8 @@ export function Chat({
   /** Conversa lembrada (NPAC-46): cookie da pessoa e o valor que o servidor usou. */
   prefs: { cookie: string; value: string };
   initialActive?: string;
+  /** Fotos da equipe (NPAC-53): autores das mensagens e a pessoa de cada conversa. */
+  photos?: TeamPhotos;
 }) {
   const [channels, setChannels] = useState(initial);
   const [active, setActiveState] = useState<string | null>(initialActive ?? initial[0]?.id ?? null);
@@ -206,7 +210,18 @@ export function Chat({
                 c.id === active ? 'bg-black/5 dark:bg-white/10' : ''
               }`}
             >
-              <span>{c.kind === 'GENERAL' ? '# Geral' : c.name}</span>
+              {c.kind === 'GENERAL' ? (
+                <span># Geral</span>
+              ) : (
+                <span className="flex min-w-0 items-center gap-2.5">
+                  <Avatar
+                    name={c.name}
+                    photo={photos.names[c.name]}
+                    className={`${AVATAR_OUTRO} size-7 text-xs`}
+                  />
+                  <span className="truncate">{c.name}</span>
+                </span>
+              )}
               {c.unread > 0 && (
                 <span
                   aria-label={`${c.unread} não lidas`}
@@ -249,30 +264,49 @@ export function Chat({
             <h2 className="text-lg font-bold">{current?.name ?? 'Conversa'}</h2>
           </div>
           <ol className="scroll-thin flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto py-3">
-            {messages.map((m) => (
-              <li
-                key={m.id}
-                className={`max-w-[min(85%,680px)] rounded-2xl px-3 py-2 ${
-                  m.authorId === meId
-                    ? 'self-end bg-ink text-[var(--bg)]'
-                    : 'self-start bg-black/5 dark:bg-white/10'
-                }`}
-              >
-                <p className="text-xs opacity-70">
-                  {m.authorId === meId ? 'Você' : m.authorName} · {time(m.createdAt)}
-                </p>
-                <p className="break-words whitespace-pre-wrap">{m.body}</p>
-                {m.lead &&
-                  (m.lead.name ? (
-                    <Link href={`/leads/${m.lead.id}`} className="text-sm font-semibold underline">
-                      #{m.lead.name}
-                    </Link>
-                  ) : (
-                    <span className="text-sm italic opacity-70">#lead restrito</span>
-                  ))}
-                {m.failed && <p className="text-xs text-danger">Não enviada</p>}
-              </li>
-            ))}
+            {messages.map((m) => {
+              const mine = m.authorId === meId;
+              const corpo = (
+                <>
+                  <p className="text-xs opacity-70">
+                    {mine ? 'Você' : m.authorName} · {time(m.createdAt)}
+                  </p>
+                  <p className="break-words whitespace-pre-wrap">{m.body}</p>
+                  {m.lead &&
+                    (m.lead.name ? (
+                      <Link
+                        href={`/leads/${m.lead.id}`}
+                        className="text-sm font-semibold underline"
+                      >
+                        #{m.lead.name}
+                      </Link>
+                    ) : (
+                      <span className="text-sm italic opacity-70">#lead restrito</span>
+                    ))}
+                  {m.failed && <p className="text-xs text-danger">Não enviada</p>}
+                </>
+              );
+              return mine ? (
+                <li
+                  key={m.id}
+                  className="max-w-[min(85%,680px)] self-end rounded-2xl bg-ink px-3 py-2 text-[var(--bg)]"
+                >
+                  {corpo}
+                </li>
+              ) : (
+                // Mensagem dos outros: a foto (ou a inicial) de quem escreveu (NPAC-53).
+                <li key={m.id} className="flex max-w-[min(85%,680px)] items-end gap-2 self-start">
+                  <Avatar
+                    name={m.authorName}
+                    photo={photos.photos[m.authorId]}
+                    className={`${AVATAR_OUTRO} size-7 text-xs`}
+                  />
+                  <div className="min-w-0 rounded-2xl bg-black/5 px-3 py-2 dark:bg-white/10">
+                    {corpo}
+                  </div>
+                </li>
+              );
+            })}
             <div ref={bottom} />
           </ol>
           <form onSubmit={send} className="flex flex-col gap-2 border-t border-line pt-3">

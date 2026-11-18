@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { hasCommercialAccess, isLeader, MFA_LIGADO } from '@npac/shared/enums';
+import { hasCommercialAccess, isLeader } from '@npac/shared/enums';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -14,6 +14,7 @@ import { BottomNav } from '@/components/shell/bottom-nav';
 import { Sidebar } from '@/components/shell/sidebar';
 import { SidebarShell } from '@/components/shell/sidebar-shell';
 import { SignOutButton } from '@/components/shell/sign-out-button';
+import { Avatar, AVATAR_EU } from '@/components/avatar';
 import { RoleTag } from '@/components/role-tag';
 import { pendingAccessRequests } from '@/lib/access-requests';
 import { getSession, pendingStep } from '@/lib/session';
@@ -39,31 +40,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     eu ? ultimaFicha() : null,
   ]);
 
+  // Rodapé (NPAC-53): foto (ou inicial), nome e cargo levam ao Meu perfil, no lugar do "Trocar senha".
   const avatar = (
-    <span
-      aria-hidden="true"
-      className="inline-flex h-9 w-9 flex-none items-center justify-center rounded-full bg-[linear-gradient(160deg,#7fe0a6,#1e9e70)] text-[13px] font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,.28)]"
-    >
-      {me.name.slice(0, 1)}
-    </span>
+    <Avatar name={me.name} photo={me.photo} className={`${AVATAR_EU} size-9 text-[13px]`} />
   );
   const who = (
     <span className="min-w-0 leading-tight">
       <b className="block truncate text-sm font-semibold">{me.name}</b>
       <RoleTag role={me.role} perfil={eu?.perfil} className="mt-1" />
-      <small className="mt-1 flex items-center gap-1.5 text-xs text-ink2">
-        <Link href="/conta/senha" className="underline-offset-2 hover:text-ink hover:underline">
-          Trocar senha
-        </Link>
-        {MFA_LIGADO && (
-          <>
-            ·
-            <Link href="/conta/mfa" className="underline-offset-2 hover:text-ink hover:underline">
-              Autenticador
-            </Link>
-          </>
-        )}
-      </small>
+      <small className="mt-1 block text-xs text-ink2">Meu perfil</small>
     </span>
   );
 
@@ -96,10 +81,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         ultimaFicha={ultima?.nome ?? null}
         footer={
           <div className="flex flex-col">
-            <div className="side-who flex items-center gap-2.5 px-1">
+            <Link
+              href="/conta/perfil"
+              aria-label={`Meu perfil, ${me.name}`}
+              className="side-who -mx-0.5 flex items-center gap-2.5 rounded-xl px-1.5 py-1.5 transition-colors hover:bg-black/5 dark:hover:bg-white/10"
+            >
               {avatar}
               <span className="side-hide min-w-0">{who}</span>
-            </div>
+            </Link>
             <div className="side-fold">
               <div>
                 <div className="flex items-center gap-1 pt-2">

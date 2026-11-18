@@ -15,9 +15,15 @@ const METHOD_METADATA = 'method';
 let app: NestFastifyApplication;
 let h: ReturnType<typeof api>;
 
-/** Rotas que o cargo usa: a sessão, o SSE (fim de sessão), o módulo, o push (D12) e as públicas. */
+/**
+ * Rotas que o cargo usa: a sessão, o SSE (fim de sessão), o módulo, o push (D12), as públicas e
+ * o Meu perfil (NPAC-53: a própria conta e as fotos da equipe, sem dado comercial).
+ */
 const LIBERADAS = [
   /^\/api\/me$/,
+  /^\/api\/me\//,
+  /^\/api\/users\/:id\/photo$/,
+  /^\/api\/team\/photos$/,
   /^\/api\/events$/,
   /^\/api\/mentoria\//,
   /^\/api\/push\//,

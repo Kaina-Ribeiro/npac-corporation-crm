@@ -2,7 +2,9 @@ import type { Role } from '@npac/shared';
 import { ATUA_COMO, temCaixas } from '@npac/shared/cargos';
 import { money } from '@npac/shared/money';
 import { apiGet } from '@/lib/api';
+import { Avatar, AVATAR_OUTRO } from '@/components/avatar';
 import { RoleTag } from '@/components/role-tag';
+import { getTeamPhotos } from '@/lib/team-photos';
 
 export const metadata = { title: 'Equipe' };
 type Member = {
@@ -21,7 +23,10 @@ type Member = {
 };
 
 export default async function EquipePage() {
-  const { members } = await apiGet<{ members: Member[] }>('/api/team');
+  const [{ members }, photos] = await Promise.all([
+    apiGet<{ members: Member[] }>('/api/team'),
+    getTeamPhotos(),
+  ]);
   return (
     <div className="flex w-full flex-col gap-5">
       <div>
@@ -32,12 +37,11 @@ export default async function EquipePage() {
         {members.map((m) => (
           <li key={m.id} className="glass-card flex flex-col gap-3 p-5">
             <div className="flex items-center gap-3">
-              <span
-                aria-hidden="true"
-                className="grid size-11 place-items-center rounded-full bg-ink text-lg font-bold text-[var(--bg)]"
-              >
-                {m.name.slice(0, 1)}
-              </span>
+              <Avatar
+                name={m.name}
+                photo={photos.photos[m.id]}
+                className={`${AVATAR_OUTRO} size-11 text-lg`}
+              />
               <div>
                 <h2 className="font-bold">{m.name}</h2>
                 <p className="mt-1 flex items-center gap-1.5 text-xs text-ink2">

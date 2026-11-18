@@ -51,6 +51,9 @@ export class SessionGuard implements CanActivate {
       canClose: u.canClose,
       twoFactorEnabled: u.twoFactorEnabled === true,
       mustChangePassword: u.mustChangePassword,
+      image: u.image ?? null,
+      email: u.email,
+      username: (u as { username?: string | null }).username ?? '',
     };
 
     if (this.reflector.getAllAndOverride<boolean>(ALLOW_INCOMPLETE, targets)) return true;

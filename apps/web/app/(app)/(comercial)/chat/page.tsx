@@ -5,15 +5,17 @@ import { Chat, type Channel, type ChatUser } from '@/components/chat';
 import { apiGet } from '@/lib/api';
 import { prefsCookie } from '@/lib/screen-prefs';
 import { getSession } from '@/lib/session';
+import { getTeamPhotos } from '@/lib/team-photos';
 
 export const metadata = { title: 'Chat' };
 export default async function ChatPage() {
   const me = await getSession();
   if (!me) redirect('/login');
-  const [channels, users, jar] = await Promise.all([
+  const [channels, users, jar, photos] = await Promise.all([
     apiGet<Channel[]>('/api/chat/channels'),
     apiGet<ChatUser[]>('/api/chat/users'),
     cookies(),
+    getTeamPhotos(),
   ]);
   // Conversa lembrada (NPAC-46), se a pessoa ainda está nela.
   const cookie = prefsCookie('chat', me.id);
@@ -26,6 +28,7 @@ export default async function ChatPage() {
       meId={me.id}
       prefs={{ cookie, value: writePrefs({ c }, rule) }}
       initialActive={c}
+      photos={photos}
     />
   );
 }

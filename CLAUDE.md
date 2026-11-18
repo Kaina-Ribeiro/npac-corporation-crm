@@ -34,7 +34,8 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
 - **Auth:** Better Auth (username, TOTP, auditoria, rate limit) `api/auth/auth.ts` · sessão e
   troca obrigatória `api/auth/session.guard.ts` · `@Can`/`@Public`/`@AllowIncomplete`
   `api/auth/*.decorator.ts` · pedido de acesso público `api/auth/request-access.ts` · esqueci a senha
-  `api/auth/password-reset.ts` + e-mail `api/mail/*` · env Zod `api/config/env.ts`
+  `api/auth/password-reset.ts` + e-mail `api/mail/*` · Meu perfil (foto, nome, e-mail com código) `api/conta/*` ·
+  env Zod `api/config/env.ts`
 - **Leads:** rotas/leitura/escrita `api/leads/leads.controller.ts`, `leads.service.ts`,
   `lead-mutations.service.ts` · filtros/SQL `leads.repository.ts` · timeline+audit
   `activity.ts` (`recordActivity`) · notas/tarefas `lead-activity.*`
@@ -50,7 +51,7 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   não pesar no JS; `nav-items.tsx` também fica no servidor, a barra inferior é componente de servidor) · na sidebar só o
   miolo rola (`.side-scroll`: navegação + filtros salvos); topo e rodapé com o Sair ficam fixos, e a carga direta rola até o
   item ativo (`sidebar-shell.tsx`) · Sair no celular (17/11/2026): o mesmo cartão `shell/conta-card.tsx` (foto, nome, cargo,
-  Trocar senha, Sair) no topo do `/mais` e do `/acompanhamento/mais`; nada de outro Sair nessas telas (e2e `e2e/sair.spec.ts`) · classes de botão `lib/button.ts` · dropdown (todos os `<select>`) com o visual do CRM só por CSS
+  Meu perfil, Sair) no topo do `/mais` e do `/acompanhamento/mais`; nada de outro Sair nessas telas (e2e `e2e/sair.spec.ts`) · classes de botão `lib/button.ts` · dropdown (todos os `<select>`) com o visual do CRM só por CSS
   (`appearance: base-select` + `::picker(select)` no fim de `globals.css`; Safari fica com o do
   sistema; Lightning CSS não aceita pseudo-classe depois de `::picker`, use `select:open::picker(select)`) · login,
   pedir acesso, esqueci a senha (`/login/esqueci`, `/login/nova-senha`) `web/components/login/*` · **duas telas de
@@ -385,7 +386,8 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
   pelo endereço inteiro: `parseSearch` trata como e-mail texto com `@` no meio, sem espaço nem `/`.
   Na ficha é texto, sem `mailto:`.
 - Timeline append-only: tipo, IDs e nomes de campos, **nunca valores**. Auditoria sem e-mail nem nome.
-- API com `Cache-Control: no-store`. SSE só manda `{ type }`.
+- API com `Cache-Control: no-store` (o gancho de `app.setup.ts` só não sobrescreve rota que define o próprio: hoje só
+  a foto do perfil, com a versão na URL). SSE só manda `{ type }`.
 - Chat: DM privada por RLS mesmo para liderança; mensagens append-only.
 - LGPD: eliminação só via `lgpd_anonymize_lead`; nada de outro caminho que apague fato financeiro.
 - CSV com contato: só liderança, auditado, fórmulas neutralizadas.
@@ -508,6 +510,38 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
 - Erros da API em português para o usuário final (`BadRequestException('…')`); o `clientApi` mostra a
   mensagem, as padrão do Nest viram texto genérico. `clientApi` aceita 204.
 
+## Meu perfil (NPAC-53, 18/11/2026)
+
+Spec `docs/superpowers/specs/2026-11-18-meu-perfil-design.md`, plano `docs/superpowers/plans/2026-11-18-meu-perfil.md`,
+protótipo no canvas "Meu perfil". Gabriel aprovou com "1A, 2A, 3A".
+
+- `/conta/perfil` (`app/(app)/conta/perfil`, dentro da casca, todos os cargos): foto, nome (salva ao sair do campo,
+  "Salvo"; 2–80 caracteres, `cleanProfileName` em `sh/profile.ts`, `@npac/shared/profile`, fora do índice), usuário só
+  leitura, e-mail com código, senha recolhida ("Trocar senha" abre ali; `authClient.changePassword` derruba os outros
+  aparelhos) e "Avisos neste aparelho". O cargo Acompanhamento vê as abas do módulo no celular. Tela `components/conta/perfil.tsx`.
+- No menu, "Meu perfil" no lugar de "Trocar senha": rodapé da sidebar (foto, nome e cargo são o link), cartão do Mais
+  (CRM e módulo) e Ctrl+K. `/conta/senha` só no primeiro acesso; sem troca pendente, vai para `/conta/perfil`.
+- Foto: o navegador lê o arquivo como `data:` (a CSP de imagens só aceita `'self'` e `data:`), recorta em círculo
+  (`components/conta/foto-recorte.tsx` por `next/dynamic`, matemática em `lib/crop.ts`; arrastar, setas, − / +) e manda
+  256 px em WebP 0,85 (JPEG se o navegador não gerar WebP). `PUT /api/me/photo` (multipart, até 200 KB, tipo pelos bytes
+  com `farejar`/`semMetadados`, nunca SVG), `DELETE /api/me/photo`. Banco: `user_photos` (0071, sem RLS como `user`,
+  CHECK de tipo e tamanho) e a versão em `user.image`. `GET /api/users/:id/photo?v=` para quem está logado, com
+  `private, max-age=31536000, immutable` e `nosniff`. `/update-user` e `/change-email` do Better Auth em `disabledPaths`.
+- Foto dos outros: `GET /api/team/photos` → `{ photos: id → URL, names: nome único → URL }` (o feed da equipe só traz o
+  nome; não mexer em `finance/`), lido por `getTeamPhotos()` (`lib/team-photos.ts`) e passado às telas. `Avatar`
+  (`components/avatar.tsx`, sem `'use client'`) mostra foto ou inicial: sidebar, Mais, topo do módulo, Equipe, Dashboard
+  e Relatórios (mesa, tabela por SDR, feed), Hoje (selo do closer; a sua com anel dourado), Chat (conversa e autor),
+  Admin, Mentorados e Fila (responsável). `/api/me` e `/admin/users` trazem `photo`.
+- E-mail: `POST /api/me/email/code { email }` → 6 dígitos no endereço novo (10 min, 5 tentativas, 3 por hora por conta,
+  linhas `npac-email:`/`npac-email-sent:` em `verification`, advisory lock da conta; pedido novo invalida o anterior);
+  `POST /api/me/email/confirm { code }` troca e avisa o endereço antigo (sem o novo). Em uso → 409 "Esse e-mail já está em
+  uso." (não diz de quem). Sem `SMTP_HOST` (2A): as rotas dão 404 e o perfil mostra "Para trocar o e-mail, peça à
+  liderança. Ela muda no Admin." Janelinha `components/conta/email-troca.tsx` (6 caixas sobre um campo, confirma no 6º).
+- Auditoria `user.photo_set`/`photo_removed`/`name_changed`/`email_code_sent`/`email_changed`, sem nome, e-mail ou foto.
+- e2e: `meu-perfil*.spec.ts` e `mobile-layout-perfil.spec.ts` (iPhone: nada sai da tela em 375/390/768/1024, também
+  dentro de `overflow: hidden`, toques de 44 px e campos de 16 px); capturas `CAPTURAS=<pasta> … e2e/capturas-perfil.spec.ts`.
+  Pendência anterior: Mentorados em 1024 com a sidebar aberta passa ~96 px (`test.fixme`).
+
 ## Avisos e lembretes (NPAC-26, 04/11/2026)
 
 - Chat: selo de não lidas (`chatUnread` em `/notifications`) e `(N)` no título, pelo SSE. Push sem
@@ -586,7 +620,7 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
   Função SQL grande nova do módulo: mesma linha, e tabela de uma linha lida como valor único (`(select … )`).
 - Aplicar no dev: `pnpm --filter @npac/db build && pnpm --filter @npac/db migrate`.
   psql: `docker exec npac-corporation-postgres-1 psql -U npac_owner -d npac`.
-- Apagar lead/usuário à mão: FKs em `form_responses`, `sdr_sale_marks`, `chat_reads`, `chat_*`, `payments`, `deals`, `lead_notes`,
+- Apagar lead/usuário à mão (a foto `user_photos` sai em cascata): FKs em `form_responses`, `sdr_sale_marks`, `chat_reads`, `chat_*`, `payments`, `deals`, `lead_notes`,
   `lead_tasks`, `notifications`, `lead_timeline`, `meetings` (`meeting_confirmations` e
   `meeting_reminders_sent` em cascata), `lgpd_requests` (usuário: também `session`, `account`,
   `push_subscriptions`). `truncate` de `meetings` nos testes lista as duas tabelas de lembretes.

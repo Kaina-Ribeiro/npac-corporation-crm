@@ -98,11 +98,29 @@ export function paletteItems(opts: Opcoes): PaletteItem[] {
     label: `${ACOMPANHAMENTO_ITEM.label} · ${n.label}`,
     icon: n.icon,
   });
-  return navItems(opts).flatMap((n) =>
-    n.children
-      ? n.children.map(modulo)
-      : n.href.startsWith(ACOMPANHAMENTO_ITEM.match!)
-        ? [modulo(n)]
-        : [{ href: n.href, label: n.label, icon: n.icon }],
-  );
+  return [
+    ...navItems(opts).flatMap((n) =>
+      n.children
+        ? n.children.map(modulo)
+        : n.href.startsWith(ACOMPANHAMENTO_ITEM.match!)
+          ? [modulo(n)]
+          : [{ href: n.href, label: n.label, icon: n.icon }],
+    ),
+    // Meu perfil (NPAC-53): para todos os cargos, fora do menu (fica no rodapé da sidebar).
+    { href: '/conta/perfil', label: 'Meu perfil', icon: PERFIL_ICON },
+  ];
 }
+
+const PERFIL_ICON = (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0" />
+  </svg>
+);

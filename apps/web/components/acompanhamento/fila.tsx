@@ -32,6 +32,7 @@ import { showToast } from '@/components/toast';
 import { ExportarBotao } from './exportar-botao';
 import { ICONES, Icone, RostoCarteira, Rostos, dataBR, diaBR, horaBR } from './ui';
 import { WhatsappBotoes } from './whatsapp-botoes';
+import { Avatar, AVATAR_OUTRO, SEM_FOTOS, type TeamPhotos } from '@/components/avatar';
 
 const ficha = (id: string, aba = 'jornada') => `/acompanhamento/ficha/${id}?aba=${aba}`;
 const plural = (n: number, um: string, varios: string) => (n === 1 ? um : varios);
@@ -294,6 +295,7 @@ export function Fila({
   exportar,
   lembrar,
   inicialGrupo,
+  photos = SEM_FOTOS,
 }: {
   dados: FilaDTO;
   mensagens: MensagemModelo[];
@@ -304,6 +306,8 @@ export function Fila({
   /** Cookie dos filtros lembrados (NPAC-46) e o valor que o servidor leu. */
   lembrar: { cookie: string; valor: string };
   inicialGrupo: FilaGrupo | 'TODOS';
+  /** Fotos da equipe (NPAC-53): responsável de cada item. */
+  photos?: TeamPhotos;
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -525,7 +529,16 @@ export function Fila({
                           <span className={`due ${p.classe}`}>{p.texto}</span>, {quem(item, euId)}
                         </div>
                       </div>
-                      <span className="fr-resp">{quem(item, euId)}</span>
+                      <span className="fr-resp inline-flex items-center gap-1.5">
+                        {item.responsavelId && (
+                          <Avatar
+                            name={item.responsavelNome ?? quem(item, euId)}
+                            photo={photos.photos[item.responsavelId]}
+                            className={`${AVATAR_OUTRO} size-5 text-[10px]`}
+                          />
+                        )}
+                        {quem(item, euId)}
+                      </span>
                       <span className={`fr-due ${p.classe}`}>{p.texto}</span>
                       {botaoAcao(l, 'btn btn-secondary sm fr-acao')}
                       <Icone d={ICONES.seta} className="fr-seta" largura={2} />

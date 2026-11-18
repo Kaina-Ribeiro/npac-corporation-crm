@@ -374,13 +374,18 @@ test('troca a senha quando quiser, pelo menu', async ({ page }) => {
     where u.email = 'murilo@npac.com.br'`;
   await login(page, 'murilo@npac.com.br');
   await page.waitForURL(/\/dashboard/);
-  await page.getByRole('link', { name: 'Trocar senha' }).click();
-  await expect(page.getByRole('heading', { name: 'Trocar senha' })).toBeVisible();
+  // NPAC-53: a troca voluntária fica no Meu perfil (rodapé da sidebar).
+  await page
+    .locator('#app-sidebar')
+    .getByRole('link', { name: /Meu perfil/ })
+    .click();
+  await page.waitForURL(/\/conta\/perfil/);
+  await page.getByRole('button', { name: 'Trocar senha' }).click();
   await page.getByLabel('Senha atual', { exact: true }).fill(E2E_PASSWORD);
   await page.getByLabel('Nova senha', { exact: true }).fill('murilo-nova-1');
   await page.getByLabel('Confirme a nova senha').fill('murilo-nova-1');
   await page.getByRole('button', { name: 'Salvar senha' }).click();
-  await page.waitForURL(/\/dashboard/);
+  await expect(page.getByRole('status').filter({ hasText: 'Salvo' })).toBeVisible();
   await page.getByRole('button', { name: 'Sair' }).click();
   await page.waitForURL(/\/login/);
   await login(page, 'murilo@npac.com.br', 'murilo-nova-1');
