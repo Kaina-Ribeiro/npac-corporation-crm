@@ -1,7 +1,16 @@
 // Tabelas do Better Auth (core + plugin twoFactor + rate limit em banco),
 // escritas à mão com nomes snake_case. As colunas extras de `user` são do domínio.
 import { sql } from 'drizzle-orm';
-import { bigint, boolean, check, integer, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import {
+  bigint,
+  boolean,
+  check,
+  customType,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+} from 'drizzle-orm/pg-core';
 import { roleEnum } from './enums.js';
 
 export const user = pgTable(
@@ -35,6 +44,29 @@ export const user = pgTable(
         when 'ACOMPANHAMENTO' then not ${t.canProspect} and not ${t.canClose}
         else true end`,
     ),
+  ],
+);
+
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({ dataType: () => 'bytea' });
+
+/**
+ * Foto do perfil (NPAC-53): uma por pessoa, já reduzida no navegador (256 px). Sem RLS, como
+ * `user`: só a API grava, pela sessão da própria pessoa. A versão fica em `user.image`.
+ */
+export const userPhotos = pgTable(
+  'user_photos',
+  {
+    userId: text('user_id')
+      .primaryKey()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    bytes: bytea('bytes').notNull(),
+    mime: text('mime').notNull(),
+    size: integer('size').notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    check('user_photos_mime', sql`${t.mime} in ('image/jpeg', 'image/png', 'image/webp')`),
+    check('user_photos_size', sql`${t.size} between 1 and 204800`),
   ],
 );
 
