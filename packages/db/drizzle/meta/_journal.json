@@ -470,6 +470,13 @@
       "when": 1794954696204,
       "tag": "0066_venda_do_sdr",
       "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "7",
+      "when": 1795010214277,
+      "tag": "0067_area_do_pedido_de_acesso",
+      "breakpoints": true
     }
   ]
 }

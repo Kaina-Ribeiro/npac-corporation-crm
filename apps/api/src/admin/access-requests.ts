@@ -41,6 +41,7 @@ export class AccessRequestsService {
         name: accessRequests.name,
         username: accessRequests.username,
         email: accessRequests.email,
+        area: accessRequests.area,
         createdAt: accessRequests.createdAt,
       })
       .from(accessRequests)

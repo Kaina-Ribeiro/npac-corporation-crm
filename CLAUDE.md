@@ -53,7 +53,12 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   Trocar senha, Sair) no topo do `/mais` e do `/acompanhamento/mais`; nada de outro Sair nessas telas (e2e `e2e/sair.spec.ts`) · classes de botão `lib/button.ts` · dropdown (todos os `<select>`) com o visual do CRM só por CSS
   (`appearance: base-select` + `::picker(select)` no fim de `globals.css`; Safari fica com o do
   sistema; Lightning CSS não aceita pseudo-classe depois de `::picker`, use `select:open::picker(select)`) · login,
-  pedir acesso, esqueci a senha (`/login/esqueci`, `/login/nova-senha`) `web/components/login/*` · senha/MFA `components/conta/*`, `app/(conta)/*` · API
+  pedir acesso, esqueci a senha (`/login/esqueci`, `/login/nova-senha`) `web/components/login/*` · **duas telas de
+  entrada** (NPAC-52, 18/11/2026): `/login` (CRM, noite) e `/login/acompanhamento` (+ `/solicitar`, `/esqueci`;
+  "ouro líquido de dia"), mesmas páginas (`login/pages.tsx`) com textos, endereço e destino em `login/area.ts`
+  (`LOGIN_AREA`) e aparência em `auth-shell.tsx` (`LOOK`; campos `.auth-dia` em `globals.css`); shader único
+  `liquid-gold.tsx` com `tom` `noite`/`dia`, só nas telas de entrada. Até 1023 px em coluna; celular sem a frase.
+  Sem sessão no módulo, e ao Sair dele, a tela do Acompanhamento (`lib/login-path.ts`, `proxy.ts`) · senha/MFA `components/conta/*`, `app/(conta)/*` · API
   server/client `web/lib/api.ts` / `lib/client-api.ts` · filtros lembrados `lib/screen-prefs.ts`,
   `lib/use-latest-prefs.ts`, memória da busca `lib/screen-memory.ts` · sessão (`getSession`, `pendingStep`)
   `web/lib/session.ts` · UI base (`Field`, `button`, `StageOptions`) `components/crm-ui.tsx` ·
@@ -197,7 +202,9 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
 - **Pedido de acesso** (29/10/2026): `/login/solicitar` grava em `access_requests`, fora de `user`
   (pendente não loga). Head/Diretoria aprovam no Admin escolhendo o cargo (`guardLeadership`);
   recusar apaga; expira em 7 dias; 3/hora por IP; resposta igual exista ou não o usuário (hash
-  sempre, para o tempo não revelar). A liderança segue redefinindo a senha no Admin;
+  sempre, para o tempo não revelar). Guarda a **área** da tela (`access_requests.area`, 0067: `COMERCIAL` por
+  `/login/solicitar`, `ACOMPANHAMENTO` por `/login/acompanhamento/solicitar`; `ACCESS_AREAS` em `sh/enums.ts`) e o
+  Admin mostra a etiqueta; quem aprova é o mesmo (a fila da Head do Acompanhamento é a Fase 5). A liderança segue redefinindo a senha no Admin;
   Diretoria trancada: `reset-password-cli.js <usuário> [--mfa]` no shell da api (`db/src/reset-password.ts`).
 - **Esqueci minha senha por e-mail** (NPAC-50, 18/11/2026, plano `docs/plans/pedidos-18-11.md`, Fase 2):
   `/login/esqueci` (usuário ou e-mail) → `POST /api/auth/forgot-password` → e-mail "Crie a sua senha nova"
@@ -240,7 +247,8 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   sidebar/Ctrl+K/Mais/rodapé). Telas comerciais ficam em `web/app/(app)/(comercial)/`, cujo layout
   manda o cargo ao módulo com carga completa (o layout de `(app)` não roda na navegação do
   navegador; redirect do servidor ali deixava o módulo em branco). Entrada única: login, troca de
-  senha e MFA vão para `/`, que escolhe o destino pelo cargo. Rota nova que o cargo use leva
+  senha e MFA vão para `/`, que escolhe o destino pelo cargo; a tela do Acompanhamento manda para
+  `/?area=acompanhamento`, que leva ao módulo quem o vê (Diretoria cai na Fila) e os demais à tela do cargo. Rota nova que o cargo use leva
   `@AllRoles()`; o teste `acompanhamento-sem-comercial` varre todas. Texto sensível cifrado com AAD
   (`MENTORADO_ENCRYPTION_KEY`); mídia fora do banco em `MEDIA_DIR`; sem DELETE para `npac_app`
   (exclusão só pelas funções, que enfileiram a mídia). Push (D12, 11/11/2026): `PushController` tem `@AllRoles()`
@@ -283,7 +291,7 @@ DEFINER`, a Especialista vê o número inteiro): só tarefas FEITA ÷ total do c
 - **Siglas das mentorias** (Gabriel, 04/11/2026): RDV = Rico de Verdade · IDR = Introdução da
   Riqueza · PME = Plano Mensal de Enriquecimento · 2M = Marco e Mudança · 6M = sem definição ainda.
   Nas telas vale o texto literal do PDF, exceto IDR: "Introdução da Riqueza" (o PDF diz "à"; corrigido).
-- Cookies em vez de localStorage: último usuário `npac_last_user` (`Path=/login`); ordem dos cards
+- Cookies em vez de localStorage: último usuário `npac_last_user` (`Path=/login`, vale nas duas telas de entrada); ordem dos cards
   `npac_dash_<hash do id>` (`Path=/dashboard`, só IDs, o servidor já renderiza na ordem); colunas
   ocultas `npac_pipe_<hash>` (`Path=/pipeline`) e filtro do Hoje `npac_hoje_<hash>` (`Path=/hoje`),
   helpers em `lib/user-cookie.ts`.

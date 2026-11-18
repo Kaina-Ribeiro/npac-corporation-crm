@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ROLES } from '../enums.js';
+import { ACCESS_AREAS, ROLES } from '../enums.js';
 import { PERFIS } from '../mentoria/enums.js';
 
 /** Usuário de login: mesmo formato do plugin username do Better Auth, sempre minúsculo. */
@@ -17,6 +17,8 @@ export const accessRequestSchema = z
     email: z.email().trim().toLowerCase().max(200),
     // Provisório enquanto o time testa: mínimo 3, igual ao auth.ts.
     password: z.string().min(3).max(128),
+    // Tela de onde veio o pedido; sem ela (aba aberta antes do deploy), a do comercial.
+    area: z.enum(ACCESS_AREAS).default('COMERCIAL'),
   })
   .strict();
 
