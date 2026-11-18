@@ -33,7 +33,8 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   `withUser`, `leadContactTaken` `db/src/with-user.ts` · seed `db/src/seed*.ts`
 - **Auth:** Better Auth (username, TOTP, auditoria, rate limit) `api/auth/auth.ts` · sessão e
   troca obrigatória `api/auth/session.guard.ts` · `@Can`/`@Public`/`@AllowIncomplete`
-  `api/auth/*.decorator.ts` · pedido de acesso público `api/auth/request-access.ts` · env Zod `api/config/env.ts`
+  `api/auth/*.decorator.ts` · pedido de acesso público `api/auth/request-access.ts` · esqueci a senha
+  `api/auth/password-reset.ts` + e-mail `api/mail/*` · env Zod `api/config/env.ts`
 - **Leads:** rotas/leitura/escrita `api/leads/leads.controller.ts`, `leads.service.ts`,
   `lead-mutations.service.ts` · filtros/SQL `leads.repository.ts` · timeline+audit
   `activity.ts` (`recordActivity`) · notas/tarefas `lead-activity.*`
@@ -52,7 +53,7 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   Trocar senha, Sair) no topo do `/mais` e do `/acompanhamento/mais`; nada de outro Sair nessas telas (e2e `e2e/sair.spec.ts`) · classes de botão `lib/button.ts` · dropdown (todos os `<select>`) com o visual do CRM só por CSS
   (`appearance: base-select` + `::picker(select)` no fim de `globals.css`; Safari fica com o do
   sistema; Lightning CSS não aceita pseudo-classe depois de `::picker`, use `select:open::picker(select)`) · login,
-  pedir acesso `web/components/login/*` · senha/MFA `components/conta/*`, `app/(conta)/*` · API
+  pedir acesso, esqueci a senha (`/login/esqueci`, `/login/nova-senha`) `web/components/login/*` · senha/MFA `components/conta/*`, `app/(conta)/*` · API
   server/client `web/lib/api.ts` / `lib/client-api.ts` · filtros lembrados `lib/screen-prefs.ts`,
   `lib/use-latest-prefs.ts`, memória da busca `lib/screen-memory.ts` · sessão (`getSession`, `pendingStep`)
   `web/lib/session.ts` · UI base (`Field`, `button`, `StageOptions`) `components/crm-ui.tsx` ·
@@ -196,8 +197,30 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
 - **Pedido de acesso** (29/10/2026): `/login/solicitar` grava em `access_requests`, fora de `user`
   (pendente não loga). Head/Diretoria aprovam no Admin escolhendo o cargo (`guardLeadership`);
   recusar apaga; expira em 7 dias; 3/hora por IP; resposta igual exista ou não o usuário (hash
-  sempre, para o tempo não revelar). "Esqueci minha senha" manda pedir redefinição à liderança;
+  sempre, para o tempo não revelar). A liderança segue redefinindo a senha no Admin;
   Diretoria trancada: `reset-password-cli.js <usuário> [--mfa]` no shell da api (`db/src/reset-password.ts`).
+- **Esqueci minha senha por e-mail** (NPAC-50, 18/11/2026, plano `docs/plans/pedidos-18-11.md`, Fase 2):
+  `/login/esqueci` (usuário ou e-mail) → `POST /api/auth/forgot-password` → e-mail "Crie a sua senha nova"
+  com o botão "Criar senha nova" e `/login/nova-senha#t=<token>` (fragmento: não vai a servidor nenhum; sem
+  e-mail ou usuário no link) → a tela confere o link ao abrir (`POST …/forgot-password/check` → usuário, para
+  "Para o usuário ana", ou "Link vencido") → `POST /api/auth/forgot-password/reset` troca a senha, apaga `must_change_password`, derruba **todas** as
+  sessões e devolve o usuário, e a tela entra pelo login normal (`signIn.username`, mesma auditoria e TOTP).
+  Plugin `api/auth/password-reset.ts`: resposta igual e com piso de 400 ms exista ou não a conta; 3/hora por IP
+  (rate limit da rota) e por conta (linhas `npac-reset:` em `verification`, advisory lock); link de uso único
+  (DELETE … RETURNING), 1 h, só o SHA-256 no banco; trocar a senha mata os outros links da conta; conta
+  desativada não recebe nem usa link; auditoria `auth.password_reset.requested`/`auth.password_reset` sem
+  e-mail. `/request-password-reset` e `/reset-password` do Better Auth ficam em `disabledPaths`. Sem envio
+  configurado, `GET forgot-password/status` diz `enabled: false`, o POST dá 404 e a tela manda pedir à liderança.
+  Telas e textos seguem o protótipo do canvas "Login da equipe" (linha "Esqueci minha senha (fase 2)", 4 telas);
+  "Enviar de novo" libera 1 minuto depois de cada envio. "Link vencido" e o aviso sem SMTP não estão no protótipo.
+- **Envio de e-mail** (`api/mail/*`): `MailSender` (`MAIL_SENDER`, módulo global) com SMTP pelo nodemailer;
+  variáveis `SMTP_HOST`, `SMTP_PORT` (465 = TLS; 587 = STARTTLS), `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` (Zod em
+  `api/config/env.ts`; `MAIL_FROM` obrigatória com host; usuário e senha juntos). Gmail do sistema hoje
+  (temporário, "2C"); Resend, SES ou Brevo = trocar as cinco variáveis. Sem `SMTP_HOST`, desligado. Envio sem
+  `await` depois da resposta; `send` nunca lança e loga `e-mail enviado: <host>` ou `e-mail não enviado: <código>
+<host>`, nunca destinatário ou texto. E-mail só com o primeiro nome (`mail/templates.ts`). Testes: `MemoryMailSender`
+  em `test/helpers.ts`; caixa falsa SMTP+HTTP `scripts/caixa-falsa.mts` (`pnpm mail:caixa` no dev: SMTP 2525,
+  mensagens em `http://localhost:2526/mensagens`), que o e2e sobe na porta da API + 25/26 (`e2e/esqueci-senha.spec.ts`).
 - **Limite de tentativas de login DESLIGADO** (temporário, 04/11/2026: travava os acessos):
   `customRules[SIGN_IN] = false` em `api/auth/auth.ts`; antes era 5/min por IP. O pedido de
   acesso (3/h) e o TOTP (3/10 s, padrão do plugin) continuam limitados. Religar depois.

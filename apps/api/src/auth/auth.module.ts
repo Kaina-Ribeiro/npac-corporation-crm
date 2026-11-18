@@ -4,6 +4,7 @@ import type { Db } from '@npac/db';
 import { AuditService } from '../audit/audit.service.js';
 import { DB } from '../common/db/db.module.js';
 import { ENV, type Env } from '../config/env.js';
+import { MAIL_SENDER, type MailSender } from '../mail/mail.js';
 import { AUTH, createAuth } from './auth.js';
 import { AuthController } from './auth.controller.js';
 import { PermissionsGuard } from './permissions.guard.js';
@@ -14,8 +15,9 @@ import { SessionGuard } from './session.guard.js';
   providers: [
     {
       provide: AUTH,
-      inject: [DB, ENV, AuditService],
-      useFactory: (db: Db, env: Env, audit: AuditService) => createAuth(db, env, audit),
+      inject: [DB, ENV, AuditService, MAIL_SENDER],
+      useFactory: (db: Db, env: Env, audit: AuditService, mail: MailSender) =>
+        createAuth(db, env, audit, mail),
     },
     // Ordem importa: a sessão é resolvida antes da checagem de permissão.
     { provide: APP_GUARD, useClass: SessionGuard },

@@ -14,6 +14,10 @@ export const API_PORT = Number(process.env.E2E_API_PORT ?? 4100);
 // E2E_WEB_PORT: quando outro projeto local já ocupa a 3100.
 export const WEB_PORT = Number(process.env.E2E_WEB_PORT ?? 3100);
 export const WEB_ORIGIN = `http://localhost:${WEB_PORT}`;
+/** Caixa de e-mail falsa (`scripts/caixa-falsa.mts`): SMTP para a API, HTTP para o teste ler. */
+export const CAIXA_SMTP_PORT = API_PORT + 25;
+export const CAIXA_HTTP_PORT = API_PORT + 26;
+export const CAIXA_URL = `http://localhost:${CAIXA_HTTP_PORT}/mensagens`;
 
 export function e2eDbUrl(user?: string, password?: string): string {
   const raw = process.env.TEST_DATABASE_URL;
