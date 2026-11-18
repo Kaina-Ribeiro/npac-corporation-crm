@@ -58,7 +58,7 @@ function Linha({ l, podeAgendar }: { l: LinhaControle; podeAgendar: boolean }) {
         </div>
       </Link>
       <div className="pl-meta">
-        <span className="tag gold">{l.mentoria}</span>
+        <span className="tag">{l.mentoria}</span>
         {podeAgendar && l.realizadas === 0 && !l.agendada && (
           <Link
             className={`${quietButton} sm`}

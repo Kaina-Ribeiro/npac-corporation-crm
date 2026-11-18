@@ -108,7 +108,7 @@ export function PlanoModeloLinhaForm({ linha }: { linha: PlanoModeloLinha }) {
         <h1 className="h1">{linha.foco}</h1>
         <p className="sub">{AVISO}</p>
         <div className="fh-tags">
-          <span className="tag gold">{linha.mentoria}</span>
+          <span className="tag">{linha.mentoria}</span>
           <IndicadorSalvo />
         </div>
       </div>

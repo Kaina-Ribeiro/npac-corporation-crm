@@ -9,7 +9,7 @@ import {
 import { useEffect, useState } from 'react';
 import { button, control, FormError, quietButton } from '@/components/crm-ui';
 import { clientApi } from '@/lib/client-api';
-import { registrarVersion } from '@/lib/acompanhamento-saver';
+import { filaDeSalvamento, registrarVersion } from '@/lib/acompanhamento-saver';
 import { CampoPr, type Conversao } from './campo';
 import { Barra } from './pme-atual';
 import { dataBR, ICONES, Icone } from './ui';
@@ -52,16 +52,23 @@ function BarraMeta({ m }: { m: MetaDTO }) {
   );
 }
 
-/** Uma meta: no campo para quem edita (salva ao sair); resumo para quem só lê. */
+/**
+ * Uma meta: resumo em uma linha (descrição, pilar, prazo e barra). Quem edita abre os campos com
+ * "Editar", uma meta por vez, e eles salvam ao sair; "Pronto" fecha e atualiza o resumo.
+ */
 function MetaItem({
   m,
   pessoas,
   atualizar,
+  aberta,
+  alternar,
 }: {
   m: MetaDTO;
   pessoas: PessoaMeta[];
   /** Depois de mudar alvo ou atual: o % do PME é recalculado no servidor. */
   atualizar: () => void;
+  aberta: boolean;
+  alternar: () => void;
 }) {
   const chave = `meta:${m.inscricaoId}:${m.id}`;
   useEffect(() => {
@@ -69,12 +76,24 @@ function MetaItem({
   }, [chave, m.version]);
   const de = dono(m, pessoas);
   const descricao = m.descricao ?? 'Texto apagado (LGPD)';
+  const editavel = m.podeEditar && m.descricao !== null;
 
-  if (!m.podeEditar || m.descricao === null)
+  if (!editavel || !aberta)
     return (
       <li className="mt-item">
         <div className="mt-topo">
           <b>{descricao}</b>
+          {editavel && (
+            <button
+              type="button"
+              className={sm}
+              aria-expanded={false}
+              aria-label={`Editar a meta ${descricao}`}
+              onClick={alternar}
+            >
+              Editar
+            </button>
+          )}
         </div>
         <div className="mt-chips">
           {m.pilar && <span>{PILAR_LABEL[m.pilar]}</span>}
@@ -88,6 +107,18 @@ function MetaItem({
 
   return (
     <li className="mt-item mt-ed">
+      <div className="mt-topo mt-topo-ed">
+        <span>Editando a meta</span>
+        <button
+          type="button"
+          className={sm}
+          aria-expanded
+          aria-label={`Fechar a edição da meta ${descricao}`}
+          onClick={alternar}
+        >
+          Pronto
+        </button>
+      </div>
       <CampoPr
         chave={chave}
         rotulo="Meta"
@@ -319,6 +350,20 @@ export function Metas({
   vazio: string;
 }) {
   const [nova, setNova] = useState(false);
+  // Uma meta aberta por vez; fechar recarrega, para o resumo mostrar o que acabou de ser salvo.
+  const [aberta, setAberta] = useState<string | null>(null);
+  const alternar = (id: string) => () => {
+    if (aberta !== id) return setAberta(id);
+    setAberta(null);
+    // O campo que acabou de perder o foco ainda está salvando: recarrega quando a fila esvaziar.
+    const q = filaDeSalvamento();
+    if (q.status() === 'saved') return atualizar();
+    const off = q.onStatus((s) => {
+      if (s !== 'saved') return;
+      off();
+      atualizar();
+    });
+  };
   return (
     <section className="mt" aria-label={titulo}>
       <div className="pme-cab">
@@ -345,7 +390,14 @@ export function Metas({
       {metas.length > 0 ? (
         <ul className="mt-lista">
           {metas.map((m) => (
-            <MetaItem key={m.id} m={m} pessoas={pessoas} atualizar={atualizar} />
+            <MetaItem
+              key={m.id}
+              m={m}
+              pessoas={pessoas}
+              atualizar={atualizar}
+              aberta={aberta === m.id}
+              alternar={alternar(m.id)}
+            />
           ))}
         </ul>
       ) : (

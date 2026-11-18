@@ -144,14 +144,14 @@ export function ReuniaoRegistro({
           </Link>
         </p>
         <div className="fh-tags">
-          <span className="tag gold">{r.mentoria}</span>
+          <span className="tag">{r.mentoria}</span>
           <TagReuniao status={r.status} />
           <IndicadorSalvo />
         </div>
       </div>
 
       <div className="pl-a-corpo">
-        <section className="card pa">
+        <section className="card pa rn-agenda">
           <h3>Agenda</h3>
           <div className="pr">
             <span>Data e hora</span>

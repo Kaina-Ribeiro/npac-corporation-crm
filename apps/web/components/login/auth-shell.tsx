@@ -33,13 +33,13 @@ export function AuthShell({ children }: { children: ReactNode }) {
           </p>
         </section>
 
-        <div className="w-full max-w-[440px] rounded-[32px] bg-white/[.62] p-6 shadow-[inset_0_1.5px_0_#fff,inset_0_0_0_.5px_rgba(255,255,255,.8),0_40px_90px_-30px_rgba(0,0,0,.7)] backdrop-blur-[40px] backdrop-saturate-200 md:p-[34px]">
+        <div className="auth-card w-full max-w-[440px] rounded-[32px] bg-white/[.62] p-6 shadow-[inset_0_1.5px_0_#fff,inset_0_0_0_.5px_rgba(255,255,255,.8),0_40px_90px_-30px_rgba(0,0,0,.7)] backdrop-blur-[40px] backdrop-saturate-200 md:p-[34px]">
           {children}
         </div>
       </div>
 
       <footer className="absolute right-4 bottom-4 left-4 z-10 flex justify-between text-xs text-white/55 md:right-[72px] md:bottom-7 md:left-24">
-        <span>Uso restrito à equipe comercial da NPAC</span>
+        <span>Uso restrito à equipe da NPAC</span>
         <span>© 2026 NPAC Corporation</span>
       </footer>
     </main>

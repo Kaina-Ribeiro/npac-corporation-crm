@@ -24,12 +24,14 @@ import { readPreference } from '@/lib/read-preference';
 import { clientApi } from '@/lib/client-api';
 import { showToast } from '@/components/toast';
 import { ExportarBotao } from './exportar-botao';
-import { ICONES, Icone, Rostos, dataBR, diaBR, horaBR } from './ui';
+import { ICONES, Icone, RostoCarteira, Rostos, dataBR, diaBR, horaBR } from './ui';
 import { WhatsappBotoes } from './whatsapp-botoes';
 
 const ficha = (id: string, aba = 'jornada') => `/acompanhamento/ficha/${id}?aba=${aba}`;
 const plural = (n: number, um: string, varios: string) => (n === 1 ? um : varios);
 const dias = (n: number) => `${n} ${plural(n, 'dia', 'dias')}`;
+/** Atraso que pinta os dias de vermelho; até ele, cinza firme (o cabeçalho Atrasados segue vermelho). */
+const ATRASO_ALARME_DIAS = 14;
 
 type Acao = { label: string; href?: string; run?: () => Promise<unknown> };
 
@@ -184,7 +186,8 @@ function prazo(l: Linha, agora: Date): { texto: string; classe: string } {
     };
   }
   const n = diasParado(item.venceEm, agora);
-  if (item.atrasado) return { texto: n > 0 ? dias(n) : 'Hoje', classe: 'late' };
+  if (item.atrasado)
+    return { texto: n > 0 ? dias(n) : 'Hoje', classe: n > ATRASO_ALARME_DIAS ? 'late' : '' };
   if (n === 1) return { texto: 'Desde ontem', classe: '' };
   if (n > 1) return { texto: `Desde ${dataBR(diaBR(item.venceEm))}`, classe: '' };
   return { texto: 'Hoje', classe: '' };
@@ -426,14 +429,16 @@ export function Fila({
                       {agendaLinha && item.reuniao && (
                         <span className="fr-hora">{horaBR(item.reuniao.inicio)}</span>
                       )}
-                      <Rostos
-                        pessoas={
-                          item.mentorado?.pessoas.map((x) => ({
+                      {item.mentorado ? (
+                        <Rostos
+                          pessoas={item.mentorado.pessoas.map((x) => ({
                             nome: x.nome,
                             fotoMidiaId: null,
-                          })) ?? [{ nome: '·', fotoMidiaId: null }]
-                        }
-                      />
+                          }))}
+                        />
+                      ) : (
+                        <RostoCarteira />
+                      )}
                       <div className="fr-texto">
                         <div className="who">{nome}</div>
                         <div className="what">{oQue(item, agora)}</div>
@@ -521,19 +526,17 @@ function Painel({
         Voltar para a fila
       </button>
       <div className="pn-h">
-        <Rostos
-          pessoas={
-            m?.pessoas.map((x) => ({ nome: x.nome, fotoMidiaId: null })) ?? [
-              { nome: '·', fotoMidiaId: null },
-            ]
-          }
-        />
+        {m ? (
+          <Rostos pessoas={m.pessoas.map((x) => ({ nome: x.nome, fotoMidiaId: null }))} />
+        ) : (
+          <RostoCarteira />
+        )}
         <div style={{ minWidth: 0 }}>
           <h2>{m?.nome ?? 'Toda a carteira'}</h2>
           <div className="pn-tags">
             {m ? (
               <>
-                <span className="tag gold">{m.mentoria}</span>
+                <span className="tag">{m.mentoria}</span>
                 <span className="tag">{m.tipo === 'CASAL' ? 'Casal' : 'Individual'}</span>
               </>
             ) : (

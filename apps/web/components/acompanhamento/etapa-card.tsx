@@ -255,7 +255,7 @@ export function OnboardingFicha({
   const agora = new Date();
 
   const passos = (
-    <div className={anterior ? 'jg-anterior' : ''}>
+    <div>
       <h3>Onboarding</h3>
       <ol className="steps">
         {ficha.onboarding.map((e, i) => {
@@ -305,17 +305,17 @@ export function OnboardingFicha({
     </div>
   );
 
+  // Quem veio de antes do sistema: os seis passos iguais só ocupariam uma coluna. Fica uma linha.
   if (anterior)
     return (
-      <div className="jg">
+      <div className="jg jg-so">
         <div>
-          {pme}
-          {plano}
-          <p className="jg-aviso">
+          <p className="jg-aviso jg-aviso-topo">
             Entrou antes do sistema: as etapas do onboarding já tinham acontecido.
           </p>
+          {pme}
+          {plano}
         </div>
-        {passos}
       </div>
     );
   return (

@@ -68,6 +68,15 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   venda `sale-mark.tsx` · menu de CSV `csv-export.tsx` (API: `api/common/csv.ts`) ·
   avisos compartilhados (selo do chat, `(N)` na aba, lembretes) `lib/alerts.ts`, `meeting-reminder.tsx` ·
   push no aparelho `lib/push.ts`, `public/sw.js`, `/conta/avisos`, convite `components/push-invite.tsx`
+- **Cores e contraste** (achados de design de 17/11/2026, plano `docs/plans/achados-design-17-11.md`): todo texto
+  passa de 4,5:1 (WCAG AA) no claro e no escuro. Cada cor tem um significado: **dourado = marca, progresso e
+  seleção** (barras da jornada, do PME e das metas; `--gold-deep` em barra/borda, `--gold-text` em texto dourado);
+  **vermelho único = atraso e erro** (`--danger` e `--tag-bad`, mesma família); **cinza neutro = estado sem alarme**
+  (Cancelado, Pausado, "N a cobrar", etiqueta RDV/2M/6M em toda tela); azul `--tag-info` = informação/link de meta.
+  Avatares com pouca saturação. Na Fila, "X dias" fica vermelho só acima de `ATRASO_ALARME_DIAS` (14, `fila.tsx`).
+  `.field` tem versão escura em `globals.css`; a caixa do login (`.auth-card`) fixa os tokens claros nos dois temas.
+  Botão desativado mantém o fundo translúcido com o texto inteiro (nunca cinza sobre cinza). Cor nova: mesmo
+  significado de uma dessas, ou pergunte.
 - **Movimento e resposta** (NPAC-47, Fase 4): entrada de página em `globals.css` (`.page-reveal`, `.reveal`,
   `.reveal-grid`; opção B do Gabriel: sobe 6 px, `--dur-enter` 220 ms, cascata de 3 blocos × `--stagger` 30 ms,
   tudo pronto em 280 ms, sem desfoque; cards do Pipeline não animam um a um) · janelinhas `<dialog class="dlg">`
@@ -230,6 +239,10 @@ nao_concluido, prazo, hoje)`: aberto = em andamento com "N dias de atraso" (do `
 DEFINER`, a Especialista vê o número inteiro): só tarefas FEITA ÷ total do ciclo (PARCIAL não conta). Metas não viram número
   único (pendente com a Eduarda): cada meta com alvo tem a própria barra (`pct` na leitura); sem alvo (S4), nenhum %. Ficha >
   Jornada: card do PME (extras e encerramento + barra de tarefas), Tarefas (as da reunião por PME) e Metas.
+  **Layout** (achados de design de 17/11, plano `docs/plans/achados-design-17-11.md`, Fase 2): meta é um resumo (descrição,
+  pilar, prazo, barra); "Editar" abre os campos, uma meta por vez, e "Pronto" recarrega quando a fila de salvamento esvazia
+  (`metas.tsx`). Plano > Esta semana: lista vazia vira uma linha e as Atrasadas ficam na coluna larga. Quem veio de antes do
+  sistema não vê os seis passos do onboarding, só o aviso. Perfis tem títulos de coluna (o interruptor guarda o rótulo inteiro).
 - **Siglas das mentorias** (Gabriel, 04/11/2026): RDV = Rico de Verdade · IDR = Introdução da
   Riqueza · PME = Plano Mensal de Enriquecimento · 2M = Marco e Mudança · 6M = sem definição ainda.
   Nas telas vale o texto literal do PDF, exceto IDR: "Introdução da Riqueza" (o PDF diz "à"; corrigido).
