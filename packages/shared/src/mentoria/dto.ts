@@ -481,6 +481,33 @@ export type CicloDTO = {
   tarefas: TarefaDTO[];
 };
 
+/**
+ * Aba 7 "PMEs e ciclos" (E22, PDF p. 6): um mentorado ATIVO com o ciclo mais recente e o próximo
+ * PME a enviar. `ciclo` nulo = nenhum PME registrado ainda.
+ */
+export type PmeCicloLinha = {
+  inscricaoId: string;
+  nome: string;
+  mentoria: Mentoria;
+  responsavel: string | null;
+  ciclo: {
+    id: string;
+    numero: number;
+    titulo: string | null;
+    enviadoEm: string;
+    /** Prazo atual: a segunda chance ou o prazo (E16). */
+    prazoAtual: string;
+    status: CicloStatus;
+    diasAtraso: number;
+    pctTarefas: number | null;
+    extrasFeitas: number;
+    extrasTotal: number;
+    encerramentoFeito: boolean;
+  } | null;
+  /** Número do próximo PME a enviar (o anterior fechou, cabe outro e a jornada segue); senão nulo. */
+  proximoPme: number | null;
+};
+
 export type HistoricoItem = {
   id: string;
   tipo: string;

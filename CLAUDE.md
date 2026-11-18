@@ -123,7 +123,9 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   `ciclos.*`), cobrança e blocos do registro (`components/acompanhamento/tarefas-reuniao.tsx`, `metas.tsx`), % do PME em SQL
   (`mentoria_pct_tarefas`; barra por meta); 0059 tira a segunda chance do status do ciclo;
   Parte 3 (0069): check-ins `checkins.*`, semáforo (`mentoria_semaforo`, histórico gravado pelo `avisos.scheduler.ts`), rótulos
-  `sh/mentoria/semaforo.ts`, tela `components/acompanhamento/semaforo.tsx`, colunas e filtro em `mentorados-lista.tsx`
+  `sh/mentoria/semaforo.ts`, tela `components/acompanhamento/semaforo.tsx`, colunas e filtro em `mentorados-lista.tsx`;
+  Parte 4 (0070): itens novos da Fila (`mentoria_fila`, `fila.service.ts`, degraus em `sh/mentoria/fila.ts`), contato do degrau
+  (`reunioes.service.ts`), aba 7 `pmes-ciclos.controller.ts` + `web/app/(app)/acompanhamento/pmes`, `components/acompanhamento/pmes-ciclos.tsx`
   · banco `db/src/schema/mentoria.ts`
   - 0044–0045 (`mentoria_perfil()`, `mentoria_admin()`, `mentoria_ve()`, `mentoria_edita()`, funções `mentoria_*`) ·
     seed `db/src/seed-mentoria.ts` · lógica pura `sh/mentoria/*` (cliente: `@npac/shared/mentoria`, sem zod) ·
@@ -315,6 +317,24 @@ DEFINER`, a Especialista vê o número inteiro): só tarefas FEITA ÷ total do c
   (a tela sugere hoje + 7); status `SEGUNDA_CHANCE` ("Segunda chance até DD/MM") enquanto vale, depois "Em andamento" com o
   atraso do novo prazo; histórico `pme.segunda_chance`. Mentorados: PME atual, semáforo e % do PME, filtro por semáforo
   (lembrado). Amarelo do semáforo é token novo (`--tag-warn`, `--sem-amarelo` em `modulo.css`). Pendências no plano.
+  **Fila da cobrança** (Fase 2, Parte 4, 18/11/2026, spec E17–E22 e §6; 0070): `COBRANCA` (`cobranca:<tarefa>`) = tarefa
+  PENDENTE com prazo ≤ hoje (qualquer origem), do responsável pela inscrição ou, na reunião conduzida por Especialista ativa,
+  dela; sai com o resultado; push às 8h do dia do prazo, só nele. `SEMAFORO` (`semaforo:<inscrição>:<segunda>`) = ATIVO em
+  amarelo/vermelho, do responsável; sai no verde ou com "Visto nesta semana" (`fila_feitos` da semana); vermelho = atrasado;
+  push só vermelho, 1x por semana por mentorado (`semaforo-vermelho:…`), não depois do visto; Especialista não recebe.
+  `ENVIAR_PME` (`enviar-pme:<ciclo>`) = ciclo mais recente CONCLUIDO, < 12, ATIVO e antes do término, para a Operação; "Registrar
+  envio" chama o envio; sem push. `PME_ATRASADO` (`pme-atrasado:<ciclo>:<prazo atual>:<degrau>`) = só o degrau mais alto
+  (3, 7, 10, 15 dias do prazo atual; textos do PDF em `DEGRAU_LABEL`), do responsável; "Registrar contato" grava
+  `mentoria_contatos.ciclo_id/degrau/degrau_prazo` (o gatilho põe o prazo atual; a API recusa antes do degrau) com o texto do
+  degrau no motivo; segunda chance recomeça a escada; push 1x por degrau. Ação `FIM_PME` (3A, `mentoria_acao_data`, IMMUTABLE):
+  ciclo do número do mês aberto = espera; fechado = data do `concluido_em`; sem ciclo ou NAO_CONCLUIDO = data da Fase 1; mês 2
+  aparece com 15 dias de atraso do prazo atual (Fila e push; o Plano ainda mostra a data da Fase 1, pendência). O semáforo na
+  Fila e no push vem de `mentoria_semaforo_lote(dia)` (uma chamada; `_lote_calc` interna = a conta da `mentoria_semaforo_calc`:
+  mudou uma, mude a outra; `fila-equivalencia` compara). O despertador acorda também às 8h de todo dia. Aba 7 "PMEs e ciclos"
+  (`/acompanhamento/pmes`, `POST mentoria/pmes-ciclos`): ATIVO com o ciclo mais recente, envio, prazo atual, status, % de tarefas,
+  extras, encerramento e próximo PME; filtros por PME e status (lembrados, `PMES_REGRAS`); Admin, Acompanhamento e Operação
+  (`mentoriaCiclos` no menu; Especialista 404); `/acompanhamento/em-breve/pmes` redireciona. CSV de Mentorados: PME atual, status
+  do PME e semáforo (pelo dia de hoje de verdade, como o mês da jornada).
 - **Siglas das mentorias** (Gabriel, 04/11/2026): RDV = Rico de Verdade · IDR = Introdução da
   Riqueza · PME = Plano Mensal de Enriquecimento · 2M = Marco e Mudança · 6M = sem definição ainda.
   Nas telas vale o texto literal do PDF, exceto IDR: "Introdução da Riqueza" (o PDF diz "à"; corrigido).
@@ -560,6 +580,10 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
   (única exceção: `mentoria_midia_leitura`). INSERT/UPDATE com `mentoria_edita*` seguem por linha.
   Tabela nova do módulo: política de leitura nesse formato e caso no teste de equivalência.
 - Valor novo de enum não vale na mesma transação da migration (compare como texto).
+- **JIT desligado nas funções da Fila e do push** (`SET jit = off` em `mentoria_fila`, `mentoria_avisos_candidatos` e
+  `mentoria_semaforo_lote_calc`, 0070): em banco pequeno, a tabela de uma linha `mentoria_semaforo_inicio` sem `analyze`
+  fazia o planejador estimar milhões de linhas e compilar a consulta (~700 ms por Fila; o e2e do CI estourou os 15 min).
+  Função SQL grande nova do módulo: mesma linha, e tabela de uma linha lida como valor único (`(select … )`).
 - Aplicar no dev: `pnpm --filter @npac/db build && pnpm --filter @npac/db migrate`.
   psql: `docker exec npac-corporation-postgres-1 psql -U npac_owner -d npac`.
 - Apagar lead/usuário à mão: FKs em `form_responses`, `sdr_sale_marks`, `chat_reads`, `chat_*`, `payments`, `deals`, `lead_notes`,
@@ -600,7 +624,7 @@ VARREDURA_URL=http://localhost:3150 VARREDURA_SENHA=senha-do-e2e-123 VARREDURA_O
   segundo plano (porta 3000). e2e e dev disputam portas e `.next`: antes do e2e, `preview_stop` e
   libere 3000/4000; depois, `rm -rf apps/web/.next` e `preview_start`. e2e usa API 4100, web 3100
   (`E2E_WEB_PORT=3200` se outro projeto ocupar) e banco `npac_e2e`.
-- Testes só recriam `npac_test*`/`npac_e2e*`; nunca aponte para outro banco. `npac_test_api` é um só para todas as worktrees: duas suítes da API ao mesmo tempo dão 401 falso. O e2e isola com `E2E_DB`, `E2E_API_PORT` e `E2E_WEB_PORT`.
+- Testes só recriam `npac_test*`/`npac_e2e*`; nunca aponte para outro banco. `npac_test_api` é um só para todas as worktrees: duas suítes da API ao mesmo tempo dão 401 falso; com outra worktree rodando, `API_TEST_DB=npac_test_api_<nome> pnpm --filter @npac/api test`. O e2e isola com `E2E_DB`, `E2E_API_PORT` e `E2E_WEB_PORT`.
 - API e e2e compartilham usuários: teste que mexe em MFA/senha/papel restaura no fim; `truncate leads`
   inclui as tabelas com FK.
 - e2e loga com `email.split('@')[0]`. Seeds: diretor (DIRETOR), ana/ronaldo (HEAD), ale/murilo/igor

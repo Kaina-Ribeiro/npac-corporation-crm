@@ -86,7 +86,7 @@ export class FakeClock implements Clock {
 }
 
 export { TEST_PASSWORD };
-export const owner = ownerSql('npac_test_api');
+export const owner = ownerSql(process.env.API_TEST_DB ?? 'npac_test_api');
 export const ORIGIN = process.env.WEB_ORIGIN ?? 'http://localhost:3000';
 export const protectedRoute = '/api/_test/protected';
 export const leadCreateRoute = '/api/_test/lead-create';

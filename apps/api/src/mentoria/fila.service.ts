@@ -1,10 +1,12 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { withUser, type Db, type Tx } from '@npac/db';
 import {
+  DEGRAUS_ATRASO,
   FILA_FEITO_MANUAL,
   escopoPadrao,
   itemVisivel,
   type AuthUser,
+  type DegrauAtraso,
   type Etapa,
   type EtapaStatus,
   type FilaDTO,
@@ -17,6 +19,10 @@ import {
   type Perfil,
   type ReuniaoStatus,
   type ReuniaoTipo,
+  type SemaforoCor,
+  type SemaforoMotivo,
+  type TarefaOrigem,
+  type TarefaStatus,
   type TipoInscricao,
 } from '@npac/shared';
 import { sql } from 'drizzle-orm';
@@ -47,6 +53,22 @@ type LinhaMentorado = {
 };
 
 const iso = (d: Date | string) => new Date(d).toISOString();
+
+/** O degrau sai da chave do item (`pme-atrasado:<ciclo>:<prazo atual>:<degrau>`). */
+function degrauDaChave(chave: string): DegrauAtraso | null {
+  const n = Number(chave.split(':').at(-1));
+  return (DEGRAUS_ATRASO as readonly number[]).includes(n) ? (n as DegrauAtraso) : null;
+}
+
+function cicloDoItem(
+  i: FilaItemBase,
+  porCiclo: Map<string, { numero: number; prazoAtual: string; diasAtraso: number }>,
+): FilaItemDTO['ciclo'] {
+  if ((i.tipo !== 'ENVIAR_PME' && i.tipo !== 'PME_ATRASADO') || !i.referenciaId) return null;
+  const c = porCiclo.get(i.referenciaId);
+  if (!c) return null;
+  return { ...c, degrau: i.tipo === 'PME_ATRASADO' ? degrauDaChave(i.chave) : null };
+}
 
 /**
  * Fila do dia (§5, D18). O banco calcula os itens na leitura (`mentoria_fila`, RLS do invocador);
@@ -120,6 +142,10 @@ export class FilaService {
       (i) => i.referenciaId,
       ['BOAS_VINDAS', 'PASSO_DEVIDO', 'PARADO', 'ENVIAR_CAIXA', 'CAIXA_ATRASADA', 'AGENDAR_IDR'],
     );
+    const tarefas = ids((i) => i.referenciaId, ['COBRANCA']);
+    const ciclos = ids((i) => i.referenciaId, ['ENVIAR_PME', 'PME_ATRASADO']);
+    const semaforos = ids((i) => i.inscricaoId, ['SEMAFORO']);
+    const hoje = this.ciclos.hoje();
 
     const mentorados = new Map<string, FilaItemDTO['mentorado']>();
     if (inscricoes.length) {
@@ -202,6 +228,62 @@ export class FilaService {
         porEtapa.set(l.id, { nome: l.etapa, status: l.status, version: l.version });
     }
 
+    const porTarefa = new Map<string, FilaItemDTO['tarefa']>();
+    if (tarefas.length) {
+      const linhas = await tx.execute<{
+        id: string;
+        descricao: string | null;
+        status: TarefaStatus;
+        origem: TarefaOrigem;
+        prazo: string;
+        ciclo: number | null;
+        version: number;
+      }>(sql`
+        select t.id, t.descricao, t.status, t.origem, to_char(t.prazo, 'YYYY-MM-DD') as prazo,
+          c.numero as ciclo, t.version
+        from mentoria_tarefas t left join mentoria_ciclos c on c.id = t.ciclo_id
+        where t.id = any(${sql.param(tarefas)}::uuid[])`);
+      for (const l of linhas)
+        porTarefa.set(l.id, {
+          descricao: this.crypto.decifrarOpcional(
+            l.descricao,
+            aad('mentoria_tarefas', 'descricao', l.id),
+          ),
+          status: l.status,
+          origem: l.origem,
+          prazo: l.prazo,
+          cicloNumero: l.ciclo,
+          version: l.version,
+        });
+    }
+
+    const porCiclo = new Map<string, { numero: number; prazoAtual: string; diasAtraso: number }>();
+    if (ciclos.length) {
+      const linhas = await tx.execute<{
+        id: string;
+        numero: number;
+        prazo_atual: string;
+        atraso: number;
+      }>(sql`
+        select id, numero, to_char(coalesce(segunda_chance_ate, prazo), 'YYYY-MM-DD') as prazo_atual,
+          greatest(${hoje}::date - coalesce(segunda_chance_ate, prazo), 0) as atraso
+        from mentoria_ciclos where id = any(${sql.param(ciclos)}::uuid[])`);
+      for (const l of linhas)
+        porCiclo.set(l.id, { numero: l.numero, prazoAtual: l.prazo_atual, diasAtraso: l.atraso });
+    }
+
+    const porSemaforo = new Map<string, NonNullable<FilaItemDTO['semaforo']>>();
+    if (semaforos.length) {
+      const linhas = await tx.execute<{
+        inscricao_id: string;
+        cor: SemaforoCor;
+        motivos: SemaforoMotivo[];
+      }>(sql`
+        select inscricao_id, cor, motivos from mentoria_semaforo_lote(${hoje}::date)
+        where inscricao_id = any(${sql.param(semaforos)}::uuid[])`);
+      for (const l of linhas) porSemaforo.set(l.inscricao_id, { cor: l.cor, motivos: l.motivos });
+    }
+
     const pessoasIds = ids((i) => i.responsavelId);
     const nomes = new Map<string, string>();
     if (pessoasIds.length) {
@@ -218,6 +300,11 @@ export class FilaService {
       etapa: i.referenciaId ? (porEtapa.get(i.referenciaId) ?? null) : null,
       reuniao: i.referenciaId ? (porReuniao.get(i.referenciaId) ?? null) : null,
       acao: i.referenciaId ? (porAcao.get(i.referenciaId) ?? null) : null,
+      tarefa:
+        i.tipo === 'COBRANCA' && i.referenciaId ? (porTarefa.get(i.referenciaId) ?? null) : null,
+      semaforo:
+        i.tipo === 'SEMAFORO' && i.inscricaoId ? (porSemaforo.get(i.inscricaoId) ?? null) : null,
+      ciclo: cicloDoItem(i, porCiclo),
     }));
   }
 

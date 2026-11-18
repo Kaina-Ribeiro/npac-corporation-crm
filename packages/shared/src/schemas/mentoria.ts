@@ -14,13 +14,13 @@ import {
 } from '../mentoria/enums.js';
 import { STATUS_IMPORTACAO } from '../mentoria/importacao.js';
 import { linkPermitido } from '../mentoria/links.js';
-import { FILA_TIPOS } from '../mentoria/fila.js';
+import { DEGRAUS_ATRASO, FILA_TIPOS } from '../mentoria/fila.js';
 import { MOMENTOS_MENSAGEM } from '../mentoria/mensagens.js';
 import { ENVIO_STATUS } from '../mentoria/onboarding.js';
 import { ACAO_STATUS, GATILHOS, PERFIS_ACAO, REUNIAO_TIPOS } from '../mentoria/plano.js';
 import { PILARES } from '../mentoria/metas.js';
 import { META_STATUS, SEMAFORO_CORES } from '../mentoria/semaforo.js';
-import { TAREFA_STATUS } from '../mentoria/pmes.js';
+import { CICLO_STATUS, TAREFA_STATUS } from '../mentoria/pmes.js';
 import {
   CANAIS_CONTATO,
   dataHoraValida,
@@ -481,8 +481,15 @@ export const contatoSchema = z
     respondeu: opc(z.boolean()),
     tempoRespostaMin: opc(z.number().int().min(0).max(100_000)),
     observacao: texto(20_000),
+    /** Contato de um degrau da escada de atraso do PME (E20): o ciclo aberto e o degrau. */
+    cicloId: opc(z.uuid()),
+    degrau: opc(z.literal(DEGRAUS_ATRASO)),
   })
-  .strict();
+  .strict()
+  .refine((b) => !b.degrau === !b.cicloId, {
+    message: 'Informe o PME e o degrau juntos',
+    path: ['degrau'],
+  });
 export type ContatoCriar = z.output<typeof contatoSchema>;
 
 export const filaSchema = z
@@ -527,6 +534,16 @@ export const exportarSchema = z
   })
   .strict();
 export type Exportar = z.output<typeof exportarSchema>;
+
+/** Aba 7 "PMEs e ciclos" (E22): filtro por número do PME e status do ciclo. */
+export const PMES_CICLOS_STATUS = [...CICLO_STATUS, 'SEM_PME'] as const;
+export const pmesCiclosSchema = z
+  .object({
+    numero: z.number().int().min(1).max(12).optional(),
+    status: z.enum(PMES_CICLOS_STATUS).optional(),
+  })
+  .strict();
+export type PmesCiclosFiltro = z.output<typeof pmesCiclosSchema>;
 
 export const transferirCarteiraSchema = z
   .object({ de: z.string().min(1).max(100), para: z.string().min(1).max(100) })
