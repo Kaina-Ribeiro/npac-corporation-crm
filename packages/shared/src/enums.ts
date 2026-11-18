@@ -18,6 +18,17 @@ export const MFA_LIGADO = false as boolean;
 export const hasCommercialAccess = (role: Role) => role !== 'ACOMPANHAMENTO';
 
 /**
+ * Tela de entrada (NPAC-51): `/login` é a do comercial, `/login/acompanhamento` a do módulo. O
+ * pedido de acesso guarda de qual veio (`access_requests.area`) e o login leva à área da tela.
+ */
+export const ACCESS_AREAS = ['COMERCIAL', 'ACOMPANHAMENTO'] as const;
+export type AccessArea = (typeof ACCESS_AREAS)[number];
+export const ACCESS_AREA_LABELS: Record<AccessArea, string> = {
+  COMERCIAL: 'Comercial',
+  ACOMPANHAMENTO: 'Acompanhamento',
+};
+
+/**
  * Perfis do lead. DESCOBRINDO (Igor, 10/11/2026, "1C"): renda ainda desconhecida; vira P0/P1/P2
  * quando o SDR troca a faixa. Nas telas, sempre por `TIER_LABELS`.
  */
