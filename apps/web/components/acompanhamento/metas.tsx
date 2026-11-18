@@ -1,5 +1,7 @@
 'use client';
 import {
+  META_STATUS,
+  META_STATUS_LABEL,
   nomePme,
   PILAR_LABEL,
   PILARES,
@@ -96,6 +98,11 @@ function MetaItem({
           )}
         </div>
         <div className="mt-chips">
+          {m.status && (
+            <span className={`tag ${m.status === 'ATINGIDA' ? 'ativo' : ''}`}>
+              {META_STATUS_LABEL[m.status]}
+            </span>
+          )}
           {m.pilar && <span>{PILAR_LABEL[m.pilar]}</span>}
           {de && <span>De {de}</span>}
           {m.prazo && <span>Até {dataBR(m.prazo)}</span>}
@@ -183,6 +190,14 @@ function MetaItem({
           placeholder="kg, R$, livros"
         />
         <CampoPr chave={chave} rotulo="Prazo" campo="prazo" valor={m.prazo} tipo="date" />
+        <CampoPr
+          chave={chave}
+          rotulo="Status"
+          campo="status"
+          valor={m.status ?? ''}
+          tipo="select"
+          opcoes={META_STATUS.map((s) => ({ valor: s, rotulo: META_STATUS_LABEL[s] }))}
+        />
       </div>
       {m.pct !== null && <BarraMeta m={m} />}
       <div className="mt-pe">
@@ -327,8 +342,8 @@ function NovaMeta({
 }
 
 /**
- * Metas (Parte 2): lista e meta nova, as mais recentes primeiro. O status da meta (spec S3) e a
- * exclusão esperam decisão do Gabriel; até lá a lista é uma só.
+ * Metas (Parte 2): lista e meta nova, as mais recentes primeiro. Status da meta (E10, Parte 3) na
+ * edição; a exclusão não está na spec.
  */
 export function Metas({
   inscricaoId,
