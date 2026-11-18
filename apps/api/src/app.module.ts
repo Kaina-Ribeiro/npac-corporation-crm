@@ -17,12 +17,14 @@ import { AdminModule } from './admin/admin.module.js';
 import { MentoriaModule } from './mentoria/mentoria.module.js';
 import { PushModule } from './push/push.module.js';
 import { FormsModule } from './forms/forms.module.js';
+import { MailModule } from './mail/mail.module.js';
 
 @Module({
   imports: [
     LoggerModule.forRoot({ pinoHttp: loggerOptions }),
     DbModule,
     PushModule,
+    MailModule,
     AuditModule,
     AuthModule,
     LeadsModule,

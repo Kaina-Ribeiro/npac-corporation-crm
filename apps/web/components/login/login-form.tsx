@@ -3,25 +3,13 @@ import Link from 'next/link';
 import { useRef, useState, type FormEvent } from 'react';
 import { authClient } from '@/lib/auth-client';
 import { submitWhenComplete } from '@/lib/otp-input';
-import { LAST_USER_COOKIE } from '@/lib/last-user';
-
-/**
- * Último usuário que entrou neste aparelho, para sugerir no campo. Fica num cookie restrito a
- * /login (não vai em nenhuma outra requisição) e fora do localStorage, como o resto do CRM.
- */
-function rememberUser(username: string) {
-  const secure = window.location.protocol === 'https:' ? '; Secure' : '';
-  document.cookie = `${LAST_USER_COOKIE}=${encodeURIComponent(username)}; Path=/login; Max-Age=31536000; SameSite=Lax${secure}`;
-}
-function forgetUser() {
-  document.cookie = `${LAST_USER_COOKIE}=; Path=/login; Max-Age=0; SameSite=Lax`;
-}
+import { forgetUser, rememberUser } from '@/lib/last-user';
+import { SubmitButton } from './submit-button';
 
 const GENERIC_ERROR = 'Usuário ou senha inválidos';
 
 /** Login em dois passos: usuário + senha, depois o código do autenticador (se exigido). */
 export function LoginForm({ lastUser }: { lastUser?: string }) {
-  const [hint, setHint] = useState(false);
   const [remembered, setRemembered] = useState(lastUser);
   const [suggest, setSuggest] = useState(false);
   const userRef = useRef<HTMLInputElement>(null);
@@ -132,13 +120,9 @@ export function LoginForm({ lastUser }: { lastUser?: string }) {
 
   return (
     <form key="password" className="flex flex-col gap-4" aria-label="Login" onSubmit={onPassword}>
-      <h2 className="text-[28px] font-bold tracking-[-0.035em]">
-        {hint ? 'Esqueci minha senha' : 'Bem-vindo de volta'}
-      </h2>
+      <h2 className="text-[28px] font-bold tracking-[-0.035em]">Bem-vindo de volta</h2>
       <p className="-mt-2 mb-1 text-[15px] text-[#333336]">
-        {hint
-          ? 'A liderança redefine a sua senha. Depois, entre com o seu usuário e a senha nova.'
-          : 'Entre com o seu usuário da NPAC e a sua senha.'}
+        Entre com o seu usuário da NPAC e a sua senha.
       </p>
       <div className="flex flex-col gap-2">
         <label htmlFor="username" className="text-[13px] font-semibold text-ink">
@@ -223,20 +207,12 @@ export function LoginForm({ lastUser }: { lastUser?: string }) {
         </p>
       )}
       <div className="-mt-1 text-sm">
-        <button
-          type="button"
-          aria-expanded={hint}
-          aria-controls="password-hint"
-          onClick={() => setHint((v) => !v)}
-          className="min-h-8 font-medium text-[#333336] underline-offset-2 hover:underline"
+        <Link
+          href="/login/esqueci"
+          className="inline-flex min-h-8 items-center font-medium text-[#333336] underline-offset-2 hover:underline"
         >
           Esqueci minha senha
-        </button>
-        {hint && (
-          <p id="password-hint" role="status" className="mt-1 text-ink">
-            Peça para a liderança redefinir a sua senha em Admin.
-          </p>
-        )}
+        </Link>
       </div>
       <SubmitButton busy={busy} pending="Entrando…">
         Login
@@ -254,34 +230,6 @@ export function LoginForm({ lastUser }: { lastUser?: string }) {
         </Link>
       </p>
     </form>
-  );
-}
-
-/** Botão de envio com estado de espera: desabilitado, spinner e texto de progresso. */
-function SubmitButton({
-  busy,
-  pending,
-  children,
-}: {
-  busy: boolean;
-  pending: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      className="btn-dark inline-flex items-center justify-center gap-2.5"
-      type="submit"
-      disabled={busy}
-      aria-busy={busy}
-    >
-      {busy && (
-        <span
-          aria-hidden="true"
-          className="size-4 animate-spin rounded-full border-2 border-white/30 border-t-white"
-        />
-      )}
-      {busy ? pending : children}
-    </button>
   );
 }
 

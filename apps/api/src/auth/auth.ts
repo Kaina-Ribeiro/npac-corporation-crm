@@ -10,6 +10,8 @@ import { USERNAME_ERROR_CODES, username } from 'better-auth/plugins/username';
 import { eq } from 'drizzle-orm';
 import type { AuditService } from '../audit/audit.service.js';
 import type { Env } from '../config/env.js';
+import type { MailSender } from '../mail/mail.js';
+import { FORGOT_PATH, RESET_PATH, passwordResetPlugin } from './password-reset.js';
 import { REQUEST_ACCESS_PATH, requestAccessPlugin } from './request-access.js';
 
 // Login é por usuário + senha; o login por e-mail fica desligado (disabledPaths).
@@ -101,7 +103,7 @@ function auditPlugin(db: Db, audit: AuditService): BetterAuthPlugin {
 const mfaPlugin = twoFactor({ issuer: 'NPAC Corporation' });
 const mfa = MFA_LIGADO ? mfaPlugin : { ...mfaPlugin, hooks: { after: [] } };
 
-export function createAuth(db: Db, env: Env, audit: AuditService) {
+export function createAuth(db: Db, env: Env, audit: AuditService, mail: MailSender) {
   return betterAuth({
     appName: 'NPAC Corporation',
     // Falhas de login já vão para a auditoria; nos testes o log do Better Auth só polui.
@@ -131,12 +133,19 @@ export function createAuth(db: Db, env: Env, audit: AuditService) {
         verify: ({ hash: h, password }) => verify(h, password),
       },
     },
-    // Sem /is-username-available: não deixa descobrir quem tem conta.
-    disabledPaths: ['/sign-in/email', '/is-username-available'],
+    // Sem /is-username-available: não deixa descobrir quem tem conta. A redefinição de senha do
+    // próprio Better Auth (só por e-mail, sem o limite por conta) dá lugar à de password-reset.ts.
+    disabledPaths: [
+      '/sign-in/email',
+      '/is-username-available',
+      '/request-password-reset',
+      '/reset-password',
+    ],
     plugins: [
       username({ minUsernameLength: 3, maxUsernameLength: 30 }),
       mfa,
       requestAccessPlugin(db, audit),
+      passwordResetPlugin(db, audit, mail, env.WEB_ORIGIN),
       auditPlugin(db, audit),
     ],
     // 30 dias logado (cookie persistente); renova a validade uma vez por dia de uso.
@@ -150,6 +159,9 @@ export function createAuth(db: Db, env: Env, audit: AuditService) {
         // `false` desliga só esta rota; o pedido de acesso abaixo continua limitado.
         [SIGN_IN]: false,
         [REQUEST_ACCESS_PATH]: { window: 3600, max: 3 },
+        // "Esqueci minha senha": 3 por hora por IP (a conta tem o mesmo limite em password-reset.ts).
+        [FORGOT_PATH]: { window: 3600, max: 3 },
+        [RESET_PATH]: { window: 600, max: 10 },
       },
     },
     user: {
