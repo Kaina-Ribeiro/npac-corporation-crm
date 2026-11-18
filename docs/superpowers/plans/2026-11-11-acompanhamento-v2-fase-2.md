@@ -27,8 +27,8 @@ da Fase 1 (`docs/superpowers/plans/2026-11-10-acompanhamento-v2-design.md`) e o 
 | 1 | Catálogo de PMEs, ciclos e tarefas do ciclo (envio, extras, encerramento, status derivado) + Configurações > PMEs + card "PME atual" na ficha | ✅ 11/11 (PR na `release/v0.14`) |
 | 2 | Metas, tarefas da reunião (até 3, prazo), cobrança da reunião anterior, % do PME (tarefas e metas) | ✅ 12/11 (sem S1/S3/S4; PR na `release/v0.15`) |
 | 3 | Check-ins lançados pela equipe, semáforo (função, histórico semanal, sequência), colunas em Mentorados, status da meta, segunda chance manual | ✅ 18/11 (PR na `release/v0.18`; pendências na seção da parte) |
-| 4 | Fila (COBRANCA, SEMAFORO, ENVIAR_PME, PME_ATRASADO, FIM_PME espera o ciclo), push, aba 7 "PMEs e ciclos", CSV, fechamento | ⏳ |
-| 5 | Depois da Eduarda: P1 da spec §9 (P2, P3 e S1 respondidas em 18/11, entraram na Parte 3) | aguardando P1 |
+| 4 | Fila (COBRANCA, SEMAFORO, ENVIAR_PME, PME_ATRASADO, FIM_PME espera o ciclo), push, aba 7 "PMEs e ciclos", CSV, fechamento | ✅ 18/11 (PR na `release/v0.18`; pendências na seção da parte) |
+| 5 | Depois da Eduarda: P1 da spec §9 e as pendências das Partes 2 a 4 (lista na seção "Parte 5") | aguardando a Eduarda |
 
 ## Parte 1 — PMEs e ciclos
 
@@ -358,34 +358,52 @@ contada do prazo atual), FIM_PME espera o ciclo (3A, mês 2 com teto de 15 dias)
   do menu. Cada linha leva à ficha.
 - **CSV de Mentorados** ganha "PME atual", "Status do PME" e "Semáforo" (sem textos cifrados).
 
-### Tarefa 4.1: Banco (0070) — Status: ⏳
+### Tarefa 4.1: Banco (0070) — Status: ✅
 **Files:** Modify `db/src/schema/mentoria.ts` · Create `db/drizzle/0070_acompanhamento_v2_fila_cobranca.sql` + snapshot + journal ·
-Test `db/test/fila-equivalencia.test.ts`, `db/test/mentoria-v2-fila-cobranca.test.ts`
+Test `db/test/fila-equivalencia.test.ts` (o contato do degrau entrou nele, sem arquivo à parte)
 - `mentoria_contatos` + `ciclo_id` (FK SET NULL), `degrau` (3, 7, 10, 15), `degrau_prazo`; gatilho: ciclo da mesma inscrição.
 - `mentoria_semaforo_lote_calc` (interna) e `mentoria_semaforo_lote` (Admin/Acompanhamento/Operação); `mentoria_acao_data`.
 - `mentoria_fila` refeita (4 tipos novos + ACAO com a data do ciclo); `mentoria_avisos_candidatos` refeita (COBRANCA,
   SEMAFORO vermelho, PME_ATRASADO, ACAO com a data do ciclo).
-- [ ] Testes: equivalência com a 0053 nos tipos antigos (sem ciclo, e com ciclo fora das FIM_PME); lote = calc por inscrição em
-  vários dias; RLS do contato com degrau; continua INVOKER/STABLE.
+- [x] Testes: equivalência com a 0053 nos tipos antigos (sem ciclo, e com ciclo fora das FIM_PME); lote = calc por inscrição em
+  vários dias; SEMAFORO = fora do verde da 0069 menos o visto, só para quem vê o semáforo; Especialista só cobra as dela; contato
+  do degrau (prazo atual, outro mentorado recusado); continua INVOKER/STABLE. `@npac/db`: 314 testes verdes.
+- Push: os destinatários dos itens novos são lidos uma vez (`pf`/`resp` em `mentoria_avisos_candidatos`), sem
+  `mentoria_destinatarios` por linha (215 → 163 ms no `npac_e2e_perf`; 143 ms antes da Parte 4).
 
-### Tarefa 4.2: API — Status: ⏳
+### Tarefa 4.2: API — Status: ✅
 **Files:** Modify `sh/mentoria/fila.ts`, `sh/schemas/mentoria.ts`, `sh/mentoria/dto.ts`, `fila.service.ts`, `reunioes.service.ts`
 (contato do degrau), `avisos.scheduler.ts`, `exportacao.controller.ts`, `mentoria.module.ts` · Create `pmes-ciclos.controller.ts` ·
 Test `api/test/mentoria-v2-fila-cobranca.e2e.test.ts`
-- [ ] Testes (relógio e push falsos): cada tipo novo entra e sai; push 1x (cobrança no dia, vermelho por semana, cada degrau);
+- [x] Testes (relógio e push falsos): cada tipo novo entra e sai; push 1x (cobrança no dia, vermelho por semana, cada degrau);
   degraus pelo prazo atual e recomeço com segunda chance; FIM_PME espera, usa o encerramento, mês 2 com teto de 15; pausado
-  fora; Especialista só nas dela; aba 7 por perfil e filtros; CSV com as colunas novas.
+  fora; Especialista só nas dela; aba 7 por perfil e filtros; CSV com as colunas novas (16 testes). `@npac/api`: 672 verdes
+  (+1 pulado); o teste antigo "escrita do módulo rearma o despertador" passou a usar o link das 6h30, antes do despertar das 8h.
+- Os testes da API aceitam `API_TEST_DB` (outra worktree rodando a suíte no `npac_test_api` dava 401 falso).
 
-### Tarefa 4.3: Telas — Status: ⏳
+### Tarefa 4.3: Telas — Status: ✅
 **Files:** Modify `components/acompanhamento/fila.tsx`, `shell/nav-menu.tsx`, `acompanhamento/mais/page.tsx`,
 `em-breve/[aba]/page.tsx`, `lib/acompanhamento-prefs.ts`, `modulo.css` · Create `app/(app)/acompanhamento/pmes/page.tsx`,
 `components/acompanhamento/pmes-ciclos.tsx`, `web/e2e/acompanhamento-v2-fila-cobranca.spec.ts`
-- [ ] Playwright: Duda cobra e registra o contato do degrau; Operação registra o envio pela Fila e vê a aba 7; Manu sem aba 7 e
-  com a cobrança das reuniões dela. Capturas 375/768/1024/1440.
+- [x] Playwright: Duda cobra, marca "visto" e registra o contato do degrau; Operação registra o envio pela Fila e vê a aba 7; Manu
+  sem aba 7 (menu e 404) e com a cobrança das reuniões dela. Capturas 375/768/1024/1440 (`test-results/fila-cobranca-*.png`).
+  `acompanhamento-v2-base`: a aba 7 saiu do "em breve" (`/acompanhamento/em-breve/pmes` redireciona).
 
-### Tarefa 4.4: Fechamento — Status: ⏳
-- [ ] lint, typecheck, `@npac/db`, `@npac/api`, `@npac/shared`, Playwright completo; medição da Fila no `npac_e2e_perf` antes e
-  depois; `CLAUDE.md`; Status das Partes; PR na `release/v0.18`.
+### Tarefa 4.4: Fechamento — Status: ✅
+- [x] lint, typecheck, `@npac/db`, `@npac/api`, `@npac/shared` (273), Playwright completo; `CLAUDE.md`; Status das Partes; PR na
+  `release/v0.18`.
+- [x] Medição no `npac_e2e_perf` (364 inscrições + ciclos, tarefas e check-ins fictícios da Fase 2; mediana de 5,
+  `POST /api/mentoria/fila {"escopo":"EQUIPE"}`), mesma API, só trocando o corpo da `mentoria_fila`:
+
+  | Quem | Antes (0064) | Depois (0070) |
+  |---|---|---|
+  | diretor | 85 ms | 112–124 ms |
+  | duda | 79 ms | 107–112 ms |
+  | operacao | 90 ms | 101–106 ms |
+  | manu | 23 ms | 38–39 ms |
+
+  Só o SQL (duda, sob a RLS): 64 ms com 341 itens → 81 ms com 909 itens (568 itens novos: 341 cobranças, 81 degraus, 48
+  envios, semáforos). Fica longe da meta de 500 ms da Fase 6 do desempenho.
 
 **Pendências da Parte 4** (sem base no PDF, na spec ou nas respostas; o sistema faz o indicado, sem decidir a regra):
 1. **Degrau não registrado:** a Fila mostra só o degrau mais alto; o de 3 dias sem contato some quando chegam os 7. Mostrar todos?
@@ -399,4 +417,12 @@ Test `api/test/mentoria-v2-fila-cobranca.e2e.test.ts`
 
 ## Parte 5 — Respostas da Eduarda
 
-Aplicar P1, P2 e P3 conforme a spec §9 quando ela responder. Cada uma é pequena e isolada.
+Fase 2 entregue nas Partes 1 a 4. Fica com a Eduarda (nada disso entra até ela responder; cada item é pequeno e isolado):
+1. **P1** (spec §9): a opção que falta na situação do pagamento.
+2. Da Parte 2: % de metas num número único; exclusão de tarefa ou meta lançada por engano; prazo da tarefa antes da reunião;
+   tarefa e meta em reunião com falta ou remarcada; meta sem PME aberto; nome do texto livre "Metas definidas ou ajustadas".
+3. Da Parte 3: pausa e semáforo; só tarefas da reunião no semáforo; segunda chance mais de uma vez; Especialista sem semáforo;
+   histórico que congela a semana; a cor amarela.
+4. Da Parte 4: as 6 pendências da seção da parte (degrau não registrado, cobrança das tarefas do ciclo, FIM_PME com ciclo não
+   concluído, data do Plano nas FIM_PME, vermelho semanal, aba 7 só ATIVO).
+5. Pausa estica o prazo do PME? (aberta desde a Parte 1).
