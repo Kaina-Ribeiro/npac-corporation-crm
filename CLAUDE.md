@@ -184,6 +184,13 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   cobranças do Hoje, `sale:register`) são do closer e da liderança; o SDR marca o resultado da reunião
   e, depois dela, a venda só com o produto (NPAC-48, abaixo em "Marcar venda"). A renda extra do SDR
   (`saleBonus`) é renda dele, não R$ de venda: o SDR vê só a dele; a liderança vê a de todos.
+  **Vendas na visão do SDR** (NPAC-51, Igor 18/11/2026, "1A"): para o papel SDR a venda conta assim que
+  ele marca, na data da marcação, sem esperar o closer pôr o valor (`sdrSales` em `reports.service.ts`
+  troca `metrics.sales` e a coluna Vendas de Por SDR/Por closer, Funil e Pré-vendas). Uma por lead:
+  marcação ativa vale pela venda dela; venda registrada sem marcação conta no dia da venda. Closer =
+  o da reunião da marcação. Liderança e closer seguem contando só a venda registrada (`deals`).
+  Relatórios do SDR mostra o card "Valor a receber por venda feita"; o resumo copiado e o CSV do
+  período levam Vendas e esse valor.
 - Login por **usuário** (`/sign-in/username`, `[a-z0-9_.]{3,30}`, minúsculo); login por e-mail e
   `/is-username-available` desligados. Senha mínima 3 (provisório, decisão de 29/10/2026: no dev
   todas são `123`; as regras voltam no fim).

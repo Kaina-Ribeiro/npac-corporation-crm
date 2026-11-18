@@ -245,6 +245,55 @@ async function sdrSaleBonus(tx: Tx, sdrId: string | null, start: Date, end: Date
   };
 }
 
+type SoldRow = { kind: 'sdr' | 'closer'; id: string; name: string; sales: number };
+
+/**
+ * Vendas na visão do SDR (NPAC-51, Igor 18/11/2026, "1A"): a venda conta assim que ele marca, na
+ * data da marcação, sem esperar o closer pôr o valor. Uma por lead: a marcação ativa vale pela
+ * venda dela; venda registrada sem marcação conta no dia da venda, como antes. O closer é o da
+ * reunião da marcação (o da venda, na registrada). Mesmos filtros do relatório.
+ */
+async function sdrSales(tx: Tx, q: ReportQuery, start: Date, end: Date) {
+  const s = start.toISOString();
+  const e = end.toISOString();
+  const sdr = q.sdrId ?? null;
+  const closer = q.closerId ?? null;
+  const product = q.productId ?? null;
+  const rows = await tx.execute<Record<string, unknown>>(
+    sql`with scope as(select l.id from leads l join pipeline_stages s on s.id=l.stage_id where ${scope(q)}),
+    sold as(
+      select k.sdr_id,m.closer_id from sdr_sale_marks k join meetings m on m.id=k.meeting_id
+        where k.canceled_at is null and k.marked_at>=${s} and k.marked_at<${e} and k.lead_id in(select id from scope)
+          and (${sdr}::text is null or k.sdr_id=${sdr}) and (${closer}::text is null or m.closer_id=${closer}) and (${product}::uuid is null or k.product_id=${product}::uuid)
+      union all
+      select d.sdr_id,d.closer_id from deals d
+        where d.reversed_at is null and d.closed_at>=${s} and d.closed_at<${e} and d.lead_id in(select id from scope)
+          and (${sdr}::text is null or d.sdr_id=${sdr}) and (${closer}::text is null or d.closer_id=${closer}) and (${product}::uuid is null or d.product_id=${product}::uuid)
+          and not exists(select 1 from sdr_sale_marks k where k.lead_id=d.lead_id and k.canceled_at is null))
+    select 'sdr' as kind,u.id,u.name,count(*) as sales from sold x join "user" u on u.id=x.sdr_id group by u.id,u.name
+    union all
+    select 'closer',u.id,u.name,count(*) from sold x join "user" u on u.id=x.closer_id group by u.id,u.name
+    order by 1,3`,
+  );
+  return rows.map((r) => ({ ...r, sales: Number(r.sales) })) as SoldRow[];
+}
+
+/** Troca a contagem de vendas das linhas pela do SDR; quem só aparece pela venda ganha a linha. */
+function withSdrSales<T extends Record<string, unknown>>(
+  rows: T[],
+  sold: SoldRow[],
+  empty: Record<string, number>,
+) {
+  const count = new Map(sold.map((r) => [r.id, r.sales]));
+  const known = new Set(rows.map((r) => r.id));
+  return [
+    ...rows.map((r) => ({ ...r, sales: count.get(r.id as string) ?? 0 })),
+    ...sold
+      .filter((r) => !known.has(r.id))
+      .map((r) => ({ id: r.id, name: r.name, ...empty, sales: r.sales }) as unknown as T),
+  ];
+}
+
 @Injectable()
 export class ReportsService {
   constructor(
@@ -287,6 +336,7 @@ export class ReportsService {
             : isLeader(u.role)
               ? await sdrSaleBonus(tx, q.sdrId ?? null, start, end, true)
               : undefined;
+        const sold = u.role === 'SDR' ? await sdrSales(tx, q, start, end) : undefined;
         const rows = await tx.execute<{ id: string; name: string; stage: string; tier: string }>(
           sql`select l.id,l.name,s.label as stage,l.tier from leads l join pipeline_stages s on s.id=l.stage_id where ${scope(q)} and l.created_at>=${start.toISOString()} and l.created_at<${end.toISOString()} order by l.created_at desc,l.id limit ${q.pageSize ?? 20} offset ${((q.page ?? 1) - 1) * (q.pageSize ?? 20)}`,
         );
@@ -314,6 +364,7 @@ export class ReportsService {
           from: start.toISOString(),
           to: end.toISOString(),
           saleBonus,
+          sold,
         };
       },
       { isolationLevel: 'repeatable read' },
@@ -325,18 +376,41 @@ export class ReportsService {
         entityType: 'report',
         data: { ids: result.leads.map((r) => r.id) },
       });
-    const { saleBonus, ...rest } = result;
+    const { saleBonus, sold, ...rest } = result;
     // Renda extra (NPAC-48): o SDR vê a dele e a liderança a de todos; o closer não recebe.
     if (isLeader(u.role)) return { ...rest, saleBonus };
-    if (u.role !== 'SDR') return rest;
+    if (u.role !== 'SDR' || !sold) return rest;
+    // Vendas do SDR (NPAC-51, "1A"): contam ao marcar; liderança e closer, só a venda registrada.
+    const sdrRows = sold.filter((r) => r.kind === 'sdr');
+    const closerRows = sold.filter((r) => r.kind === 'closer');
+    const metrics: Record<string, unknown> = {
+      ...rest.metrics,
+      sales: sdrRows.reduce((a, r) => a + r.sales, 0),
+    };
     return {
       ...rest,
-      metrics: dropSales(rest.metrics),
+      metrics: dropSales(metrics),
       byProduct: [],
       previousDaily: [],
       daily: rest.daily.map(dropSales),
-      bySdr: rest.bySdr.map(dropSales),
-      byCloser: rest.byCloser.map(dropSales),
+      bySdr: withSdrSales(rest.bySdr.map(dropSales), sdrRows, {
+        leads: 0,
+        p0: 0,
+        p1: 0,
+        p2: 0,
+        descobrindo: 0,
+        direct: 0,
+        follow: 0,
+        meetings: 0,
+        done: 0,
+        noShow: 0,
+      }),
+      byCloser: withSdrSales(rest.byCloser.map(dropSales), closerRows, {
+        meetings: 0,
+        done: 0,
+        noShow: 0,
+        noShowBps: 0,
+      }),
       saleBonus,
     };
   }
@@ -411,7 +485,11 @@ export class ReportsService {
     const day = (iso: string) =>
       new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo' }).format(new Date(iso));
     const lastDay = new Date(new Date(r.to).getTime() - 1).toISOString();
-    const m = r.metrics as Record<string, unknown>;
+    // No CSV do SDR entra o valor a receber pelas vendas que ele marcou (NPAC-51).
+    const m: Record<string, unknown> = {
+      ...r.metrics,
+      ...(u.role === 'SDR' && 'saleBonus' in r ? { saleBonusCents: r.saleBonus?.cents ?? 0 } : {}),
+    };
     const indicators: [string, string][] = [
       ['leads', 'Leads novos'],
       ['p0', 'P0'],
@@ -428,6 +506,7 @@ export class ReportsService {
       ['noShowBps', 'No-show (%)'],
       ['meetingValueCents', 'Valor por reuniões realizadas (R$)'],
       ['sales', 'Vendas'],
+      ['saleBonusCents', 'Valor por vendas feitas (R$)'],
       ['soldCents', 'Vendido (R$)'],
       ['receivedCents', 'Recebido no período (R$)'],
       ['outstandingCents', 'A receber das vendas do período (R$)'],
@@ -486,7 +565,8 @@ export class ReportsService {
     });
     if (u.role === 'SDR')
       return {
-        text: `NPAC Corporation\nLeads: ${m.leads}\nReuniões: ${m.meetings}\nReuniões realizadas: ${m.done}\nNo-show / Remarcados: ${Number(m.noShow) + Number(m.rescheduled)}\nValor a receber por reunião realizada: ${money(m.meetingValueCents)}`,
+        // Vendas do SDR (NPAC-51): as que ele marcou e o valor a receber por elas, nunca o R$ da venda.
+        text: `NPAC Corporation\nLeads: ${m.leads}\nReuniões: ${m.meetings}\nReuniões realizadas: ${m.done}\nNo-show / Remarcados: ${Number(m.noShow) + Number(m.rescheduled)}\nValor a receber por reunião realizada: ${money(m.meetingValueCents)}\nVendas: ${m.sales}\nValor a receber por venda feita: ${money(('saleBonus' in r && r.saleBonus?.cents) || 0)}`,
       };
     return {
       text: `NPAC Corporation\nLeads: ${m.leads}\nReuniões: ${m.meetings}\nVendas: ${m.sales}\nVendido: ${money(m.soldCents)}\nRecebido: ${money(m.receivedCents)}\nA receber das vendas do período: ${money(m.outstandingCents)}`,

@@ -423,3 +423,86 @@ describe('catálogo: renda extra por produto (Admin)', () => {
     ).toBe(403);
   });
 });
+
+// NPAC-51 (Igor, 18/11/2026, "1A"): para o SDR, "Vendas" conta assim que ele marca a venda, na data
+// da marcação, sem esperar o closer pôr o valor. Uma por lead; a liderança e o closer seguem contando
+// só a venda registrada.
+describe('para o SDR a venda conta ao marcar (1A)', () => {
+  const row = (rows: { id: string; sales: number }[], id: string) => rows.find((r) => r.id === id);
+
+  it('venda marcada, ainda a registrar, já conta em Vendas do SDR e na linha do closer da reunião', async () => {
+    const id = await leadWithMeeting();
+    await mark(id, promo);
+    const sdr = (await dashboard()).body;
+    expect(sdr.metrics.sales).toBe(1);
+    expect(row(sdr.bySdr, ids.ale)?.sales).toBe(1);
+    expect(row(sdr.byCloser, ids.sonia)?.sales).toBe(1);
+    // Liderança e closer: só a venda registrada com valor.
+    expect((await dashboard(ronaldo)).body.metrics.sales).toBe(0);
+    expect((await dashboard(sonia)).body.metrics.sales).toBe(0);
+  });
+
+  it('o closer registra depois: continua uma venda, não duas', async () => {
+    const id = await leadWithMeeting();
+    await mark(id);
+    expect((await register(id)).status).toBe(201);
+    const sdr = (await dashboard()).body;
+    expect(sdr.metrics.sales).toBe(1);
+    expect(row(sdr.bySdr, ids.ale)?.sales).toBe(1);
+    expect(row(sdr.byCloser, ids.sonia)?.sales).toBe(1);
+    expect((await dashboard(ronaldo)).body.metrics.sales).toBe(1);
+  });
+
+  it('marcada ontem e registrada hoje: conta ontem (data da marcação), não hoje', async () => {
+    const id = await leadWithMeeting();
+    await mark(id);
+    await owner`update sdr_sale_marks set marked_at = now() - interval '1 day' where lead_id = ${id}`;
+    await register(id);
+    expect((await dashboard()).body.metrics.sales).toBe(0);
+    const yesterday = spDay(new Date(Date.now() - DAY));
+    const res = await h.post(
+      '/api/reports/search',
+      { period: 'RANGE', from: yesterday, to: yesterday },
+      ale,
+    );
+    expect(res.body.metrics.sales).toBe(1);
+    // Sem reunião nem lead novo ontem, a linha do SDR e a do closer aparecem só pela venda.
+    expect(row(res.body.bySdr, ids.ale)?.sales).toBe(1);
+    expect(row(res.body.byCloser, ids.sonia)?.sales).toBe(1);
+  });
+
+  it('venda que o closer registra sem marcação segue contando para o SDR do lead', async () => {
+    const id = await leadWithMeeting();
+    expect((await register(id)).status).toBe(201);
+    const sdr = (await dashboard()).body;
+    expect(sdr.metrics.sales).toBe(1);
+    expect(sdr.saleBonus.count).toBe(0);
+  });
+
+  it('lead sai da Venda: deixa de contar', async () => {
+    const id = await leadWithMeeting();
+    await mark(id);
+    const res = await h.patch(
+      `/api/leads/${id}`,
+      { version: await version(id), stageKey: 'EM_FOLLOW' },
+      ale,
+    );
+    expect(res.status, res.text).toBe(200);
+    const sdr = (await dashboard()).body;
+    expect(sdr.metrics.sales).toBe(0);
+    expect(row(sdr.bySdr, ids.ale)?.sales).toBe(0);
+  });
+
+  it('resumo copiado e CSV do período do SDR trazem as vendas e o valor por venda feita, sem R$ da venda', async () => {
+    await mark(await leadWithMeeting(), promo);
+    const summary = await h.post('/api/reports/summary', { period: 'TODAY' }, ale);
+    expect(summary.body.text).toContain('Vendas: 1');
+    expect(summary.body.text).toMatch(/Valor a receber por venda feita: R\$\s5,00/);
+    expect(summary.body.text).not.toContain('Vendido');
+    const csv = await h.post('/api/reports/export', { period: 'TODAY' }, ale);
+    expect(csv.status).toBe(200);
+    expect(csv.text).toContain('"Vendas";"1"');
+    expect(csv.text).toContain('"Valor por vendas feitas (R$)";"5,00"');
+    expect(csv.text).not.toContain('Vendido');
+  });
+});
