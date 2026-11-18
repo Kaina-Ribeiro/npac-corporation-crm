@@ -144,7 +144,7 @@ export function ReuniaoRegistro({
           </Link>
         </p>
         <div className="fh-tags">
-          <span className="tag gold">{r.mentoria}</span>
+          <span className="tag">{r.mentoria}</span>
           <TagReuniao status={r.status} />
           <IndicadorSalvo />
         </div>

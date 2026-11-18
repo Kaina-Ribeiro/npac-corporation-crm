@@ -91,7 +91,7 @@ export function LoginForm({ lastUser }: { lastUser?: string }) {
       >
         <button
           type="button"
-          className="flex min-h-8 items-center gap-1 self-start text-sm text-[#515154]"
+          className="flex min-h-8 items-center gap-1 self-start text-sm text-[#333336]"
           onClick={() => {
             setStep('password');
             setError(null);
@@ -100,10 +100,10 @@ export function LoginForm({ lastUser }: { lastUser?: string }) {
           ‹ Voltar
         </button>
         <h2 className="text-[28px] font-bold tracking-[-0.035em]">Confirme que é você</h2>
-        <p className="-mt-2 mb-1 text-[15px] text-[#515154]">
+        <p className="-mt-2 mb-1 text-[15px] text-[#333336]">
           Digite o código de 6 dígitos do seu app autenticador.
         </p>
-        <label className="flex flex-col gap-2 text-[13px] font-semibold text-[#3a3a3c]">
+        <label className="flex flex-col gap-2 text-[13px] font-semibold text-ink">
           Código
           <input
             name="code"
@@ -135,13 +135,13 @@ export function LoginForm({ lastUser }: { lastUser?: string }) {
       <h2 className="text-[28px] font-bold tracking-[-0.035em]">
         {hint ? 'Esqueci minha senha' : 'Bem-vindo de volta'}
       </h2>
-      <p className="-mt-2 mb-1 text-[15px] text-[#515154]">
+      <p className="-mt-2 mb-1 text-[15px] text-[#333336]">
         {hint
           ? 'A liderança redefine a sua senha. Depois, entre com o seu usuário e a senha nova.'
           : 'Entre com o seu usuário da NPAC e a sua senha.'}
       </p>
       <div className="flex flex-col gap-2">
-        <label htmlFor="username" className="text-[13px] font-semibold text-[#3a3a3c]">
+        <label htmlFor="username" className="text-[13px] font-semibold text-ink">
           Usuário
         </label>
         <div className="relative">
@@ -197,7 +197,7 @@ export function LoginForm({ lastUser }: { lastUser?: string }) {
                   forgetUser();
                   setRemembered(undefined);
                 }}
-                className="grid size-9 flex-none place-items-center rounded-xl text-lg text-[#515154] hover:bg-black/5"
+                className="grid size-9 flex-none place-items-center rounded-xl text-lg text-[#333336] hover:bg-black/5"
               >
                 ×
               </button>
@@ -205,7 +205,7 @@ export function LoginForm({ lastUser }: { lastUser?: string }) {
           )}
         </div>
       </div>
-      <label className="flex flex-col gap-2 text-[13px] font-semibold text-[#3a3a3c]">
+      <label className="flex flex-col gap-2 text-[13px] font-semibold text-ink">
         Senha
         <input
           ref={passwordRef}
@@ -228,12 +228,12 @@ export function LoginForm({ lastUser }: { lastUser?: string }) {
           aria-expanded={hint}
           aria-controls="password-hint"
           onClick={() => setHint((v) => !v)}
-          className="min-h-8 font-medium text-[#515154] underline-offset-2 hover:underline"
+          className="min-h-8 font-medium text-[#333336] underline-offset-2 hover:underline"
         >
           Esqueci minha senha
         </button>
         {hint && (
-          <p id="password-hint" role="status" className="mt-1 text-[#3a3a3c]">
+          <p id="password-hint" role="status" className="mt-1 text-ink">
             Peça para a liderança redefinir a sua senha em Admin.
           </p>
         )}
@@ -244,7 +244,7 @@ export function LoginForm({ lastUser }: { lastUser?: string }) {
       <Note>
         Cada acesso é registrado. Quem ativou o autenticador confirma a entrada com o código do app.
       </Note>
-      <p className="-mt-1 text-center text-sm text-[#515154]">
+      <p className="-mt-1 text-center text-sm text-[#333336]">
         Não tem conta?{' '}
         <Link
           href="/login/solicitar"
@@ -287,7 +287,7 @@ function SubmitButton({
 
 function Note({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex items-start gap-2.5 border-t-[0.5px] border-[rgba(60,60,67,.2)] pt-3.5 text-xs leading-relaxed text-[#515154]">
+    <div className="flex items-start gap-2.5 border-t-[0.5px] border-[rgba(60,60,67,.2)] pt-3.5 text-xs leading-relaxed text-[#333336]">
       <svg
         viewBox="0 0 24 24"
         fill="none"

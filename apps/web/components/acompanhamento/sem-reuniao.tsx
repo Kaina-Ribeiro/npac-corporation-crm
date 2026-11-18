@@ -55,7 +55,7 @@ export function SemReuniaoTela({
                 </Link>
                 <div className="pl-meta">
                   <span className="tag canc">{l.dias} dias</span>
-                  <span className="tag gold">{l.mentoria}</span>
+                  <span className="tag">{l.mentoria}</span>
                   {podeAgendar && (
                     <Link
                       className={`${quietButton} sm`}

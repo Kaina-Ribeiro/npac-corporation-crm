@@ -42,7 +42,7 @@ export function RequestAccessForm() {
     return (
       <div className="flex flex-col gap-4" role="status">
         <h2 className="text-[28px] font-bold tracking-[-0.035em]">Pedido enviado.</h2>
-        <p className="-mt-2 text-[15px] text-[#515154]">
+        <p className="-mt-2 text-[15px] text-[#333336]">
           A liderança vai analisar e você entra com o usuário e a senha que escolheu.
         </p>
         <Link href="/login" className="btn-dark flex items-center justify-center">
@@ -56,12 +56,12 @@ export function RequestAccessForm() {
     <form className="flex flex-col gap-4" aria-label="Solicitar acesso" onSubmit={onSubmit}>
       <Link
         href="/login"
-        className="flex min-h-8 items-center gap-1 self-start text-sm text-[#515154]"
+        className="flex min-h-8 items-center gap-1 self-start text-sm text-[#333336]"
       >
         ‹ Voltar
       </Link>
       <h2 className="text-[28px] font-bold tracking-[-0.035em]">Solicitar acesso</h2>
-      <p className="-mt-2 mb-1 text-[15px] text-[#515154]">
+      <p className="-mt-2 mb-1 text-[15px] text-[#333336]">
         A liderança aprova o pedido e define o seu cargo.
       </p>
       <Input label="Nome" name="name" autoComplete="name" maxLength={120} />
@@ -105,7 +105,7 @@ export function RequestAccessForm() {
 
 function Input({ label, ...props }: { label: string } & React.ComponentProps<'input'>) {
   return (
-    <label className="flex flex-col gap-2 text-[13px] font-semibold text-[#3a3a3c]">
+    <label className="flex flex-col gap-2 text-[13px] font-semibold text-ink">
       {label}
       <input className="field" required {...props} />
     </label>

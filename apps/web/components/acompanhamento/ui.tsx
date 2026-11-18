@@ -84,8 +84,8 @@ export const FOCOS_RDV = [
 export const CLASSE_STATUS: Record<InscricaoStatus, string> = {
   ONBOARDING: 'onb',
   ATIVO: 'ativo',
-  PAUSADO: 'pausa',
-  CANCELADO: 'canc',
+  PAUSADO: '',
+  CANCELADO: '',
   CONCLUIDO: '',
   RENOVADO: 'gold',
 };
@@ -142,6 +142,17 @@ export function Rostos({ pessoas }: { pessoas: Rosto[] }) {
           )}
         </span>
       ))}
+    </span>
+  );
+}
+
+/** Item de toda a carteira (sem mentorado): ícone de grupo num círculo neutro. */
+export function RostoCarteira() {
+  return (
+    <span className="solo" aria-hidden="true">
+      <span className="ava grupo">
+        <Icone d={ICONES.mentorados} />
+      </span>
     </span>
   );
 }
