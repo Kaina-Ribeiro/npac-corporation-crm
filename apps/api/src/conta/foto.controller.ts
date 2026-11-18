@@ -14,6 +14,8 @@ import {
   StreamableFile,
 } from '@nestjs/common';
 import { user, userPhotos, type Db } from '@npac/db';
+import type { Role } from '@npac/shared';
+import { hasCommercialAccess } from '@npac/shared/enums';
 import { eq } from 'drizzle-orm';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { AuditService } from '../audit/audit.service.js';
@@ -27,6 +29,13 @@ const FOTO_INVALIDA = 'Não deu para abrir essa imagem. Use JPG, PNG ou WebP.';
 const MUITO_GRANDE = 'A foto passou de 200 KB.';
 /** Cabeçalhos do multipart além do arquivo. */
 const FOLGA_MULTIPART = 16 * 1024;
+/**
+ * Quem não tem o comercial (cargo Acompanhamento) só vê as pessoas do módulo: Acompanhamento e
+ * Diretoria. Os demais veem a equipe toda, como já veem os nomes.
+ */
+function visivel(quemVe: Role, dono: Role): boolean {
+  return hasCommercialAccess(quemVe) || dono === 'ACOMPANHAMENTO' || dono === 'DIRETOR';
+}
 /** Ids do Better Auth: letras, números, `_` e `-`. */
 const ID = /^[A-Za-z0-9_-]{1,64}$/;
 
@@ -95,13 +104,19 @@ export class FotoController {
   }
 
   @Get('users/:id/photo')
-  async ver(@Param('id') id: string, @Res({ passthrough: true }) res: FastifyReply) {
+  async ver(
+    @CurrentUser() u: SessionUser,
+    @Param('id') id: string,
+    @Res({ passthrough: true }) res: FastifyReply,
+  ) {
     if (!ID.test(id)) throw new NotFoundException();
     const [row] = await this.db
-      .select({ bytes: userPhotos.bytes, mime: userPhotos.mime })
+      .select({ bytes: userPhotos.bytes, mime: userPhotos.mime, role: user.role })
       .from(userPhotos)
+      .innerJoin(user, eq(user.id, userPhotos.userId))
       .where(eq(userPhotos.userId, id));
-    if (!row) throw new NotFoundException();
+    // O cargo Acompanhamento não vê nada do comercial: só as fotos do módulo (404, como sempre).
+    if (!row || !visivel(u.role, row.role)) throw new NotFoundException();
     // A URL leva a versão: foto nova = URL nova. O gancho global de `no-store` respeita este.
     res.header('Cache-Control', 'private, max-age=31536000, immutable');
     res.header('X-Content-Type-Options', 'nosniff');
@@ -113,10 +128,13 @@ export class FotoController {
    * (nome → URL, só nome sem repetição na equipe) serve o feed da equipe, que só traz o nome.
    */
   @Get('team/photos')
-  async equipe(): Promise<{ photos: Record<string, string>; names: Record<string, string> }> {
-    const rows = await this.db
-      .select({ id: user.id, name: user.name, image: user.image })
+  async equipe(
+    @CurrentUser() u: SessionUser,
+  ): Promise<{ photos: Record<string, string>; names: Record<string, string> }> {
+    const todos = await this.db
+      .select({ id: user.id, name: user.name, image: user.image, role: user.role })
       .from(user);
+    const rows = todos.filter((r) => visivel(u.role, r.role));
     const vezes = new Map<string, number>();
     for (const r of rows) vezes.set(r.name, (vezes.get(r.name) ?? 0) + 1);
     const comFoto = rows.filter((r) => r.image);

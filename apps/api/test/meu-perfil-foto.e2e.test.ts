@@ -129,6 +129,19 @@ describe('foto do perfil', () => {
     expect((await h.get('/api/team/photos', carla)).status).toBe(200);
   });
 
+  it('o cargo Acompanhamento não vê foto nem nome do comercial', async () => {
+    const igor = await enviar(await h.signIn(IGOR), pngComTexto());
+    const carla = await h.signIn(CARLA);
+    expect((await baixar(igor.body.photo, carla)).status).toBe(404);
+    await enviar(carla, pngComTexto());
+    const mapa = (await h.get('/api/team/photos', carla)).body as {
+      photos: Record<string, string>;
+      names: Record<string, string>;
+    };
+    expect(Object.keys(mapa.photos)).toEqual([await idOf(CARLA)]);
+    expect(Object.keys(mapa.names)).toHaveLength(1);
+  });
+
   it('o mapa da equipe lista só quem tem foto, por id e por nome único', async () => {
     const ana = await h.signIn(ANA);
     const url = (await enviar(ana, pngComTexto())).body.photo as string;

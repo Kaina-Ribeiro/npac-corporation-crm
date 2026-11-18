@@ -19,15 +19,15 @@ Status por tarefa: ⏳ pendente · 🔄 em andamento · ✅ feita.
 
 | Tarefa | Status |
 |---|---|
-| 1 Banco 0069 | ⏳ |
-| 2 API foto | ⏳ |
-| 3 API perfil e nome | ⏳ |
-| 4 API e-mail com código | ⏳ |
-| 5 Web: tela, nome, senha, menu | ⏳ |
-| 6 Web: foto e recorte | ⏳ |
-| 7 Web: e-mail | ⏳ |
-| 8 Foto nas outras telas | ⏳ |
-| 9 Capturas, suítes, CLAUDE.md, PR | ⏳ |
+| 1 Banco 0069 | ✅ |
+| 2 API foto | ✅ |
+| 3 API perfil e nome | ✅ |
+| 4 API e-mail com código | ✅ |
+| 5 Web: tela, nome, senha, menu | ✅ |
+| 6 Web: foto e recorte | ✅ |
+| 7 Web: e-mail | ✅ |
+| 8 Foto nas outras telas | ✅ |
+| 9 Capturas, suítes, CLAUDE.md, PR | 🔄 suítes e PR |
 
 ## Global Constraints
 
