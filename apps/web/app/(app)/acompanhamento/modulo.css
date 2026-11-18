@@ -4059,3 +4059,12 @@
     }
   }
 }
+
+/* Teclado aberto: ao rolar o campo focado para a vista, o navegador deixa espaço para a barra de
+   ações presa embaixo (Nova inscrição, Nova reunião), que cobria o último campo. Fora do `.ac`:
+   a regra vale para o documento. */
+@media (max-width: 767.98px) {
+  :root:has(.nf-barra) {
+    scroll-padding-bottom: 160px;
+  }
+}

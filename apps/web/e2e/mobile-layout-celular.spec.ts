@@ -73,7 +73,10 @@ test('o menu Exportar de Leads cabe na tela e não deixa a lista aparecer por tr
   await entrar(page, 'diretor');
   await page.goto('/leads');
   const exportar = page.locator('summary', { hasText: 'Exportar' });
-  await exportar.click();
+  // Clique pelo elemento: no WebKit do Linux (CI) o vidro dos cards da lista é pintado sem placa
+  // de vídeo e a tela para de redesenhar, então o `click()` do Playwright, que espera a tela ficar
+  // estável, nunca dispara. O que se mede aqui (posição e fundo) não depende da pintura.
+  await exportar.evaluate((el) => (el as HTMLElement).click());
   const menu = page.locator('details[open] > div').first();
   await expect(menu).toBeVisible();
   const r = await menu.evaluate((el) => {
@@ -146,6 +149,38 @@ test('a página usa a tela inteira do iPhone e tem ícone para a Tela de Início
   expect(res.headers()['content-type']).toContain('image/png');
 });
 
+test('com o teclado aberto, a barra de ações dos formulários não cobre o campo', async ({
+  page,
+}) => {
+  await entrar(page, 'duda');
+  const cobertos: Record<string, string[]> = {};
+  for (const path of ['/acompanhamento/mentorados/nova', '/acompanhamento/reunioes/nova']) {
+    await page.setViewportSize({ width: 390, height: 664 });
+    await page.goto(path);
+    await page.locator('.nf-barra').waitFor();
+    // Teclado aberto: a tela útil perde ~300 px; o navegador rola o campo até a borda de baixo.
+    await page.setViewportSize({ width: 390, height: 364 });
+    const r = await page.evaluate(() =>
+      [
+        ...document.querySelectorAll<HTMLElement>(
+          'main input:not([type=hidden], [type=checkbox], [type=radio], [type=file]), main textarea',
+        ),
+      ]
+        .filter((el) => el.getBoundingClientRect().width > 0)
+        .filter((el) => {
+          window.scrollTo(0, 0);
+          el.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+          const c = el.getBoundingClientRect();
+          const h = document.elementFromPoint(c.left + c.width / 2, c.top + c.height / 2);
+          return !(h && (h === el || el.contains(h)));
+        })
+        .map((el) => el.getAttribute('aria-label') ?? el.getAttribute('placeholder') ?? el.id),
+    );
+    if (r.length) cobertos[path] = r;
+  }
+  expect(cobertos).toEqual({});
+});
+
 test('a barra de baixo sai da frente enquanto se digita', async ({ page }) => {
   await entrar(page, 'ale');
   await page.goto(`/leads/${await leadDoAle()}`);
@@ -189,6 +224,7 @@ test('os controles pequenos do comercial aceitam um toque de 44 px', async ({ pa
     );
     await page.goto('/hoje');
     await conferir(page.getByRole('button', { name: 'Concluir Tarefa do toque' }));
+    await conferir(page.locator('main').getByRole('link', { name: 'Novo lead', exact: true }));
     await page.goto('/pipeline');
     await conferir(page.locator('summary', { hasText: 'Filtrar e ordenar' }));
     const colunas = page.locator('summary', { hasText: 'Colunas visíveis' });

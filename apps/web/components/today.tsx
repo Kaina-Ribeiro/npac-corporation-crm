@@ -412,7 +412,7 @@ export function Today({
           {canCreate && (
             <Link
               href="/leads/new"
-              className="rounded-xl bg-ink px-4 py-2 text-sm font-semibold text-[var(--bg)] active:scale-[.97]"
+              className="toque rounded-xl bg-ink px-4 py-2 text-sm font-semibold text-[var(--bg)] active:scale-[.97]"
             >
               Novo lead
             </Link>
