@@ -38,6 +38,14 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod run --rm \
 
 `migrate` roda sozinho antes da API em todo `up`. Verifique: `https://DOMÍNIO/api/health`.
 
+**E-mail do "Esqueci minha senha"** (opcional): preencha `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`,
+`SMTP_PASS` e `MAIL_FROM` no `.env.prod` (o compose repassa para a API; vazias = desligado e a tela
+manda pedir à liderança). Gmail: verificação em duas etapas na conta, senha de app (16 caracteres,
+sem espaços) em `SMTP_PASS`, `smtp.gmail.com` e porta 465. Depois de `up -d`, peça um link em
+`/login/esqueci` e confira `docker compose ... logs api | grep e-mail`: `e-mail enviado: <servidor>`
+ou `e-mail não enviado: <código> <servidor>` (EAUTH = senha de app; ETIMEDOUT/ECONNECTION = porta
+de saída bloqueada na VM ou na Security List).
+
 Atualizações: `git pull && docker compose ... build && docker compose ... up -d`
 (rode `restore-check.sh` antes de releases com migrations).
 
@@ -84,6 +92,7 @@ Atualizações: `git pull && docker compose ... build && docker compose ... up -
 ## 6. Checklist de go-live
 
 - [ ] `.env.prod` preenchido, chaves no cofre, nenhuma reutilizada de dev.
+- [ ] E-mail: "Esqueci minha senha" manda o link e o log da api diz `e-mail enviado` (ou SMTP vazio de propósito).
 - [ ] `/api/health` 200 via domínio; HTTP redireciona para HTTPS; HSTS presente.
 - [ ] Todos trocam a senha inicial; quem quiser ativa o autenticador (recomendado para a liderança).
 - [ ] Importação simulada sem rejeições inesperadas; importação aplicada e conferida.

@@ -6,6 +6,10 @@ const key32 = (name: string) =>
     .transform((v) => Buffer.from(v, 'base64'))
     .refine((b) => b.length === 32, `${name} precisa decodificar (base64) para 32 bytes`);
 
+/** Vazia conta como ausente: o compose de produção passa `SMTP_*` vazias quando o e-mail está desligado. */
+const blankAsMissing = <T extends z.ZodType>(schema: T) =>
+  z.preprocess((v) => (v === '' ? undefined : v), schema);
+
 const envSchema = z
   .object({
     APP_DATABASE_URL: z.url(),
@@ -43,12 +47,12 @@ const envSchema = z
      * envio fica desligado e "Esqueci minha senha" manda pedir à liderança. 465 = TLS direto;
      * outra porta (587) negocia STARTTLS se o servidor oferecer.
      */
-    SMTP_HOST: z.string().min(1).optional(),
-    SMTP_PORT: z.coerce.number().int().positive().default(465),
-    SMTP_USER: z.string().min(1).optional(),
-    SMTP_PASS: z.string().min(1).optional(),
+    SMTP_HOST: blankAsMissing(z.string().min(1).optional()),
+    SMTP_PORT: blankAsMissing(z.coerce.number().int().positive().default(465)),
+    SMTP_USER: blankAsMissing(z.string().min(1).optional()),
+    SMTP_PASS: blankAsMissing(z.string().min(1).optional()),
     /** Remetente, ex.: `NPAC Corporation <npac.crm.sistema@gmail.com>` (no Gmail, o endereço da conta). */
-    MAIL_FROM: z.string().min(3).optional(),
+    MAIL_FROM: blankAsMissing(z.string().min(3).optional()),
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   })
   .refine((e) => !e.MENTORADO_ENCRYPTION_KEY.equals(e.FIELD_ENCRYPTION_KEY), {

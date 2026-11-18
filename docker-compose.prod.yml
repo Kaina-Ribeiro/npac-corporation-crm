@@ -13,6 +13,12 @@ x-app-env: &app-env
   API_PORT: '4000'
   TRUST_PROXY: 'true'
   LOG_LEVEL: info
+  # E-mail do "Esqueci minha senha" (opcional): vazio = desligado, a tela manda pedir à liderança.
+  SMTP_HOST: ${SMTP_HOST:-}
+  SMTP_PORT: ${SMTP_PORT:-465}
+  SMTP_USER: ${SMTP_USER:-}
+  SMTP_PASS: ${SMTP_PASS:-}
+  MAIL_FROM: ${MAIL_FROM:-}
 
 services:
   postgres:

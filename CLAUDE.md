@@ -229,7 +229,8 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
 - **Envio de e-mail** (`api/mail/*`): `MailSender` (`MAIL_SENDER`, módulo global) com SMTP pelo nodemailer;
   variáveis `SMTP_HOST`, `SMTP_PORT` (465 = TLS; 587 = STARTTLS), `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` (Zod em
   `api/config/env.ts`; `MAIL_FROM` obrigatória com host; usuário e senha juntos). Gmail do sistema hoje
-  (temporário, "2C"); Resend, SES ou Brevo = trocar as cinco variáveis. Sem `SMTP_HOST`, desligado. Envio sem
+  (temporário, "2C"); Resend, SES ou Brevo = trocar as cinco variáveis. Sem `SMTP_HOST`, desligado; vazias contam
+  como ausentes (o `docker-compose.prod.yml` repassa as cinco do `.env.prod`). Envio sem
   `await` depois da resposta; `send` nunca lança e loga `e-mail enviado: <host>` ou `e-mail não enviado: <código>
 <host>`, nunca destinatário ou texto. E-mail só com o primeiro nome (`mail/templates.ts`). Testes: `MemoryMailSender`
   em `test/helpers.ts`; caixa falsa SMTP+HTTP `scripts/caixa-falsa.mts` (`pnpm mail:caixa` no dev: SMTP 2525,

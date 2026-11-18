@@ -7,7 +7,7 @@ Projeto `npac`, ambiente `production`:
 
 | App         | Dockerfile                          | Variáveis próprias                                 | Público         |
 | ----------- | ----------------------------------- | -------------------------------------------------- | --------------- |
-| `api`       | `deploy/cubeship/api.Dockerfile`    | as duas URLs do banco + as três chaves (seção 2)   | não (interno)   |
+| `api`       | `deploy/cubeship/api.Dockerfile`    | URLs do banco, chaves e e-mail (seção 2)           | não (interno)   |
 | `retention` | `deploy/cubeship/api.Dockerfile`    | `NPAC_PROCESS=retention`, `DATABASE_URL` (owner)   | não             |
 | `web`       | `deploy/cubeship/web.Dockerfile`    | nenhuma (não recebe credencial)                    | sim, porta 3000 |
 
@@ -73,7 +73,9 @@ E-mail (opcional, só no app `api`; "Esqueci minha senha" por e-mail): `SMTP_HOS
 espaços) em `SMTP_PASS`; `MAIL_FROM=NPAC Corporation <endereço da conta>`. Trocar por Resend, SES ou Brevo é só
 mudar as cinco variáveis. Sem `SMTP_HOST`, a tela manda pedir à liderança. O log da api diz
 `e-mail enviado: <servidor>` ou `e-mail não enviado: <código> <servidor>` (ETIMEDOUT/ECONNECTION =
-porta 465/587 bloqueada na saída do servidor).
+porta 465/587 bloqueada na saída do servidor; EAUTH = senha de app errada ou conta sem verificação
+em duas etapas). Para testar: peça um link em `/login/esqueci` com um usuário cujo e-mail cadastrado seja uma
+caixa que você lê.
 
 As chaves VAPID ligam o push do navegador (avisos do chat e lembretes de reunião). Sem elas
 a API sobe normalmente e só a tela avisa. Trocar o par invalida as inscrições dos aparelhos:

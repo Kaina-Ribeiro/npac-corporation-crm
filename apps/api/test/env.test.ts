@@ -56,6 +56,25 @@ describe('loadEnv', () => {
       '/media',
     );
   });
+  it('e-mail com as variáveis vazias (compose de produção sem SMTP) fica desligado, sem derrubar a API', () => {
+    const env = loadEnv({
+      ...validEnv,
+      SMTP_HOST: '',
+      SMTP_PORT: '',
+      SMTP_USER: '',
+      SMTP_PASS: '',
+      MAIL_FROM: '',
+    });
+    expect(env.SMTP_HOST).toBeUndefined();
+    expect(env.SMTP_PORT).toBe(465);
+    expect(env.SMTP_USER).toBeUndefined();
+    expect(env.SMTP_PASS).toBeUndefined();
+    expect(env.MAIL_FROM).toBeUndefined();
+  });
+  it('SMTP_HOST sem MAIL_FROM (vazia) continua falhando', () =>
+    expect(() => loadEnv({ ...validEnv, SMTP_HOST: 'smtp.gmail.com', MAIL_FROM: '' })).toThrow(
+      /MAIL_FROM/,
+    ));
   it('MENTORADO_ENCRYPTION_KEY precisa ser distinta de FIELD_ENCRYPTION_KEY', () =>
     expect(() => loadEnv({ ...validEnv, MENTORADO_ENCRYPTION_KEY: key })).toThrow(/distinta/));
 });
