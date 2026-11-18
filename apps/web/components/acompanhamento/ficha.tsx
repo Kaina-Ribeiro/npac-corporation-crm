@@ -624,7 +624,7 @@ export function Ficha({
             </Link>
             <h1>{ficha.nome}</h1>
             <div className="fh-tags">
-              <span className="tag gold">{ficha.mentoria}</span>
+              <span className="tag">{ficha.mentoria}</span>
               <span className="tag">{TIPO_INSCRICAO_LABEL[ficha.tipo]}</span>
               <TagStatus status={ficha.status} />
               <IndicadorSalvo />

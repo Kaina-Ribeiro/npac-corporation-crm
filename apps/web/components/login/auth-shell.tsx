@@ -33,7 +33,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
           </p>
         </section>
 
-        <div className="w-full max-w-[440px] rounded-[32px] bg-white/[.62] p-6 shadow-[inset_0_1.5px_0_#fff,inset_0_0_0_.5px_rgba(255,255,255,.8),0_40px_90px_-30px_rgba(0,0,0,.7)] backdrop-blur-[40px] backdrop-saturate-200 md:p-[34px]">
+        <div className="auth-card w-full max-w-[440px] rounded-[32px] bg-white/[.62] p-6 shadow-[inset_0_1.5px_0_#fff,inset_0_0_0_.5px_rgba(255,255,255,.8),0_40px_90px_-30px_rgba(0,0,0,.7)] backdrop-blur-[40px] backdrop-saturate-200 md:p-[34px]">
           {children}
         </div>
       </div>

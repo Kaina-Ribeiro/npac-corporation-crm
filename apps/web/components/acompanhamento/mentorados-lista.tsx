@@ -233,7 +233,7 @@ export function MentoradosLista({
       <div className="fchips so-cel">
         <button
           type="button"
-          className={`fchip ouro ${f.completar ? 'on' : ''}`}
+          className={`fchip ${f.completar ? 'on' : ''}`}
           aria-pressed={!!f.completar}
           onClick={() => setF({ ...f, completar: f.completar ? undefined : true })}
         >
@@ -253,11 +253,11 @@ export function MentoradosLista({
         <CamposFiltro f={f} mudar={setF} responsaveis={responsaveis} />
         <button
           type="button"
-          className="chip"
+          className={`fchip ${f.completar ? 'on' : ''}`}
           aria-pressed={!!f.completar}
           onClick={() => setF({ ...f, completar: f.completar ? undefined : true })}
         >
-          Completar a ficha ({resumo.completar})
+          Completar a ficha<span>{resumo.completar}</span>
         </button>
         {filtrando && (
           <button type="button" className={quietButton} onClick={() => setF({})}>

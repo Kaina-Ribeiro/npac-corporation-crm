@@ -12,8 +12,11 @@
   --tag-info: #0a5ab8;
   --tag-gold-bg: #f6ecd4;
   --tag-gold: #7a560f;
-  --tag-bad-bg: #fbe4ec;
-  --tag-bad: #a8285a;
+  /* Vermelho único (atraso, erro): mesma família do `--danger` (achados de 17/11/2026). */
+  --tag-bad-bg: #fde5e9;
+  --tag-bad: #b3203f;
+  /* Texto sobre o cinza neutro (etiqueta sem alarme, segmentos): ≥ 4,5:1 sobre o card. */
+  --tag-neutro: #4f4f54;
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -224,26 +227,37 @@
     font-size: 13px;
     background: linear-gradient(160deg, #7fe0a6, #1e9e70);
   }
+  /* Avatares: matizes variados com pouca saturação, para não brigar com as cores de status. */
   .g0 {
-    background: linear-gradient(160deg, #7a9bff, #3a57c8);
+    background: linear-gradient(160deg, #8f9bc0, #4d5a85);
   }
   .g1 {
-    background: linear-gradient(160deg, #e7a06b, #b9622c);
+    background: linear-gradient(160deg, #c4a189, #85604a);
   }
   .g2 {
-    background: linear-gradient(160deg, #8fd3b4, #2a8f6a);
+    background: linear-gradient(160deg, #93b8a6, #4b7563);
   }
   .g3 {
-    background: linear-gradient(160deg, #d78cc0, #964a83);
+    background: linear-gradient(160deg, #bb9bb1, #77566d);
   }
   .g4 {
-    background: linear-gradient(160deg, #d4b56a, #92701f);
+    background: linear-gradient(160deg, #bcad8a, #786944);
   }
   .g5 {
-    background: linear-gradient(160deg, #8ab8d8, #3b7ba5);
+    background: linear-gradient(160deg, #97b0c2, #4f6f86);
   }
   .g6 {
-    background: linear-gradient(160deg, #b49be0, #6b4cb0);
+    background: linear-gradient(160deg, #aaa1c4, #645987);
+  }
+  /* Item de toda a carteira: ícone de grupo num círculo neutro. */
+  .ava.grupo {
+    background: rgba(120, 120, 128, 0.16);
+    color: var(--ink2);
+    box-shadow: none;
+  }
+  .ava.grupo svg {
+    width: 20px;
+    height: 20px;
   }
   .solo {
     flex: none;
@@ -270,7 +284,7 @@
     font-weight: 600;
     white-space: nowrap;
     background: rgba(120, 120, 128, 0.14);
-    color: var(--ink2);
+    color: var(--tag-neutro);
   }
   .tag.ativo {
     background: var(--tag-ok-bg);
@@ -346,32 +360,15 @@
     grid-template-columns: 1fr 1fr;
     gap: 8px;
   }
-  .filters .chip,
+  .filters .fchip,
   .filters .todo {
     grid-column: 1/-1;
   }
-  .chip {
-    display: inline-flex;
-    align-items: center;
+  /* Na linha de filtros, o chip tem a altura e o canto dos campos ao lado. */
+  .filters .fchip {
     justify-content: center;
-    gap: 6px;
     height: 42px;
-    padding: 0 14px;
     border-radius: 12px;
-    font-size: 14px;
-    font-weight: 600;
-    background: var(--tag-gold-bg);
-    color: var(--tag-gold);
-    border: 0;
-    cursor: pointer;
-    white-space: nowrap;
-  }
-  .chip[aria-pressed='true'] {
-    background: var(--ink);
-    color: var(--bg);
-  }
-  .chip:active {
-    scale: 0.97;
   }
   .lhead {
     display: none;
@@ -718,7 +715,7 @@
     border-radius: 9px;
     font-size: 13px;
     font-weight: 600;
-    color: var(--ink2);
+    color: var(--tag-neutro);
     cursor: pointer;
   }
   .seg button.on {
@@ -764,21 +761,6 @@
   .fchip.on span {
     color: var(--bg);
     opacity: 0.7;
-  }
-  .fchip.ouro {
-    background: var(--tag-gold-bg);
-    color: var(--tag-gold);
-    box-shadow: none;
-  }
-  .fchip.ouro span {
-    color: var(--tag-gold);
-  }
-  .fchip.ouro.on {
-    background: var(--ink);
-    color: var(--bg);
-  }
-  .fchip.ouro.on span {
-    color: var(--bg);
   }
   .fchip svg {
     width: 12px;
@@ -1933,7 +1915,7 @@
     border-radius: 9px;
     font-size: 13px;
     font-weight: 600;
-    color: var(--ink2);
+    color: var(--tag-neutro);
   }
   .seg a.on {
     background: var(--on);
@@ -1959,13 +1941,20 @@
   .pl-lista li:first-child .pl-mod {
     border-top: 0;
   }
-  .pl-mod.off {
-    opacity: 0.55;
+  /* Linha apagada (inativa, PME não cadastrado): tons mais fracos, ainda legíveis; a opacidade
+     da linha toda derrubava o contraste. */
+  .pl-mod.off .pl-n,
+  .pme-vazio .pl-n {
+    color: var(--ink3);
+  }
+  .pl-mod.off .t,
+  .pme-vazio .t {
+    color: var(--ink2);
   }
   .pl-n {
     font-size: 15px;
     font-weight: 700;
-    color: var(--gold-deep);
+    color: var(--gold-text);
   }
   .pl-mod .t {
     display: block;
@@ -2004,7 +1993,7 @@
     padding: 0 4px;
     border: 0;
     background: transparent;
-    color: var(--gold-deep);
+    color: var(--gold-text);
     font-size: 12px;
     font-weight: 600;
     text-decoration: underline;
@@ -2226,7 +2215,7 @@
     .filters .todo {
       width: 212px;
     }
-    .filters .chip {
+    .filters .fchip {
       margin-left: auto;
     }
     .form {
@@ -2549,7 +2538,7 @@
   .rn-abrir {
     font-size: 13px;
     font-weight: 600;
-    color: var(--gold-deep);
+    color: var(--gold-text);
     text-decoration: underline;
   }
   .rn-abrir {
@@ -2847,8 +2836,9 @@
   --tag-info: #93c5fd;
   --tag-gold-bg: rgba(226, 187, 102, 0.16);
   --tag-gold: #e2bb66;
-  --tag-bad-bg: rgba(217, 70, 122, 0.18);
-  --tag-bad: #f9a8c5;
+  --tag-bad-bg: rgba(255, 90, 119, 0.16);
+  --tag-bad: #ff8fa3;
+  --tag-neutro: var(--ink2);
 }
 
 @keyframes ac-pulsa {
@@ -3011,9 +3001,10 @@
     font-weight: 600;
     color: var(--ink2);
   }
+  /* Mesmo vermelho das etiquetas de atraso (passa também na linha selecionada do escuro). */
   .due.late,
   .fr-due.late {
-    color: var(--danger);
+    color: var(--tag-bad);
   }
   .due.warn,
   .fr-due.warn {
@@ -3437,9 +3428,21 @@
     gap: 4px;
   }
   .pme-datas .pl-link {
+    position: relative;
     min-height: 0;
     padding: 0 0 0 6px;
     vertical-align: baseline;
+  }
+  @media (max-width: 767.98px) {
+    .pme-datas .pl-link::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: -4px;
+      right: -4px;
+      height: 44px;
+      translate: 0 -50%;
+    }
   }
   .pme-datas dd {
     margin: 0;
@@ -3498,7 +3501,7 @@
     color: var(--ink3);
   }
   .pme-tarefa.enc .pme-orig {
-    color: var(--gold-deep);
+    color: var(--gold-text);
   }
   .pme-tarefa .meta {
     display: block;
@@ -3543,7 +3546,7 @@
     border-radius: 9px;
     font-size: 13px;
     font-weight: 600;
-    color: var(--ink2);
+    color: var(--tag-neutro);
     background: rgba(120, 120, 128, 0.14);
   }
   .pme-st.feita {
@@ -3597,9 +3600,6 @@
   .pme-hist > .pme-ciclo + .pme-ciclo {
     margin-top: 8px;
   }
-  .pme-vazio {
-    opacity: 0.75;
-  }
   .pme-vazio .btn {
     grid-column: 3;
   }
@@ -3647,9 +3647,6 @@
     border-radius: inherit;
     background: var(--gold-deep);
     transition: width var(--dur-slow);
-  }
-  .mt-item .pme-trilho span {
-    background: var(--viz-2);
   }
   .mt-item .pme-barra-t span {
     font-size: 12px;
@@ -3718,7 +3715,7 @@
     display: block;
     margin-top: 2px;
     font-size: 12px;
-    color: var(--viz-2);
+    color: var(--tag-info);
     overflow-wrap: anywhere;
   }
   .tr-comb {
@@ -3895,7 +3892,6 @@
     .row,
     .tabs a,
     .tabs button,
-    .chip,
     .fchip,
     .seg button,
     .hf button,
@@ -3929,7 +3925,6 @@
   :is(
       .tabs a,
       .tabs button,
-      .chip,
       .fchip,
       .seg button,
       .hf button,
@@ -3958,9 +3953,6 @@
     .fchip:not(.on):hover {
       color: var(--ink);
       box-shadow: inset 0 0 0 0.5px var(--fill-line);
-    }
-    .chip:hover {
-      opacity: 0.85;
     }
     .back:hover {
       color: var(--ink);

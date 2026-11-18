@@ -107,7 +107,7 @@ export function PlanoAcao({ acao }: { acao: AcaoDTO }) {
           </Link>
         </p>
         <div className="fh-tags">
-          <span className="tag gold">{acao.mentoria}</span>
+          <span className="tag">{acao.mentoria}</span>
           <TagAcao a={acao} />
           <IndicadorSalvo />
         </div>

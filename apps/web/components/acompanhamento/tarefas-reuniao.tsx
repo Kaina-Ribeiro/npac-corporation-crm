@@ -25,7 +25,7 @@ export function CobrancaAnterior({ r, atualizar }: { r: ReuniaoDTO; atualizar: (
       <div className="pme-cab">
         <h3>Cobrança da reunião anterior</h3>
         {c && c.tarefas.length > 0 && (
-          <span className={`tag ${pendentes ? 'gold' : 'ativo'}`}>
+          <span className={`tag ${pendentes ? '' : 'ativo'}`}>
             {pendentes ? `${pendentes} a cobrar` : 'Tudo cobrado'}
           </span>
         )}
