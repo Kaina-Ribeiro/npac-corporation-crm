@@ -1,5 +1,11 @@
 'use client';
-import { resolverConflito } from '@npac/shared/mentoria';
+import {
+  AVISO_DATA,
+  DATA_MAX,
+  DATA_MIN,
+  dataCalendarioValida,
+  resolverConflito,
+} from '@npac/shared/mentoria';
 import { money, parseCents } from '@npac/shared/money';
 import { useEffect, useRef, useState } from 'react';
 import { avisar, ouvirCampo, salvarCampo } from '@/lib/acompanhamento-saver';
@@ -20,6 +26,15 @@ export const DINHEIRO: Conversao = {
     if (!limpo) return null;
     // "1.234,56" e "1234,56": ponto de milhar sai; o resto é o que `parseCents` entende.
     return parseCents(limpo.includes(',') ? limpo.replace(/\./g, '') : limpo);
+  },
+};
+
+/** Data do campo (`AAAA-MM-DD`): ano fora da faixa avisa na tela e não vai para a API. */
+export const DATA: Conversao = {
+  deTexto: (t) => {
+    if (!t.trim()) return null;
+    if (!dataCalendarioValida(t)) throw new Error(AVISO_DATA);
+    return t;
   },
 };
 
@@ -138,7 +153,7 @@ export function CampoPr({
   /** Selo ao lado do rótulo (ex.: "Interno"). */
   selo?: React.ReactNode;
 }) {
-  const c = useCampo(chave, campo, valor, conversao);
+  const c = useCampo(chave, campo, valor, conversao ?? (tipo === 'date' ? DATA : undefined));
   return (
     <label className={`pr ${classe}`}>
       <span className={selo ? 'rn-rot' : undefined}>
@@ -167,6 +182,8 @@ export function CampoPr({
         <input
           className={`pv ${tipo === 'date' && !c.texto ? 'vazia' : ''}`}
           type={tipo}
+          min={tipo === 'date' ? DATA_MIN : undefined}
+          max={tipo === 'date' ? DATA_MAX : undefined}
           value={c.texto}
           readOnly={!editavel}
           placeholder={editavel ? placeholder : undefined}

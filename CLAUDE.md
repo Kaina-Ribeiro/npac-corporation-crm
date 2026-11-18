@@ -265,6 +265,10 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   (`mentoria.csv`), contato só para Admin, nunca dor, sonho, meta, anotações ou textos de reunião. Excluir e
   anonimizar (LGPD) só Admin, pela ficha; anonimizar mantém inscrição, reuniões e ações para as contagens.
   Salvar ao sair do campo: em 409 a fila reaplica se o outro não mexeu naquele campo; se mexeu, avisa e mantém o dele (`resolverConflito`).
+  Datas (18/11/2026, print da Eduarda): campo de data do módulo leva `min={DATA_MIN}`/`max={DATA_MAX}` (`sh/mentoria/datas.ts`,
+  1900 a 2999, a faixa da API); sem eles o Chrome aceita ano "25" (0025) ou de 6 dígitos e a API recusava. `CampoPr` de data
+  confere antes de enviar (`DATA` em `campo.tsx`, aviso `AVISO_DATA`); no cadastro o aviso de erro sai quando a pessoa mexe num campo.
+  e2e `e2e/acompanhamento-datas.spec.ts`.
   **PMEs e ciclos** (Fase 2, Parte 1, 11/11/2026): cada PME dura 30 dias do envio (`prazo` e `data_cobranca` são colunas
   geradas); o envio (`POST inscricoes/:id/ciclos`, Admin, Acompanhamento e Operação, área `PME` de `mentoria_edita`) cria o
   ciclo do número seguinte (1 a 12) com uma tarefa EXTRA por atividade do catálogo e uma ENCERRAMENTO (texto cifrado; sem texto
