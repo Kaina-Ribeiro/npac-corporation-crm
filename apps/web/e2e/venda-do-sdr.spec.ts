@@ -111,6 +111,31 @@ test('SDR marca a venda só com o produto, closer põe o valor, renda no Dashboa
   await card.scrollIntoViewIfNeeded();
   await shots(page, 'venda-sdr-dashboard');
 
+  // Relatórios do SDR (NPAC-51, Igor "1A"): a venda conta ao marcar, antes de a closer pôr o valor.
+  await page.goto('/relatorios');
+  const bonusReport = page.locator('article', { hasText: 'Valor a receber por venda feita' });
+  await expect(bonusReport.filter({ visible: true })).toContainText('R$ 10,00');
+  const porSdr = page.locator('section', {
+    has: page.getByRole('heading', { name: 'Por SDR', exact: true }),
+  });
+  const vendas = async (table: typeof porSdr, who: string) => {
+    const col = (await table.locator('th').allTextContents()).indexOf('Vendas');
+    return table
+      .getByRole('row', { name: new RegExp(`^${who}`) })
+      .locator('td')
+      .nth(col);
+  };
+  await expect(await vendas(porSdr, 'Ale')).toHaveText('1');
+  const porCloser = page.locator('section', {
+    has: page.getByRole('heading', { name: 'Por closer', exact: true }),
+  });
+  await expect(await vendas(porCloser, 'Sônia')).toHaveText('1');
+  // O título fica parado quando a tabela rola para o lado (no celular ele sumia junto).
+  await porSdr.locator('div.overflow-x-auto').evaluate((el) => (el.scrollLeft = 9999));
+  await expect(porSdr.getByRole('heading', { name: 'Por SDR', exact: true })).toBeInViewport();
+  await porSdr.scrollIntoViewIfNeeded();
+  await shots(page, 'venda-sdr-relatorios');
+
   // A closer da reunião recebe o aviso e põe o valor na ficha (área dela).
   const ctx = await browser.newContext();
   const closer = await ctx.newPage();

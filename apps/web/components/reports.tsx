@@ -57,56 +57,59 @@ function Breakdown({ title, rows }: { title: string; rows: ReportRow[] }) {
     ] as const
   ).filter(([key]) => rows.some((r) => r[key] !== undefined));
   return (
-    <section className="glass-card overflow-x-auto p-5">
+    <section className="glass-card min-w-0 p-5">
       <h2 className="mb-4 text-lg font-bold">{title}</h2>
       {rows.length ? (
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-left text-xs text-ink2">
-              <th className="py-2 pr-4">Nome</th>
-              {rows.some((r) => r.p0 !== undefined) && (
-                <th className="px-3">P0 / P1 / P2 / Descobrindo</th>
-              )}
-              {rows.some((r) => r.direct !== undefined) && (
-                <th className="px-3">Direto / Follow</th>
-              )}
-              {columns.map(([key, label]) => (
-                <th key={key} className="px-3">
-                  {label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={`${r.id}:${r.name}`} className="border-t border-line">
-                <td className="py-3 pr-4">{r.name}</td>
-                {rows.some((v) => v.p0 !== undefined) && (
-                  <td className="whitespace-nowrap px-3">
-                    {r.p0 ?? 0} / {r.p1 ?? 0} / {r.p2 ?? 0} / {r.descobrindo ?? 0}
-                  </td>
+        // Só a tabela rola para o lado: o título fica parado (NPAC-51; no celular ele sumia junto).
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-xs text-ink2">
+                <th className="py-2 pr-4">Nome</th>
+                {rows.some((r) => r.p0 !== undefined) && (
+                  <th className="px-3">P0 / P1 / P2 / Descobrindo</th>
                 )}
-                {rows.some((v) => v.direct !== undefined) && (
-                  <td className="whitespace-nowrap px-3">
-                    {r.direct ?? 0} / {r.follow ?? 0}
-                  </td>
+                {rows.some((r) => r.direct !== undefined) && (
+                  <th className="px-3">Direto / Follow</th>
                 )}
-                {columns.map(([key]) => (
-                  <td
-                    key={key}
-                    className={`whitespace-nowrap px-3 ${key === 'soldCents' ? 'text-gold-deep' : ''}`}
-                  >
-                    {key.endsWith('Cents')
-                      ? money(r[key] ?? 0)
-                      : key.endsWith('Bps')
-                        ? `${((r[key] ?? 0) / 100).toFixed(2)}%`
-                        : (r[key] ?? 0)}
-                  </td>
+                {columns.map(([key, label]) => (
+                  <th key={key} className="whitespace-nowrap px-3">
+                    {label}
+                  </th>
                 ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={`${r.id}:${r.name}`} className="border-t border-line">
+                  <td className="py-3 pr-4">{r.name}</td>
+                  {rows.some((v) => v.p0 !== undefined) && (
+                    <td className="whitespace-nowrap px-3">
+                      {r.p0 ?? 0} / {r.p1 ?? 0} / {r.p2 ?? 0} / {r.descobrindo ?? 0}
+                    </td>
+                  )}
+                  {rows.some((v) => v.direct !== undefined) && (
+                    <td className="whitespace-nowrap px-3">
+                      {r.direct ?? 0} / {r.follow ?? 0}
+                    </td>
+                  )}
+                  {columns.map(([key]) => (
+                    <td
+                      key={key}
+                      className={`whitespace-nowrap px-3 ${key === 'soldCents' ? 'text-gold-deep' : ''}`}
+                    >
+                      {key.endsWith('Cents')
+                        ? money(r[key] ?? 0)
+                        : key.endsWith('Bps')
+                          ? `${((r[key] ?? 0) / 100).toFixed(2)}%`
+                          : (r[key] ?? 0)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       ) : (
         <p className="text-sm text-ink2">Nenhum resultado no período.</p>
       )}
@@ -572,6 +575,8 @@ export function Reports({
         ['Reuniões realizadas', String(m.done ?? 0)],
         ['No-show / Remarcados', String((m.noShow ?? 0) + (m.rescheduled ?? 0))],
         ['Valor a receber por reunião realizada', money(m.meetingValueCents ?? 0)],
+        // Renda extra das vendas que o SDR marcou (NPAC-51): o mesmo valor do balão do Dashboard.
+        ['Valor a receber por venda feita', money(bonus.cents)],
       ]
     : [
         ['Leads novos', String(m.leads ?? 0)],
