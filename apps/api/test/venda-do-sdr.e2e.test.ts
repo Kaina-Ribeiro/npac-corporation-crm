@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { SinoPush } from '../src/push/sino-push.js';
 import { api, closeTestApp, createTestApp, owner, resetAuthState, type Cookie } from './helpers.js';
 
 // NPAC-48 (Igor, 17/11/2026): depois da reunião realizada, o SDR marca a venda escolhendo só o
@@ -33,7 +34,17 @@ beforeAll(async () => {
 afterAll(async () => closeTestApp(app));
 beforeEach(async () => {
   await resetAuthState();
-  await owner`truncate lgpd_requests, chat_reads, chat_messages, chat_members, payments, deals, lead_notes, lead_tasks, notifications, lead_timeline, meeting_reminders_sent, meeting_confirmations, meetings, form_responses, sdr_sale_marks, leads`;
+  // O aviso `sale.pending` do teste anterior vira push do sino em segundo plano (#109): esperar o
+  // envio e, se ainda assim o truncate cruzar com ele (deadlock), tentar de novo.
+  for (let i = 0; ; i++) {
+    await app.get(SinoPush).settled();
+    try {
+      await owner`truncate lgpd_requests, chat_reads, chat_messages, chat_members, payments, deals, lead_notes, lead_tasks, notifications, lead_timeline, meeting_reminders_sent, meeting_confirmations, meetings, form_responses, sdr_sale_marks, leads`;
+      break;
+    } catch (e) {
+      if ((e as { code?: string }).code !== '40P01' || i >= 2) throw e;
+    }
+  }
   // Valores do Igor no catálogo (a migration e o seed já trazem; outro teste pode ter mudado).
   await owner`update products set sdr_bonus_cents = case code when 'NACAO_PROMO' then 500 when 'NACAO_PADRAO' then 1000
     when 'NACAO_COMPLETO' then 2000 when 'RDV' then 7000 when 'MENTORIA_2M' then 9000 when 'MENTORIA_6M' then 12000 else 0 end`;
