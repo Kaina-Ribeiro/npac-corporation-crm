@@ -76,7 +76,7 @@ export function AuthShell({
               <small className={`text-[13px] sm:text-sm ${look.sub}`}>{texto.marca}</small>
             </span>
           </div>
-          <h1 className="m-0 text-[40px] leading-none font-extrabold tracking-[-0.05em] sm:text-[64px] sm:leading-[0.95] sm:tracking-[-0.055em] lg:text-[76px] xl:text-[92px]">
+          <h1 className="m-0 text-[40px] leading-none font-extrabold tracking-[-0.05em] sm:text-[64px] sm:leading-[0.95] sm:tracking-[-0.055em] xl:text-[92px]">
             Não paro <br className="max-sm:hidden" />
             até <span className={`${look.ouro} bg-clip-text text-transparent`}>conseguir.</span>
           </h1>

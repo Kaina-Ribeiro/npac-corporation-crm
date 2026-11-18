@@ -168,6 +168,11 @@ for (const tela of [CRM, ACOMP]) {
       if (w >= 1024) expect(ouro.x + ouro.width).toBeLessThanOrEqual(cartao.x);
       else expect(ouro.y + ouro.height).toBeLessThanOrEqual(cartao.y);
       expect(ouro.x + ouro.width).toBeLessThanOrEqual(w);
+      // Duas linhas no máximo ("Não paro / até conseguir."), nunca "até" sozinho.
+      const linhas = await page
+        .getByRole('heading', { level: 1 })
+        .evaluate((h) => Math.round(h.clientHeight / parseFloat(getComputedStyle(h).lineHeight)));
+      expect(linhas).toBeLessThanOrEqual(2);
     }
   });
 }

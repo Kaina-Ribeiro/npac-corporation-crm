@@ -213,7 +213,7 @@ export function LoginForm({
           ref={passwordRef}
           name="password"
           type="password"
-          className="field"
+          className="field font-normal"
           placeholder="Sua senha"
           autoComplete="current-password"
           required
