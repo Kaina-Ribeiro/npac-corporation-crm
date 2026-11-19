@@ -5,19 +5,20 @@
 import type { Perfil } from './mentoria/enums.js';
 
 /**
- * Alcance (NPAC-54, Fase 3B; Gabriel 19/11, "Sim, pode ficar"): no cargo Acompanhamento, sem o selo, a
- * pessoa vê todos os mentorados ou só a carteira (as inscrições em que é a responsável). Quem decide o
- * que cada um vê é a RLS (migration 0075); aqui só os rótulos e a regra de gravação.
+ * Alcance (NPAC-54, Fase 3B): no cargo Acompanhamento, sem o selo, a pessoa vê todos os mentorados ou só
+ * a carteira (as inscrições em que é a responsável). Quem decide o que cada um vê é a RLS (migration 0075);
+ * aqui só os rótulos e a regra de gravação. Na tela (Gabriel 19/11, "Opção A"): cargo + tags em "Acessos"
+ * ("Carteira" ou "Todos os mentorados"); nas listas, o selo do cargo e a tag "Carteira" ao lado.
  */
 export const ALCANCES = ['TODOS', 'CARTEIRA'] as const;
 export type Alcance = (typeof ALCANCES)[number];
-export const ALCANCE_TITULO = 'Alcance';
+export const ALCANCE_TITULO = 'Acessos';
 export const ALCANCE_LABEL: Record<Alcance, string> = {
   TODOS: 'Todos os mentorados',
-  CARTEIRA: 'Só a carteira',
+  CARTEIRA: 'Carteira',
 };
-/** Sufixo do cargo nas listas: "Acompanhamento · só a carteira". */
-export const ALCANCE_SUFIXO = 'só a carteira';
+/** Ordem das tags na tela: "Carteira" primeiro (desenho A). */
+export const ALCANCES_NA_TELA: readonly Alcance[] = ['CARTEIRA', 'TODOS'];
 
 /** O alcance só vale no cargo Acompanhamento, sem o selo de Admin. */
 export const alcanceVale = (c: { perfil: Perfil | null; moduloAdmin: boolean }) =>

@@ -204,6 +204,10 @@ Branch `feat/NPAC-54-fase-3b-carteira`. Spec: "Fase 3B — Alcance 'só a cartei
   quadro "Acessos" com "Eduarda trocou o cargo de … · Acompanhamento, Acompanhamento · só a carteira". Contas de teste
   `teste.cart1808` e `teste.cart1809` (senha 1234, "Só a carteira"), cada uma com um "Mentorado Teste Carteira".
   Não medido: tempo da Fila e de Mentorados no `npac_e2e_perf`.
+- **Ajuste de tela** (Gabriel 19/11, "Opção A", depois de reprovar "Acompanhamento · só a carteira"): "Acessos" com as tags
+  "Carteira" / "Todos os mentorados" na aba Perfis, no Convidar e no pedido; nas listas, o selo "Acompanhamento" e a tag
+  neutra "Carteira" ao lado; no quadro "Acessos", a frase do cargo com a tag. Só tela e textos (banco, API e regras iguais;
+  a API passou a mandar `alcance: TODOS` no quadro quando a pessoa sai da carteira). Branch `fix/NPAC-54-acessos-tags`.
 
 ## Fase 4 — Pessoa em duas áreas
 
@@ -262,8 +266,8 @@ inteira sem rollback. Spec: "Compatibilidade".
   com a tela Envios físicos (fase 4 do Acompanhamento; D6). **2B** — a segunda Maria deve ver só os mentorados da carteira
   dela (inscrições em que é responsável); vira o alcance "só a carteira", fase 3B da tabela de fases (Gabriel, 19/11: "Sim, entre 3 e 4").
   Até lá, nenhuma das duas tem conta. A Fase 3 não acrescenta cargo: a lista do Acompanhamento continua a de hoje.
-  - **Avisar a Eduarda:** o nome pedido por ela ("Acompanhamento da carteira", 3A) vira "Acompanhamento · só a carteira" na
-    tela (alcance no cargo Acompanhamento, não cargo novo; Gabriel, 19/11).
+  - **Avisar a Eduarda:** o nome pedido por ela ("Acompanhamento da carteira", 3A) não vira cargo: na tela é o cargo
+    Acompanhamento com a tag "Carteira" em "Acessos" (desenho A, Gabriel 19/11).
   - **Extras por pessoa** (ex.: "+ envios", Gabriel 19/11) são o destino; nascem com o primeiro extra real. Envios: cargo
     próprio (D6, 1B) ou caixinha é decisão da fase da tela Envios físicos.
   Dica para o cargo da carteira (conferida na Fase 3B: serve em parte, ver a fase): a lista que hoje cobre só a Especialista

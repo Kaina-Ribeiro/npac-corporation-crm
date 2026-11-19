@@ -1,10 +1,15 @@
 'use client';
 import { entrouHa } from '@npac/shared/acessos';
 import { MOTIVO, podeGerenciar, type ContaAreas } from '@npac/shared/areas';
-import { ALCANCE_LABEL, ALCANCE_TITULO, ALCANCES, type Alcance } from '@npac/shared/alcance';
+import {
+  ALCANCE_LABEL,
+  ALCANCE_TITULO,
+  ALCANCES_NA_TELA,
+  type Alcance,
+} from '@npac/shared/alcance';
 import { CARGO_INFO, MODULO_ADMIN_LABEL, type Cargo } from '@npac/shared/cargos';
 import { PERFIL_LABEL, PERFIS, type Perfil } from '@npac/shared/mentoria';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { CargoDica } from '@/components/cargo-field';
 import { control, Field, FormError } from '@/components/crm-ui';
 import { showToast } from '@/components/toast';
@@ -47,8 +52,9 @@ const temAlcance = (perfil: Perfil | '' | null, admin: boolean) =>
   perfil === 'ACOMPANHAMENTO' && !admin;
 
 /**
- * "Alcance: Todos os mentorados / Só a carteira" (Fase 3B, textos aprovados em 19/11). Dois botões
- * de escolha única, no visual do `.seg` do módulo.
+ * "Acessos" com as tags "Carteira" e "Todos os mentorados" (Fase 3B, desenho A aprovado em 19/11): uma
+ * escolha única (`radiogroup`: setas trocam, Tab entra na marcada), no visual de tag; a marcada tem ✓ e
+ * o fundo de seleção, a outra só a borda.
  */
 function AlcanceCampo({
   value,
@@ -63,24 +69,45 @@ function AlcanceCampo({
   disabled?: boolean;
   title?: string;
 }) {
+  const botoes = useRef<(HTMLButtonElement | null)[]>([]);
+  const escolher = (a: Alcance) => value !== a && onChange(a);
+  function teclas(e: KeyboardEvent, i: number) {
+    const passo = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+    if (!passo) return;
+    e.preventDefault();
+    const n = ALCANCES_NA_TELA.length;
+    const j = (i + passo + n) % n;
+    botoes.current[j]?.focus();
+    escolher(ALCANCES_NA_TELA[j]!);
+  }
   return (
     <div className="pf-alcance" title={title}>
       <span aria-hidden="true">{ALCANCE_TITULO}</span>
       <div
-        className="seg"
+        className="acessos"
         role="radiogroup"
         aria-label={nome ? `${ALCANCE_TITULO} de ${nome}` : ALCANCE_TITULO}
       >
-        {ALCANCES.map((a) => (
+        {ALCANCES_NA_TELA.map((a, i) => (
           <button
             key={a}
+            ref={(b) => {
+              botoes.current[i] = b;
+            }}
             type="button"
             role="radio"
             aria-checked={value === a}
-            className={value === a ? 'on' : ''}
+            tabIndex={value === a ? 0 : -1}
+            className="acesso-tag toque"
             disabled={disabled}
-            onClick={() => value !== a && onChange(a)}
+            onClick={() => escolher(a)}
+            onKeyDown={(e) => teclas(e, i)}
           >
+            {value === a && (
+              <svg viewBox="0 0 12 12" aria-hidden="true">
+                <path d="M2.5 6.4 4.9 8.7 9.5 3.6" />
+              </svg>
+            )}
             {ALCANCE_LABEL[a]}
           </button>
         ))}

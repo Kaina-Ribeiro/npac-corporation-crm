@@ -435,14 +435,23 @@ a carteira e envios por exemplo"; "eu ja to pensando com o sistema pronto".
   transferência e no push tudo o que já vale para o Acompanhamento) e permissões livres por tela e por pessoa (2–3 semanas,
   desfaz a D5, abre caminho de escalada e pesa na RLS com prod em uso).
 
-### Na tela (formulário e textos aprovados pelo Gabriel, 19/11: "Sim, pode ficar")
+### Na tela (desenho A, Gabriel 19/11: "Opção A"; textos "Acessos", "Carteira", "Todos os mentorados")
 
-- Aba Perfis do módulo, na linha da pessoa com cargo Acompanhamento: **"Alcance: Todos os mentorados / Só a carteira"** (Gabriel, 19/11: tira o "Vê"; "Alcance" escolhido entre "Alcance", "Permissões" e "Acessos": "Acessos" já é o quadro da Diretoria e "Permissões" fica para a futura linha de extras). O mesmo
-  campo no **Convidar** e ao **aprovar pedido de acesso** (com "Todos os mentorados" marcado). Outros cargos não mostram o campo.
-- Nas listas (aba Perfis e Admin → Usuários): **"Acompanhamento · só a carteira"**. O nome "Acompanhamento da carteira" (3A da
-  Eduarda) não vira cargo (pendência: avisar a Eduarda).
-- Registro de acessos: a troca de alcance entra na frase da troca de cargo de hoje, com o alcance no fim ("· Acompanhamento,
-  Acompanhamento · só a carteira"); sem frase nova.
+A primeira versão ("Alcance: Todos os mentorados / Só a carteira" e "Acompanhamento · só a carteira" nas listas) foi
+reprovada pelo Gabriel: "cara n era para ser Acompanhamento - só carteira. isso ta feio, n ta profissional / Era Cargo
+Acompanhamento - acessos: lista de tags que terá, uma delas nesse caso seria "Carteira"". Ficou o desenho A:
+
+- Aba Perfis do módulo, na linha da pessoa com cargo Acompanhamento sem o selo: **"Acessos"** e duas tags de escolha única,
+  **"Carteira"** e **"Todos os mentorados"** (sempre uma marcada: ✓ e o fundo de seleção dourado; a outra só a borda; clicar
+  troca na hora; setas do teclado trocam). Alinhado à caixa do cargo (abaixo dela no computador; linha própria no celular).
+  O mesmo campo no **Convidar** e ao **aprovar pedido de acesso** (com "Todos os mentorados" marcado). Outros cargos não
+  mostram o campo.
+- Nas listas (Admin → Usuários e o cartão do Mais do módulo): o selo do cargo continua "Acompanhamento"; ao lado, a tag
+  neutra **"Carteira"** (só a borda), só para quem tem a carteira. Quem vê todos fica só com o selo. O nome "Acompanhamento
+  da carteira" (3A da Eduarda) não vira cargo (pendência: avisar a Eduarda).
+- Quadro "Acessos" da Diretoria: a frase da troca de cargo de hoje ("… · Acompanhamento, Acompanhamento") com a mesma tag ao
+  lado: "Carteira" quando entra na carteira, "Todos os mentorados" quando sai dela; sem frase nova.
+- Destino, sem construir: outras tags na mesma linha de "Acessos" quando houver o primeiro extra real (ex.: Envios).
 
 | Tela, para quem tem "Só a carteira" | O que muda |
 |---|---|

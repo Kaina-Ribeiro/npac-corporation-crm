@@ -18,6 +18,8 @@ function Linha({ a, euId, agora, novo }: { a: Acesso; euId: string; agora: Date;
         {f.antes}
         {f.alvo && <b className="font-semibold">{f.alvo}</b>}
         {f.depois}
+        {/* A tag de "Acessos" (Fase 3B), como na lista de pessoas. */}
+        {f.tag && <span className="role role-TAG ml-1.5 align-[1px]">{f.tag}</span>}
       </span>
       <span className="col-start-2 row-start-1 justify-self-end sm:col-start-3">
         {novo && (
