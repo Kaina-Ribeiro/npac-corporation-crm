@@ -8,7 +8,7 @@ import { CargoDica } from '@/components/cargo-field';
 import { control, Field, FormError } from '@/components/crm-ui';
 import { showToast } from '@/components/toast';
 import { clientApi } from '@/lib/client-api';
-import { contaDaRegra, type ContaEquipe } from '@/lib/equipe';
+import { contaDaRegra, convitePorEmail, type ContaEquipe } from '@/lib/equipe';
 import type { AccessRequest } from '@/components/access-requests';
 import { Dialogo } from './dialogo';
 import { Rostos } from './ui';
@@ -66,6 +66,7 @@ export function PerfisAdmin({
   const [fila, setFila] = useState(() => pedidos.filter((p) => p.area === 'ACOMPANHAMENTO'));
   const [erro, setErro] = useState('');
   const [aviso, setAviso] = useState('');
+  const [avisoEmail, setAvisoEmail] = useState('');
   const [convidando, setConvidando] = useState(false);
   const [confirmar, setConfirmar] = useState<Confirmar | null>(null);
   const hora = new Date(agora);
@@ -89,6 +90,7 @@ export function PerfisAdmin({
   async function rodar(fn: () => Promise<unknown>, feito?: (r: unknown) => string) {
     setErro('');
     setAviso('');
+    setAvisoEmail('');
     try {
       const r = await fn();
       await recarregar();
@@ -131,6 +133,7 @@ export function PerfisAdmin({
           {aviso}
         </p>
       )}
+      {aviso && avisoEmail && <p className="pf-aviso-email">{avisoEmail}</p>}
       <FormError message={erro} />
 
       {fila.length > 0 && (
@@ -328,9 +331,11 @@ export function PerfisAdmin({
           onConvidar={async (corpo) => {
             setErro('');
             setAviso('');
+            setAvisoEmail('');
             const r = await clientApi('/api/admin/users', 'POST', corpo);
             await recarregar();
             setAviso(temp(r));
+            setAvisoEmail(convitePorEmail(r));
           }}
         />
       )}

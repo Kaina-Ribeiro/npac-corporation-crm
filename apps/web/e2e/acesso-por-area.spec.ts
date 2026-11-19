@@ -1,6 +1,6 @@
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { closeTestConnections, ownerSql } from '@npac/db/testing';
-import { E2E_DB, E2E_PASSWORD } from './env.js';
+import { CAIXA_URL, E2E_DB, E2E_PASSWORD, WEB_ORIGIN } from './env.js';
 
 // Acesso por área, Fase 3 (NPAC-54): a Duda (Admin do Acompanhamento) cuida da equipe pela aba
 // Perfis do módulo; a Diretoria vê o quadro "Acessos", o filtro por área e o "entrou há X" em
@@ -89,6 +89,27 @@ test('Duda convida uma Operação, que entra direto no módulo, e não vê o int
   await expect(dlg).toBeHidden();
 
   const senha = await convidar(page, 'operacao.fase3', 'OPERACAO');
+  // Convite por e-mail (19/11, "1A, 2A"): a tela mostra a senha e avisa; o e-mail chega com usuário,
+  // senha e o botão para a tela de entrada do Acompanhamento.
+  await expect(
+    page.getByText('Também enviamos o usuário e a senha para o e-mail da pessoa.'),
+  ).toBeVisible();
+  type Mensagem = { to: string[]; subject: string; text: string; html: string };
+  let email: Mensagem | undefined;
+  await expect
+    .poll(
+      async () => {
+        const todas = (await (await fetch(CAIXA_URL)).json()) as Mensagem[];
+        email = todas.filter((m) => m.to.includes('operacao.fase3@fase3.test')).at(-1);
+        return !!email;
+      },
+      { timeout: 10_000 },
+    )
+    .toBe(true);
+  expect(email!.subject).toBe('Seu acesso ao sistema da NPAC');
+  expect(email!.text).toContain('Usuário: operacao.fase3');
+  expect(email!.text).toContain(`Senha temporária: ${senha}`);
+  expect(email!.html).toContain(`href="${WEB_ORIGIN}/login/acompanhamento"`);
   const linha = page.locator('.pf').filter({ hasText: 'Pessoa operacao.fase3' });
   await expect(linha.getByText('nunca entrou')).toBeVisible();
   await expect(page.getByLabel('Perfil de Pessoa operacao.fase3')).toHaveValue('OPERACAO');

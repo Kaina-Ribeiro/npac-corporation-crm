@@ -1064,6 +1064,11 @@
     font-weight: 600;
     overflow-wrap: anywhere;
   }
+  .pf-aviso-email {
+    margin-top: -10px;
+    font-size: 13px;
+    color: var(--ink2);
+  }
   .pf-pedidos {
     box-shadow:
       0 0 0 2px var(--gold-ring),

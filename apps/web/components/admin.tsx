@@ -24,7 +24,7 @@ import {
 import { rememberPrefs } from '@/lib/screen-prefs';
 import { useLatestPrefs } from '@/lib/use-latest-prefs';
 import { clientApi } from '@/lib/client-api';
-import type { ContaEquipe } from '@/lib/equipe';
+import { convitePorEmail, type ContaEquipe } from '@/lib/equipe';
 import { AccessRequests, type AccessRequest } from './access-requests';
 import { AcessosCard, type AcessosPagina } from './acessos-card';
 import {
@@ -170,11 +170,14 @@ export function Admin({
   const [data, setData] = useState(initial);
   const [error, setError] = useState<string>();
   const [notice, setNotice] = useState<string>();
+  /** Linha extra do convite: o usuário e a senha também foram por e-mail. */
+  const [noticeEmail, setNoticeEmail] = useState('');
   const [audit, setAudit] = useState<{ items: AuditItem[]; page: number; hasMore: boolean }>();
 
   async function run(fn: () => Promise<unknown>, done?: string) {
     setError(undefined);
     setNotice(undefined);
+    setNoticeEmail('');
     try {
       await fn();
       const [users, products, stages, lgpd, requests] = await Promise.all([
@@ -279,6 +282,7 @@ export function Admin({
           {notice}
         </p>
       )}
+      {notice && noticeEmail && <p className="-mt-3 text-sm text-ink2">{noticeEmail}</p>}
 
       {tab === 'Usuários' && acessos && (
         <AcessosCard
@@ -308,7 +312,10 @@ export function Admin({
                     });
                     form.reset();
                     setConvite({ cargo: 'SDR', extras: SEM_EXTRAS });
-                    setTimeout(() => setNotice(temp(r)));
+                    setTimeout(() => {
+                      setNotice(temp(r));
+                      setNoticeEmail(convitePorEmail(r));
+                    });
                   });
                 }}
               >

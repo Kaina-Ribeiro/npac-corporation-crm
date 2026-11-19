@@ -45,6 +45,9 @@ import { z } from 'zod';
 import { AuditService } from '../audit/audit.service.js';
 import { CurrentUser, type SessionUser } from '../auth/current-user.decorator.js';
 import { DB } from '../common/db/db.module.js';
+import { ENV, type Env } from '../config/env.js';
+import { MAIL_SENDER, type MailSender } from '../mail/mail.js';
+import { inviteMail } from '../mail/templates.js';
 import { validate } from '../common/validate.js';
 import { photoUrl } from '../conta/photo-url.js';
 import {
@@ -82,6 +85,8 @@ export class AdminUsersService {
     @Inject(DB) private readonly db: Db,
     private readonly audit: AuditService,
     private readonly reminders: ReminderScheduler,
+    @Inject(MAIL_SENDER) private readonly mail: MailSender,
+    @Inject(ENV) private readonly env: Env,
   ) {}
 
   async list(actor: AuthUser) {
@@ -242,7 +247,23 @@ export class AdminUsersService {
       fields: camposDoCargo(cargo),
       ...cargoNaAuditoria(cargo),
     });
-    return { id, temporaryPassword: password };
+    // Convite por e-mail (19/11, "1A"): usuário, senha temporária e a tela de entrada da área. A tela
+    // de quem convida continua mostrando a senha. Sem envio configurado, nada sai.
+    const emailEnviado = this.mail.enabled;
+    if (emailEnviado) {
+      const tela =
+        !pedido.mestre && pedido.area === 'ACOMPANHAMENTO' ? '/login/acompanhamento' : '/login';
+      void this.mail.send(
+        inviteMail(
+          input.email,
+          input.name,
+          input.username,
+          password,
+          `${this.env.WEB_ORIGIN}${tela}`,
+        ),
+      );
+    }
+    return { id, temporaryPassword: password, emailEnviado };
   }
 
   async update(actor: AuthUser, id: string, input: UserChange) {

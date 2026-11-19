@@ -45,3 +45,11 @@ export function contaDaRegra(c: ContaEquipe): ContaAreas {
   }
   return { mestre: c.mestre, areas };
 }
+
+/** Resposta de "Convidar": a senha aparece uma vez; com e-mail configurado, também foi por e-mail. */
+export type Convite = { id: string; temporaryPassword: string; emailEnviado?: boolean };
+
+/** Frase depois de convidar, numa linha própria, só se o e-mail saiu (texto aprovado em 19/11, "1A"). */
+export const CONVITE_POR_EMAIL = 'Também enviamos o usuário e a senha para o e-mail da pessoa.';
+export const convitePorEmail = (r: unknown) =>
+  (r as Convite).emailEnviado ? CONVITE_POR_EMAIL : '';
