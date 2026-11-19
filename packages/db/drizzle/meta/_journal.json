@@ -526,6 +526,13 @@
       "when": 1795097660531,
       "tag": "0074_ultimo_uso",
       "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1795105150761,
+      "tag": "0075_alcance_carteira",
+      "breakpoints": true
     }
   ]
 }
