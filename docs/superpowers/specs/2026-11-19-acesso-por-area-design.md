@@ -472,7 +472,7 @@ tarefas, reuniões e metas juntas. O que ela registrou fica no histórico da ins
 
 - (a) CSV de Mentorados para quem tem "só a carteira": ✅ **só da carteira**, sem contato, como o cargo Acompanhamento (Gabriel, 19/11, "A: só da carteira").
 - (b) Fila: ✅ **só "Minha fila"**, sem o botão "Equipe" (Gabriel, 19/11, "A: só Minha fila").
-- (c) Push da Fila: só dos itens da carteira dela? Recomendo: sim.
+- (c) Push da Fila: ✅ **só dos mentorados da carteira**; o push "a todos do perfil" de mentorado de outra pessoa não chega a ela (Gabriel, 19/11, "A: só os dela").
 - (d) Inscrição tirada da carteira some para ela na hora, como acima? Recomendo: sim.
 - (e) Ela pode trocar o responsável de um mentorado da carteira (passar para outra pessoa)? Recomendo: não, só o Admin
   (senão ela tira o mentorado da própria vista por engano e não tem como desfazer).
