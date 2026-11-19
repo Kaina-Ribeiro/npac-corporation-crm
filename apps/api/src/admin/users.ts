@@ -190,7 +190,11 @@ export class AdminUsersService {
 
   async invite(actor: AuthUser, input: UserInvite) {
     const { perfil, moduloAdmin, canProspect, canClose, ...conta } = input;
-    const pedido = vinculoDoCargo({ role: input.role, perfil: perfil ?? null, moduloAdmin: !!moduloAdmin });
+    const pedido = vinculoDoCargo({
+      role: input.role,
+      perfil: perfil ?? null,
+      moduloAdmin: !!moduloAdmin,
+    });
     const password = temporaryPassword();
     const id = randomUUID();
     const passwordHash = await hash(password);
@@ -294,7 +298,12 @@ export class AdminUsersService {
         const fica = cargo.role === 'ACOMPANHAMENTO';
         const perfilMudou =
           (era || fica) &&
-          !(era && fica && antes.perfil === cargo.perfil && antes.moduloAdmin === cargo.moduloAdmin);
+          !(
+            era &&
+            fica &&
+            antes.perfil === cargo.perfil &&
+            antes.moduloAdmin === cargo.moduloAdmin
+          );
         if (perfilMudou) {
           fields.push('perfil', 'moduloAdmin');
           await this.audit.record(
@@ -433,4 +442,3 @@ export class AdminUsersController {
     return this.users.resetMfa(u, id);
   }
 }
-

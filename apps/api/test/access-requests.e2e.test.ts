@@ -138,14 +138,15 @@ describe('aprovação', () => {
     expect((await h.post(`${LIST}/${id}/approve`, SDR, ale)).status).toBe(403);
   });
 
-  it('liderança lista os pedidos sem a senha, com a área de cada um', async () => {
+  it('Diretoria lista os pedidos sem a senha, com a área de cada um; o Head, só os da área dele', async () => {
     await h.post(REQUEST, {
       ...nova,
       username: 'da.mentoria',
       email: 'mentoria@novo.test',
       area: 'ACOMPANHAMENTO',
     });
-    const res = await h.get(LIST, head);
+    const diretor = await h.signIn('diretor@npac.com.br');
+    const res = await h.get(LIST, diretor);
     expect(res.status).toBe(200);
     expect(res.body).toEqual([
       {
@@ -165,6 +166,9 @@ describe('aprovação', () => {
         createdAt: expect.any(String),
       },
     ]);
+    // NPAC-54, Fase 2 (M9): o Head do Comercial não vê o pedido do Acompanhamento.
+    const doHead = await h.get(LIST, head);
+    expect(doHead.body.map((p: { area: string }) => p.area)).toEqual(['COMERCIAL']);
   });
 
   it('liderança aprova como SDR e a pessoa entra com a própria senha', async () => {

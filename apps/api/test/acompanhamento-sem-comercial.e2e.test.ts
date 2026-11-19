@@ -103,6 +103,30 @@ describe('cargo Acompanhamento não vê o comercial', () => {
     expect(vazou).toEqual([]);
   });
 
+  it('Acompanhamento sem o selo de Admin recebe 404 em admin/*; com o selo, as contas da área abrem', async () => {
+    // NPAC-54, Fase 2: o Admin do módulo é o Head do Acompanhamento e gerencia as contas da área.
+    const ADMIN = ['/api/admin/users', '/api/admin/access-requests', '/api/admin/acessos'];
+    for (const perfil of [null, 'OPERACAO']) {
+      await owner`delete from mentoria_perfis where user_id = (select id from "user" where email = 'carla@npac.com.br')`;
+      if (perfil)
+        await owner`insert into mentoria_perfis (user_id, perfil, admin)
+          select id, ${perfil}, false from "user" where email = 'carla@npac.com.br'`;
+      const s = await carla();
+      for (const url of ADMIN) expect((await h.get(url, s)).status, `${perfil} ${url}`).toBe(404);
+    }
+    await owner`update mentoria_perfis set admin = true where user_id = (select id from "user" where email = 'carla@npac.com.br')`;
+    try {
+      const s = await carla();
+      expect((await h.get('/api/admin/users', s)).status).toBe(200);
+      expect((await h.get('/api/admin/access-requests', s)).status).toBe(200);
+      // Registro de acessos e transferir leads: só Diretoria / comercial.
+      expect((await h.get('/api/admin/acessos', s)).status).toBe(404);
+      expect((await h.post('/api/admin/users/x/transfer-leads', { to: 'y' }, s)).status).toBe(404);
+    } finally {
+      await owner`delete from mentoria_perfis where user_id = (select id from "user" where email = 'carla@npac.com.br')`;
+    }
+  });
+
   it('o módulo e a própria sessão continuam abertos', async () => {
     const s = await carla();
     expect((await h.get('/api/me', s)).status).toBe(200);

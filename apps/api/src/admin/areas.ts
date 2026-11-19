@@ -50,7 +50,7 @@ export async function lerConta(tx: Tx, id: string): Promise<ContaAreas | null> {
 }
 
 /** A própria conta (lida pela RLS de `area_membros`: a própria linha sempre aparece). */
-export async function lerEu(tx: Tx, id: string): Promise<ContaAreas> {
+export async function lerMinhaConta(tx: Tx, id: string): Promise<ContaAreas> {
   const [u] = await tx.execute<{ mestre: boolean }>(
     sql`select mestre from "user" where id = ${id}`,
   );
@@ -83,7 +83,12 @@ export function vinculoDoCargo(c: Pick<CargoGravado, 'role' | 'perfil' | 'modulo
       cargo: c.perfil ?? null,
       head: c.perfil ? c.moduloAdmin : false,
     } as VinculoPedido;
-  return { mestre: false, area: 'COMERCIAL', cargo: c.role, head: c.role === 'HEAD' } as VinculoPedido;
+  return {
+    mestre: false,
+    area: 'COMERCIAL',
+    cargo: c.role,
+    head: c.role === 'HEAD',
+  } as VinculoPedido;
 }
 
 type Registro = { audit: AuditService; actorId: string };
@@ -161,7 +166,7 @@ export class GerenteGuard implements CanActivate {
   async canActivate(ctx: ExecutionContext): Promise<boolean> {
     const u = ctx.switchToHttp().getRequest<FastifyRequest>().user;
     if (!u) throw new NotFoundException();
-    const eu = await withUser(this.db, u.id, (tx) => lerEu(tx, u.id));
+    const eu = await withUser(this.db, u.id, (tx) => lerMinhaConta(tx, u.id));
     if (gerenciaAlguma(eu)) return true;
     if (hasCommercialAccess(u.role)) throw new ForbiddenException();
     throw new NotFoundException();
