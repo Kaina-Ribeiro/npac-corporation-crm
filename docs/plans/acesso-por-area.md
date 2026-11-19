@@ -12,7 +12,7 @@ Legenda: ⏳ a fazer · 🔧 em andamento · ✅ feito · ❌ travado (dizer por
 
 | Fase | O que entrega | Estimativa | Status |
 |---|---|---|---|
-| 1 | Banco: a tabela de membros vira a fonte do cargo, sem mudar nada na tela | 2–3 dias | 🔧 |
+| 1 | Banco: a tabela de membros vira a fonte do cargo, sem mudar nada na tela | 2–3 dias | ✅ (migration 0072; falta só o roteiro no ITODEV, ver notas) |
 | 2 | Regra única de quem gerencia quem, na API e no banco | 2 dias | ⏳ |
 | 3 | Telas: equipe por área (Admin do CRM e aba Perfis do módulo) | 2–3 dias | ⏳ |
 | 4 | Pessoa em duas áreas | 2 dias | ⏳ |
@@ -33,14 +33,39 @@ comportamento na API nem no web.** Spec: "Modelo" inteiro.
 
 | # | Tarefa | Pronto quando | Status |
 |---|---|---|---|
-| 1.1 | Teste de equivalência **antes** de mexer (RED → base): grava, para cada conta do seed e uma desativada, o resultado de `app_role()`, `mentoria_perfil()`, `mentoria_admin()`, `mentoria_perfil_de()` com as funções de hoje | `db/test/areas-equivalencia.test.ts` existe e compara "versão de hoje" × "versão viva", no padrão de `fila-equivalencia.test.ts` | ⏳ |
-| 1.2 | Migration: `area_membros`, `user.mestre`, CHECKs, RLS de leitura (formato "uma vez por consulta"), grants, carga inicial, invariantes (ao menos um vínculo; ao menos uma Diretoria ativa) | `pnpm --filter @npac/db migrate` aplica no dev; contagem de vínculos = contagem de contas por cargo; `migrations.test.ts` e `rls-por-consulta.test.ts` verdes | ⏳ |
-| 1.3 | Funções trocam de fonte (tabela da spec) + funções novas `area_definir_membro`, `area_remover_membro`, `area_definir_mestre`, `area_gerencia`, ainda **com a regra de hoje** (Diretoria faz tudo; Admin do módulo troca perfil) | 1.1 verde; `rls.test.ts`, `mentoria-v2-*.test.ts`, `cargos.test.ts`, `access-requests.test.ts` verdes **sem edição das expectativas** | ⏳ |
-| 1.4 | Compatibilidade: visão `mentoria_perfis`, `mentoria_definir_perfil` por cima da função nova, gatilho que traduz escrita direta em `user.role`, resumo `user.role` + caixas fixas; seed e testes que inseriam em `mentoria_perfis` passam à função | Teste novo: `update "user" set role=…`, `mentoria_definir_perfil(…)` e `select … from mentoria_perfis` funcionam; `seed.test.ts` e `seed-mentoria.test.ts` verdes | ⏳ |
-| 1.5 | Teste-guarda "ninguém lê `user.role` nem a tabela antiga fora da lista de compatibilidade" + medição | Guarda verde; `pnpm perf:seed` + `scripts/perf/medir.sh` em `/api/leads` e Dashboard do SDR dentro de ±10% de `docs/plans/desempenho.md`; suítes `db`, `shared` e `api` verdes; `CLAUDE.md` (Banco e Papéis) atualizado | ⏳ |
+| 1.1 | Teste de equivalência **antes** de mexer (RED → base): grava, para cada conta do seed e uma desativada, o resultado de `app_role()`, `mentoria_perfil()`, `mentoria_admin()`, `mentoria_perfil_de()` com as funções de hoje | `db/test/areas-equivalencia.test.ts` existe e compara "versão de hoje" × "versão viva", no padrão de `fila-equivalencia.test.ts` | ✅ |
+| 1.2 | Migration: `area_membros`, `user.mestre`, CHECKs, RLS de leitura (formato "uma vez por consulta"), grants, carga inicial, invariantes (ao menos um vínculo; ao menos uma Diretoria ativa) | `pnpm --filter @npac/db migrate` aplica no dev; contagem de vínculos = contagem de contas por cargo; `migrations.test.ts` e `rls-por-consulta.test.ts` verdes | ✅ |
+| 1.3 | Funções trocam de fonte (tabela da spec) + funções novas `area_definir_membro`, `area_remover_membro`, `area_definir_mestre`, `area_gerencia`, ainda **com a regra de hoje** (Diretoria faz tudo; Admin do módulo troca perfil) | 1.1 verde; `rls.test.ts`, `mentoria-v2-*.test.ts`, `cargos.test.ts`, `access-requests.test.ts` verdes **sem edição das expectativas** | ✅ |
+| 1.4 | Compatibilidade: visão `mentoria_perfis`, `mentoria_definir_perfil` por cima da função nova, gatilho que traduz escrita direta em `user.role`, resumo `user.role` + caixas fixas; seed e testes que inseriam em `mentoria_perfis` passam à função | Teste novo: `update "user" set role=…`, `mentoria_definir_perfil(…)` e `select … from mentoria_perfis` funcionam; `seed.test.ts` e `seed-mentoria.test.ts` verdes | ✅ |
+| 1.5 | Teste-guarda "ninguém lê `user.role` nem a tabela antiga fora da lista de compatibilidade" + medição | Guarda verde; `pnpm perf:seed` + `scripts/perf/medir.sh` em `/api/leads` e Dashboard do SDR dentro de ±10% de `docs/plans/desempenho.md`; suítes `db`, `shared` e `api` verdes; `CLAUDE.md` (Banco e Papéis) atualizado | ✅ |
 
 **Pronto quando (fase):** suíte da API e e2e do web passam sem nenhuma edição fora de `packages/db`
 e do seed; no ITODEV, um login por cargo vê exatamente o que via.
+
+**Notas da Fase 1 (19/11/2026):**
+- Migration `0072_area_membros`. Testes novos: `db/test/areas-equivalencia.test.ts` (antes × depois da migration no
+  mesmo banco, conta por conta, e funções de hoje × vivas depois de 11 trocas de cargo) e `db/test/areas-compat.test.ts`
+  (compatibilidade, funções novas, invariantes, RLS de `area_membros` e o teste-guarda). `rls-por-consulta` passou a
+  vigiar também funções `area_*` nas políticas.
+- **Compatibilidade sem editar testes:** em vez de passar os testes que gravam em `mentoria_perfis` para a função
+  (tarefa 1.4), a visão tem gatilhos INSTEAD OF que gravam o vínculo quando quem escreve é o dono do banco (seeds e
+  testes); `npac_app` só tem SELECT nela. Assim as suítes da API e do e2e ficam sem edição. Só o seed do módulo passou à
+  função (`area_definir_membro`, em nome da Diretoria) e `seed-mentoria.test.ts` trunca `area_membros` (era a tabela).
+  **Fase 5:** apagar esses gatilhos junto com a visão e trocar a escrita nos testes por um helper (5.1).
+- **Perfil esquecido** (linha em `mentoria_perfis` de quem não é do Acompanhamento): as funções de hoje já o ignoravam;
+  não vira vínculo na carga nem pela visão. Diferença visível só numa lista: `condutores` da reunião mostrava o perfil ao
+  lado do nome. Antes do deploy em prod, contar essas linhas (SQL de leitura) para saber se existem.
+- **Regra de hoje nas funções novas:** Diretoria faz tudo; Admin do módulo troca perfil (e selo) de quem já é do
+  Acompanhamento; Head do Comercial troca SDR/Closer de quem não é Head nem do Acompanhamento (o `guardLeadership`).
+  O achado (Admin do módulo dá o selo a outro) continua aberto até a Fase 2.
+- **Invariantes:** conta ativa que não é Diretoria tem vínculo; a última Diretoria ativa não sai nem é desativada (por UPDATE;
+  apagar conta é só do dono do banco). `definido_por` vira nulo se a conta de quem definiu for apagada.
+- **Desempenho** (`npac_e2e_perf`, mediana de 5): SDR `/api/leads` 24 ms (doc 28), Pipeline 32 (42), Hoje 36 (41),
+  closer `/api/leads` 53 (56), Plano 108/54 (121/63), relatório do SDR (Dashboard) 143 ms (doc 127, +12,6%). A/B na
+  mesma máquina, trocando só `app_role()` pela versão da 0021: 142–143 × 138–143 ms em 3 rodadas alternadas, ou seja,
+  sem diferença; os +12,6% são da máquina no dia.
+- **Pendente:** roteiro no ITODEV, um login por cargo, quando o rc da release com a 0072 chegar lá.
+
 
 ## Fase 2 — Regra única, na API e no banco
 
