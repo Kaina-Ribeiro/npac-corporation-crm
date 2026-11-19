@@ -400,8 +400,8 @@ Opções mostradas em imagem, no visual real (3 por tela). Escolhidas:
 ## Fase 3B — Alcance "só a carteira"
 
 Pedido da Eduarda (19/11, "1A, 2A, 3A", plano, Fase 3B) e desenho do Gabriel (19/11, sessão coordenadora). Código conferido
-na `release/v0.19` (`3fa5b4f`, última migration `0074`). Status: **proposta, aguardando o Gabriel** no desenho do formulário,
-nos textos novos e nas perguntas (a)–(e).
+na `release/v0.19` (`3fa5b4f`, última migration `0074`). Status: formulário e textos aprovados (19/11); **aguardando o Gabriel**
+nas perguntas (a)–(e).
 
 **Carteira** = as inscrições em que a pessoa é a responsável (`mentoria_inscricoes.responsavel_id`).
 
@@ -424,9 +424,9 @@ a carteira e envios por exemplo"; "eu ja to pensando com o sistema pronto".
   transferência e no push tudo o que já vale para o Acompanhamento) e permissões livres por tela e por pessoa (2–3 semanas,
   desfaz a D5, abre caminho de escalada e pesa na RLS com prod em uso).
 
-### Na tela (textos novos, precisam do sim do Gabriel)
+### Na tela (formulário e textos aprovados pelo Gabriel, 19/11: "Sim, pode ficar")
 
-- Aba Perfis do módulo, na linha da pessoa com cargo Acompanhamento: **"Alcance: Todos os mentorados / Só a carteira"** (Gabriel, 19/11: tira o "Vê"; "Alcance" escolhido entre "Alcance", "Permissões" e "Acessos": "Acessos" já é o quadro da Diretoria e "Permissões" fica para a futura linha de extras; a confirmar). O mesmo
+- Aba Perfis do módulo, na linha da pessoa com cargo Acompanhamento: **"Alcance: Todos os mentorados / Só a carteira"** (Gabriel, 19/11: tira o "Vê"; "Alcance" escolhido entre "Alcance", "Permissões" e "Acessos": "Acessos" já é o quadro da Diretoria e "Permissões" fica para a futura linha de extras). O mesmo
   campo no **Convidar** e ao **aprovar pedido de acesso** (com "Todos os mentorados" marcado). Outros cargos não mostram o campo.
 - Nas listas (aba Perfis e Admin → Usuários): **"Acompanhamento · só a carteira"**. O nome "Acompanhamento da carteira" (3A da
   Eduarda) não vira cargo (pendência: avisar a Eduarda).
