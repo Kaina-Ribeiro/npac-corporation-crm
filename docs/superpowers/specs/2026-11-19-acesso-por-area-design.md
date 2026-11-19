@@ -29,9 +29,10 @@ Código conferido na `release/v0.19` (commit `763bb4f`, última migration `0071`
 ## Não-objetivos
 
 - Criar cargo ou área pela tela. Cargos e áreas são fixos no código (`sh/cargos.ts`) e travados por teste.
-- Cargo "Envios" e cargo "só a própria carteira": ficam para a tela de Envios físicos (fase 4 do
-  Acompanhamento) e para a resposta da Eduarda (1A/1B, 2A/2B). Com este desenho, cargo novo = uma
-  entrada em `sh/cargos.ts` + a regra de dados dele.
+- Cargo "Envios" e cargo "só a própria carteira": ficam fora. A Eduarda respondeu em 19/11: **1B** (a Maria dos envios
+  só entra com o cargo Envios, junto da tela Envios físicos, fase 4 do Acompanhamento) e **2B** (a segunda Maria vê só a
+  carteira dela; cargo novo "Acompanhamento da carteira", fase 3B do plano, entre a 3 e a 4, com as respostas dela lá). Com este desenho, cargo novo
+  = uma entrada em `sh/cargos.ts` + a regra de dados dele.
 - Religar MFA e o limite de tentativas de login (ver "Segurança", recomendação).
 - Mudar o que cada cargo vê nos dados. A RLS de leads e de mentorados não muda de resultado.
 - Consertar o `/api/team` (lista nomes para o cargo Acompanhamento; já anotado em outra spec).
@@ -59,6 +60,7 @@ Código conferido na `release/v0.19` (commit `763bb4f`, última migration `0071`
 | D10 | A Diretoria tem um registro compacto e fácil de ver do que aconteceu de importante com contas e acessos (conta criada, cargo dado…). | Gabriel, 19/11 |
 | D11 | Cada linha do registro diz a área e o cargo: "Eduarda criou a conta de Maria · Acompanhamento, Operação". | Gabriel, 19/11 |
 | D12 | Na lista de pessoas, ao lado de cada nome, "entrou há 2 horas" / "não entra há 12 dias", para ver quem usa e quem sumiu. Entradas no sistema não viram linha do registro. | Gabriel, 19/11 ("gostei da ideia") |
+| D13 | Visual e textos da Fase 3: opções 1A (aba Perfis), 2A (Admin da Diretoria) e 3A (textos), detalhadas em "Telas". | Gabriel, 19/11 ("1A, 2A, 3A") |
 
 ### Decisões minhas, para o Gabriel conferir
 
@@ -363,6 +365,37 @@ Textos novos de tela, todos a confirmar com o Gabriel antes da fase 3: "Adiciona
 "também no Comercial" / "também no Acompanhamento", "Conta em mais de uma área: só a Diretoria redefine
 a senha ou desativa", "Só a Diretoria dá o selo de Admin do Acompanhamento", o título "Acessos", "Ver
 tudo", "novo", as frases da tabela do registro de acessos e os textos do "entrou há X".
+
+### Aprovado pelo Gabriel (19/11/2026, "1A, 2A, 3A") — D13
+
+Opções mostradas em imagem, no visual real (3 por tela). Escolhidas:
+
+- **1A, aba Perfis do módulo:** a lista de hoje. "Convidar" no canto de cima abre uma janelinha (Nome,
+  E-mail, Usuário, **Perfil**). Cada linha com "Nova senha" e "Desativar"/"Reativar" à vista e "entrou há X"
+  embaixo do nome. Pedidos de acesso num quadro acima da lista. Nota embaixo: "A Diretoria é Admin
+  automaticamente. Só a Diretoria dá o selo de Admin do Acompanhamento." A Diretoria vê o interruptor; o
+  Admin do módulo vê o selo "Admin do Acompanhamento" como etiqueta, sem interruptor. Sua própria linha
+  leva "(você)" e não tem botões.
+- **2A, Admin → Usuários da Diretoria:** quadro "Acessos" no topo, largura inteira, 5 linhas (data à
+  esquerda, frase, "novo" à direita), "Ver tudo" abre janelinha paginada (20 por página, "Anterior" /
+  "Próxima"). Embaixo, Convidar à esquerda e Equipe à direita, como antes; o filtro "Comercial |
+  Acompanhamento | Todas" fica no título da Equipe (abre em "Todas", lembrado no aparelho); "entrou há X"
+  no fim da linha cinza de cada pessoa.
+- **3A, textos:** todos como listados abaixo.
+  - Botões "Nova senha" (não "Redefinir senha": igual ao Admin do CRM), "Desativar"/"Reativar".
+  - Data do quadro: "hoje 14:02", "ontem 09:10", "17/11". Lista vazia: "Nada por aqui ainda."
+  - Frases (quem fez é o nome ou "Você"; conta apagada = "uma conta apagada"): "X criou a conta de Y ·
+    Área, Cargo"; "X aprovou o pedido de Y · Área, Cargo"; "X recusou um pedido de acesso · Área" (o pedido
+    recusado não guarda o nome); "X trocou o cargo de Y · Área, Cargo"; "X deu Head a Y" / "X tirou Head de
+    Y"; "X deu Admin do Acompanhamento a Y" / "X tirou Admin do Acompanhamento de Y"; "X adicionou Y a outra
+    área · Área, Cargo" / "X tirou Y do Área"; "X deu Diretoria a Y" / "X tirou a Diretoria de Y · Área,
+    Cargo"; "X redefiniu a senha de Y"; "X resetou o MFA de Y"; "X desativou a conta de Y" / "X reativou a
+    conta de Y"; evento antigo sem detalhe: "X alterou a conta de Y".
+  - "Entrou há X": "entrou agora", "entrou há N minutos/horas" (até 24 h), "entrou ontem", "entrou há N
+    dias" (até 6), "não entra há N dias" (7 ou mais, dias de calendário de Brasília), "nunca entrou".
+  - "também no Comercial" / "também no Acompanhamento" e a frase "Conta em mais de uma área: só a
+    Diretoria redefine a senha ou desativa" no lugar dos botões (só aparece com conta em duas áreas).
+  - "Adicionar a outra área" fica para a Fase 4.
 
 ## Segurança
 

@@ -15,6 +15,7 @@ Legenda: ⏳ a fazer · 🔧 em andamento · ✅ feito · ❌ travado (dizer por
 | 1 | Banco: a tabela de membros vira a fonte do cargo, sem mudar nada na tela | 2–3 dias | ✅ (migration 0072; falta só o roteiro no ITODEV, ver notas) |
 | 2 | Regra única de quem gerencia quem, na API e no banco | 2 dias | ✅ (migration 0073; ver notas) |
 | 3 | Telas: equipe por área (Admin do CRM e aba Perfis do módulo) | 2–3 dias | ⏳ |
+| 3B | Cargo da carteira (2B), "Acompanhamento da carteira": faz o que o perfil Acompanhamento faz, só nas inscrições em que é responsável | a estimar | ⏳ (respostas da Eduarda em 19/11; ver "Fase 3B") |
 | 4 | Pessoa em duas áreas | 2 dias | ⏳ |
 | 5 | Limpeza da compatibilidade | 1 dia | ⏳ |
 
@@ -119,6 +120,29 @@ novos listados no fim da seção "Telas" (M3, M6) e mostrar 2–3 opções em im
 | 3.6 | Roteiro no ITODEV por cargo (login → onde cai → cliques no menu) + `CLAUDE.md` e status | Lista do que passou, com URL e login por cargo, entregue ao Gabriel | ⏳ |
 
 **Pronto quando (fase):** a Eduarda consegue, no ITODEV, fazer sozinha as 3 contas que pediu.
+(19/11: com as respostas 1B e 2B da Eduarda, as 3 contas não existem mais como pedido. **Sugestão pendente**, sem o sim do
+Gabriel: "a Eduarda cria sozinha, no ITODEV, uma conta de cada cargo atual do Acompanhamento e aprova um pedido de
+acesso". A Fase 3 é conferida pelos dois critérios.)
+
+## Fase 3B — Cargo da carteira (2B)
+
+Entre a 3 e a 4 (Gabriel, 19/11: "Sim, entre 3 e 4"). Sem tarefas ainda: a sessão da fase escreve a spec e confere com o
+Gabriel no começo.
+
+**Respostas da Eduarda (19/11, "1A, 2A, 3A", repassadas pelo Gabriel):**
+- 1A. Na carteira dela, a pessoa faz tudo o que o perfil Acompanhamento faz no dia a dia (reuniões, tarefas, metas, PME e
+  onboarding), mas só nos mentorados em que é a responsável.
+- 2A. Cadastra mentorado novo, que já entra na carteira dela, com ela como responsável.
+- 3A. Nome do cargo na tela: **"Acompanhamento da carteira"**.
+
+**Leitura (a conferir com o Gabriel, ainda não é decisão):** vê só as inscrições em que é responsável (Fila, Mentorados,
+Ficha, Reuniões, Metas); edita as mesmas áreas do perfil Acompanhamento, só na carteira; pode ser responsável e receber
+carteira na transferência; o que é só do Admin continua só do Admin (excluir, anonimizar, transferir carteira, catálogo de
+PMEs, CSV com contato); quem cria o cargo: o Admin do Acompanhamento e a Diretoria.
+
+**Em aberto para o Gabriel no começo da fase:** (a) CSV do módulo para esse cargo: só da carteira ou nenhum? (b) A visão
+"Equipe" da Fila some para ele? (c) O push da Fila que vai "a todos do perfil": só os da carteira? (d) Inscrição tirada da
+carteira deixa de ser vista (esperado).
 
 ## Fase 4 — Pessoa em duas áreas
 
@@ -157,8 +181,13 @@ inteira sem rollback. Spec: "Compatibilidade".
 - Conferir as decisões M2–M10, M12 e M13 da spec (M1 e M11 ele confirmou em 19/11).
 - Textos novos de tela (antes da fase 3).
 - Religar MFA para Diretoria e Heads e ter duas contas de Diretoria (recomendação, fora deste plano).
-- Com a Eduarda: 1A/1B (Maria) e 2A/2B (segunda Maria); até a fase 3 chegar a prod, quem cria as contas
-  é o Gabriel (Admin → Convidar → Cargo).
+- Com a Eduarda (respondido em 19/11): **1B** — a Maria dos envios só ganha conta quando existir o cargo Envios, que vem
+  com a tela Envios físicos (fase 4 do Acompanhamento; D6). **2B** — a segunda Maria deve ver só os mentorados da carteira
+  dela (inscrições em que é responsável); o cargo não existe e é a fase 3B da tabela de fases (Gabriel, 19/11: "Sim, entre 3 e 4").
+  Até lá, nenhuma das duas tem conta. A Fase 3 não acrescenta cargo: a lista do Acompanhamento continua a de hoje.
+  Dica para o cargo da carteira (não conferida no código): a lista que hoje cobre só a Especialista
+  (`mentoria_ids_especialista`) pode ganhar o caso da carteira sem reescrever políticas; a regra de quem pode ser
+  responsável (hoje só o perfil Acompanhamento) precisa aceitar o cargo novo.
 
 ## Brief de cada sessão (copiar e trocar a fase)
 
