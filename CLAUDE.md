@@ -220,8 +220,10 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   responsável (política da inscrição; API força no cadastro e dá 403 na troca; ficha `pode.responsavel`). Fila só "Minha"
   (API força `escopo`), CSV só da carteira (RLS), push "a todos do perfil" sem ela (`mentoria_destinatarios`,
   `mentoria_avisos_candidatos.acomp_todos`), inscrição tirada da carteira some na hora. `GET mentoria/eu` traz
-  `soCarteira`; `admin/users` e `/api/me` trazem `alcance`. Tela: "Alcance: Todos os mentorados / Só a carteira" na aba
-  Perfis (linha, Convidar, pedido), "Acompanhamento · só a carteira" no Admin e no quadro "Acessos". Extras por pessoa
+  `soCarteira`; `admin/users` e `/api/me` trazem `alcance`. Tela (desenho A, Gabriel 19/11): "Acessos" com as tags de
+  escolha única "Carteira" / "Todos os mentorados" na aba Perfis (linha, Convidar, pedido; `.acessos`/`.acesso-tag` em
+  `modulo.css`); nas listas, o selo "Acompanhamento" e a tag neutra "Carteira" ao lado (`.role-TAG`, `CargoTag`); no quadro
+  "Acessos", a frase do cargo com a tag (`FraseAcesso.tag`). Nunca "Acompanhamento · só a carteira" (reprovado). Extras por pessoa
   (ex.: Envios) ficam para quando houver o primeiro extra real. Rótulos e regra pura em `sh/alcance.ts`
   (`@npac/shared/alcance`, fora de `cargos.ts` pelo peso de `/leads`). Testes: `db/test/carteira.test.ts`,
   `api/test/carteira.e2e.test.ts`, `e2e/acompanhamento-carteira.spec.ts`.

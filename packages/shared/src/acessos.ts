@@ -3,7 +3,7 @@
  * acessos da Diretoria (D10, D11). Sem zod: lido no cliente
  * (`@npac/shared/acessos`).
  */
-import { ALCANCE_SUFIXO } from './alcance.js';
+import { ALCANCE_LABEL, type Alcance } from './alcance.js';
 import { AREA_LABEL, CARGO_INFO, MODULO_ADMIN_LABEL, type Area, type Cargo } from './cargos.js';
 
 const MIN = 60_000;
@@ -76,26 +76,33 @@ export type Acesso = {
   area: string | null;
   cargo: string | null;
   head: boolean | null;
-  /** Fase 3B: "só a carteira" no cargo Acompanhamento; ausente = todos os mentorados. */
-  alcance?: 'CARTEIRA' | null;
+  /**
+   * Fase 3B: a tag de "Acessos" que entrou com o cargo ("Carteira"), ou "Todos os mentorados" quando a
+   * pessoa saiu da carteira; ausente = sem tag.
+   */
+  alcance?: Alcance | null;
 };
 
-/** Frase de uma linha, em três pedaços: o nome do alvo fica em destaque na tela. */
-export type FraseAcesso = { antes: string; alvo: string | null; depois: string };
+/**
+ * Frase de uma linha, em três pedaços: o nome do alvo fica em destaque na tela. `tag`: a tag de
+ * "Acessos" ao lado da frase ("Carteira"/"Todos os mentorados"), como na lista de pessoas.
+ */
+export type FraseAcesso = {
+  antes: string;
+  alvo: string | null;
+  depois: string;
+  tag: string | null;
+};
 
 const areaLabel = (a: string | null) => (a && a in AREA_LABEL ? AREA_LABEL[a as Area] : null);
 const cargoLabel = (c: string | null) =>
   c && c in CARGO_INFO ? CARGO_INFO[c as Cargo].label : null;
 
-/**
- * " · Área, Cargo" (D11); Admin do Acompanhamento junto do cargo; Diretoria sem área; "· só a carteira"
- * no fim (Fase 3B).
- */
+/** " · Área, Cargo" (D11); Admin do Acompanhamento junto do cargo; Diretoria sem área. */
 function sufixo(a: Acesso) {
   const area = areaLabel(a.area);
   let cargo = cargoLabel(a.cargo);
   if (cargo && a.area === 'ACOMPANHAMENTO' && a.head) cargo = `${cargo} e ${MODULO_ADMIN_LABEL}`;
-  if (cargo && a.alcance === 'CARTEIRA') cargo = `${cargo} · ${ALCANCE_SUFIXO}`;
   const partes = [area, cargo].filter(Boolean);
   return partes.length ? ` · ${partes.join(', ')}` : '';
 }
@@ -108,7 +115,20 @@ const nomeDoHead = (area: string | null) =>
  * Frase do registro de acessos (spec, "Registro de acessos da Diretoria"; textos aprovados em D13).
  * Quem fez é "Você" quando é quem lê; conta apagada vira "uma conta apagada".
  */
+/** Tipos em que a frase leva o cargo (" · Área, Cargo") e, com ele, a tag de "Acessos". */
+const COM_CARGO = new Set<TipoAcesso>([
+  'CONTA_CRIADA',
+  'PEDIDO_APROVADO',
+  'CARGO_TROCADO',
+  'AREA_ADICIONADA',
+]);
+
 export function fraseAcesso(a: Acesso, euId: string): FraseAcesso {
+  const tag = a.alcance && COM_CARGO.has(a.tipo) ? ALCANCE_LABEL[a.alcance] : null;
+  return { ...frase(a, euId), tag };
+}
+
+function frase(a: Acesso, euId: string): Omit<FraseAcesso, 'tag'> {
   const ator = !a.ator ? 'Uma conta apagada' : a.ator.id === euId ? 'Você' : a.ator.nome;
   const alvo = a.alvo?.nome ?? 'uma conta apagada';
   const f = (verbo: string, depois = '') => ({ antes: `${ator} ${verbo} `, alvo, depois });

@@ -36,13 +36,20 @@ const CAMPOS_DE_CARGO = ['role', 'perfil', 'moduloAdmin'];
 
 /** Tipo e detalhe de cada linha da auditoria (as que não são acesso nem chegam aqui). */
 function tipoDe(action: string, d: Record<string, unknown>) {
+  const antes = (d.antes ?? null) as { head?: boolean; alcance?: string } | null;
+  // Tag de "Acessos" (Fase 3B): "Carteira" quando entra; "Todos os mentorados" quando sai da carteira.
+  const alcance =
+    d.alcance === 'CARTEIRA'
+      ? ('CARTEIRA' as const)
+      : d.alcance === 'TODOS' && antes?.alcance === 'CARTEIRA'
+        ? ('TODOS' as const)
+        : null;
   const detalhe = {
     area: texto(d.area),
     cargo: texto(d.cargo),
     head: bool(d.head),
-    ...(d.alcance === 'CARTEIRA' ? { alcance: 'CARTEIRA' as const } : {}),
+    ...(alcance ? { alcance } : {}),
   };
-  const antes = (d.antes ?? null) as { head?: boolean } | null;
   switch (action) {
     case 'admin.user.invite':
       return { tipo: 'CONTA_CRIADA' as const, ...detalhe };
