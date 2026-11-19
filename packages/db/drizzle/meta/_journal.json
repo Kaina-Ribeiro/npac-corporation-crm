@@ -519,6 +519,13 @@
       "when": 1795095243130,
       "tag": "0073_area_regra",
       "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1795097660531,
+      "tag": "0074_ultimo_uso",
+      "breakpoints": true
     }
   ]
 }

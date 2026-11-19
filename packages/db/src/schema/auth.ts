@@ -35,6 +35,9 @@ export const user = pgTable(
     mustChangePassword: boolean('must_change_password').notNull().default(true),
     // Conta Mestre = Diretoria (0072): sem vínculo em `area_membros`, Head de todas as áreas.
     mestre: boolean('mestre').notNull().default(false),
+    // Última vez que a pessoa usou o sistema ("entrou há X", NPAC-54 D12/M12): gravada pela guarda
+    // de sessão no máximo a cada 15 min; o Sair não apaga. `user` fica fora do canal ao vivo.
+    ultimoUso: timestamp('ultimo_uso', { withTimezone: true }),
   },
   // Cargos em um passo (0049): SDR, Closer e Acompanhamento têm as caixas definidas pelo cargo;
   // só Head e Diretoria escolhem "Atua como SDR/Closer". Cargo comparado como texto.

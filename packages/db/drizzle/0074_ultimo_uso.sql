@@ -1,0 +1,1 @@
+ALTER TABLE "user" ADD COLUMN "ultimo_uso" timestamp with time zone;

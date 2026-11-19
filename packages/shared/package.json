@@ -49,6 +49,10 @@
     "./areas": {
       "types": "./dist/areas.d.ts",
       "default": "./dist/areas.js"
+    },
+    "./acessos": {
+      "types": "./dist/acessos.d.ts",
+      "default": "./dist/acessos.js"
     }
   },
   "scripts": {
