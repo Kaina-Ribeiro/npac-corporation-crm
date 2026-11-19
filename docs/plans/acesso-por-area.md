@@ -237,6 +237,14 @@ alcança a outra área por ela.
 - **Textos novos de tela** (Gabriel, 19/11, "1A, 2A, 3A": select "Tirar de uma área" na linha, confirmações e avisos abaixo, "Adicionar a outra área" em toda linha): confirmação "Adicionar Sônia ao Acompanhamento como Especialista?"
   (+ a frase de dados sensíveis que já existe), aviso "Sônia agora também é Especialista", "Tirar de uma área", "Tirar Sônia
   do Acompanhamento?" e "Sônia saiu do Acompanhamento". "Adicionar a outra área" é da spec.
+- **Tirar de uma área com trabalho em aberto** (fica para depois, sem código nesta fase): tirar o Comercial não mexe nos
+  leads em que a pessoa é SDR (`leads.sdr_id`) nem nos em que é closer (`leads.closer_id`, `meetings.closer_id`): ficam no
+  nome dela, a liderança vê e passa os de SDR por "Passar leads para…". A tela só lembra dos leads de SDR (o mesmo
+  `confirmarLeads` da troca de cargo); nada avisa dos de closer. Tirar o Acompanhamento não mexe nas inscrições em que
+  ela é responsável: a Fila trata como responsável sem perfil (o item vai a todos do perfil) e `GET mentoria/responsaveis`
+  a mostra como quem saiu, para o Admin transferir a carteira; a tela não avisa. **Recomendação:** na confirmação de
+  "Tirar de uma área", contar e dizer o que fica no nome da pessoa (leads como SDR e como closer; inscrições como
+  responsável) e apontar "Passar leads para…" / transferir carteira, com texto aprovado pelo Gabriel.
 - **Fica de fora:** foto de quem tem as duas áreas para quem só é do Acompanhamento (`conta/foto.controller.ts` decide pelo
   resumo `role`; aparece a inicial). Precisa ler o vínculo de outra conta fora da RLS (função nova); anotar para a Fase 5.
 

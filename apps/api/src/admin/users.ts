@@ -421,6 +421,7 @@ export class AdminUsersService {
     if (!alvo) throw new NotFoundException();
     const base = { ator: eu, alvo, proprio: id === actor.id };
     aplicar({ ...base, acao: 'VER' });
+    // Pôr e tirar de uma área são a mesma ação "só a Diretoria" (M4); a regra não tem uma ação de pôr.
     aplicar({ ...base, acao: 'REMOVER_AREA' });
     return alvo;
   }
