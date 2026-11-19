@@ -260,6 +260,10 @@ inteira sem rollback. Spec: "Compatibilidade".
 | 5.3 | `CLAUDE.md`, status e nota de que `user.role` é resumo (M7) | Suítes `db`, `api`, `shared` e e2e do web verdes | ⏳ |
 
 **Notas para a Fase 5:**
+- Foto de quem tem as duas áreas (vinda da Fase 4): `conta/foto.controller.ts` (`visivel`, em `users/:id/photo` e
+  `team/photos`) decide pelo resumo `role`, então quem só é do Acompanhamento vê a inicial no lugar da foto de uma conta
+  com as duas áreas (resumo comercial). Falta uma função `SECURITY DEFINER` que diga "esta conta tem vínculo no
+  Acompanhamento" (a RLS de `area_membros` não mostra a linha de outra pessoa) e trocar `visivel` para usá-la.
 - O convite de conta nova ainda registra a área pelo gatilho de compatibilidade de `user.role` (insert com `role`); antes
   de remover o gatilho, o convite precisa de caminho próprio no banco.
 
