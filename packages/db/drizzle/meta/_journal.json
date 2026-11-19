@@ -505,6 +505,13 @@
       "when": 1795043963576,
       "tag": "0071_meu_perfil",
       "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1795091547629,
+      "tag": "0072_area_membros",
+      "breakpoints": true
     }
   ]
 }

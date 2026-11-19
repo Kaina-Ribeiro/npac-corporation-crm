@@ -1,5 +1,6 @@
 export * from './enums.js';
 export * from './auth.js';
+export * from './areas.js';
 export * from './pipeline.js';
 export * from './leads.js';
 export * from './meetings.js';

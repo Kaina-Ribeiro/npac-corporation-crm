@@ -14,6 +14,7 @@ import {
   integer,
   numeric,
   pgTable,
+  pgView,
   smallint,
   text,
   timestamp,
@@ -33,25 +34,18 @@ const autoria = {
   atualizadoEm: timestamp('atualizado_em', { withTimezone: true }).notNull().defaultNow(),
 };
 
-/** Perfil dentro do módulo (D3, D13). Diretoria é Admin automático e não precisa de linha. */
-export const mentoriaPerfis = pgTable(
-  'mentoria_perfis',
-  {
-    userId: text('user_id')
-      .primaryKey()
-      .references(() => user.id),
-    perfil: text('perfil').notNull(),
-    admin: boolean('admin').notNull().default(false),
-    definidoPor: text('definido_por').references(() => user.id),
-    definidoEm: timestamp('definido_em', { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => [
-    check(
-      'mentoria_perfis_perfil',
-      sql`${t.perfil} in ('ACOMPANHAMENTO', 'OPERACAO', 'ESPECIALISTA', 'MENTOR')`,
-    ),
-  ],
-);
+/**
+ * Perfil dentro do módulo (D3, D13). Diretoria é Admin automático e não precisa de linha.
+ * Desde a 0072 (NPAC-54) é uma visão só de leitura sobre `area_membros` (área ACOMPANHAMENTO com
+ * cargo), mantida para a versão anterior do app; sai na fase 5 do plano de acesso por área.
+ */
+export const mentoriaPerfis = pgView('mentoria_perfis', {
+  userId: text('user_id').notNull(),
+  perfil: text('perfil').notNull(),
+  admin: boolean('admin').notNull(),
+  definidoPor: text('definido_por'),
+  definidoEm: timestamp('definido_em', { withTimezone: true }).notNull(),
+}).existing();
 
 /** Inscrição: uma por mentorado (individual ou casal), base do calendário da jornada. */
 export const mentoriaInscricoes = pgTable(

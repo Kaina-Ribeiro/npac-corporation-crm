@@ -12,7 +12,7 @@ Legenda: ⏳ a fazer · 🔧 em andamento · ✅ feito · ❌ travado (dizer por
 
 | Fase | O que entrega | Estimativa | Status |
 |---|---|---|---|
-| 1 | Banco: a tabela de membros vira a fonte do cargo, sem mudar nada na tela | 2–3 dias | ⏳ |
+| 1 | Banco: a tabela de membros vira a fonte do cargo, sem mudar nada na tela | 2–3 dias | 🔧 |
 | 2 | Regra única de quem gerencia quem, na API e no banco | 2 dias | ⏳ |
 | 3 | Telas: equipe por área (Admin do CRM e aba Perfis do módulo) | 2–3 dias | ⏳ |
 | 4 | Pessoa em duas áreas | 2 dias | ⏳ |
