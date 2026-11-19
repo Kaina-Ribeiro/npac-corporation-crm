@@ -470,6 +470,41 @@
       "when": 1794954696204,
       "tag": "0066_venda_do_sdr",
       "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "7",
+      "when": 1795016793089,
+      "tag": "0067_renda_extra_vendas_antigas",
+      "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1795017220745,
+      "tag": "0068_area_do_pedido_de_acesso",
+      "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "7",
+      "when": 1795027316603,
+      "tag": "0069_acompanhamento_v2_semaforo",
+      "breakpoints": true
+    },
+    {
+      "idx": 70,
+      "version": "7",
+      "when": 1795035651972,
+      "tag": "0070_acompanhamento_v2_fila_cobranca",
+      "breakpoints": true
+    },
+    {
+      "idx": 71,
+      "version": "7",
+      "when": 1795043963576,
+      "tag": "0071_meu_perfil",
+      "breakpoints": true
     }
   ]
 }

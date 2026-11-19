@@ -26,7 +26,7 @@ export function requestAccessPlugin(db: Db, audit: AuditService): BetterAuthPlug
         REQUEST_ACCESS_PATH,
         { method: 'POST', body: accessRequestSchema },
         async (ctx) => {
-          const { name, username, email, password } = ctx.body;
+          const { name, username, email, password, area } = ctx.body;
           await db
             .delete(accessRequests)
             .where(lt(accessRequests.createdAt, accessRequestCutoff()));
@@ -40,7 +40,7 @@ export function requestAccessPlugin(db: Db, audit: AuditService): BetterAuthPlug
           if (!taken) {
             const [created] = await db
               .insert(accessRequests)
-              .values({ name, username, email, passwordHash })
+              .values({ name, username, email, passwordHash, area })
               .onConflictDoNothing({ target: accessRequests.username })
               .returning({ id: accessRequests.id });
             if (created)

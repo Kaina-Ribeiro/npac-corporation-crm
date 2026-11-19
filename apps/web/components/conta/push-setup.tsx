@@ -70,7 +70,10 @@ export function PushSetup() {
           Desativar neste aparelho
         </button>
       )}
-      <Link href="/hoje" className="text-center text-sm font-semibold text-ink2 hover:text-ink">
+      <Link
+        href="/hoje"
+        className="toque text-center text-sm font-semibold text-ink2 hover:text-ink"
+      >
         Voltar
       </Link>
     </div>

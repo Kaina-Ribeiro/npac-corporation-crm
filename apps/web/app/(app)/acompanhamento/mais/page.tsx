@@ -75,8 +75,8 @@ export default async function MaisPage() {
   return (
     <section className="view">
       <h1 className="h1">Mais</h1>
-      {/* Mesmo cartão do Mais do CRM: Trocar senha e Sair no topo, sem rolar. */}
-      <ContaCard nome={me.name}>
+      {/* Mesmo cartão do Mais do CRM: Meu perfil e Sair no topo, sem rolar. */}
+      <ContaCard nome={me.name} foto={me.photo}>
         <CargoTag role={me.role} perfil={eu?.perfil} moduloAdmin={!!(eu?.admin && eu.perfil)} />
       </ContaCard>
       <Grupo
@@ -102,12 +102,14 @@ export default async function MaisPage() {
             icone: ICONES.plano,
             href: '/acompanhamento/plano',
           },
+          ...(podeCadastrar(eu)
+            ? [{ rotulo: 'PMEs e ciclos', icone: ICONES.pmes, href: '/acompanhamento/pmes' }]
+            : []),
         ]}
       />
       <Grupo
         titulo="Em breve"
         itens={[
-          breve('PMEs e ciclos', ICONES.pmes, 'pmes'),
           breve('Linha do tempo e conquistas', ICONES.linha, 'linha-do-tempo'),
           breve('Envios físicos', ICONES.envios, 'envios'),
           breve('Eventos e agenda', ICONES.eventos, 'eventos'),

@@ -9,6 +9,7 @@ import { dashCookieName } from '@/lib/dashboard-layout';
 import { presetFilters, type Preset } from '@/lib/report-presets';
 import { prefsCookie } from '@/lib/screen-prefs';
 import { getSession } from '@/lib/session';
+import { getTeamPhotos } from '@/lib/team-photos';
 import { PushInvite } from '@/components/push-invite';
 export const metadata = { title: 'Dashboard' };
 export default async function DashboardPage() {
@@ -16,11 +17,12 @@ export default async function DashboardPage() {
   if (!me) redirect('/login');
   const head = isLeader(me.role);
   const cookie = dashCookieName(me.id);
-  const [catalog, products, activity, jar] = await Promise.all([
+  const [catalog, products, activity, jar, photos] = await Promise.all([
     apiGet<LeadCatalog>('/api/leads/catalog'),
     apiGet<ProductDTO[]>('/api/finance/products'),
     head ? apiGet<TeamActivityDTO>('/api/reports/activity') : undefined,
     cookies(),
+    getTeamPhotos(),
   ]);
   // Período (Hoje, 7 dias) e SDR lembrados (NPAC-46): o servidor já busca com eles.
   const prefs = prefsCookie('dashboard', me.id);
@@ -45,6 +47,7 @@ export default async function DashboardPage() {
         layout={{ cookie, saved: jar.get(cookie)?.value }}
         prefs={{ cookie: prefs, value: writePrefs(saved, rules) }}
         initialFilters={saved}
+        photos={photos}
       />
     </>
   );

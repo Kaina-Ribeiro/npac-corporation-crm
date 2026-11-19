@@ -30,7 +30,7 @@ export function LeadFilters({
 }) {
   return (
     <details className="glass-card p-4" open={Object.keys(values).length > 0 || undefined}>
-      <summary className="cursor-pointer text-sm font-semibold">Filtrar e ordenar</summary>
+      <summary className="toque cursor-pointer text-sm font-semibold">Filtrar e ordenar</summary>
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4" onChange={onApply}>
         <Field label="Etapa do lead">
           <select name="stage" form={form} defaultValue={values.stage ?? ''} className={control}>

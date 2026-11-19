@@ -16,6 +16,7 @@ import type {
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import { activityFields } from '@/lib/activity-text';
+import { confirmLeaveSale } from '@/lib/leave-sale';
 import { useReminderClock } from '@/lib/alerts';
 import { brasiliaInput, clientApi } from '@/lib/client-api';
 import {
@@ -299,7 +300,7 @@ export function LeadDetail({
       {/* Primeiro bloco da ficha (pedido do Igor, 10/11/2026): os dados à mão, sem rolar a página. */}
       {me.role !== 'CLOSER' && (
         <details className="glass-card p-5">
-          <summary className="cursor-pointer font-semibold">Editar dados do lead</summary>
+          <summary className="toque cursor-pointer font-semibold">Editar dados do lead</summary>
           <div className="mt-5">
             <LeadForm
               lead={lead}
@@ -320,6 +321,8 @@ export function LeadDetail({
             onChange={(e) => {
               const target = e.target.value;
               setError('');
+              // Sair da Venda a registrar cancela a venda feita do SDR: pede confirmação (NPAC-51).
+              if (!confirmLeaveSale(lead, target)) return;
               if (target === lead.stageKey) setMoveTo('');
               else if (stageNeedsFields(target)) setMoveTo(target);
               else {
@@ -729,7 +732,7 @@ export function LeadDetail({
       {deals && <FinancePanel lead={lead} deals={deals} products={products} me={me} />}
       {isLeader(me.role) && (
         <details className="glass-card p-5">
-          <summary className="cursor-pointer text-sm text-danger">Excluir lead</summary>
+          <summary className="toque cursor-pointer text-sm text-danger">Excluir lead</summary>
           <p className="my-3 text-sm text-ink2">
             O lead será retirado das listas e o histórico ficará preservado.
           </p>

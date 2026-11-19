@@ -19,6 +19,8 @@ import {
   type PessoaNova,
   type PessoaPatch,
   type ResumoCarteira,
+  type SemaforoCor,
+  type SemaforoMotivo,
 } from '@npac/shared';
 import { and, eq, sql, type SQL } from 'drizzle-orm';
 import { DB } from '../common/db/db.module.js';
@@ -30,10 +32,12 @@ import { exigirEdicao, registrarHistorico } from './historico.js';
 import { aad, MentoriaCrypto } from './mentoria-crypto.js';
 import { criarEtapas } from './onboarding.service.js';
 import { PlanoService } from './plano.service.js';
+import { MENTORIA_CLOCK, type Clock } from './relogio.js';
 
 const PAGINA = 50;
 const LIMITE_BUSCA = 20;
 const HOJE = sql`(now() at time zone 'America/Sao_Paulo')::date`;
+const DIA_BR = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' });
 /** Escapa curingas do LIKE: o termo da busca é texto, nunca padrão. */
 const semCuringa = (s: string) => s.replace(/[\\%_]/g, (c) => `\\${c}`);
 const TELEFONE = /^[\d\s()+.-]+$/;
@@ -50,6 +54,9 @@ type LinhaBruta = {
   pessoas: InscricaoItem['pessoas'];
   plano: InscricaoItem['plano'];
   ultimo_contato: string | null;
+  sem_cor: SemaforoCor | null;
+  sem_motivos: string[] | null;
+  pme: InscricaoItem['pme'];
 };
 
 const emItem = (r: LinhaBruta): InscricaoItem => ({
@@ -65,6 +72,10 @@ const emItem = (r: LinhaBruta): InscricaoItem => ({
   completar: r.completar,
   pessoas: r.pessoas,
   plano: r.plano,
+  semaforo: r.sem_cor
+    ? { cor: r.sem_cor, motivos: (r.sem_motivos ?? []) as SemaforoMotivo[] }
+    : null,
+  pme: r.pme,
 });
 
 const COMPLETAR = sql`(i.importada and ((i.mentoria = 'RDV' and i.data_idr is null)
@@ -80,6 +91,7 @@ export class InscricoesService {
     private readonly crypto: MentoriaCrypto,
     private readonly ficha: FichaService,
     private readonly plano: PlanoService,
+    @Inject(MENTORIA_CLOCK) private readonly clock: Clock,
   ) {
     const key = hkdfSync('sha256', env.BETTER_AUTH_SECRET, '', 'npac:mentoria:cursor', 32);
     this.cursor = new CursorSigner(Buffer.from(key));
@@ -162,9 +174,20 @@ export class InscricoesService {
     }).catch((e) => erroDoBanco(e));
   }
 
+  /** Dia de Brasília pelo relógio do módulo (semáforo e PME atual). */
+  private dia() {
+    return sql`${DIA_BR.format(new Date(this.clock.now()))}::date`;
+  }
+
+  /** Semáforo de hoje da inscrição `i` (nulo para quem não vê e fora de ATIVO). */
+  private semaforoDe() {
+    return sql`(select s.cor from mentoria_semaforo(i.id, ${this.dia()}) s)`;
+  }
+
   private async consultar(tx: Tx, where: SQL[], limite: number, depois?: SQL) {
     const todos = [...where, ...(depois ? [depois] : [])];
     const filtro = todos.length ? sql`where ${sql.join(todos, sql` and `)}` : sql``;
+    const hoje = this.dia();
     return tx.execute<LinhaBruta>(sql`
       select i.id, i.tipo, i.mentoria, i.status, i.responsavel_id, u.name as responsavel,
         mentoria_mes_jornada(i.id, ${HOJE}) as mes,
@@ -177,10 +200,20 @@ export class InscricoesService {
            'atrasadas', count(*) filter (where mentoria_acao_atrasada(a.status,
              a.anterior_ao_sistema, a.data_limite, ${HOJE})))
          from mentoria_acoes a where a.inscricao_id = i.id) as plano,
-        to_char(mentoria_ultimo_contato(i.id), 'YYYY-MM-DD') as ultimo_contato
+        to_char(mentoria_ultimo_contato(i.id), 'YYYY-MM-DD') as ultimo_contato,
+        s.cor as sem_cor, s.motivos as sem_motivos,
+        (select json_build_object('numero', c.numero,
+           'status', mentoria_ciclo_status(c.concluido_em, c.nao_concluido_em, c.prazo,
+             c.segunda_chance_ate, ${hoje}),
+           'diasAtraso', case when c.concluido_em is null and c.nao_concluido_em is null
+             then greatest(${hoje} - coalesce(c.segunda_chance_ate, c.prazo), 0) else 0 end,
+           'pctTarefas', mentoria_pct_tarefas(c.id))
+         from mentoria_ciclos c where c.inscricao_id = i.id
+         order by c.numero desc limit 1) as pme
       from mentoria_inscricoes i
       join mentoria_pessoas p1 on p1.inscricao_id = i.id and p1.ordem = 1
       left join "user" u on u.id = i.responsavel_id
+      left join lateral mentoria_semaforo(i.id, ${hoje}) s on true
       ${filtro}
       order by p1.nome_norm, i.id
       limit ${limite}`);
@@ -193,6 +226,7 @@ export class InscricoesService {
       if (f.responsavelId) where.push(sql`i.responsavel_id = ${f.responsavelId}`);
       if (f.mes) where.push(sql`mentoria_mes_jornada(i.id, ${HOJE}) = ${f.mes}`);
       if (f.completar) where.push(COMPLETAR);
+      if (f.semaforo) where.push(sql`${this.semaforoDe()} = ${f.semaforo}`);
       let depois: SQL | undefined;
       if (f.cursor) {
         const id = this.cursor.verify(f.cursor);

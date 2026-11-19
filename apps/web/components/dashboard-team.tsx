@@ -5,20 +5,15 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { activityVerb, activityWhen } from '@/lib/activity-text';
 import { clientApi } from '@/lib/client-api';
+import { Avatar, AVATAR_OUTRO, SEM_FOTOS, type TeamPhotos } from './avatar';
 import { ChartCard } from './dashboard-charts';
 import { useCrmRefresh } from './shell/live-updates';
 
 const empty = <p className="text-sm text-ink2">Nenhum resultado no período.</p>;
 
-function Initial({ name }: { name: string }) {
-  return (
-    <span
-      aria-hidden="true"
-      className="grid size-8 flex-none place-items-center rounded-full bg-ink text-sm font-bold text-[var(--bg)]"
-    >
-      {name.slice(0, 1)}
-    </span>
-  );
+/** Foto (NPAC-53) ou a inicial no círculo escuro de antes. */
+function Initial({ name, photo }: { name: string; photo?: string | null }) {
+  return <Avatar name={name} photo={photo} className={`${AVATAR_OUTRO} size-8 text-sm`} />;
 }
 
 /** Anel de conversão (vendas ÷ reuniões realizadas); o número no centro é a leitura. */
@@ -58,7 +53,13 @@ function Ring({ bps }: { bps: number }) {
 }
 
 /** Mesa dos closers: conversão das reuniões realizadas e números de cada closer. */
-export function CloserDesk({ rows }: { rows: ReportRow[] }) {
+export function CloserDesk({
+  rows,
+  photos = SEM_FOTOS,
+}: {
+  rows: ReportRow[];
+  photos?: TeamPhotos;
+}) {
   const sorted = [...rows].sort((a, b) => (b.soldCents ?? 0) - (a.soldCents ?? 0));
   return (
     <ChartCard title="Mesa dos closers" subtitle="Conversão das reuniões realizadas">
@@ -69,7 +70,7 @@ export function CloserDesk({ rows }: { rows: ReportRow[] }) {
               {c.conversionBps !== undefined && <Ring bps={c.conversionBps} />}
               <div className="flex min-w-0 flex-1 flex-col gap-2.5">
                 <div className="flex items-center gap-2">
-                  <Initial name={c.name} />
+                  <Initial name={c.name} photo={photos.photos[c.id]} />
                   <b className="truncate">{c.name}</b>
                 </div>
                 <dl className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-[auto_auto_auto_1fr]">
@@ -107,7 +108,15 @@ export function CloserDesk({ rows }: { rows: ReportRow[] }) {
 }
 
 /** Pré-vendas: agendamentos por SDR (direto · follow), no-show e vendas. */
-export function SdrTable({ rows, period }: { rows: ReportRow[]; period: string }) {
+export function SdrTable({
+  rows,
+  period,
+  photos = SEM_FOTOS,
+}: {
+  rows: ReportRow[];
+  period: string;
+  photos?: TeamPhotos;
+}) {
   const sorted = [...rows].sort((a, b) => (b.meetings ?? 0) - (a.meetings ?? 0));
   const max = Math.max(...sorted.map((r) => r.meetings ?? 0), 1);
   return (
@@ -128,7 +137,7 @@ export function SdrTable({ rows, period }: { rows: ReportRow[]; period: string }
                 <tr key={s.id} className="border-t border-line">
                   <td className="py-3 pr-3">
                     <span className="flex items-center gap-2">
-                      <Initial name={s.name} />
+                      <Initial name={s.name} photo={photos.photos[s.id]} />
                       <b className="font-semibold">{s.name}</b>
                     </span>
                   </td>
@@ -165,7 +174,14 @@ export function SdrTable({ rows, period }: { rows: ReportRow[]; period: string }
 }
 
 /** Atividade da equipe (só liderança): últimas mudanças nos leads, atualizada ao vivo. */
-export function TeamFeed({ initial }: { initial: TeamActivityDTO }) {
+export function TeamFeed({
+  initial,
+  photos = SEM_FOTOS,
+}: {
+  initial: TeamActivityDTO;
+  /** O feed só traz o nome de quem fez: a foto vem pelo nome (só nome sem repetição). */
+  photos?: TeamPhotos;
+}) {
   const [items, setItems] = useState(initial.items);
   useCrmRefresh(async () => {
     setItems((await clientApi<TeamActivityDTO>('/api/reports/activity')).items);
@@ -179,7 +195,7 @@ export function TeamFeed({ initial }: { initial: TeamActivityDTO }) {
         <ul className="grid gap-x-6 gap-y-3 md:grid-cols-2">
           {items.map((i) => (
             <li key={i.id} className="flex min-w-0 items-start gap-3 text-sm">
-              <Initial name={i.actorName} />
+              <Initial name={i.actorName} photo={photos.names[i.actorName]} />
               <div className="min-w-0">
                 <p>
                   <b className="font-semibold">{i.actorName.split(' ')[0]}</b>{' '}

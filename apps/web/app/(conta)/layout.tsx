@@ -12,7 +12,7 @@ export default async function ContaLayout({ children }: { children: React.ReactN
           <span className="mark h-8 w-8 rounded-[9px] text-[17px]">N</span>
           <b className="text-[15px] font-semibold">NPAC Corporation</b>
           {/* Sem isto a pessoa fica presa: /login devolve para cá enquanto houver sessão. */}
-          <SignOutButton className="ml-auto h-9 rounded-full px-3.5 text-sm font-semibold text-ink2 transition-colors hover:bg-black/5 hover:text-ink" />
+          <SignOutButton className="toque ml-auto h-9 rounded-full px-3.5 text-sm font-semibold text-ink2 transition-colors hover:bg-black/5 hover:text-ink" />
         </div>
         {children}
       </div>

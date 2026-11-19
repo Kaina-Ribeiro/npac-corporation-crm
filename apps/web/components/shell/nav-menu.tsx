@@ -27,7 +27,7 @@ const ACOMPANHAMENTO_ABAS: NavItem[] = [
   item('onboarding', 'Onboarding', 'M4 5h16l-6 7v6l-4 2v-8z'),
   item('plano', 'Plano dos 12 meses', 'M4 6h16v15H4zM4 10h16M9 3v4M15 3v4'),
   item('reunioes', 'Reuniões', 'M3 7h13v10H3zM16 11l5-3v8l-5-3'),
-  item('em-breve/pmes', 'PMEs e ciclos', 'M12 3a9 9 0 1 0 9 9M12 7v5l3 2', 'Em breve'),
+  item('pmes', 'PMEs e ciclos', 'M12 3a9 9 0 1 0 9 9M12 7v5l3 2'),
   item(
     'em-breve/linha-do-tempo',
     'Linha do tempo e conquistas',
@@ -49,6 +49,8 @@ const ACOMPANHAMENTO_ABAS: NavItem[] = [
   ),
 ];
 
+const PMES_HREF = '/acompanhamento/pmes';
+
 const CONFIGURACOES = item(
   'configuracoes',
   'Configurações',
@@ -62,6 +64,8 @@ type Opcoes = {
   commercial?: boolean;
   /** Selo de Admin no módulo: mostra Configurações. */
   mentoriaAdmin?: boolean;
+  /** Admin, Acompanhamento e Operação: a aba 7 "PMEs e ciclos" (E22). */
+  mentoriaCiclos?: boolean;
 };
 
 /**
@@ -70,7 +74,10 @@ type Opcoes = {
  * sub-itens.
  */
 export function navItems(opts: Opcoes): NavItem[] {
-  const abas = [...ACOMPANHAMENTO_ABAS, ...(opts.mentoriaAdmin ? [CONFIGURACOES] : [])];
+  const abas = [
+    ...ACOMPANHAMENTO_ABAS.filter((a) => opts.mentoriaCiclos || a.href !== PMES_HREF),
+    ...(opts.mentoriaAdmin ? [CONFIGURACOES] : []),
+  ];
   if (opts.commercial === false) return opts.mentoria ? abas : [];
   return [
     ...SIDEBAR_ITEMS,
@@ -91,11 +98,29 @@ export function paletteItems(opts: Opcoes): PaletteItem[] {
     label: `${ACOMPANHAMENTO_ITEM.label} · ${n.label}`,
     icon: n.icon,
   });
-  return navItems(opts).flatMap((n) =>
-    n.children
-      ? n.children.map(modulo)
-      : n.href.startsWith(ACOMPANHAMENTO_ITEM.match!)
-        ? [modulo(n)]
-        : [{ href: n.href, label: n.label, icon: n.icon }],
-  );
+  return [
+    ...navItems(opts).flatMap((n) =>
+      n.children
+        ? n.children.map(modulo)
+        : n.href.startsWith(ACOMPANHAMENTO_ITEM.match!)
+          ? [modulo(n)]
+          : [{ href: n.href, label: n.label, icon: n.icon }],
+    ),
+    // Meu perfil (NPAC-53): para todos os cargos, fora do menu (fica no rodapé da sidebar).
+    { href: '/conta/perfil', label: 'Meu perfil', icon: PERFIL_ICON },
+  ];
 }
+
+const PERFIL_ICON = (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0" />
+  </svg>
+);

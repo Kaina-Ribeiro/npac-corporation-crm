@@ -14,7 +14,8 @@
     "typecheck": "turbo run typecheck",
     "format": "prettier --write .",
     "perf:seed": "turbo run build --filter=@npac/api && node scripts/perf/seed.mjs",
-    "perf:api": "turbo run build --filter=@npac/api && node scripts/perf/api.mjs"
+    "perf:api": "turbo run build --filter=@npac/api && node scripts/perf/api.mjs",
+    "mail:caixa": "node scripts/caixa-falsa.mts"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",

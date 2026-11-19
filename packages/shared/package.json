@@ -41,6 +41,10 @@
     "./screen-prefs": {
       "types": "./dist/screen-prefs.d.ts",
       "default": "./dist/screen-prefs.js"
+    },
+    "./profile": {
+      "types": "./dist/profile.d.ts",
+      "default": "./dist/profile.js"
     }
   },
   "scripts": {

@@ -32,6 +32,11 @@ const RETRY_DELAY = 1000;
  * Despertador do push da Fila (§5, D10), no desenho do `ReminderScheduler`: um único timer para o
  * próximo aviso, sem polling. Rearma ao subir a API e depois de cada escrita do módulo
  * (`AvisosRearme`). Duplicidade entre instâncias é barrada no banco (`mentoria_aviso_reclamar`).
+ * Também grava o histórico do semáforo (Fase 2, Parte 3): o timer acorda na virada da semana
+ * (segunda 00:00 de Brasília) e, a cada disparo, `mentoria_semaforo_gravar` completa as semanas que
+ * faltam (idempotente; ao subir a API, recupera as que passaram com ela parada). Parte 4: cobrança,
+ * semáforo vermelho e degraus de atraso do PME (`mentoria_avisos_candidatos`, 0070); o timer acorda
+ * também às 8h de todo dia.
  */
 @Injectable()
 export class AvisosScheduler implements OnApplicationBootstrap, OnModuleDestroy {
@@ -63,9 +68,10 @@ export class AvisosScheduler implements OnApplicationBootstrap, OnModuleDestroy 
     return this.enqueue(() => this.arm(false));
   }
 
-  /** Dispara os avisos vencidos e rearma. */
+  /** Grava o semáforo das semanas encerradas, dispara os avisos vencidos e rearma. */
   fire(): Promise<void> {
     return this.enqueue(async () => {
+      await this.gravarSemaforo();
       await this.claimAndSend();
       await this.arm(true);
     });
@@ -97,8 +103,14 @@ export class AvisosScheduler implements OnApplicationBootstrap, OnModuleDestroy 
   private async arm(afterFire: boolean) {
     this.disarm();
     const now = this.clock.now();
+    const ts = sql`${new Date(now).toISOString()}::timestamptz`;
+    // Além do próximo aviso: a virada da semana (histórico do semáforo) e as 8h de Brasília de todo
+    // dia, porque o semáforo pode virar vermelho só com a troca do dia, sem escrita que rearme (E18).
     const rows = await this.db.execute<{ at: Date | string | null }>(
-      sql`select mentoria_aviso_proximo(${new Date(now).toISOString()}::timestamptz) as at`,
+      sql`select least(mentoria_aviso_proximo(${ts}),
+        (date_trunc('week', ${ts} at time zone 'America/Sao_Paulo') + interval '7 days')
+          at time zone 'America/Sao_Paulo',
+        mentoria_hora(mentoria_dia(${ts} - interval '8 hours') + 1, 8)) as at`,
     );
     const next = rows[0]?.at;
     if (!next || this.stopped) return;
@@ -111,6 +123,18 @@ export class AvisosScheduler implements OnApplicationBootstrap, OnModuleDestroy 
       this.timer = null;
       void this.fire();
     }, delay);
+  }
+
+  /** Histórico semanal do semáforo; falha só vai para o log e não segura o push. */
+  private async gravarSemaforo() {
+    try {
+      const hoje = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(
+        new Date(this.clock.now()),
+      );
+      await this.db.execute(sql`select mentoria_semaforo_gravar(${hoje}::date)`);
+    } catch (e) {
+      this.log.warn(`falha no histórico do semáforo: ${(e as Error).message}`);
+    }
   }
 
   /** Um push por pessoa, mesmo com vários avisos vencidos (API parada: uma vez só). */

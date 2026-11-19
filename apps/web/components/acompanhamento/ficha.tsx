@@ -33,6 +33,7 @@ import { IndicadorSalvo } from './indicador-salvo';
 import { PlanoMentorado } from './plano-mentorado';
 import { Metas } from './metas';
 import { PmeAtual } from './pme-atual';
+import { SemaforoFicha } from './semaforo';
 import { TarefasFicha } from './tarefas-reuniao';
 import {
   abaValida,
@@ -68,6 +69,10 @@ function Jornada({
   const comPme = ficha.ciclos.length > 0 || ativo;
   const comTarefas = ficha.tarefasReuniao.length > 0 || ativo;
   const comMetas = ficha.metas.length > 0 || (ficha.pode.meta && ativo);
+  // Semáforo e check-ins (Parte 3): só para quem vê (a Especialista não).
+  const comSemaforo =
+    ficha.sequenciaCheckins !== null &&
+    (ativo || ficha.checkins.length > 0 || ficha.semaforoHistorico.length > 0);
   return (
     <section
       className={`card pa ${soLargo ? 'so-largo' : ''}`}
@@ -93,9 +98,10 @@ function Jornada({
         ficha={ficha}
         atualizar={atualizar}
         pme={
-          comPme || comTarefas || comMetas ? (
+          comPme || comTarefas || comMetas || comSemaforo ? (
             <>
               {comPme && <PmeAtual ficha={ficha} atualizar={atualizar} />}
+              {comSemaforo && <SemaforoFicha ficha={ficha} atualizar={atualizar} />}
               {comTarefas && (
                 <TarefasFicha
                   tarefas={ficha.tarefasReuniao}
@@ -619,7 +625,7 @@ export function Ficha({
         <div className="fc-quem">
           <Rostos pessoas={ficha.pessoas} />
           <div className="fc-id">
-            <Link className="fc-voltar" href="/acompanhamento/mentorados">
+            <Link className="fc-voltar toque" href="/acompanhamento/mentorados">
               Mentorados
             </Link>
             <h1>{ficha.nome}</h1>

@@ -69,9 +69,18 @@ const TITULOS: Record<string, string> = {
   'tarefa.editada': 'Alteração na tarefa',
   'meta.criada': 'Meta definida',
   'meta.editada': 'Alteração na meta',
+  'pme.segunda_chance': 'Segunda chance no PME',
+  'checkin.lancado': 'Check-in lançado',
+  'checkin.editado': 'Alteração no check-in',
 };
 
 const CAMPOS: Record<string, string> = {
+  segundaChanceAte: 'Novo prazo',
+  respondeu: 'Respondeu',
+  respondidoEm: 'Respondido em',
+  avanco: 'Avanço',
+  travou: 'O que travou',
+  proximoPasso: 'Próximo passo',
   mentoria: 'Mentoria',
   mentoriaVariante: 'Variante',
   status: 'Status',

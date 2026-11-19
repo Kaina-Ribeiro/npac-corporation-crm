@@ -153,18 +153,13 @@ test('senha errada mostra erro genérico', async ({ page }) => {
   await expect(page).toHaveURL(/\/login/);
 });
 
-test('"Esqueci minha senha" orienta a pedir redefinição à liderança', async ({ page }) => {
+test('"Esqueci minha senha" leva à tela de pedir o link por e-mail', async ({ page }) => {
   await page.goto('/login');
-  const forgot = page.getByRole('button', { name: 'Esqueci minha senha' });
   await expect(page.getByRole('heading', { name: 'Bem-vindo de volta' })).toBeVisible();
-  await forgot.click();
-  await expect(forgot).toHaveAttribute('aria-expanded', 'true');
+  await page.getByRole('link', { name: 'Esqueci minha senha' }).click();
+  await page.waitForURL(/\/login\/esqueci$/);
   await expect(page.getByRole('heading', { name: 'Esqueci minha senha' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Bem-vindo de volta' })).toHaveCount(0);
-  await expect(
-    page.getByRole('status').filter({ hasText: 'Peça para a liderança redefinir a sua senha' }),
-  ).toBeVisible();
-  await expect(page.getByText('a senha de todas as contas')).toHaveCount(0);
+  await expect(page.getByLabel('Usuário ou e-mail', { exact: true })).toBeVisible();
 });
 
 test('usuário inexistente mostra o mesmo erro', async ({ page }) => {
@@ -379,13 +374,18 @@ test('troca a senha quando quiser, pelo menu', async ({ page }) => {
     where u.email = 'murilo@npac.com.br'`;
   await login(page, 'murilo@npac.com.br');
   await page.waitForURL(/\/dashboard/);
-  await page.getByRole('link', { name: 'Trocar senha' }).click();
-  await expect(page.getByRole('heading', { name: 'Trocar senha' })).toBeVisible();
+  // NPAC-53: a troca voluntária fica no Meu perfil (rodapé da sidebar).
+  await page
+    .locator('#app-sidebar')
+    .getByRole('link', { name: /Meu perfil/ })
+    .click();
+  await page.waitForURL(/\/conta\/perfil/);
+  await page.getByRole('button', { name: 'Trocar senha' }).click();
   await page.getByLabel('Senha atual', { exact: true }).fill(E2E_PASSWORD);
   await page.getByLabel('Nova senha', { exact: true }).fill('murilo-nova-1');
   await page.getByLabel('Confirme a nova senha').fill('murilo-nova-1');
   await page.getByRole('button', { name: 'Salvar senha' }).click();
-  await page.waitForURL(/\/dashboard/);
+  await expect(page.getByRole('status').filter({ hasText: 'Salvo' })).toBeVisible();
   await page.getByRole('button', { name: 'Sair' }).click();
   await page.waitForURL(/\/login/);
   await login(page, 'murilo@npac.com.br', 'murilo-nova-1');

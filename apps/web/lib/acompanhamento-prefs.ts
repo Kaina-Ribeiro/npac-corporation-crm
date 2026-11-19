@@ -1,4 +1,10 @@
-import { ETAPA_LABEL, FILA_GRUPOS, INSCRICAO_STATUS } from '@npac/shared/mentoria';
+import {
+  CICLO_STATUS,
+  ETAPA_LABEL,
+  FILA_GRUPOS,
+  INSCRICAO_STATUS,
+  SEMAFORO_CORES,
+} from '@npac/shared/mentoria';
 import { oneOf, readPrefs, writePrefs, type PrefRules } from '@npac/shared/screen-prefs';
 import { readPreference } from './read-preference';
 import { rememberAt } from './screen-prefs';
@@ -16,6 +22,7 @@ export const AC_PREFS = {
   mentorados: { prefix: 'npac_f_ac_ment', path: '/acompanhamento/mentorados' },
   onboarding: { prefix: 'npac_f_ac_onb', path: '/acompanhamento/onboarding' },
   ficha: { prefix: 'npac_f_ac_ficha', path: '/acompanhamento/ficha' },
+  pmes: { prefix: 'npac_f_ac_pmes', path: '/acompanhamento/pmes' },
 } as const;
 
 export type AcScreen = keyof typeof AC_PREFS;
@@ -49,17 +56,37 @@ export const ONBOARDING_REGRAS: PrefRules = {
   painel: oneOf(['caixas', 'idrs']),
 };
 
+/** PMEs e ciclos (aba 7): número do PME e status do ciclo ("Sem PME" = nenhum enviado). */
+export const PMES_REGRAS: PrefRules = {
+  numero: oneOf(Array.from({ length: 12 }, (_, i) => String(i + 1))),
+  status: oneOf([...CICLO_STATUS, 'SEM_PME']),
+};
+
+export type FiltroPmes = {
+  numero?: number;
+  status?: (typeof CICLO_STATUS)[number] | 'SEM_PME';
+};
+export const filtroDasPrefs = (p: Record<string, string>): FiltroPmes => ({
+  ...(p.numero ? { numero: Number(p.numero) } : {}),
+  ...(p.status ? { status: p.status as FiltroPmes['status'] } : {}),
+});
+export const prefsDoFiltro = (f: FiltroPmes) => ({
+  numero: f.numero ? String(f.numero) : undefined,
+  status: f.status,
+});
+
 /** Ficha: a aba (vale para qualquer mentorado) e o filtro do histórico ("Tudo" é o padrão). */
 export const FICHA_REGRAS: PrefRules = {
   aba: oneOf(['inscricao', 'pessoas', 'momento', 'historico']),
   historico: oneOf(['REUNIOES', 'CONTATOS', 'ANOTACOES', 'ALTERACOES']),
 };
 
-/** Mentorados: mês da jornada (o select vai de 1 a 12), status, responsável e "completar". */
+/** Mentorados: mês da jornada (o select vai de 1 a 12), status, responsável, semáforo e "completar". */
 export type FiltrosMentorados = {
   mes?: number;
   status?: (typeof INSCRICAO_STATUS)[number];
   responsavelId?: string;
+  semaforo?: (typeof SEMAFORO_CORES)[number];
   completar?: boolean;
 };
 
@@ -67,6 +94,7 @@ export const mentoradosRegras = (responsaveis: readonly string[]): PrefRules => 
   mes: oneOf(Array.from({ length: 12 }, (_, i) => String(i + 1))),
   status: oneOf(INSCRICAO_STATUS),
   responsavelId: oneOf(responsaveis),
+  semaforo: oneOf(SEMAFORO_CORES),
   completar: oneOf(['1']),
 });
 
@@ -74,6 +102,7 @@ export const filtrosParaPrefs = (f: FiltrosMentorados) => ({
   mes: f.mes ? String(f.mes) : undefined,
   status: f.status,
   responsavelId: f.responsavelId,
+  semaforo: f.semaforo,
   completar: f.completar ? '1' : undefined,
 });
 
@@ -82,6 +111,7 @@ export function prefsParaFiltros(p: Record<string, string>): FiltrosMentorados {
     ...(p.mes ? { mes: Number(p.mes) } : {}),
     ...(p.status ? { status: p.status as FiltrosMentorados['status'] } : {}),
     ...(p.responsavelId ? { responsavelId: p.responsavelId } : {}),
+    ...(p.semaforo ? { semaforo: p.semaforo as FiltrosMentorados['semaforo'] } : {}),
     ...(p.completar ? { completar: true } : {}),
   };
 }

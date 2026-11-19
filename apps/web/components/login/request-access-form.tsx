@@ -1,11 +1,17 @@
 'use client';
 import Link from 'next/link';
+import type { AccessArea } from '@npac/shared/enums';
 import { useState, type FormEvent } from 'react';
+import { LOGIN_AREA } from './area';
 
 const USERNAME = /^[a-z0-9_.]{3,30}$/;
 
-/** Pedido de acesso: a liderança aprova em Admin e a pessoa entra com a senha escolhida aqui. */
-export function RequestAccessForm() {
+/**
+ * Pedido de acesso: a liderança aprova em Admin e a pessoa entra com a senha escolhida aqui. O
+ * pedido leva a área da tela de onde veio (CRM ou Acompanhamento), que o Admin mostra.
+ */
+export function RequestAccessForm({ area = 'COMERCIAL' }: { area?: AccessArea }) {
+  const login = LOGIN_AREA[area].base;
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
@@ -27,6 +33,7 @@ export function RequestAccessForm() {
         username,
         email: field('email').trim(),
         password: field('password'),
+        area,
       }),
     }).catch(() => null);
     setBusy(false);
@@ -45,7 +52,7 @@ export function RequestAccessForm() {
         <p className="-mt-2 text-[15px] text-[#333336]">
           A liderança vai analisar e você entra com o usuário e a senha que escolheu.
         </p>
-        <Link href="/login" className="btn-dark flex items-center justify-center">
+        <Link href={login} className="btn-dark flex items-center justify-center">
           Voltar ao login
         </Link>
       </div>
@@ -55,7 +62,7 @@ export function RequestAccessForm() {
   return (
     <form className="flex flex-col gap-4" aria-label="Solicitar acesso" onSubmit={onSubmit}>
       <Link
-        href="/login"
+        href={login}
         className="flex min-h-8 items-center gap-1 self-start text-sm text-[#333336]"
       >
         ‹ Voltar

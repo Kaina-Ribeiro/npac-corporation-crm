@@ -100,9 +100,12 @@ export class CiclosService {
         to_char(c.concluido_em, 'YYYY-MM-DD') as "concluidoEm",
         to_char(c.nao_concluido_em, 'YYYY-MM-DD') as "naoConcluidoEm",
         c.anterior_ao_sistema as "anteriorAoSistema",
-        mentoria_ciclo_status(c.concluido_em, c.nao_concluido_em, c.prazo, ${hoje}::date) as status,
+        to_char(c.segunda_chance_ate, 'YYYY-MM-DD') as "segundaChanceAte",
+        mentoria_ciclo_status(c.concluido_em, c.nao_concluido_em, c.prazo, c.segunda_chance_ate,
+          ${hoje}::date) as status,
         case when c.concluido_em is null and c.nao_concluido_em is null
-          then greatest(${hoje}::date - c.prazo, 0) else 0 end as "diasAtraso",
+          then greatest(${hoje}::date - coalesce(c.segunda_chance_ate, c.prazo), 0)
+          else 0 end as "diasAtraso",
         mentoria_pct_tarefas(c.id) as "pctTarefas"
       from mentoria_ciclos c left join mentoria_pmes p on p.id = c.pme_id
       where c.inscricao_id = ${inscricaoId}::uuid
@@ -262,7 +265,11 @@ export class CiclosService {
     }).catch((e) => erroDoBanco(e, 'Este PME já foi registrado'));
   }
 
-  /** Corrige a data de envio (área PME) ou fecha/reabre à mão o ciclo sem encerramento (TAREFA). */
+  /**
+   * Corrige a data de envio (área PME), fecha/reabre à mão o ciclo sem encerramento (TAREFA) ou dá a
+   * segunda chance no ciclo aberto (SEGUNDA_CHANCE, E15): um novo prazo depois do original, não antes
+   * de hoje; nulo desfaz.
+   */
   atualizarCiclo(u: AuthUser, id: string, b: CicloPatch): Promise<CicloDTO> {
     const hoje = this.hoje();
     return withUser(this.db, u.id, async (tx) => {
@@ -296,19 +303,34 @@ export class CiclosService {
         }
         campos.push('concluidoEm');
       }
+      if (b.segundaChanceAte !== undefined) {
+        await exigirEdicao(tx, 'SEGUNDA_CHANCE', c.inscricaoId);
+        if (c.concluidoEm || c.naoConcluidoEm)
+          throw new BadRequestException('Segunda chance só no PME em andamento');
+        if (b.segundaChanceAte && b.segundaChanceAte <= c.prazo)
+          throw new BadRequestException('A segunda chance vai além do prazo do PME');
+        if (b.segundaChanceAte && b.segundaChanceAte < hoje)
+          throw new BadRequestException('A segunda chance não pode terminar antes de hoje');
+        campos.push('segundaChanceAte');
+      }
       if (!campos.length) throw new BadRequestException('Nada para alterar');
       const [r] = await tx
         .update(mentoriaCiclos)
         .set({
           ...(b.enviadoEm !== undefined ? { enviadoEm: b.enviadoEm } : {}),
           ...(b.concluidoEm !== undefined ? { concluidoEm: b.concluidoEm } : {}),
+          ...(b.segundaChanceAte !== undefined ? { segundaChanceAte: b.segundaChanceAte } : {}),
           version: sql`${mentoriaCiclos.version} + 1`,
           atualizadoEm: sql`now()`,
         })
         .where(and(eq(mentoriaCiclos.id, id), eq(mentoriaCiclos.version, b.version)))
         .returning({ id: mentoriaCiclos.id });
       if (!r) throw conflitoDeVersao();
-      await registrarHistorico(tx, c.inscricaoId, 'pme.editado', [`pme_${c.numero}`, ...campos]);
+      const tipo =
+        campos.length === 1 && campos[0] === 'segundaChanceAte'
+          ? 'pme.segunda_chance'
+          : 'pme.editado';
+      await registrarHistorico(tx, c.inscricaoId, tipo, [`pme_${c.numero}`, ...campos]);
       return this.um(tx, c.inscricaoId, id);
     }).catch((e) => erroDoBanco(e));
   }

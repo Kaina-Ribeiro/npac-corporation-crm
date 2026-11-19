@@ -7,14 +7,16 @@ import { Reports } from '@/components/reports';
 import { ApiError, apiGet, apiPost } from '@/lib/api';
 import { prefsCookie } from '@/lib/screen-prefs';
 import { getSession } from '@/lib/session';
+import { getTeamPhotos } from '@/lib/team-photos';
 export const metadata = { title: 'Relatórios' };
 export default async function ReportsPage() {
   const me = await getSession();
   if (!me) redirect('/login');
-  const [catalog, products, jar] = await Promise.all([
+  const [catalog, products, jar, photos] = await Promise.all([
     apiGet<LeadCatalog>('/api/leads/catalog'),
     apiGet<ProductDTO[]>('/api/finance/products'),
     cookies(),
+    getTeamPhotos(),
   ]);
   // Filtros lembrados (NPAC-46): o servidor já busca com eles; intervalo só com as duas datas.
   const cookie = prefsCookie('reports', me.id);
@@ -48,6 +50,7 @@ export default async function ReportsPage() {
       head={isLeader(me.role)}
       prefs={{ cookie, value: writePrefs(saved, rules), force }}
       initialFilters={saved}
+      photos={photos}
     />
   );
 }

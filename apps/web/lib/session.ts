@@ -6,6 +6,8 @@ import { ApiError, apiGet } from './api';
 export type Me = {
   id: string;
   name: string;
+  /** Foto do perfil (NPAC-53): URL com a versão, ou null (fica a inicial). */
+  photo: string | null;
   role: Role;
   canProspect: boolean;
   canClose: boolean;

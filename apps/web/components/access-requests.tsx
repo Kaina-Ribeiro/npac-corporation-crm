@@ -1,5 +1,6 @@
 'use client';
 import type { Cargo } from '@npac/shared/cargos';
+import { ACCESS_AREA_LABELS, type AccessArea } from '@npac/shared/enums';
 import { useState } from 'react';
 import { CargoDica, CargoExtras, CargoSelect, SEM_EXTRAS, type Extras } from './cargo-field';
 import { button, control, quietButton } from './crm-ui';
@@ -9,7 +10,15 @@ export type AccessRequest = {
   name: string;
   username: string;
   email: string;
+  /** Tela de onde veio o pedido: `/login` (Comercial) ou `/login/acompanhamento`. */
+  area: AccessArea;
   createdAt: string;
+};
+
+/** Etiqueta da área: verde = Acompanhamento (como o cargo), cinza neutro = Comercial. */
+const AREA_TAG: Record<AccessArea, string> = {
+  COMERCIAL: 'area-COMERCIAL',
+  ACOMPANHAMENTO: 'role-ACOMPANHAMENTO',
 };
 
 const ago = (at: string) => {
@@ -66,7 +75,13 @@ function Row({
     <li className="flex flex-wrap items-center gap-3 py-3">
       {/* Base de 14rem: em telas estreitas os controles descem antes de cortar o nome. */}
       <span className="min-w-0 flex-[1_1_14rem]">
-        <b className="block truncate font-semibold">{r.name}</b>
+        <span className="flex min-w-0 items-center gap-2">
+          <b className="truncate font-semibold">{r.name}</b>
+          <span className={`role ${AREA_TAG[r.area]}`} title="Área do pedido">
+            <span className="sr-only">Área </span>
+            {ACCESS_AREA_LABELS[r.area]}
+          </span>
+        </span>
         <small className="block truncate text-sm text-ink2">
           {r.username} · {r.email} · {ago(r.createdAt)}
         </small>

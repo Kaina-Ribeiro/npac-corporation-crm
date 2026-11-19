@@ -71,6 +71,12 @@ test('SDR marca a venda só com o produto, closer põe o valor, renda no Dashboa
   await owner`update products set sdr_bonus_cents = 1000 where code = 'NACAO_PADRAO'`;
   await owner`delete from sdr_sale_marks where sdr_id = (select id from "user" where email = 'ale@npac.com.br')`;
   await login(page, 'ale@npac.com.br');
+  // Vendas do mês antes de marcar: outros testes também vendem para o Ale e para a Sônia.
+  const antes = (await (
+    await page.request.post('/api/reports/search', { data: { period: 'MONTH' } })
+  ).json()) as Record<'bySdr' | 'byCloser', { name: string; sales: number }[]>;
+  const vendasAntes = (rows: { name: string; sales: number }[], who: string) =>
+    rows.find((r) => r.name === who)?.sales ?? 0;
   const name = 'Lead da venda do SDR';
   const id = await leadWithDoneMeeting(page, name);
 
@@ -111,11 +117,60 @@ test('SDR marca a venda só com o produto, closer põe o valor, renda no Dashboa
   await card.scrollIntoViewIfNeeded();
   await shots(page, 'venda-sdr-dashboard');
 
-  // A closer da reunião recebe o aviso e põe o valor na ficha (área dela).
+  // Relatórios do SDR (NPAC-51, Igor "1A"): a venda conta ao marcar, antes de a closer pôr o valor.
+  await page.goto('/relatorios');
+  const bonusReport = page.locator('article', { hasText: 'Valor a receber por venda feita' });
+  await expect(bonusReport.filter({ visible: true })).toContainText('R$ 10,00');
+  const porSdr = page.locator('section', {
+    has: page.getByRole('heading', { name: 'Por SDR', exact: true }),
+  });
+  const vendas = async (table: typeof porSdr, who: string) => {
+    const col = (await table.locator('th').allTextContents()).indexOf('Vendas');
+    return table
+      .getByRole('row', { name: new RegExp(`^${who}`) })
+      .locator('td')
+      .nth(col);
+  };
+  await expect(await vendas(porSdr, 'Ale')).toHaveText(String(vendasAntes(antes.bySdr, 'Ale') + 1));
+  const porCloser = page.locator('section', {
+    has: page.getByRole('heading', { name: 'Por closer', exact: true }),
+  });
+  await expect(await vendas(porCloser, 'Sônia')).toHaveText(
+    String(vendasAntes(antes.byCloser, 'Sônia') + 1),
+  );
+  // O título fica parado quando a tabela rola para o lado (no celular ele sumia junto).
+  await porSdr.locator('div.overflow-x-auto').evaluate((el) => (el.scrollLeft = 9999));
+  await expect(porSdr.getByRole('heading', { name: 'Por SDR', exact: true })).toBeInViewport();
+  await porSdr.scrollIntoViewIfNeeded();
+  await shots(page, 'venda-sdr-relatorios');
+
+  // Sair da Venda a registrar cancela a venda feita: a ficha pergunta antes (NPAC-51). Recusando,
+  // o lead continua em Venda.
+  await page.goto(`/leads/${id}`);
+  let asked = '';
+  page.once('dialog', (d) => {
+    asked = d.message();
+    void d.dismiss();
+  });
+  await page.getByLabel('Mover para', { exact: true }).selectOption('EM_FOLLOW');
+  expect(asked).toContain(`Tirar ${name} de Venda Fechada?`);
+  await expect(page.getByLabel('Mover para', { exact: true })).toHaveValue('VENDA');
+  await expect(page.getByText('Venda a registrar', { exact: true }).first()).toBeVisible();
+
+  // A closer da reunião recebe o aviso e põe o valor na ficha (área dela). O Hoje dela lista a
+  // venda a registrar e leva direto ao registro (NPAC-51).
   const ctx = await browser.newContext();
   const closer = await ctx.newPage();
   await login(closer, 'sonia@npac.com.br');
-  await closer.goto(`/leads/${id}`);
+  await closer.goto('/hoje');
+  const pendentes = closer.locator('#hoje-vendas-a-registrar');
+  await expect(pendentes.getByRole('heading', { name: 'Vendas a registrar' })).toBeVisible();
+  await expect(pendentes.getByText(name, { exact: true })).toBeVisible();
+  await expect(pendentes.getByText('Produto: Nação Padrão')).toBeVisible();
+  await pendentes.scrollIntoViewIfNeeded();
+  await shots(closer, 'venda-closer-hoje');
+  await pendentes.getByRole('link', { name: `Abrir ficha de ${name}` }).click();
+  await closer.waitForURL(new RegExp(`/leads/${id}#vendas$`));
   await expect(closer.getByText('Produto: Nação Padrão')).toBeVisible();
   await closer.getByRole('link', { name: 'Registrar venda', exact: true }).click();
   const sale = closer.getByRole('form', { name: 'Registrar venda' });

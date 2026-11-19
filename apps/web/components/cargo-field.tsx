@@ -113,7 +113,7 @@ export function CargoExtras({
     <label
       key={campo}
       title={compacto ? dica : undefined}
-      className="flex items-start gap-2 text-xs font-semibold text-ink"
+      className={`flex items-start gap-2 text-xs font-semibold text-ink ${compacto ? 'pointer-coarse:min-h-11 pointer-coarse:items-center' : ''}`}
     >
       <input
         type="checkbox"

@@ -1,7 +1,16 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { loginPath } from './lib/login-path';
 
 const SESSION_COOKIES = ['better-auth.session_token', '__Secure-better-auth.session_token'];
-const PUBLIC_PATHS = ['/login', '/login/solicitar'];
+const PUBLIC_PATHS = [
+  '/login',
+  '/login/solicitar',
+  '/login/esqueci',
+  '/login/nova-senha',
+  '/login/acompanhamento',
+  '/login/acompanhamento/solicitar',
+  '/login/acompanhamento/esqueci',
+];
 
 function csp(nonce: string): string {
   const dev = process.env.NODE_ENV === 'development';
@@ -26,7 +35,8 @@ export function proxy(request: NextRequest) {
   // Checagem otimista: a validação real da sessão acontece no layout via /api/me.
   if (!hasSession && !PUBLIC_PATHS.includes(pathname)) {
     const url = request.nextUrl.clone();
-    url.pathname = '/login';
+    // Sem sessão no módulo, a tela de entrada do Acompanhamento; no resto, a do CRM.
+    url.pathname = loginPath(pathname);
     url.search = '';
     return NextResponse.redirect(url);
   }

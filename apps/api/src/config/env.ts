@@ -38,6 +38,17 @@ const envSchema = z
     FORMS_OWNER_USERNAME: z.string().min(1).optional(),
     /** Diretório da mídia do Acompanhamento (fora do banco). Obrigatório em produção. */
     MEDIA_DIR: z.string().min(1).optional(),
+    /**
+     * E-mail por SMTP (Gmail hoje; Resend, SES ou Brevo é só trocar as variáveis). Sem SMTP_HOST o
+     * envio fica desligado e "Esqueci minha senha" manda pedir à liderança. 465 = TLS direto;
+     * outra porta (587) negocia STARTTLS se o servidor oferecer.
+     */
+    SMTP_HOST: z.string().min(1).optional(),
+    SMTP_PORT: z.coerce.number().int().positive().default(465),
+    SMTP_USER: z.string().min(1).optional(),
+    SMTP_PASS: z.string().min(1).optional(),
+    /** Remetente, ex.: `NPAC Corporation <npac.crm.sistema@gmail.com>` (no Gmail, o endereço da conta). */
+    MAIL_FROM: z.string().min(3).optional(),
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   })
   .refine((e) => !e.MENTORADO_ENCRYPTION_KEY.equals(e.FIELD_ENCRYPTION_KEY), {
@@ -47,6 +58,14 @@ const envSchema = z
   .refine((e) => e.NODE_ENV !== 'production' || !!e.MEDIA_DIR, {
     message: 'MEDIA_DIR é obrigatória em produção (diretório da mídia do Acompanhamento)',
     path: ['MEDIA_DIR'],
+  })
+  .refine((e) => !e.SMTP_HOST || !!e.MAIL_FROM, {
+    message: 'MAIL_FROM é obrigatória com SMTP_HOST (remetente dos e-mails)',
+    path: ['MAIL_FROM'],
+  })
+  .refine((e) => !e.SMTP_USER === !e.SMTP_PASS, {
+    message: 'SMTP_USER e SMTP_PASS vêm juntas (ou nenhuma, para servidor sem login)',
+    path: ['SMTP_PASS'],
   });
 
 export type Env = z.infer<typeof envSchema>;

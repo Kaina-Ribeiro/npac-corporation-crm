@@ -141,17 +141,30 @@ describe('metas', () => {
       expect((await pgError(como(ACOMP, q))).message).toMatch(/outro mentorado/);
   });
 
-  it('valores: alvo > 0, atual ≥ 0, pilar da lista; sem coluna de status (S3)', async () => {
+  it('valores: alvo > 0, atual ≥ 0, pilar e status (E10) da lista', async () => {
     for (const q of [
       sql`insert into mentoria_metas (inscricao_id, descricao, valor_alvo) values (${inscricao}, 'x', 0)`,
       sql`insert into mentoria_metas (inscricao_id, descricao, valor_atual) values (${inscricao}, 'x', -1)`,
       sql`insert into mentoria_metas (inscricao_id, descricao, pilar) values (${inscricao}, 'x', 'OUTRO')`,
+      sql`insert into mentoria_metas (inscricao_id, descricao, status) values (${inscricao}, 'x', 'EM_ANDAMENTO')`,
     ])
       expect((await pgError(como(ACOMP, q))).code).toBe('23514');
-    const [c] = await owner<{ n: number }[]>`
-      select count(*)::int as n from information_schema.columns
-      where table_name = 'mentoria_metas' and column_name = 'status'`;
-    expect(c!.n).toBe(0);
+  });
+
+  it('status da meta (E10): Admin e Acompanhamento marcam; Operação não', async () => {
+    const [m] = await criarMeta(ACOMP);
+    const r = await como(
+      OPERACAO,
+      sql`update mentoria_metas set status = 'ATINGIDA' where id = ${m!.id} returning id`,
+    );
+    expect(r).toHaveLength(0);
+    await como(ACOMP, sql`update mentoria_metas set status = 'NAO_ATINGIDA' where id = ${m!.id}`);
+    await como(ADMIN, sql`update mentoria_metas set status = 'ATINGIDA' where id = ${m!.id}`);
+    const [x] = await owner<
+      { status: string }[]
+    >`select status from mentoria_metas where id = ${m!.id}`;
+    expect(x!.status).toBe('ATINGIDA');
+    await como(ACOMP, sql`update mentoria_metas set status = null where id = ${m!.id}`);
   });
 });
 

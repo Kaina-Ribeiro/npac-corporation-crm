@@ -2,7 +2,9 @@
 import type { Perfil, TipoInscricao, Mentoria } from './enums.js';
 import type { Etapa, EtapaStatus } from './onboarding.js';
 import type { ReuniaoTipo } from './plano.js';
-import type { ReuniaoStatus } from './reunioes.js';
+import type { CanalContato, ReuniaoStatus } from './reunioes.js';
+import type { TarefaOrigem, TarefaStatus } from './pmes.js';
+import type { SemaforoCor, SemaforoMotivo } from './semaforo.js';
 
 export const FILA_TIPOS = [
   'BOAS_VINDAS',
@@ -19,6 +21,10 @@ export const FILA_TIPOS = [
   'AGENDA_MES',
   'REUNIOES_6M',
   'REUNIAO_HOJE',
+  'COBRANCA',
+  'SEMAFORO',
+  'ENVIAR_PME',
+  'PME_ATRASADO',
 ] as const;
 export type FilaTipo = (typeof FILA_TIPOS)[number];
 
@@ -38,6 +44,35 @@ export const FILA_TIPO_LABEL: Record<FilaTipo, string> = {
   AGENDA_MES: 'Arte da agenda',
   REUNIOES_6M: 'Reuniões 6M',
   REUNIAO_HOJE: 'Reunião de hoje',
+  COBRANCA: 'Cobrança',
+  SEMAFORO: 'Semáforo',
+  ENVIAR_PME: 'Próximo PME',
+  PME_ATRASADO: 'PME atrasado',
+};
+
+/** Degraus da escada de atraso do PME (PDF, página 19; E20), contados do prazo atual. */
+export const DEGRAUS_ATRASO = [3, 7, 10, 15] as const;
+export type DegrauAtraso = (typeof DEGRAUS_ATRASO)[number];
+/** O que fazer em cada degrau, no texto do PDF. */
+export const DEGRAU_LABEL: Record<DegrauAtraso, string> = {
+  3: 'Mensagem leve no grupo',
+  7: 'Áudio ou vídeo da Duda',
+  10: 'Avaliar segunda chance',
+  15: 'Ligação e reunião de destravamento',
+};
+/** O detalhe do PDF, para o painel. */
+export const DEGRAU_DETALHE: Record<DegrauAtraso, string> = {
+  3: 'Pergunte onde travou e ofereça ajuda com uma única tarefa.',
+  7: 'Mande um áudio ou vídeo personalizado com a tarefa mais simples do PME para retomar.',
+  10: 'Avalie a segunda chance de 7 dias, com só as tarefas essenciais para fechar o ciclo.',
+  15: 'Ligue e marque a reunião de destravamento de 20 minutos, com no máximo 3 tarefas.',
+};
+/** Canal sugerido para o contato do degrau: o PDF fala em grupo e áudio (WhatsApp) e em ligação. */
+export const DEGRAU_CANAL: Record<DegrauAtraso, CanalContato> = {
+  3: 'WHATSAPP',
+  7: 'WHATSAPP',
+  10: 'WHATSAPP',
+  15: 'LIGACAO',
 };
 
 /** Filtro por tipo na tela (D18), em grupos como no protótipo. */
@@ -57,12 +92,22 @@ export const FILA_GRUPOS = [
     ],
   },
   { chave: 'PLANO', label: 'Plano', tipos: ['ACAO', 'FOTO_FAMILIA'] },
+  {
+    chave: 'COBRANCA',
+    label: 'Cobrança e PMEs',
+    tipos: ['COBRANCA', 'SEMAFORO', 'PME_ATRASADO', 'ENVIAR_PME'],
+  },
   { chave: 'MES', label: 'Do mês', tipos: ['AGENDA_MES', 'REUNIOES_6M'] },
 ] as const satisfies readonly { chave: string; label: string; tipos: readonly FilaTipo[] }[];
 export type FilaGrupo = (typeof FILA_GRUPOS)[number]['chave'];
 
 /** Itens sem estado próprio: saem quando alguém marca feito (`mentoria_fila_feitos`). */
-export const FILA_FEITO_MANUAL: readonly FilaTipo[] = ['LEMBRETE_IDR', 'AGENDA_MES', 'REUNIOES_6M'];
+export const FILA_FEITO_MANUAL: readonly FilaTipo[] = [
+  'LEMBRETE_IDR',
+  'AGENDA_MES',
+  'REUNIOES_6M',
+  'SEMAFORO',
+];
 
 /** Itens da Operação que também vão para quem conduz a reunião. */
 const COMPARTILHADOS: readonly FilaTipo[] = ['REUNIAO_HOJE', 'LINK_IDR'];
@@ -127,6 +172,26 @@ export type FilaItemDTO = FilaItemBase & {
     condutor: string | null;
   } | null;
   acao: { mes: number; foco: string; acao: string; version: number } | null;
+  /** COBRANCA: a tarefa, com o status atual (E17). */
+  tarefa: {
+    descricao: string | null;
+    status: TarefaStatus;
+    origem: TarefaOrigem;
+    prazo: string;
+    cicloNumero: number | null;
+    version: number;
+  } | null;
+  /** SEMAFORO: a cor e os motivos de hoje (E18). */
+  semaforo: { cor: SemaforoCor; motivos: SemaforoMotivo[] } | null;
+  /** ENVIAR_PME e PME_ATRASADO: o ciclo (E19, E20). */
+  ciclo: {
+    numero: number;
+    /** Prazo atual: a segunda chance ou o prazo (E16). */
+    prazoAtual: string;
+    diasAtraso: number;
+    /** PME_ATRASADO: o degrau da escada. */
+    degrau: DegrauAtraso | null;
+  } | null;
 };
 
 export type FilaDTO = {
@@ -136,7 +201,9 @@ export type FilaDTO = {
 };
 
 /** O que fazer, em uma linha, para a lista e o painel do item. */
-export function filaTitulo(item: Pick<FilaItemDTO, 'tipo' | 'acao'>): string {
+export function filaTitulo(
+  item: Pick<FilaItemDTO, 'tipo' | 'acao'> & Partial<Pick<FilaItemDTO, 'semaforo' | 'ciclo'>>,
+): string {
   switch (item.tipo) {
     case 'BOAS_VINDAS':
       return 'Criar o grupo e enviar as boas-vindas';
@@ -166,5 +233,15 @@ export function filaTitulo(item: Pick<FilaItemDTO, 'tipo' | 'acao'>): string {
       return 'Agendar as reuniões mensais do 6M';
     case 'REUNIAO_HOJE':
       return 'Reunião de hoje';
+    case 'COBRANCA':
+      return 'Cobrar a tarefa combinada';
+    case 'SEMAFORO':
+      return item.semaforo?.cor === 'VERMELHO' ? 'Semáforo vermelho' : 'Semáforo amarelo';
+    case 'ENVIAR_PME':
+      return item.ciclo ? `Enviar o ${item.ciclo.numero + 1}º PME` : 'Enviar o próximo PME';
+    case 'PME_ATRASADO':
+      return item.ciclo?.degrau
+        ? `${DEGRAU_LABEL[item.ciclo.degrau]} (${item.ciclo.numero}º PME)`
+        : 'PME atrasado';
   }
 }

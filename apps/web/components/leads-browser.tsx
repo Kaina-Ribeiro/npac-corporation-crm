@@ -4,6 +4,7 @@ import { INCOME_BAND_LABELS, isLeader, TIER_LABELS } from '@npac/shared/enums';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { clientApi } from '@/lib/client-api';
+import { confirmLeaveSale } from '@/lib/leave-sale';
 import { keep, recall } from '@/lib/screen-memory';
 import { readPreference } from '@/lib/read-preference';
 import type { StageFieldsBody } from '@/lib/stage-fields';
@@ -120,7 +121,13 @@ export function LeadsBrowser({
   }, [canAssign]);
   const sdrs = catalog.team.filter((u) => u.canProspect);
   const closers = catalog.team.filter((u) => u.canClose);
-  useCrmRefresh(() => search(q, data.page));
+  // Aviso ao vivo repete o último pedido feito, não o último que voltou: com a busca ainda em voo,
+  // o `q` da tela é o anterior, e repetir ele trocava o resultado pela lista inteira.
+  const lastRequest = useRef({ term: q, target: data.page, selected: filters });
+  useCrmRefresh(() => {
+    const { term, target, selected } = lastRequest.current;
+    return search(term, target, selected);
+  });
   const page = data.page;
   const pages = Math.max(1, Math.ceil(data.total / data.pageSize));
 
@@ -163,6 +170,7 @@ export function LeadsBrowser({
 
   async function search(term: string, target = 1, selected = filters) {
     const mine = ++seq.current;
+    lastRequest.current = { term, target, selected };
     setBusy(true);
     setError('');
     try {
@@ -256,6 +264,7 @@ export function LeadsBrowser({
       value={l.stageKey}
       onChange={(e) => {
         const target = e.target.value as LeadDTO['stageKey'];
+        if (!confirmLeaveSale(l, target)) return;
         if (stageNeedsFields(target)) askStage({ lead: l, target });
         else void edit(l, { stageKey: target });
       }}
@@ -268,14 +277,17 @@ export function LeadsBrowser({
       />
     </select>
   );
+  // `label.toque`: no toque, a caixa de 16 px recebe o dedo numa área de 44 px.
   const checkbox = (l: LeadDTO) => (
-    <input
-      type="checkbox"
-      aria-label={`Selecionar ${l.name}`}
-      checked={selected.includes(l.id)}
-      onChange={(e) => toggle(l.id, e.target.checked)}
-      className="size-4 accent-[var(--ink)]"
-    />
+    <label className="toque inline-flex flex-none">
+      <input
+        type="checkbox"
+        aria-label={`Selecionar ${l.name}`}
+        checked={selected.includes(l.id)}
+        onChange={(e) => toggle(l.id, e.target.checked)}
+        className="size-4 accent-[var(--ink)]"
+      />
+    </label>
   );
   const bar = (
     label: string,

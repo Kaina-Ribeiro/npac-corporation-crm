@@ -1,13 +1,12 @@
 'use client';
-import Link from 'next/link';
 import { useState, type FormEvent } from 'react';
 import { authClient } from '@/lib/auth-client';
 
 // Igual ao `minPasswordLength` da API (provisório enquanto o time testa).
 const MIN = 3;
 
-/** `first`: primeiro acesso, troca obrigatória; senão, troca voluntária pelo menu. */
-export function ChangePasswordForm({ first = true }: { first?: boolean }) {
+/** Primeiro acesso: troca obrigatória da senha inicial. A troca voluntária fica no Meu perfil. */
+export function ChangePasswordForm() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -34,13 +33,9 @@ export function ChangePasswordForm({ first = true }: { first?: boolean }) {
 
   return (
     <form className="flex flex-col gap-4" onSubmit={onSubmit} aria-label="Trocar senha">
-      <h1 className="text-[28px] font-bold tracking-[-0.035em]">
-        {first ? 'Crie a sua senha' : 'Trocar senha'}
-      </h1>
+      <h1 className="text-[28px] font-bold tracking-[-0.035em]">Crie a sua senha</h1>
       <p className="-mt-2 text-[15px] text-ink2">
-        {first
-          ? `No primeiro acesso, troque a senha inicial por uma só sua (${MIN}+ caracteres).`
-          : `Confirme a senha atual e escolha a nova (${MIN}+ caracteres). Os outros aparelhos saem da conta.`}
+        {`No primeiro acesso, troque a senha inicial por uma só sua (${MIN}+ caracteres).`}
       </p>
       {(
         [
@@ -62,14 +57,6 @@ export function ChangePasswordForm({ first = true }: { first?: boolean }) {
       <button className="btn-dark" type="submit" disabled={busy}>
         Salvar senha
       </button>
-      {!first && (
-        <Link
-          href="/dashboard"
-          className="text-center text-sm font-semibold text-ink2 hover:text-ink"
-        >
-          Cancelar
-        </Link>
-      )}
     </form>
   );
 }

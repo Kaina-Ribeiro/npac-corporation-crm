@@ -3,25 +3,23 @@ import Link from 'next/link';
 import { useRef, useState, type FormEvent } from 'react';
 import { authClient } from '@/lib/auth-client';
 import { submitWhenComplete } from '@/lib/otp-input';
-import { LAST_USER_COOKIE } from '@/lib/last-user';
-
-/**
- * Último usuário que entrou neste aparelho, para sugerir no campo. Fica num cookie restrito a
- * /login (não vai em nenhuma outra requisição) e fora do localStorage, como o resto do CRM.
- */
-function rememberUser(username: string) {
-  const secure = window.location.protocol === 'https:' ? '; Secure' : '';
-  document.cookie = `${LAST_USER_COOKIE}=${encodeURIComponent(username)}; Path=/login; Max-Age=31536000; SameSite=Lax${secure}`;
-}
-function forgetUser() {
-  document.cookie = `${LAST_USER_COOKIE}=; Path=/login; Max-Age=0; SameSite=Lax`;
-}
+import { forgetUser, rememberUser } from '@/lib/last-user';
+import type { AccessArea } from '@npac/shared/enums';
+import { LOGIN_AREA } from './area';
+import { Note } from './note';
+import { SubmitButton } from './submit-button';
 
 const GENERIC_ERROR = 'Usuário ou senha inválidos';
 
 /** Login em dois passos: usuário + senha, depois o código do autenticador (se exigido). */
-export function LoginForm({ lastUser }: { lastUser?: string }) {
-  const [hint, setHint] = useState(false);
+export function LoginForm({
+  lastUser,
+  area = 'COMERCIAL',
+}: {
+  lastUser?: string;
+  area?: AccessArea;
+}) {
+  const tela = LOGIN_AREA[area];
   const [remembered, setRemembered] = useState(lastUser);
   const [suggest, setSuggest] = useState(false);
   const userRef = useRef<HTMLInputElement>(null);
@@ -65,8 +63,9 @@ export function LoginForm({ lastUser }: { lastUser?: string }) {
       return setStep('totp');
     }
     // Segue "Entrando…" até a navegação trocar a tela: nada de liberar o botão antes.
-    // Carga completa: o servidor manda cada cargo para a sua tela inicial (Acompanhamento → módulo).
-    window.location.replace('/');
+    // Carga completa: o servidor manda cada cargo para a sua tela inicial (Acompanhamento → módulo;
+    // pela tela do Acompanhamento, quem vê os dois cai na Fila).
+    window.location.replace(tela.destino);
   }
 
   async function onTotp(e: FormEvent<HTMLFormElement>) {
@@ -75,8 +74,7 @@ export function LoginForm({ lastUser }: { lastUser?: string }) {
     if (!start()) return; // envio automático + clique não mandam o código duas vezes
     const { error: err } = await authClient.twoFactor.verifyTotp({ code });
     if (err) return fail('Código inválido. Tente de novo.');
-    // Carga completa: o servidor manda cada cargo para a sua tela inicial (Acompanhamento → módulo).
-    window.location.replace('/');
+    window.location.replace(tela.destino);
   }
 
   if (step === 'totp') {
@@ -131,14 +129,18 @@ export function LoginForm({ lastUser }: { lastUser?: string }) {
   }
 
   return (
-    <form key="password" className="flex flex-col gap-4" aria-label="Login" onSubmit={onPassword}>
-      <h2 className="text-[28px] font-bold tracking-[-0.035em]">
-        {hint ? 'Esqueci minha senha' : 'Bem-vindo de volta'}
+    // Celular: espaços e letras do protótipo, para o formulário inteiro caber sem rolar.
+    <form
+      key="password"
+      className="flex flex-col gap-3 sm:gap-4"
+      aria-label="Login"
+      onSubmit={onPassword}
+    >
+      <h2 className="text-2xl font-bold tracking-[-0.03em] sm:text-[28px] sm:tracking-[-0.035em]">
+        Bem-vindo de volta
       </h2>
-      <p className="-mt-2 mb-1 text-[15px] text-[#333336]">
-        {hint
-          ? 'A liderança redefine a sua senha. Depois, entre com o seu usuário e a senha nova.'
-          : 'Entre com o seu usuário da NPAC e a sua senha.'}
+      <p className="-mt-1.5 mb-0.5 text-sm text-[#333336] sm:-mt-2 sm:mb-1 sm:text-[15px]">
+        Entre com o seu usuário da NPAC e a sua senha.
       </p>
       <div className="flex flex-col gap-2">
         <label htmlFor="username" className="text-[13px] font-semibold text-ink">
@@ -211,7 +213,7 @@ export function LoginForm({ lastUser }: { lastUser?: string }) {
           ref={passwordRef}
           name="password"
           type="password"
-          className="field"
+          className="field font-normal"
           placeholder="Sua senha"
           autoComplete="current-password"
           required
@@ -223,20 +225,12 @@ export function LoginForm({ lastUser }: { lastUser?: string }) {
         </p>
       )}
       <div className="-mt-1 text-sm">
-        <button
-          type="button"
-          aria-expanded={hint}
-          aria-controls="password-hint"
-          onClick={() => setHint((v) => !v)}
-          className="min-h-8 font-medium text-[#333336] underline-offset-2 hover:underline"
+        <Link
+          href={`${tela.base}/esqueci`}
+          className="inline-flex min-h-8 items-center font-medium text-[#333336] underline-offset-2 hover:underline"
         >
           Esqueci minha senha
-        </button>
-        {hint && (
-          <p id="password-hint" role="status" className="mt-1 text-ink">
-            Peça para a liderança redefinir a sua senha em Admin.
-          </p>
-        )}
+        </Link>
       </div>
       <SubmitButton busy={busy} pending="Entrando…">
         Login
@@ -247,58 +241,12 @@ export function LoginForm({ lastUser }: { lastUser?: string }) {
       <p className="-mt-1 text-center text-sm text-[#333336]">
         Não tem conta?{' '}
         <Link
-          href="/login/solicitar"
+          href={`${tela.base}/solicitar`}
           className="font-semibold text-ink underline-offset-2 hover:underline"
         >
           Solicitar acesso
         </Link>
       </p>
     </form>
-  );
-}
-
-/** Botão de envio com estado de espera: desabilitado, spinner e texto de progresso. */
-function SubmitButton({
-  busy,
-  pending,
-  children,
-}: {
-  busy: boolean;
-  pending: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      className="btn-dark inline-flex items-center justify-center gap-2.5"
-      type="submit"
-      disabled={busy}
-      aria-busy={busy}
-    >
-      {busy && (
-        <span
-          aria-hidden="true"
-          className="size-4 animate-spin rounded-full border-2 border-white/30 border-t-white"
-        />
-      )}
-      {busy ? pending : children}
-    </button>
-  );
-}
-
-function Note({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex items-start gap-2.5 border-t-[0.5px] border-[rgba(60,60,67,.2)] pt-3.5 text-xs leading-relaxed text-[#333336]">
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        aria-hidden="true"
-        className="mt-px h-[15px] w-[15px] flex-none text-gold-deep"
-      >
-        <path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" />
-      </svg>
-      <span>{children}</span>
-    </div>
   );
 }

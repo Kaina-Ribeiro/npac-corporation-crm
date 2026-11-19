@@ -13,6 +13,7 @@ import {
 import { readPreference, savePreference } from '@/lib/user-cookie';
 import { button, control, Field, FormError, quietButton } from './crm-ui';
 import { useCrmRefresh } from './shell/live-updates';
+import { SEM_FOTOS, type TeamPhotos } from './avatar';
 import { MeetingReminder } from './meeting-reminder';
 import { MeetingAction, QuickAction } from './today-quick-action';
 
@@ -108,13 +109,18 @@ function Dot({ className }: { className: string }) {
   return <span aria-hidden="true" className={`size-2 flex-none rounded-full ${className}`} />;
 }
 
-/** Selo com a inicial do closer da reunião; dourado quando a reunião é da própria pessoa. */
+/**
+ * Selo do closer da reunião: a foto (NPAC-53) ou a inicial; a reunião da própria pessoa fica
+ * dourada (fundo dourado na inicial, anel dourado na foto).
+ */
 function CloserMark({
   closer,
   mine,
+  photo,
 }: {
   closer: TodayDTO['meetings'][number]['closer'];
   mine: boolean;
+  photo?: string;
 }) {
   const label = mine ? 'Sua reunião' : `Reunião de ${closer.name}`;
   return (
@@ -122,11 +128,21 @@ function CloserMark({
       role="img"
       aria-label={label}
       title={label}
-      className={`relative z-[1] grid size-6 flex-none place-items-center rounded-full text-[11px] font-bold ${
-        mine ? 'bg-gold text-black' : 'bg-black/5 text-ink2 dark:bg-white/10'
+      className={`relative z-[1] grid size-6 flex-none place-items-center overflow-hidden rounded-full text-[11px] font-bold ${
+        photo
+          ? mine
+            ? 'shadow-[0_0_0_2px_var(--gold)]'
+            : ''
+          : mine
+            ? 'bg-gold text-black'
+            : 'bg-black/5 text-ink2 dark:bg-white/10'
       }`}
     >
-      {closer.name.charAt(0).toUpperCase()}
+      {photo ? (
+        <img src={photo} alt="" className="size-full object-cover" />
+      ) : (
+        closer.name.charAt(0).toUpperCase()
+      )}
     </span>
   );
 }
@@ -187,6 +203,7 @@ export function Today({
   cookie,
   initialFilters,
   closerMarkFor,
+  photos = SEM_FOTOS,
 }: {
   initial: TodayDTO;
   name: string;
@@ -203,6 +220,8 @@ export function Today({
   initialFilters: TodayFilters;
   /** ID de quem é liderança e também atende: mostra de quem é cada reunião do dia. */
   closerMarkFor?: string;
+  /** Fotos da equipe (NPAC-53) para o selo do closer. */
+  photos?: TeamPhotos;
 }) {
   const [data, setData] = useState(initial);
   const receiptKeys = useRef(new Map<string, string>());
@@ -294,7 +313,7 @@ export function Today({
   );
   const completeTask = (t: TodayDTO['tasks'][number]) => (
     <button
-      className="grid size-6 flex-none place-items-center rounded-full border border-line text-transparent transition-colors hover:border-ink hover:text-ink2 disabled:opacity-40"
+      className="toque grid size-6 flex-none place-items-center rounded-full border border-line text-transparent transition-colors hover:border-ink hover:text-ink2 disabled:opacity-40"
       disabled={busy}
       aria-label={`Concluir ${t.title}`}
       title="Concluir"
@@ -339,7 +358,11 @@ export function Today({
       title: m.name,
       detail: when(m.scheduledAt),
       mark: closerMarkFor ? (
-        <CloserMark closer={m.closer} mine={m.closer.id === closerMarkFor} />
+        <CloserMark
+          closer={m.closer}
+          mine={m.closer.id === closerMarkFor}
+          photo={photos.photos[m.closer.id]}
+        />
       ) : null,
       actions: (
         <>
@@ -402,7 +425,7 @@ export function Today({
               <a
                 key={id}
                 href={`#${id}`}
-                className="flex h-9 items-center gap-1.5 rounded-full bg-white/60 px-3.5 text-sm text-ink2 shadow-[inset_0_0_0_0.5px_rgba(60,60,67,0.18)] hover:bg-white/90 hover:text-ink active:scale-[.97] dark:bg-white/[.06] dark:hover:bg-white/10"
+                className="toque flex h-9 items-center gap-1.5 rounded-full bg-white/60 px-3.5 text-sm text-ink2 shadow-[inset_0_0_0_0.5px_rgba(60,60,67,0.18)] hover:bg-white/90 hover:text-ink active:scale-[.97] dark:bg-white/[.06] dark:hover:bg-white/10"
               >
                 {alert && n > 0 && <Dot className="bg-danger" />}
                 <b className="font-semibold text-ink tabular-nums">{n}</b> {label}
@@ -412,7 +435,7 @@ export function Today({
           {canCreate && (
             <Link
               href="/leads/new"
-              className="rounded-xl bg-ink px-4 py-2 text-sm font-semibold text-[var(--bg)] active:scale-[.97]"
+              className="toque rounded-xl bg-ink px-4 py-2 text-sm font-semibold text-[var(--bg)] active:scale-[.97]"
             >
               Novo lead
             </Link>
@@ -553,7 +576,11 @@ export function Today({
                             {hourMinute.format(new Date(m.scheduledAt))}
                           </span>
                           {closerMarkFor && (
-                            <CloserMark closer={m.closer} mine={m.closer.id === closerMarkFor} />
+                            <CloserMark
+                              closer={m.closer}
+                              mine={m.closer.id === closerMarkFor}
+                              photo={photos.photos[m.closer.id]}
+                            />
                           )}
                           <div className="min-w-0 flex-1">
                             <p
@@ -584,6 +611,28 @@ export function Today({
               </ol>
             )}
           </Panel>
+
+          {data.salesToRegister.length > 0 && (
+            // Venda marcada pelo SDR esperando o valor (NPAC-51): some quando a venda é registrada.
+            <Panel
+              id="hoje-vendas-a-registrar"
+              title="Vendas a registrar"
+              count={data.salesToRegister.length}
+            >
+              {data.salesToRegister.map((s) => (
+                <div key={s.id} className={row}>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold">{s.name}</p>
+                    <p className="truncate text-xs text-ink2">
+                      {s.product ? `Produto: ${s.product}` : 'Venda a registrar'}
+                      {head && s.closer ? ` · ${s.closer.name}` : ''}
+                    </p>
+                  </div>
+                  <OpenLead href={`/leads/${s.id}#vendas`} name={s.name} />
+                </div>
+              ))}
+            </Panel>
+          )}
 
           {charges && (
             <Panel id="hoje-cobrancas" title="Cobranças até hoje" count={data.charges.length}>

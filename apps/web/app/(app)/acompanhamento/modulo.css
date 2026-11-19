@@ -1423,6 +1423,10 @@
     width: 1px;
     height: 1px;
     opacity: 0;
+    /* O Safari desenha o botão do campo de arquivo para fora da caixa de 1 px (77 px): sem o
+       recorte, a página rolava de lado no iPad (Ação do Plano, 18/11/2026). */
+    overflow: hidden;
+    clip-path: inset(50%);
   }
   .imp-input:focus-visible + .imp-botoes label {
     outline: 2px solid var(--gold-ring);
@@ -2544,7 +2548,8 @@
       bottom: 0;
       z-index: 5;
       margin: 0 -16px;
-      padding: 12px 16px 16px;
+      /* App na Tela de Início do iPhone: os botões ficam acima da faixa do gesto de início. */
+      padding: 12px 16px max(16px, env(safe-area-inset-bottom));
       background: var(--gl-solid);
       border-top: 1px solid var(--line);
     }
@@ -2554,6 +2559,12 @@
     }
     .tabs span.off {
       height: 44px;
+    }
+  }
+  /* Tela de toque: botão pequeno do módulo com 44 px de altura (Apple), como o `.btn` do CRM. */
+  @media (pointer: coarse) {
+    .btn.sm {
+      min-height: 44px;
     }
   }
 
@@ -4045,6 +4056,487 @@
     }
     .back:hover {
       color: var(--ink);
+    }
+  }
+}
+
+/* Teclado aberto: ao rolar o campo focado para a vista, o navegador deixa espaço para a barra de
+   ações presa embaixo (Nova inscrição, Nova reunião), que cobria o último campo. Fora do `.ac`:
+   a regra vale para o documento. */
+@media (max-width: 767.98px) {
+  :root:has(.nf-barra) {
+    scroll-padding-bottom: 160px;
+  }
+}
+
+/*
+ * Semáforo, check-ins e colunas novas de Mentorados (Fase 2, Parte 3). O amarelo é cor nova: o PDF
+ * pede verde, amarelo e vermelho; verde e vermelho reusam `--tag-ok` e `--tag-bad`. Texto ≥ 4,5:1.
+ */
+.ac {
+  --tag-warn-bg: #fbefc6;
+  --tag-warn: #6f4a00;
+  --sem-verde: #1f9d6b;
+  --sem-amarelo: #d99a00;
+  --sem-vermelho: var(--danger);
+}
+.dark .ac {
+  --tag-warn-bg: rgba(250, 204, 21, 0.16);
+  --tag-warn: #fcd34d;
+  --sem-verde: #34d399;
+  --sem-amarelo: #fbbf24;
+}
+.ac {
+  .tag.sem i {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex: none;
+  }
+  .tag.sem.verde {
+    background: var(--tag-ok-bg);
+    color: var(--tag-ok);
+  }
+  .tag.sem.verde i {
+    background: var(--sem-verde);
+  }
+  .tag.sem.amarelo {
+    background: var(--tag-warn-bg);
+    color: var(--tag-warn);
+  }
+  .tag.sem.amarelo i {
+    background: var(--sem-amarelo);
+  }
+  .tag.sem.vermelho {
+    background: var(--tag-bad-bg);
+    color: var(--tag-bad);
+  }
+  .tag.sem.vermelho i {
+    background: var(--sem-vermelho);
+  }
+
+  /* Ficha > Jornada */
+  .sem-card {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 18px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: var(--fill);
+    box-shadow: inset 0 0 0 0.5px var(--line);
+  }
+  .sem-cab,
+  .ck-cab {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .pa .sem-cab h3 {
+    margin: 0;
+  }
+  .ck-cab h4 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .sem-motivos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .sem-motivos li {
+    padding: 3px 9px;
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: 600;
+    background: var(--tag-warn-bg);
+    color: var(--tag-warn);
+  }
+  .sem-motivos li.grave {
+    background: var(--tag-bad-bg);
+    color: var(--tag-bad);
+  }
+  .sem-nota {
+    margin: 0;
+    font-size: 13px;
+    color: var(--ink2);
+  }
+  .sem-linha {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 20px;
+    padding-top: 10px;
+    border-top: 1px solid var(--line);
+  }
+  .sem-seq {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--ink2);
+  }
+  .sem-seq b {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .sem-hist {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+  .sem-hist-rot {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink2);
+    white-space: nowrap;
+  }
+  .sem-hist ol {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .sem-hist li {
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+  }
+  .sem-hist li.verde {
+    background: var(--sem-verde);
+  }
+  .sem-hist li.amarelo {
+    background: var(--sem-amarelo);
+  }
+  .sem-hist li.vermelho {
+    background: var(--sem-vermelho);
+  }
+  .ck {
+    display: grid;
+    gap: 8px;
+    padding-top: 10px;
+    border-top: 1px solid var(--line);
+  }
+  .ck-lista {
+    display: grid;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .ck-item {
+    display: grid;
+    gap: 4px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: var(--fill);
+    box-shadow: inset 0 0 0 0.5px var(--line);
+  }
+  .ck-topo {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+  .ck-topo b {
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .ck-topo button {
+    margin-left: auto;
+  }
+  .ck-datas {
+    margin: 0;
+    font-size: 12px;
+    color: var(--ink2);
+  }
+  .ck-textos {
+    display: grid;
+    gap: 4px;
+    margin: 2px 0 0;
+  }
+  .ck-textos div {
+    display: grid;
+    grid-template-columns: 110px minmax(0, 1fr);
+    gap: 8px;
+    font-size: 13px;
+  }
+  .ck-textos dt {
+    color: var(--ink2);
+  }
+  .ck-textos dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+    white-space: pre-line;
+  }
+  .ck-mais summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 32px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink2);
+    cursor: pointer;
+    list-style: none;
+  }
+  .ck-mais summary::-webkit-details-marker {
+    display: none;
+  }
+  .ck-mais summary svg {
+    width: 16px;
+    height: 16px;
+  }
+  .ck-mais[open] summary svg {
+    transform: rotate(180deg);
+  }
+  .ck-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .ck-check input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--gold-deep);
+  }
+  @media (max-width: 520px) {
+    .ck-textos div {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0;
+    }
+  }
+
+  /* Mentorados: PME atual, semáforo e % do PME (PDF, aba 2). */
+  .row .pm,
+  .row .sf,
+  .row .pc {
+    display: none;
+  }
+  .row .mobmeta {
+    display: grid;
+    gap: 4px;
+  }
+  .mob-pme {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+  }
+  /*
+   * 1024–1279 px: com a barra lateral, as 8 colunas não cabem (Responsável e Último contato eram
+   * cortados): a lista fica em cartões, como no celular, e a tabela volta a partir de 1280.
+   */
+  @media (min-width: 1024px) and (max-width: 1279.98px) {
+    .lhead {
+      display: none;
+    }
+    .row {
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 2px 12px;
+      padding: 14px 16px;
+    }
+    .row .st-tag {
+      grid-column: 2;
+      grid-row: 1;
+    }
+    .row .jm {
+      grid-column: 1/-1;
+      margin-top: 10px;
+    }
+    .row .tp,
+    .row .rs,
+    .row .lc {
+      display: none;
+    }
+    .row .mobmeta {
+      display: grid;
+      grid-column: 1/-1;
+      margin-top: 6px;
+    }
+  }
+  @media (min-width: 1280px) {
+    .lhead,
+    .row {
+      grid-template-columns:
+        minmax(190px, 1.6fr) minmax(130px, 1fr) 68px 98px 56px 96px minmax(84px, 0.6fr)
+        84px;
+    }
+    .lhead .h-tp,
+    .row .tp {
+      display: none;
+    }
+    .row .pm,
+    .row .pc {
+      display: block;
+      font-size: 13px;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .row .sf {
+      display: block;
+      font-size: 13px;
+      color: var(--ink2);
+    }
+    .row .mobmeta {
+      display: none;
+    }
+  }
+  @media (min-width: 1440px) {
+    .lhead,
+    .row {
+      grid-template-columns:
+        minmax(200px, 1.6fr) 80px minmax(140px, 1fr) 72px 100px 64px 104px minmax(90px, 0.7fr)
+        96px;
+    }
+    .lhead .h-tp {
+      display: block;
+    }
+    .row .tp {
+      display: inline-flex;
+    }
+  }
+
+  /* Aba 7 "PMEs e ciclos" (Fase 2, Parte 4): cartões até 1279 px, tabela a partir de 1280 px
+     (com a barra lateral, oito colunas não cabem em 1024, como em Mentorados). */
+  .pc-filtros {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .pc-filtros button {
+    grid-column: 1/-1;
+  }
+  .pc-head {
+    display: none;
+  }
+  .pc-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 12px;
+    padding: 14px 16px;
+    border-top: 1px solid var(--line);
+    align-items: center;
+    cursor: pointer;
+  }
+  .pc-row.primeira {
+    border-top: 0;
+  }
+  .pc-nm {
+    font-size: 15px;
+    font-weight: 600;
+    min-width: 0;
+  }
+  .pc-nm small,
+  .pc-datas small {
+    display: block;
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--ink2);
+  }
+  .pc-pme,
+  .pc-datas,
+  .pc-n,
+  .pc-prox {
+    display: none;
+  }
+  .pc-st {
+    justify-self: end;
+  }
+  .pc-mob {
+    grid-column: 1/-1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 13px;
+    color: var(--ink2);
+  }
+  .pc-mob b {
+    color: var(--gold-text);
+    font-weight: 600;
+  }
+  @media (hover: hover) {
+    .pc-row:hover {
+      background: var(--on);
+    }
+  }
+  .pc-row:active {
+    background: var(--on);
+  }
+  @media (min-width: 768px) {
+    .pc-filtros {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .pc-filtros select {
+      width: auto;
+      min-width: 200px;
+    }
+  }
+  @media (min-width: 1280px) {
+    .pc-head,
+    .pc-row {
+      display: grid;
+      grid-template-columns:
+        minmax(180px, 1.4fr) minmax(100px, 1fr) 104px 168px 72px 96px 104px
+        92px;
+      gap: 10px;
+      align-items: center;
+    }
+    .pc-head {
+      padding: 12px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--ink2);
+      border-bottom: 1px solid var(--line);
+    }
+    .pc-row {
+      padding: 12px 16px;
+    }
+    .pc-pme,
+    .pc-datas,
+    .pc-n,
+    .pc-prox {
+      display: block;
+      font-size: 13px;
+      min-width: 0;
+    }
+    .pc-n {
+      font-variant-numeric: tabular-nums;
+      color: var(--ink2);
+    }
+    .pc-prox.on {
+      color: var(--gold-text);
+      font-weight: 600;
+    }
+    .pc-st {
+      justify-self: start;
+      min-width: 0;
+    }
+    /* "Em andamento, 10 dias de atraso" não cabe numa linha da coluna: quebra dentro dela. */
+    .pc-st .tag {
+      white-space: normal;
+      height: auto;
+      min-height: 22px;
+      padding-block: 3px;
+      line-height: 16px;
+    }
+    .pc-mob {
+      display: none;
     }
   }
 }

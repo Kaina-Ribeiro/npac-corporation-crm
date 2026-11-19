@@ -1,5 +1,6 @@
 'use client';
 import { ghostButton } from '@/lib/button';
+import { loginPath } from '@/lib/login-path';
 
 // fetch direto (sem o client do Better Auth) para manter o JS das telas do app enxuto.
 export function SignOutButton({
@@ -23,7 +24,8 @@ export function SignOutButton({
           body: '{}',
         });
         // Navegação completa: descarta o cache do roteador, que ainda guarda telas da sessão.
-        window.location.replace('/login');
+        // Quem sai do módulo volta à tela de entrada do Acompanhamento.
+        window.location.replace(loginPath(window.location.pathname));
       }}
     >
       {children}

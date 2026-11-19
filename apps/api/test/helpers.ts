@@ -15,6 +15,7 @@ import {
   type PushTarget,
 } from '../src/push/push.service.js';
 import { REMINDER_CLOCK, type Clock } from '../src/push/reminders.js';
+import { MAIL_SENDER, type MailMessage, type MailSender } from '../src/mail/mail.js';
 import { MENTORIA_CLOCK } from '../src/mentoria/relogio.js';
 
 /** Push de mentira: guarda o que seria enviado; `gone` simula inscrição expirada. */
@@ -26,6 +27,17 @@ export class MemoryPushSender implements PushSender {
     if (this.gone.has(target.endpoint)) return Promise.resolve('gone');
     this.sent.push({ endpoint: target.endpoint, payload });
     return Promise.resolve('ok');
+  }
+}
+
+/** Caixa de e-mail em memória: guarda o que seria enviado; `enabled = false` simula sem SMTP. */
+export class MemoryMailSender implements MailSender {
+  enabled = true;
+  sent: MailMessage[] = [];
+  send(message: MailMessage): Promise<boolean> {
+    if (!this.enabled) return Promise.resolve(false);
+    this.sent.push(message);
+    return Promise.resolve(true);
   }
 }
 
@@ -74,7 +86,7 @@ export class FakeClock implements Clock {
 }
 
 export { TEST_PASSWORD };
-export const owner = ownerSql('npac_test_api');
+export const owner = ownerSql(process.env.API_TEST_DB ?? 'npac_test_api');
 export const ORIGIN = process.env.WEB_ORIGIN ?? 'http://localhost:3000';
 export const protectedRoute = '/api/_test/protected';
 export const leadCreateRoute = '/api/_test/lead-create';
@@ -101,6 +113,8 @@ export async function createTestApp(): Promise<NestFastifyApplication> {
   })
     .overrideProvider(PUSH_SENDER)
     .useValue(new MemoryPushSender())
+    .overrideProvider(MAIL_SENDER)
+    .useValue(new MemoryMailSender())
     .overrideProvider(REMINDER_CLOCK)
     .useValue(new FakeClock())
     .overrideProvider(MENTORIA_CLOCK)

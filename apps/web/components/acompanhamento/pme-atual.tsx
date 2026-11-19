@@ -7,6 +7,8 @@ import {
   TAREFA_STATUS_LABEL,
   tarefaPedeMotivo,
   REUNIAO_TIPO_LABEL,
+  SEGUNDA_CHANCE_DIAS,
+  somarDias,
   ULTIMO_PME,
   type CicloDTO,
   type CicloStatus,
@@ -26,6 +28,7 @@ import { dataBR, ICONES, Icone } from './ui';
 const sm = `${quietButton} sm`;
 const CLASSE_CICLO: Record<CicloStatus, string> = {
   EM_ANDAMENTO: 'onb',
+  SEGUNDA_CHANCE: 'onb',
   CONCLUIDO: 'ativo',
   NAO_CONCLUIDO: 'canc',
 };
@@ -33,14 +36,20 @@ const chaveTarefa = (t: TarefaDTO) => `tarefa:${t.inscricaoId}:${t.id}`;
 const diaBR = (iso: string) =>
   dataBR(new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date(iso)));
 
-export function TagCiclo({ c }: { c: CicloDTO }) {
+export function TagCiclo({
+  c,
+}: {
+  c: Pick<CicloDTO, 'status' | 'diasAtraso' | 'segundaChanceAte'>;
+}) {
   const atraso =
     c.diasAtraso > 0 && c.status !== 'NAO_CONCLUIDO'
       ? `, ${c.diasAtraso} dia${c.diasAtraso > 1 ? 's' : ''} de atraso`
       : '';
   return (
     <span className={`tag ${CLASSE_CICLO[c.status]}`}>
-      {CICLO_STATUS_LABEL[c.status]}
+      {c.status === 'SEGUNDA_CHANCE' && c.segundaChanceAte
+        ? `Segunda chance até ${dataBR(c.segundaChanceAte).slice(0, 5)}`
+        : CICLO_STATUS_LABEL[c.status]}
       {atraso}
     </span>
   );
@@ -172,7 +181,7 @@ export function Tarefa({
     <li className={`pme-tarefa ${encerramento ? 'enc' : ''} ${feita ? 'feita' : ''}`}>
       <button
         type="button"
-        className={`check sm ${feita ? 'done' : ''}`}
+        className={`check sm toque ${feita ? 'done' : ''}`}
         aria-pressed={feita}
         aria-label={`${feita ? 'Desmarcar' : 'Marcar feita'}: ${descricao}`}
         disabled={!ed}
@@ -273,7 +282,20 @@ type Janela =
   | { tipo: 'anterior' }
   | { tipo: 'data'; c: CicloDTO }
   | { tipo: 'fechar'; c: CicloDTO }
+  | { tipo: 'segunda'; c: CicloDTO }
   | null;
+
+/** Segunda chance (E15): depois do prazo original e não antes de hoje. */
+const minimoSegunda = (c: CicloDTO, hoje: string) => {
+  const depoisDoPrazo = somarDias(c.prazo, 1);
+  return depoisDoPrazo > hoje ? depoisDoPrazo : hoje;
+};
+/** Sugestão do PDF (página 19): 7 dias a partir de hoje, nunca antes do mínimo. */
+const sugestaoSegunda = (c: CicloDTO, hoje: string) => {
+  const sugestao = somarDias(hoje, SEGUNDA_CHANCE_DIAS);
+  const min = minimoSegunda(c, hoje);
+  return sugestao > min ? sugestao : min;
+};
 
 /** Barra de progresso (0–100 %) com rótulo; `pct` nulo mostra `vazio`. O número vem do banco. */
 export function Barra({
@@ -330,6 +352,7 @@ function Ciclo({
   const daReuniao = c.tarefas.length - doCiclo.length;
   const semEncerramento = !c.tarefas.some((t) => t.origem === 'ENCERRAMENTO');
   const fechavel = semEncerramento && c.anteriorAoSistema && ficha.pode.tarefa;
+  const aberto = !c.concluidoEm && !c.naoConcluidoEm;
   return (
     <div className={`pme-ciclo ${atual ? 'atual' : ''}`}>
       <div className="pme-topo">
@@ -365,8 +388,38 @@ function Ciclo({
         </div>
         <div>
           <dt>Prazo</dt>
-          <dd>{dataBR(c.prazo)}</dd>
+          <dd>
+            {dataBR(c.prazo)}
+            {aberto && ficha.pode.segundaChance && !c.segundaChanceAte && (
+              <button
+                type="button"
+                className="pl-link"
+                aria-label={`Dar segunda chance no ${nomePme(c.numero)}`}
+                onClick={() => abrir({ tipo: 'segunda', c })}
+              >
+                Dar segunda chance
+              </button>
+            )}
+          </dd>
         </div>
+        {c.segundaChanceAte && (
+          <div>
+            <dt>Segunda chance</dt>
+            <dd>
+              Até {dataBR(c.segundaChanceAte)}
+              {aberto && ficha.pode.segundaChance && (
+                <button
+                  type="button"
+                  className="pl-link"
+                  aria-label={`Mudar a segunda chance do ${nomePme(c.numero)}`}
+                  onClick={() => abrir({ tipo: 'segunda', c })}
+                >
+                  Mudar
+                </button>
+              )}
+            </dd>
+          </div>
+        )}
         {(c.concluidoEm || fechavel) && (
           <div>
             <dt>Concluído</dt>
@@ -447,7 +500,13 @@ export function PmeAtual({ ficha, atualizar }: { ficha: FichaDTO; atualizar: () 
     (ficha.importada || ficha.ciclos.length === 0);
 
   const abrir = (j: Janela) => {
-    setData(j && j.tipo === 'data' ? j.c.enviadoEm : ficha.hoje);
+    setData(
+      j && j.tipo === 'data'
+        ? j.c.enviadoEm
+        : j && j.tipo === 'segunda'
+          ? (j.c.segundaChanceAte ?? sugestaoSegunda(j.c, ficha.hoje))
+          : ficha.hoje,
+    );
     setConcluido(j && j.tipo === 'fechar' ? ficha.hoje : '');
     setNumero(proximo);
     setJanela(j);
@@ -615,6 +674,34 @@ export function PmeAtual({ ficha, atualizar }: { ficha: FichaDTO; atualizar: () 
               className={control}
               type="date"
               max={ficha.hoje}
+              value={data}
+              required
+              onChange={(e) => setData(e.target.value)}
+            />
+          </label>
+        </Dialogo>
+      )}
+      {janela?.tipo === 'segunda' && (
+        <Dialogo
+          titulo={`Segunda chance no ${nomePme(janela.c.numero)}`}
+          texto={`Novo prazo para fechar o PME. A sugestão é de ${SEGUNDA_CHANCE_DIAS} dias; o atraso passa a contar dessa data.`}
+          rotulo="Dar segunda chance"
+          podeConfirmar={!!data}
+          onFechar={fechar}
+          onConfirmar={async () => {
+            await clientApi(`/api/mentoria/ciclos/${janela.c.id}`, 'PATCH', {
+              version: janela.c.version,
+              segundaChanceAte: data,
+            });
+            depois();
+          }}
+        >
+          <label className="f">
+            <span>Novo prazo</span>
+            <input
+              className={control}
+              type="date"
+              min={minimoSegunda(janela.c, ficha.hoje)}
               value={data}
               required
               onChange={(e) => setData(e.target.value)}

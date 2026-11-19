@@ -33,7 +33,9 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   `withUser`, `leadContactTaken` `db/src/with-user.ts` · seed `db/src/seed*.ts`
 - **Auth:** Better Auth (username, TOTP, auditoria, rate limit) `api/auth/auth.ts` · sessão e
   troca obrigatória `api/auth/session.guard.ts` · `@Can`/`@Public`/`@AllowIncomplete`
-  `api/auth/*.decorator.ts` · pedido de acesso público `api/auth/request-access.ts` · env Zod `api/config/env.ts`
+  `api/auth/*.decorator.ts` · pedido de acesso público `api/auth/request-access.ts` · esqueci a senha
+  `api/auth/password-reset.ts` + e-mail `api/mail/*` · Meu perfil (foto, nome, e-mail com código) `api/conta/*` ·
+  env Zod `api/config/env.ts`
 - **Leads:** rotas/leitura/escrita `api/leads/leads.controller.ts`, `leads.service.ts`,
   `lead-mutations.service.ts` · filtros/SQL `leads.repository.ts` · timeline+audit
   `activity.ts` (`recordActivity`) · notas/tarefas `lead-activity.*`
@@ -49,10 +51,15 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   não pesar no JS; `nav-items.tsx` também fica no servidor, a barra inferior é componente de servidor) · na sidebar só o
   miolo rola (`.side-scroll`: navegação + filtros salvos); topo e rodapé com o Sair ficam fixos, e a carga direta rola até o
   item ativo (`sidebar-shell.tsx`) · Sair no celular (17/11/2026): o mesmo cartão `shell/conta-card.tsx` (foto, nome, cargo,
-  Trocar senha, Sair) no topo do `/mais` e do `/acompanhamento/mais`; nada de outro Sair nessas telas (e2e `e2e/sair.spec.ts`) · classes de botão `lib/button.ts` · dropdown (todos os `<select>`) com o visual do CRM só por CSS
+  Meu perfil, Sair) no topo do `/mais` e do `/acompanhamento/mais`; nada de outro Sair nessas telas (e2e `e2e/sair.spec.ts`) · classes de botão `lib/button.ts` · dropdown (todos os `<select>`) com o visual do CRM só por CSS
   (`appearance: base-select` + `::picker(select)` no fim de `globals.css`; Safari fica com o do
   sistema; Lightning CSS não aceita pseudo-classe depois de `::picker`, use `select:open::picker(select)`) · login,
-  pedir acesso `web/components/login/*` · senha/MFA `components/conta/*`, `app/(conta)/*` · API
+  pedir acesso, esqueci a senha (`/login/esqueci`, `/login/nova-senha`) `web/components/login/*` · **duas telas de
+  entrada** (NPAC-52, 18/11/2026): `/login` (CRM, noite) e `/login/acompanhamento` (+ `/solicitar`, `/esqueci`;
+  "ouro líquido de dia"), mesmas páginas (`login/pages.tsx`) com textos, endereço e destino em `login/area.ts`
+  (`LOGIN_AREA`) e aparência em `auth-shell.tsx` (`LOOK`; campos `.auth-dia` em `globals.css`); shader único
+  `liquid-gold.tsx` com `tom` `noite`/`dia`, só nas telas de entrada. Até 1023 px em coluna; celular sem a frase.
+  Sem sessão no módulo, e ao Sair dele, a tela do Acompanhamento (`lib/login-path.ts`, `proxy.ts`) · senha/MFA `components/conta/*`, `app/(conta)/*` · API
   server/client `web/lib/api.ts` / `lib/client-api.ts` · filtros lembrados `lib/screen-prefs.ts`,
   `lib/use-latest-prefs.ts`, memória da busca `lib/screen-memory.ts` · sessão (`getSession`, `pendingStep`)
   `web/lib/session.ts` · UI base (`Field`, `button`, `StageOptions`) `components/crm-ui.tsx` ·
@@ -71,7 +78,8 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
 - **Cores e contraste** (achados de design de 17/11/2026, plano `docs/plans/achados-design-17-11.md`): todo texto
   passa de 4,5:1 (WCAG AA) no claro e no escuro. Cada cor tem um significado: **dourado = marca, progresso e
   seleção** (barras da jornada, do PME e das metas; `--gold-deep` em barra/borda, `--gold-text` em texto dourado);
-  **vermelho único = atraso e erro** (`--danger` e `--tag-bad`, mesma família); **cinza neutro = estado sem alarme**
+  **vermelho único = atraso e erro** (`--danger` e `--tag-bad`, mesma família); **amarelo = só o semáforo do Acompanhamento**
+  (`--tag-warn`, Parte 3: o PDF pede verde, amarelo e vermelho); **cinza neutro = estado sem alarme**
   (Cancelado, Pausado, "N a cobrar", etiqueta RDV/2M/6M em toda tela); azul `--tag-info` = informação/link de meta.
   Avatares com pouca saturação. Na Fila, "X dias" fica vermelho só acima de `ATRASO_ALARME_DIAS` (14, `fila.tsx`).
   `.field` tem versão escura em `globals.css`; a caixa do login (`.auth-card`) fixa os tokens claros nos dois temas.
@@ -84,6 +92,13 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   modal, depois `close()`) · aviso "Salvo" `components/toast.ts` (`showToast()`, sem React: região `role="status"` do layout, um por vez, 2,5 s;
   único texto aprovado, D3) · `startNavProgress(href)` (`shell/nav-progress.tsx`) antes de `router.push` ·
   movimento reduzido zera duração e atraso (`globals.css`, `prefers-reduced-motion`) · e2e `e2e/resposta-imediata.spec.ts`
+- **Celular** (Fase 1, 18/11/2026; regras no fim de `globals.css`, e2e `e2e/mobile-layout-celular.spec.ts`, projeto `iphone`):
+  na tela de toque (`pointer: coarse`) campo de texto e select têm 16 px (abaixo disso o iPhone dá zoom ao tocar; campo
+  novo maior que 16 px entra na exceção da regra), `.btn` tem 44 px de altura e `.toque` aumenta a área de toque para 44 px
+  sem mudar o desenho (`::after`; não serve com `overflow: hidden`; caixa pequena vai dentro de `<label class="toque">`) ·
+  barra de baixo do celular leva `barra-celular` (some enquanto um campo de texto tem foco) · `viewport-fit=cover`
+  (`app/layout.tsx`): o que encosta na borda usa `env(safe-area-inset-*)` (`.shell` nas laterais, barras e `.nf-barra`
+  embaixo) · ícone da Tela de Início `app/apple-icon.png` (180 px) · menu de CSV fica dentro da tela (`caberNaTela`)
 - **Acompanhamento (mentorados), v2 em 5 partes** (plano `docs/superpowers/plans/2026-11-10-acompanhamento-v2-fase-1.md`, protótipo `docs/acompanhamento/prototipo/canvas/`):
   API `api/mentoria/*` (guarda 404 + MFA: `MentoriaController` em `mentoria.guard.ts`; perfil `perfil.guard.ts`,
   `perfis.*`; inscrição e ficha `inscricoes.*`, `ficha.service.ts`, `historico.ts`; mídia `midia.controller.ts`,
@@ -107,7 +122,11 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   ciclos e tarefas do ciclo `ciclos.*` + `sh/mentoria/pmes.ts`, card "PME atual" na Jornada (`components/acompanhamento/pme-atual.tsx`);
   Parte 2 (0058): metas `metas.*` + `sh/mentoria/metas.ts`, tarefas da reunião (`POST reunioes/:id/tarefas`, `DELETE tarefas/:id` em
   `ciclos.*`), cobrança e blocos do registro (`components/acompanhamento/tarefas-reuniao.tsx`, `metas.tsx`), % do PME em SQL
-  (`mentoria_pct_tarefas`; barra por meta); 0059 tira a segunda chance do status do ciclo
+  (`mentoria_pct_tarefas`; barra por meta); 0059 tira a segunda chance do status do ciclo;
+  Parte 3 (0069): check-ins `checkins.*`, semáforo (`mentoria_semaforo`, histórico gravado pelo `avisos.scheduler.ts`), rótulos
+  `sh/mentoria/semaforo.ts`, tela `components/acompanhamento/semaforo.tsx`, colunas e filtro em `mentorados-lista.tsx`;
+  Parte 4 (0070): itens novos da Fila (`mentoria_fila`, `fila.service.ts`, degraus em `sh/mentoria/fila.ts`), contato do degrau
+  (`reunioes.service.ts`), aba 7 `pmes-ciclos.controller.ts` + `web/app/(app)/acompanhamento/pmes`, `components/acompanhamento/pmes-ciclos.tsx`
   · banco `db/src/schema/mentoria.ts`
   - 0044–0045 (`mentoria_perfil()`, `mentoria_admin()`, `mentoria_ve()`, `mentoria_edita()`, funções `mentoria_*`) ·
     seed `db/src/seed-mentoria.ts` · lógica pura `sh/mentoria/*` (cliente: `@npac/shared/mentoria`, sem zod) ·
@@ -176,14 +195,48 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   cobranças do Hoje, `sale:register`) são do closer e da liderança; o SDR marca o resultado da reunião
   e, depois dela, a venda só com o produto (NPAC-48, abaixo em "Marcar venda"). A renda extra do SDR
   (`saleBonus`) é renda dele, não R$ de venda: o SDR vê só a dele; a liderança vê a de todos.
+  **Vendas na visão do SDR** (NPAC-51, Igor 18/11/2026, "1A"): para o papel SDR a venda conta assim que
+  ele marca, na data da marcação, sem esperar o closer pôr o valor (`sdrSales` em `reports.service.ts`
+  troca `metrics.sales` e a coluna Vendas de Por SDR/Por closer, Funil e Pré-vendas). Uma por lead:
+  marcação ativa vale pela venda dela; venda registrada sem marcação conta no dia da venda. Closer =
+  o da reunião da marcação. Liderança e closer seguem contando só a venda registrada (`deals`).
+  Relatórios do SDR mostra o card "Valor a receber por venda feita"; o resumo copiado e o CSV do
+  período levam Vendas e esse valor. **Vendas a registrar anteriores à 0066** (Gabriel, 18/11/2026,
+  "1B"): a 0067 deu a cada uma a marcação que faltava (SDR do lead, produto informado, reunião
+  realizada mais recente, renda extra do catálogo de hoje, data do `sale.pending` da timeline); venda
+  já registrada e lead sem produto ficaram de fora (`db/test/renda-extra-vendas-antigas.test.ts`).
 - Login por **usuário** (`/sign-in/username`, `[a-z0-9_.]{3,30}`, minúsculo); login por e-mail e
   `/is-username-available` desligados. Senha mínima 3 (provisório, decisão de 29/10/2026: no dev
   todas são `123`; as regras voltam no fim).
 - **Pedido de acesso** (29/10/2026): `/login/solicitar` grava em `access_requests`, fora de `user`
   (pendente não loga). Head/Diretoria aprovam no Admin escolhendo o cargo (`guardLeadership`);
   recusar apaga; expira em 7 dias; 3/hora por IP; resposta igual exista ou não o usuário (hash
-  sempre, para o tempo não revelar). "Esqueci minha senha" manda pedir redefinição à liderança;
+  sempre, para o tempo não revelar). Guarda a **área** da tela (`access_requests.area`, 0068: `COMERCIAL` por
+  `/login/solicitar`, `ACOMPANHAMENTO` por `/login/acompanhamento/solicitar`; `ACCESS_AREAS` em `sh/enums.ts`) e o
+  Admin mostra a etiqueta; quem aprova é o mesmo (a fila da Head do Acompanhamento é a Fase 5). A liderança segue redefinindo a senha no Admin;
   Diretoria trancada: `reset-password-cli.js <usuário> [--mfa]` no shell da api (`db/src/reset-password.ts`).
+- **Esqueci minha senha por e-mail** (NPAC-50, 18/11/2026, plano `docs/plans/pedidos-18-11.md`, Fase 2):
+  `/login/esqueci` (usuário ou e-mail) → `POST /api/auth/forgot-password` → e-mail "Crie a sua senha nova"
+  com o botão "Criar senha nova" e `/login/nova-senha#t=<token>` (fragmento: não vai a servidor nenhum; sem
+  e-mail ou usuário no link) → a tela confere o link ao abrir (`POST …/forgot-password/check` → usuário, para
+  "Para o usuário ana", ou "Link vencido") → `POST /api/auth/forgot-password/reset` troca a senha, apaga `must_change_password`, derruba **todas** as
+  sessões e devolve o usuário, e a tela entra pelo login normal (`signIn.username`, mesma auditoria e TOTP).
+  Plugin `api/auth/password-reset.ts`: resposta igual e com piso de 400 ms exista ou não a conta; 3/hora por IP
+  (rate limit da rota) e por conta (linhas `npac-reset:` em `verification`, advisory lock); link de uso único
+  (DELETE … RETURNING), 1 h, só o SHA-256 no banco; trocar a senha mata os outros links da conta; conta
+  desativada não recebe nem usa link; auditoria `auth.password_reset.requested`/`auth.password_reset` sem
+  e-mail. `/request-password-reset` e `/reset-password` do Better Auth ficam em `disabledPaths`. Sem envio
+  configurado, `GET forgot-password/status` diz `enabled: false`, o POST dá 404 e a tela manda pedir à liderança.
+  Telas e textos seguem o protótipo do canvas "Login da equipe" (linha "Esqueci minha senha (fase 2)", 4 telas);
+  "Enviar de novo" libera 1 minuto depois de cada envio. "Link vencido" e o aviso sem SMTP não estão no protótipo.
+- **Envio de e-mail** (`api/mail/*`): `MailSender` (`MAIL_SENDER`, módulo global) com SMTP pelo nodemailer;
+  variáveis `SMTP_HOST`, `SMTP_PORT` (465 = TLS; 587 = STARTTLS), `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` (Zod em
+  `api/config/env.ts`; `MAIL_FROM` obrigatória com host; usuário e senha juntos). Gmail do sistema hoje
+  (temporário, "2C"); Resend, SES ou Brevo = trocar as cinco variáveis. Sem `SMTP_HOST`, desligado. Envio sem
+  `await` depois da resposta; `send` nunca lança e loga `e-mail enviado: <host>` ou `e-mail não enviado: <código>
+<host>`, nunca destinatário ou texto. E-mail só com o primeiro nome (`mail/templates.ts`). Testes: `MemoryMailSender`
+  em `test/helpers.ts`; caixa falsa SMTP+HTTP `scripts/caixa-falsa.mts` (`pnpm mail:caixa` no dev: SMTP 2525,
+  mensagens em `http://localhost:2526/mensagens`), que o e2e sobe na porta da API + 25/26 (`e2e/esqueci-senha.spec.ts`).
 - **Limite de tentativas de login DESLIGADO** (temporário, 04/11/2026: travava os acessos):
   `customRules[SIGN_IN] = false` em `api/auth/auth.ts`; antes era 5/min por IP. O pedido de
   acesso (3/h) e o TOTP (3/10 s, padrão do plugin) continuam limitados. Religar depois.
@@ -203,7 +256,8 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   sidebar/Ctrl+K/Mais/rodapé). Telas comerciais ficam em `web/app/(app)/(comercial)/`, cujo layout
   manda o cargo ao módulo com carga completa (o layout de `(app)` não roda na navegação do
   navegador; redirect do servidor ali deixava o módulo em branco). Entrada única: login, troca de
-  senha e MFA vão para `/`, que escolhe o destino pelo cargo. Rota nova que o cargo use leva
+  senha e MFA vão para `/`, que escolhe o destino pelo cargo; a tela do Acompanhamento manda para
+  `/?area=acompanhamento`, que leva ao módulo quem o vê (Diretoria cai na Fila) e os demais à tela do cargo. Rota nova que o cargo use leva
   `@AllRoles()`; o teste `acompanhamento-sem-comercial` varre todas. Texto sensível cifrado com AAD
   (`MENTORADO_ENCRYPTION_KEY`); mídia fora do banco em `MEDIA_DIR`; sem DELETE para `npac_app`
   (exclusão só pelas funções, que enfileiram a mídia). Push (D12, 11/11/2026): `PushController` tem `@AllRoles()`
@@ -217,21 +271,26 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   (`mentoria.csv`), contato só para Admin, nunca dor, sonho, meta, anotações ou textos de reunião. Excluir e
   anonimizar (LGPD) só Admin, pela ficha; anonimizar mantém inscrição, reuniões e ações para as contagens.
   Salvar ao sair do campo: em 409 a fila reaplica se o outro não mexeu naquele campo; se mexeu, avisa e mantém o dele (`resolverConflito`).
+  Datas (18/11/2026, print da Eduarda): campo de data do módulo leva `min={DATA_MIN}`/`max={DATA_MAX}` (`sh/mentoria/datas.ts`,
+  1900 a 2999, a faixa da API); sem eles o Chrome aceita ano "25" (0025) ou de 6 dígitos e a API recusava. `CampoPr` de data
+  confere antes de enviar (`DATA` em `campo.tsx`, aviso `AVISO_DATA`); no cadastro o aviso de erro sai quando a pessoa mexe num campo.
+  e2e `e2e/acompanhamento-datas.spec.ts`.
   **PMEs e ciclos** (Fase 2, Parte 1, 11/11/2026): cada PME dura 30 dias do envio (`prazo` e `data_cobranca` são colunas
   geradas); o envio (`POST inscricoes/:id/ciclos`, Admin, Acompanhamento e Operação, área `PME` de `mentoria_edita`) cria o
   ciclo do número seguinte (1 a 12) com uma tarefa EXTRA por atividade do catálogo e uma ENCERRAMENTO (texto cifrado; sem texto
   no catálogo, "Encerramento do Nº PME"); só ATIVO, antes do término; ciclo aberto vira `nao_concluido_em`; o 1º preenche
   `pme1_enviado_em`, e o "Enviado" do 1º PME na Fila também abre o ciclo 1. Status derivado em `mentoria_ciclo_status(concluido,
 nao_concluido, prazo, hoje)`: aberto = em andamento com "N dias de atraso" (do `MENTORIA_CLOCK`); não concluído só com o
-  seguinte enviado (0059: a segunda chance, S1, está pendente com a Eduarda). Encerramento FEITA fecha o ciclo por gatilho; voltar reabre (recusa se o seguinte já saiu). Ciclo anterior ao sistema
+  seguinte enviado. Encerramento FEITA fecha o ciclo por gatilho; voltar reabre (recusa se o seguinte já saiu). Ciclo anterior ao sistema
   (`ciclos/anterior`) sem tarefas, fecha à mão (área `TAREFA`). Marcar tarefa (resultado, motivo só em parcial/não feita,
   comprovante foto/vídeo/PDF em `tarefa-comprovante/:id/midia`): Admin e Acompanhamento; Especialista só as REUNIAO das próprias
   reuniões (`mentoria_ve_tarefa`/`mentoria_edita_tarefa`); Operação envia mas não marca. Até 3 tarefas por reunião (gatilho, para a
   Parte 2). Pausa não estica o prazo do PME (pergunta aberta à Eduarda).
   **Metas e tarefas da reunião** (Fase 2, Parte 2, 12/11/2026): metas (`mentoria_metas`, casal ou de uma pessoa, pilar, alvo/atual
   `numeric`, unidade, prazo, descrição cifrada) leem Admin, Acompanhamento e Operação (`mentoria_ve_meta`); escrevem Admin e
-  Acompanhamento (área `META`); a **Especialista não vê metas**. Meta nasce no ciclo aberto (se houver). **Sem status da meta (S3) e
-  sem exclusão de meta ou tarefa**: esperam decisão do Gabriel (pendências no plano da Fase 2, Parte 2). Registro da reunião:
+  Acompanhamento (área `META`); a **Especialista não vê metas**. Meta nasce no ciclo aberto (se houver). Status da meta (E10,
+  Parte 3): ATINGIDA, NAO_ATINGIDA ou nulo (sem marcação; sem "Em andamento"), nunca num %. **Sem exclusão de meta ou tarefa**
+  (não está na spec; pendências no plano da Fase 2, Parte 2). Registro da reunião:
   "Cobrança da reunião anterior" (tarefas REUNIAO da última reunião REALIZADA antes desta, entre as que quem abre vê), "Tarefas da
   semana" (até 3, prazo obrigatório, meta opcional, entra no ciclo aberto) e "Metas definidas ou ajustadas"; os textos da Fase 1
   continuam. Só a tarefa REUNIAO muda texto, prazo e meta; reunião com tarefa/meta não se exclui (a FK apagaria as tarefas).
@@ -243,10 +302,44 @@ DEFINER`, a Especialista vê o número inteiro): só tarefas FEITA ÷ total do c
   pilar, prazo, barra); "Editar" abre os campos, uma meta por vez, e "Pronto" recarrega quando a fila de salvamento esvazia
   (`metas.tsx`). Plano > Esta semana: lista vazia vira uma linha e as Atrasadas ficam na coluna larga. Quem veio de antes do
   sistema não vê os seis passos do onboarding, só o aviso. Perfis tem títulos de coluna (o interruptor guarda o rótulo inteiro).
+  **Check-in e semáforo** (Fase 2, Parte 3, 18/11/2026, spec E9–E16 e §5): check-in (`mentoria_checkins`) lançado na ficha por Admin
+  e Acompanhamento (área `CHECKIN`), um por semana (segunda a domingo de Brasília; `semana` = coluna gerada do `enviado_em`);
+  `respondeu` ⇔ `respondido_em`; avanço, o que travou e próximo passo cifrados; Operação lê; **a Especialista não vê check-in nem
+  semáforo**. Semáforo só ATIVO, em SQL (`mentoria_semaforo_calc`, interna; `mentoria_semaforo(inscricao, dia)` para a API, nada
+  para quem não é Admin/Acompanhamento/Operação): `CHECKIN_1/2` = a última/as 2 últimas semanas encerradas sem check-in
+  respondido (enviado ou não); `TAREFA_1/2` = a última/as 2 últimas tarefas **da reunião** vencidas (prazo < hoje) NAO_FEITA ou
+  PENDENTE; `PME_7/15` = atraso do ciclo aberto contado do prazo atual. Pior cor; sem motivo, verde. **Conta só da entrada no
+  ar**: `mentoria_semaforo_inicio.desde` (a 0069 grava o dia em que roda, cada ambiente o seu); semanas válidas começam depois
+  dele e do início da jornada; tarefas com prazo a partir dele; o atraso do PME conta de `greatest(prazo atual, desde)`. Testes
+  mudam `desde` e restauram. Histórico (`mentoria_semaforo_historico`, só `mentoria_semaforo_gravar(hoje)`, idempotente): o
+  `AvisosScheduler` grava em todo disparo e arma o timer também para a segunda 00:00 de Brasília. Sequência de semanas com
+  check-in: `mentoria_sequencia_checkins`. **Segunda chance** (E15, E16): `PATCH ciclos/:id {segundaChanceAte}` (área
+  `SEGUNDA_CHANCE`: Admin e Acompanhamento; o gatilho barra a Operação), só no ciclo aberto, depois do prazo e não antes de hoje
+  (a tela sugere hoje + 7); status `SEGUNDA_CHANCE` ("Segunda chance até DD/MM") enquanto vale, depois "Em andamento" com o
+  atraso do novo prazo; histórico `pme.segunda_chance`. Mentorados: PME atual, semáforo e % do PME, filtro por semáforo
+  (lembrado). Amarelo do semáforo é token novo (`--tag-warn`, `--sem-amarelo` em `modulo.css`). Pendências no plano.
+  **Fila da cobrança** (Fase 2, Parte 4, 18/11/2026, spec E17–E22 e §6; 0070): `COBRANCA` (`cobranca:<tarefa>`) = tarefa
+  PENDENTE com prazo ≤ hoje (qualquer origem), do responsável pela inscrição ou, na reunião conduzida por Especialista ativa,
+  dela; sai com o resultado; push às 8h do dia do prazo, só nele. `SEMAFORO` (`semaforo:<inscrição>:<segunda>`) = ATIVO em
+  amarelo/vermelho, do responsável; sai no verde ou com "Visto nesta semana" (`fila_feitos` da semana); vermelho = atrasado;
+  push só vermelho, 1x por semana por mentorado (`semaforo-vermelho:…`), não depois do visto; Especialista não recebe.
+  `ENVIAR_PME` (`enviar-pme:<ciclo>`) = ciclo mais recente CONCLUIDO, < 12, ATIVO e antes do término, para a Operação; "Registrar
+  envio" chama o envio; sem push. `PME_ATRASADO` (`pme-atrasado:<ciclo>:<prazo atual>:<degrau>`) = só o degrau mais alto
+  (3, 7, 10, 15 dias do prazo atual; textos do PDF em `DEGRAU_LABEL`), do responsável; "Registrar contato" grava
+  `mentoria_contatos.ciclo_id/degrau/degrau_prazo` (o gatilho põe o prazo atual; a API recusa antes do degrau) com o texto do
+  degrau no motivo; segunda chance recomeça a escada; push 1x por degrau. Ação `FIM_PME` (3A, `mentoria_acao_data`, IMMUTABLE):
+  ciclo do número do mês aberto = espera; fechado = data do `concluido_em`; sem ciclo ou NAO_CONCLUIDO = data da Fase 1; mês 2
+  aparece com 15 dias de atraso do prazo atual (Fila e push; o Plano ainda mostra a data da Fase 1, pendência). O semáforo na
+  Fila e no push vem de `mentoria_semaforo_lote(dia)` (uma chamada; `_lote_calc` interna = a conta da `mentoria_semaforo_calc`:
+  mudou uma, mude a outra; `fila-equivalencia` compara). O despertador acorda também às 8h de todo dia. Aba 7 "PMEs e ciclos"
+  (`/acompanhamento/pmes`, `POST mentoria/pmes-ciclos`): ATIVO com o ciclo mais recente, envio, prazo atual, status, % de tarefas,
+  extras, encerramento e próximo PME; filtros por PME e status (lembrados, `PMES_REGRAS`); Admin, Acompanhamento e Operação
+  (`mentoriaCiclos` no menu; Especialista 404); `/acompanhamento/em-breve/pmes` redireciona. CSV de Mentorados: PME atual, status
+  do PME e semáforo (pelo dia de hoje de verdade, como o mês da jornada).
 - **Siglas das mentorias** (Gabriel, 04/11/2026): RDV = Rico de Verdade · IDR = Introdução da
   Riqueza · PME = Plano Mensal de Enriquecimento · 2M = Marco e Mudança · 6M = sem definição ainda.
   Nas telas vale o texto literal do PDF, exceto IDR: "Introdução da Riqueza" (o PDF diz "à"; corrigido).
-- Cookies em vez de localStorage: último usuário `npac_last_user` (`Path=/login`); ordem dos cards
+- Cookies em vez de localStorage: último usuário `npac_last_user` (`Path=/login`, vale nas duas telas de entrada); ordem dos cards
   `npac_dash_<hash do id>` (`Path=/dashboard`, só IDs, o servidor já renderiza na ordem); colunas
   ocultas `npac_pipe_<hash>` (`Path=/pipeline`) e filtro do Hoje `npac_hoje_<hash>` (`Path=/hoje`),
   helpers em `lib/user-cookie.ts`.
@@ -293,7 +386,8 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
   pelo endereço inteiro: `parseSearch` trata como e-mail texto com `@` no meio, sem espaço nem `/`.
   Na ficha é texto, sem `mailto:`.
 - Timeline append-only: tipo, IDs e nomes de campos, **nunca valores**. Auditoria sem e-mail nem nome.
-- API com `Cache-Control: no-store`. SSE só manda `{ type }`.
+- API com `Cache-Control: no-store` (o gancho de `app.setup.ts` só não sobrescreve rota que define o próprio: hoje só
+  a foto do perfil, com a versão na URL). SSE só manda `{ type }`.
 - Chat: DM privada por RLS mesmo para liderança; mensagens append-only.
 - LGPD: eliminação só via `lgpd_anonymize_lead`; nada de outro caminho que apague fato financeiro.
 - CSV com contato: só liderança, auditado, fórmulas neutralizadas.
@@ -364,6 +458,14 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
   venda ativa dele, depois dela. Closer sem reunião que tira o lead da etapa o perde: a timeline
   grava antes do UPDATE (`lead-mutations.service.ts`).
 - Ficha: botões WhatsApp (`wa.me`, conversa) e Instagram (perfil, `instagram.com/<usuario>/`, NPAC-41 "3B").
+- **Vendas a registrar no Hoje** (NPAC-51, Gabriel 18/11/2026): `salesToRegister` em `POST /today/search`
+  (`api/today/today.service.ts`) lista os leads em Venda sem venda ativa, com o produto, para quem
+  registra venda: o closer da venda (`leads.closer_id`) vê os dele; a liderança, os de todos (filtros de
+  SDR e closer valem); o SDR recebe lista vazia. Bloco "Vendas a registrar" em `today.tsx`, só quando
+  há item, com link para `/leads/<id>#vendas`. Sai ao registrar a venda ou quando o lead deixa a Venda.
+- **Sair da Venda a registrar pede confirmação** (NPAC-51): `confirmLeaveSale` (`web/lib/leave-sale.ts`,
+  `confirm()` nativo como no Admin) na ficha ("Mover para"), no Pipeline (arrastar) e no select da lista.
+  Sair cancela a venda feita do SDR e apaga o produto. A ação em massa não pergunta.
 - Resultado de reunião só depois do horário (400 "A reunião ainda não aconteceu"). Resultados:
   `DONE`, `NO_SHOW`, `RESCHEDULED`. Valor por reunião realizada = `MEETING_VALUE_CENTS`
   (P0 900, P1 700, P2 500, DESCOBRINDO 0), pelo perfil **atual** do lead; no-show e remarcada não somam.
@@ -407,6 +509,38 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
   Ação nova do mesmo tipo segue o padrão.
 - Erros da API em português para o usuário final (`BadRequestException('…')`); o `clientApi` mostra a
   mensagem, as padrão do Nest viram texto genérico. `clientApi` aceita 204.
+
+## Meu perfil (NPAC-53, 18/11/2026)
+
+Spec `docs/superpowers/specs/2026-11-18-meu-perfil-design.md`, plano `docs/superpowers/plans/2026-11-18-meu-perfil.md`,
+protótipo no canvas "Meu perfil". Gabriel aprovou com "1A, 2A, 3A".
+
+- `/conta/perfil` (`app/(app)/conta/perfil`, dentro da casca, todos os cargos): foto, nome (salva ao sair do campo,
+  "Salvo"; 2–80 caracteres, `cleanProfileName` em `sh/profile.ts`, `@npac/shared/profile`, fora do índice), usuário só
+  leitura, e-mail com código, senha recolhida ("Trocar senha" abre ali; `authClient.changePassword` derruba os outros
+  aparelhos) e "Avisos neste aparelho". O cargo Acompanhamento vê as abas do módulo no celular. Tela `components/conta/perfil.tsx`.
+- No menu, "Meu perfil" no lugar de "Trocar senha": rodapé da sidebar (foto, nome e cargo são o link), cartão do Mais
+  (CRM e módulo) e Ctrl+K. `/conta/senha` só no primeiro acesso; sem troca pendente, vai para `/conta/perfil`.
+- Foto: o navegador lê o arquivo como `data:` (a CSP de imagens só aceita `'self'` e `data:`), recorta em círculo
+  (`components/conta/foto-recorte.tsx` por `next/dynamic`, matemática em `lib/crop.ts`; arrastar, setas, − / +) e manda
+  256 px em WebP 0,85 (JPEG se o navegador não gerar WebP). `PUT /api/me/photo` (multipart, até 200 KB, tipo pelos bytes
+  com `farejar`/`semMetadados`, nunca SVG), `DELETE /api/me/photo`. Banco: `user_photos` (0071, sem RLS como `user`,
+  CHECK de tipo e tamanho) e a versão em `user.image`. `GET /api/users/:id/photo?v=` para quem está logado, com
+  `private, max-age=31536000, immutable` e `nosniff`. `/update-user` e `/change-email` do Better Auth em `disabledPaths`.
+- Foto dos outros: `GET /api/team/photos` → `{ photos: id → URL, names: nome único → URL }` (o feed da equipe só traz o
+  nome; não mexer em `finance/`), lido por `getTeamPhotos()` (`lib/team-photos.ts`) e passado às telas. `Avatar`
+  (`components/avatar.tsx`, sem `'use client'`) mostra foto ou inicial: sidebar, Mais, topo do módulo, Equipe, Dashboard
+  e Relatórios (mesa, tabela por SDR, feed), Hoje (selo do closer; a sua com anel dourado), Chat (conversa e autor),
+  Admin, Mentorados e Fila (responsável). `/api/me` e `/admin/users` trazem `photo`.
+- E-mail: `POST /api/me/email/code { email }` → 6 dígitos no endereço novo (10 min, 5 tentativas, 3 por hora por conta,
+  linhas `npac-email:`/`npac-email-sent:` em `verification`, advisory lock da conta; pedido novo invalida o anterior);
+  `POST /api/me/email/confirm { code }` troca e avisa o endereço antigo (sem o novo). Em uso → 409 "Esse e-mail já está em
+  uso." (não diz de quem). Sem `SMTP_HOST` (2A): as rotas dão 404 e o perfil mostra "Para trocar o e-mail, peça à
+  liderança. Ela muda no Admin." Janelinha `components/conta/email-troca.tsx` (6 caixas sobre um campo, confirma no 6º).
+- Auditoria `user.photo_set`/`photo_removed`/`name_changed`/`email_code_sent`/`email_changed`, sem nome, e-mail ou foto.
+- e2e: `meu-perfil*.spec.ts` e `mobile-layout-perfil.spec.ts` (iPhone: nada sai da tela em 375/390/768/1024, também
+  dentro de `overflow: hidden`, toques de 44 px e campos de 16 px); capturas `CAPTURAS=<pasta> … e2e/capturas-perfil.spec.ts`.
+  Pendência anterior: Mentorados em 1024 com a sidebar aberta passa ~96 px (`test.fixme`).
 
 ## Avisos e lembretes (NPAC-26, 04/11/2026)
 
@@ -480,9 +614,13 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
   (única exceção: `mentoria_midia_leitura`). INSERT/UPDATE com `mentoria_edita*` seguem por linha.
   Tabela nova do módulo: política de leitura nesse formato e caso no teste de equivalência.
 - Valor novo de enum não vale na mesma transação da migration (compare como texto).
+- **JIT desligado nas funções da Fila e do push** (`SET jit = off` em `mentoria_fila`, `mentoria_avisos_candidatos` e
+  `mentoria_semaforo_lote_calc`, 0070): em banco pequeno, a tabela de uma linha `mentoria_semaforo_inicio` sem `analyze`
+  fazia o planejador estimar milhões de linhas e compilar a consulta (~700 ms por Fila; o e2e do CI estourou os 15 min).
+  Função SQL grande nova do módulo: mesma linha, e tabela de uma linha lida como valor único (`(select … )`).
 - Aplicar no dev: `pnpm --filter @npac/db build && pnpm --filter @npac/db migrate`.
   psql: `docker exec npac-corporation-postgres-1 psql -U npac_owner -d npac`.
-- Apagar lead/usuário à mão: FKs em `form_responses`, `sdr_sale_marks`, `chat_reads`, `chat_*`, `payments`, `deals`, `lead_notes`,
+- Apagar lead/usuário à mão (a foto `user_photos` sai em cascata): FKs em `form_responses`, `sdr_sale_marks`, `chat_reads`, `chat_*`, `payments`, `deals`, `lead_notes`,
   `lead_tasks`, `notifications`, `lead_timeline`, `meetings` (`meeting_confirmations` e
   `meeting_reminders_sent` em cascata), `lgpd_requests` (usuário: também `session`, `account`,
   `push_subscriptions`). `truncate` de `meetings` nos testes lista as duas tabelas de lembretes.
@@ -505,6 +643,9 @@ node scripts/perf/medir-sql.mjs igor sonia                # count(*) e canal ao 
 # Varredura por cargo num ambiente publicado (só lê): login → cada item do menu em 1440/1024/768/375,
 # com erro na tela, console, 4xx/5xx da API e rolagem lateral; relatório e capturas em VARREDURA_OUT
 VARREDURA_URL=https://crm-itodev… VARREDURA_SENHA=… VARREDURA_OUT=<pasta> node apps/web/scripts/varredura-por-cargo.mjs <usuário>…
+# Varredura do celular (WebKit, 375 e 768, claro e escuro): toque < 44 px, zoom ao tocar, barra cobrindo,
+# teclado, janelinha e tabela larga; local, aponte para um `next start` (o `API_INTERNAL_URL` entra no build)
+VARREDURA_URL=http://localhost:3150 VARREDURA_SENHA=senha-do-e2e-123 VARREDURA_OUT=<pasta> node apps/web/scripts/varredura-celular.mjs <usuário>…
 ```
 
 - Endereço que não existe é 404 com a navegação do cargo (`app/not-found.tsx`); não há mais a página
@@ -517,7 +658,7 @@ VARREDURA_URL=https://crm-itodev… VARREDURA_SENHA=… VARREDURA_OUT=<pasta> no
   segundo plano (porta 3000). e2e e dev disputam portas e `.next`: antes do e2e, `preview_stop` e
   libere 3000/4000; depois, `rm -rf apps/web/.next` e `preview_start`. e2e usa API 4100, web 3100
   (`E2E_WEB_PORT=3200` se outro projeto ocupar) e banco `npac_e2e`.
-- Testes só recriam `npac_test*`/`npac_e2e*`; nunca aponte para outro banco. `npac_test_api` é um só para todas as worktrees: duas suítes da API ao mesmo tempo dão 401 falso. O e2e isola com `E2E_DB`, `E2E_API_PORT` e `E2E_WEB_PORT`.
+- Testes só recriam `npac_test*`/`npac_e2e*`; nunca aponte para outro banco. `npac_test_api` é um só para todas as worktrees: duas suítes da API ao mesmo tempo dão 401 falso; com outra worktree rodando, `API_TEST_DB=npac_test_api_<nome> pnpm --filter @npac/api test`. O e2e isola com `E2E_DB`, `E2E_API_PORT` e `E2E_WEB_PORT`.
 - API e e2e compartilham usuários: teste que mexe em MFA/senha/papel restaura no fim; `truncate leads`
   inclui as tabelas com FK.
 - e2e loga com `email.split('@')[0]`. Seeds: diretor (DIRETOR), ana/ronaldo (HEAD), ale/murilo/igor

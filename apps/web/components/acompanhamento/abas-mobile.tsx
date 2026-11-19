@@ -57,7 +57,7 @@ export function AbasMobile({ podeCriar = false }: { podeCriar?: boolean }) {
   return (
     <nav
       aria-label="Abas do acompanhamento"
-      className={`glass fixed right-3.5 bottom-[max(16px,env(safe-area-inset-bottom))] left-3.5 z-20 grid h-[68px] rounded-[34px] p-1.5 md:hidden ${
+      className={`barra-celular glass fixed right-3.5 bottom-[max(16px,env(safe-area-inset-bottom))] left-3.5 z-20 grid h-[68px] rounded-[34px] p-1.5 md:hidden ${
         podeCriar ? 'grid-cols-5' : 'grid-cols-4'
       }`}
     >

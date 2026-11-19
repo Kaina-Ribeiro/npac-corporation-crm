@@ -2,7 +2,11 @@
 import {
   INSCRICAO_STATUS,
   INSCRICAO_STATUS_LABEL,
+  nomePme,
+  SEMAFORO_COR_LABEL,
+  SEMAFORO_CORES,
   TIPO_INSCRICAO_LABEL,
+  type SemaforoCor,
   type InscricaoItem,
   type InscricaoStatus,
   type PaginaInscricoes,
@@ -23,14 +27,26 @@ import { useLatestPrefs } from '@/lib/use-latest-prefs';
 import { Dialogo } from './dialogo';
 import { dataBR, ICONES, Icone, Rostos, rotuloMes, TagStatus, Trilha } from './ui';
 import { ExportarBotao } from './exportar-botao';
+import { Avatar, AVATAR_OUTRO, SEM_FOTOS, type TeamPhotos } from '@/components/avatar';
+import { SeloSemaforo } from './semaforo';
 
 type Filtros = FiltrosMentorados;
 type Pessoa = { id: string; nome: string };
 
 const MESES = Array.from({ length: 12 }, (_, i) => i + 1);
 
-function Linha({ r, primeira }: { r: InscricaoItem; primeira: boolean }) {
+function Linha({
+  r,
+  primeira,
+  photos,
+}: {
+  r: InscricaoItem;
+  primeira: boolean;
+  photos: TeamPhotos;
+}) {
   const ultimo = r.ultimoContato ? dataBR(r.ultimoContato) : '—';
+  const pme = r.pme ? nomePme(r.pme.numero) : '—';
+  const pct = r.pme?.pctTarefas != null ? `${r.pme.pctTarefas}%` : '—';
   return (
     <Link
       className={`row ${primeira ? 'primeira' : ''}`}
@@ -54,11 +70,41 @@ function Linha({ r, primeira }: { r: InscricaoItem; primeira: boolean }) {
         </b>
         {r.mesJornada !== null && <Trilha mes={r.mesJornada} alerta={r.completar} />}
       </div>
+      <span className="pm">{pme}</span>
+      <span className="sf">{r.semaforo ? <SeloSemaforo s={r.semaforo} /> : '—'}</span>
+      <span className="pc">{pct}</span>
       <TagStatus status={r.status} className="st-tag justify-self-start" />
-      <span className="rs">{r.responsavel?.nome ?? '—'}</span>
+      <span className="rs">
+        {r.responsavel ? (
+          // Foto de quem responde (NPAC-53), ou a inicial.
+          <span className="inline-flex max-w-full items-center gap-1.5">
+            <Avatar
+              name={r.responsavel.nome}
+              photo={photos.photos[r.responsavel.id]}
+              className={`${AVATAR_OUTRO} size-5 text-[10px]`}
+            />
+            <span className="truncate">{r.responsavel.nome}</span>
+          </span>
+        ) : (
+          '—'
+        )}
+      </span>
       <span className="lc">{ultimo}</span>
       <div className="mobmeta">
-        {r.responsavel?.nome ?? 'Sem responsável'}, último contato: {ultimo}
+        {(r.pme || r.semaforo) && (
+          <span className="mob-pme">
+            {r.semaforo && <SeloSemaforo s={r.semaforo} />}
+            {r.pme && (
+              <span>
+                {pme}
+                {r.pme.pctTarefas !== null ? `, ${pct} do PME` : ''}
+              </span>
+            )}
+          </span>
+        )}
+        <span>
+          {r.responsavel?.nome ?? 'Sem responsável'}, último contato: {ultimo}
+        </span>
       </div>
     </Link>
   );
@@ -105,6 +151,21 @@ function CamposFiltro({
         ))}
       </select>
       <select
+        className={control}
+        aria-label="Semáforo"
+        value={f.semaforo ?? ''}
+        onChange={(e) =>
+          mudar({ ...f, semaforo: (e.target.value || undefined) as SemaforoCor | undefined })
+        }
+      >
+        <option value="">Todos os semáforos</option>
+        {SEMAFORO_CORES.map((c) => (
+          <option key={c} value={c}>
+            {SEMAFORO_COR_LABEL[c]}
+          </option>
+        ))}
+      </select>
+      <select
         className={`${control} todo`}
         aria-label="Responsável"
         value={f.responsavelId ?? ''}
@@ -121,7 +182,7 @@ function CamposFiltro({
   );
 }
 
-/** Carteira com filtros por mês, status e responsável e a lista "completar a ficha". */
+/** Carteira com filtros por mês, status, semáforo e responsável e a lista "completar a ficha". */
 export function MentoradosLista({
   pagina,
   responsaveis,
@@ -129,6 +190,7 @@ export function MentoradosLista({
   exportar = false,
   inicial,
   lembrar,
+  photos = SEM_FOTOS,
 }: {
   pagina: PaginaInscricoes;
   responsaveis: Pessoa[];
@@ -137,6 +199,8 @@ export function MentoradosLista({
   inicial: Filtros;
   /** Cookie dos filtros lembrados (NPAC-46) e o valor que o servidor usou. */
   lembrar: { cookie: string; valor: string };
+  /** Fotos da equipe (NPAC-53): responsável de cada inscrição. */
+  photos?: TeamPhotos;
 }) {
   const [f, setF] = useState<Filtros>(inicial);
   const regras = mentoradosRegras(responsaveis.map((r) => r.id));
@@ -187,7 +251,7 @@ export function MentoradosLista({
   }
 
   const { resumo } = dados;
-  const filtrando = !!(f.mes || f.status || f.responsavelId || f.completar);
+  const filtrando = !!(f.mes || f.status || f.responsavelId || f.semaforo || f.completar);
   const abrirJanela = () => {
     setRascunho(f);
     setJanela(true);
@@ -241,6 +305,7 @@ export function MentoradosLista({
         </button>
         {chip('Mês', f.mes ? `Mês ${f.mes}` : undefined)}
         {chip('Status', f.status && INSCRICAO_STATUS_LABEL[f.status])}
+        {chip('Semáforo', f.semaforo && SEMAFORO_COR_LABEL[f.semaforo])}
         {chip('Responsável', responsaveis.find((r) => r.id === f.responsavelId)?.nome)}
         {filtrando && (
           <button type="button" className="fchip" onClick={() => setF({})}>
@@ -276,15 +341,18 @@ export function MentoradosLista({
         {dados.itens.length > 0 && (
           <div className="lhead">
             <span>Mentorado</span>
-            <span>Mentoria</span>
+            <span className="h-tp">Mentoria</span>
             <span>Mês da jornada</span>
+            <span>PME atual</span>
+            <span>Semáforo</span>
+            <span>% do PME</span>
             <span>Status</span>
             <span>Responsável</span>
             <span>Último contato</span>
           </div>
         )}
         {dados.itens.map((r, i) => (
-          <Linha key={r.id} r={r} primeira={i === 0} />
+          <Linha key={r.id} r={r} primeira={i === 0} photos={photos} />
         ))}
         {dados.itens.length === 0 && (
           <div className="vazio">
