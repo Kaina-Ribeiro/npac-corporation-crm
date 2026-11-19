@@ -98,7 +98,7 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   sem mudar o desenho (`::after`; não serve com `overflow: hidden`; caixa pequena vai dentro de `<label class="toque">`) ·
   barra de baixo do celular leva `barra-celular` (some enquanto um campo de texto tem foco) · `viewport-fit=cover`
   (`app/layout.tsx`): o que encosta na borda usa `env(safe-area-inset-*)` (`.shell` nas laterais, barras e `.nf-barra`
-  embaixo) · ícone da Tela de Início `app/apple-icon.png` (180 px) · menu de CSV fica dentro da tela (`caberNaTela`)
+  embaixo) · ícone (NPAC-55, opção C: N dourado degradê com contorno) na aba `app/favicon.ico` + `app/icon.png`, na Tela de Início do iPhone `app/apple-icon.png` (180 px) e no Android `public/icon-192.png`, `icon-512.png`, `icon-maskable-512.png` (manifesto); refazer: desenho em HTML com a fonte Anton, foto por Playwright · menu de CSV fica dentro da tela (`caberNaTela`)
 - **Acompanhamento (mentorados), v2 em 5 partes** (plano `docs/superpowers/plans/2026-11-10-acompanhamento-v2-fase-1.md`, protótipo `docs/acompanhamento/prototipo/canvas/`):
   API `api/mentoria/*` (guarda 404 + MFA: `MentoriaController` em `mentoria.guard.ts`; perfil `perfil.guard.ts`,
   `perfis.*`; inscrição e ficha `inscricoes.*`, `ficha.service.ts`, `historico.ts`; mídia `midia.controller.ts`,
