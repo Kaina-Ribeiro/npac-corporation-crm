@@ -5,6 +5,7 @@ import { clientApi } from '@/lib/client-api';
 import { closeWithMotion } from '@/lib/dialog-motion';
 import { savePreference } from '@/lib/user-cookie';
 import { FormError, quietButton } from './crm-ui';
+import { TagAcesso } from './tag-acesso';
 
 export type AcessosPagina = { items: Acesso[]; page: number; hasMore: boolean; total: number };
 
@@ -19,7 +20,7 @@ function Linha({ a, euId, agora, novo }: { a: Acesso; euId: string; agora: Date;
         {f.alvo && <b className="font-semibold">{f.alvo}</b>}
         {f.depois}
         {/* A tag de "Acessos" (Fase 3B), como na lista de pessoas. */}
-        {f.tag && <span className="role role-TAG ml-1.5 align-[1px]">{f.tag}</span>}
+        {f.tag && a.alcance && <TagAcesso alcance={a.alcance} className="ml-1.5 align-[1px]" />}
       </span>
       <span className="col-start-2 row-start-1 justify-self-end sm:col-start-3">
         {novo && (

@@ -223,7 +223,12 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   `soCarteira`; `admin/users` e `/api/me` trazem `alcance`. Tela (desenho A, Gabriel 19/11): "Acessos" com as tags de
   escolha única "Carteira" / "Todos os mentorados" na aba Perfis (linha, Convidar, pedido; `.acessos`/`.acesso-tag` em
   `modulo.css`); nas listas, o selo "Acompanhamento" e a tag neutra "Carteira" ao lado (`.role-TAG`, `CargoTag`); no quadro
-  "Acessos", a frase do cargo com a tag (`FraseAcesso.tag`). Nunca "Acompanhamento · só a carteira" (reprovado). Extras por pessoa
+  "Acessos", a frase do cargo com a tag (`FraseAcesso.tag`). Nunca "Acompanhamento · só a carteira" (reprovado).
+  Cada tag tem a dica do que o acesso permite (`ALCANCE_DICA`, Gabriel 19/11 "pode ser"): `ComDica`
+  (`components/dica.tsx`, visual do `.side-tip`, classe `.dica-tip`) abre no mouse, no foco do teclado e no toque, liga
+  por `aria-describedby`, fica na camada `popover` (acima de janelinha) e nunca passa da borda; a tag das listas é
+  `TagAcesso` (`components/tag-acesso.tsx`). `CargoTag` mora em `components/cargo-tag.tsx` (fora de `role-tag.tsx`, que
+  entra no JS de `/leads`). Extras por pessoa
   (ex.: Envios) ficam para quando houver o primeiro extra real. Rótulos e regra pura em `sh/alcance.ts`
   (`@npac/shared/alcance`, fora de `cargos.ts` pelo peso de `/leads`). Testes: `db/test/carteira.test.ts`,
   `api/test/carteira.e2e.test.ts`, `e2e/acompanhamento-carteira.spec.ts`.

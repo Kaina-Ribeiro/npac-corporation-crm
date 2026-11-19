@@ -68,7 +68,7 @@ export const CARGO_INFO: Record<Cargo, CargoInfo> = {
     area: 'ACOMPANHAMENTO',
     role: 'ACOMPANHAMENTO',
     perfil: 'ACOMPANHAMENTO',
-    dica: 'Cuida da jornada de todos os mentorados.',
+    dica: 'Cuida da jornada dos mentorados.',
   },
   OPERACAO: {
     label: 'Operação',

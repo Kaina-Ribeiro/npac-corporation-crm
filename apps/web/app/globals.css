@@ -1443,6 +1443,53 @@ html[data-nav-pending] .ac > :not(.top, nav, .nav-skeleton) {
   }
 }
 
+/* Dica (`ComDica`, NPAC-54 Fase 3B): o visual do `.side-tip`, com texto de até duas ou três linhas.
+   Na camada de cima (`popover`); fora dela, `data-aberta` mostra. A posição vem do componente. */
+.dica-tip {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  display: none;
+  max-width: min(280px, calc(100vw - 16px));
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 9px;
+  background: rgba(28, 28, 30, 0.94);
+  box-shadow:
+    0 8px 24px -8px rgba(0, 0, 0, 0.4),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.4;
+  text-align: left;
+  white-space: normal;
+  pointer-events: none;
+  backdrop-filter: blur(12px);
+  animation: dica-in 160ms var(--ease-out);
+}
+.dica-tip[data-aberta] {
+  display: block;
+}
+.dark .dica-tip {
+  background: rgba(242, 242, 247, 0.96);
+  color: #1c1c1e;
+}
+@keyframes dica-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+}
+/* Tag focável só pela dica: anel de foco no padrão do resto. */
+.dica-alvo {
+  cursor: default;
+}
+.dica-alvo:focus-visible {
+  outline: 2px solid var(--gold-deep);
+  outline-offset: 2px;
+}
+
 /* Rolagem interna discreta (colunas do Pipeline, listas do Chat): trilho fino e transparente. */
 .scroll-thin {
   scrollbar-width: thin;

@@ -17,6 +17,12 @@ export const ALCANCE_LABEL: Record<Alcance, string> = {
   TODOS: 'Todos os mentorados',
   CARTEIRA: 'Carteira',
 };
+/** Dica de cada tag: o que esse acesso permite (Gabriel 19/11, "pode ser"). */
+export const ALCANCE_DICA: Record<Alcance, string> = {
+  CARTEIRA:
+    'Vê e cuida só dos mentorados em que é a responsável. Cadastra mentorados novos, que já entram na carteira dela.',
+  TODOS: 'Vê e cuida de todos os mentorados do Acompanhamento.',
+};
 /** Ordem das tags na tela: "Carteira" primeiro (desenho A). */
 export const ALCANCES_NA_TELA: readonly Alcance[] = ['CARTEIRA', 'TODOS'];
 

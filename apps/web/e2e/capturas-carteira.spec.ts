@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { closeTestConnections, ownerSql } from '@npac/db/testing';
 import { E2E_DB, E2E_PASSWORD } from './env.js';
 
@@ -23,7 +23,7 @@ test.beforeAll(async () => {
   ] as const) {
     await owner`insert into "user" (id, name, email, username, display_username, role, can_prospect,
         can_close, must_change_password)
-      values (${id}, ${nome}, ${`${usuario}@fase3b.test`}, ${usuario}, ${usuario},
+      values (${id}, ${nome}, ${`${usuario}@cap3b.test`}, ${usuario}, ${usuario},
         'ACOMPANHAMENTO', false, false, false)`;
     await owner`insert into account (id, account_id, provider_id, user_id, password)
       select ${`${id}-acc`}, ${id}, 'credential', ${id}, a.password
@@ -41,7 +41,7 @@ test.beforeAll(async () => {
         "antes":{"cargo":"ACOMPANHAMENTO","head":false,"alcance":"TODOS"}}'::jsonb
     from "user" where username = 'diretor'`;
   await owner`insert into access_requests (name, username, email, password_hash, area)
-    values ('Pedido Captura', 'pedido.captura', 'pedido.captura@fase3b.test', 'x', 'ACOMPANHAMENTO')`;
+    values ('Pedido Captura', 'pedido.captura', 'pedido.captura@cap3b.test', 'x', 'ACOMPANHAMENTO')`;
   for (const n of [1, 2]) {
     const [i] = await owner<{ id: string }[]>`
       insert into mentoria_inscricoes (tipo, mentoria, status, inicio_jornada, termino_previsto, responsavel_id)
@@ -79,6 +79,29 @@ async function foto(page: Page, nome: string, largura: number) {
   await page.screenshot({ path: `${PASTA}/${nome}-${largura}.png`, fullPage: true });
 }
 
+const CARTEIRA_DICA =
+  'Vê e cuida só dos mentorados em que é a responsável. Cadastra mentorados novos, que já entram na carteira dela.';
+const TODOS_DICA = 'Vê e cuida de todos os mentorados do Acompanhamento.';
+
+/** Passa o mouse no alvo, confere a dica inteira dentro da tela e fotografa a tela visível. */
+async function fotoDica(page: Page, alvo: Locator, texto: string, nome: string, largura: number) {
+  await alvo.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(150);
+  await alvo.hover();
+  const dica = page.getByRole('tooltip').filter({ hasText: texto });
+  await expect(dica).toBeVisible();
+  const caixa = (await dica.boundingBox())!;
+  expect(caixa.x, `${nome} em ${largura}: dica cortada à esquerda`).toBeGreaterThanOrEqual(0);
+  expect(
+    caixa.x + caixa.width,
+    `${nome} em ${largura}: dica cortada à direita`,
+  ).toBeLessThanOrEqual(largura);
+  expect(caixa.y, `${nome} em ${largura}: dica cortada em cima`).toBeGreaterThanOrEqual(0);
+  await expect(alvo).toHaveAttribute('aria-describedby', (await dica.getAttribute('id'))!);
+  await page.waitForTimeout(250);
+  await page.screenshot({ path: `${PASTA}/${nome}-${largura}.png` });
+}
+
 for (const largura of LARGURAS) {
   test(`Fase 3B em ${largura}`, async ({ browser }) => {
     const viewport = { width: largura, height: 900 };
@@ -99,6 +122,13 @@ for (const largura of LARGURAS) {
       'true',
     );
     await foto(page, 'perfis', largura);
+    await fotoDica(
+      page,
+      carteira.getByRole('radio', { name: 'Carteira' }),
+      CARTEIRA_DICA,
+      'dica-perfis',
+      largura,
+    );
     const pedido = page.locator('.pf-pedido').filter({ hasText: 'Pedido Captura' });
     await pedido.getByLabel('Perfil de Pedido Captura').selectOption('ACOMPANHAMENTO');
     await expect(
@@ -106,6 +136,13 @@ for (const largura of LARGURAS) {
     ).toBeVisible();
     await pedido.scrollIntoViewIfNeeded();
     await foto(page, 'pedido', largura);
+    await fotoDica(
+      page,
+      pedido.getByRole('radio', { name: 'Todos os mentorados' }),
+      TODOS_DICA,
+      'dica-pedido',
+      largura,
+    );
     await page.getByRole('button', { name: 'Convidar', exact: true }).first().click();
     const dlg = page.getByRole('dialog', { name: 'Convidar' });
     await dlg.getByLabel('Perfil', { exact: true }).selectOption('ACOMPANHAMENTO');
@@ -114,6 +151,14 @@ for (const largura of LARGURAS) {
       .getByRole('radio', { name: 'Carteira' })
       .click();
     await foto(page, 'convidar', largura);
+    // A dica fica acima da janelinha (camada de cima do navegador).
+    await fotoDica(
+      page,
+      dlg.getByRole('radio', { name: 'Carteira' }),
+      CARTEIRA_DICA,
+      'dica-convidar',
+      largura,
+    );
     await ctx.close();
 
     // Diretoria: Admin → Usuários com a tag "Carteira" e o quadro "Acessos".
@@ -121,12 +166,16 @@ for (const largura of LARGURAS) {
     const d = await ctxD.newPage();
     await entrar(d, 'diretor', '/login');
     await d.goto('/admin');
-    const linha = d.locator('li').filter({ hasText: 'Maria Carteira' }).first();
+    // A linha da lista (o usuário só aparece nela; o quadro "Acessos" também usa <li>).
+    const linha = d.locator('li').filter({ hasText: USUARIO }).first();
     await expect(linha.locator('.role-TAG')).toHaveText('Carteira');
     await expect(
-      d.locator('li').filter({ hasText: 'Paula Todos' }).first().locator('.role-TAG'),
+      d.locator('li').filter({ hasText: 'todos.captura' }).first().locator('.role-TAG'),
     ).toHaveCount(0);
     await foto(d, 'admin-usuarios', largura);
+    await fotoDica(d, linha.locator('.role-TAG'), CARTEIRA_DICA, 'dica-admin-tag', largura);
+    const quadro = d.locator('section').filter({ hasText: 'Ver tudo' }).first();
+    await fotoDica(d, quadro.locator('.role-TAG').first(), CARTEIRA_DICA, 'dica-quadro', largura);
     await ctxD.close();
 
     // Quem tem a carteira: Fila, Mentorados e Nova inscrição.

@@ -40,7 +40,7 @@ import {
 } from './cargo-field';
 import { AdicionarArea, CargosPorArea, pedidoDeArea, type MudancaDeArea } from './areas-conta';
 import { Avatar, AVATAR_OUTRO } from './avatar';
-import { CargoTag } from './role-tag';
+import { CargoTag } from './cargo-tag';
 import { button, control, Field, FormError, quietButton } from './crm-ui';
 
 type User = ContaEquipe;

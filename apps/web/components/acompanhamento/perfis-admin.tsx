@@ -2,6 +2,7 @@
 import { entrouHa } from '@npac/shared/acessos';
 import { MOTIVO, podeGerenciar, type ContaAreas } from '@npac/shared/areas';
 import {
+  ALCANCE_DICA,
   ALCANCE_LABEL,
   ALCANCE_TITULO,
   ALCANCES_NA_TELA,
@@ -11,6 +12,7 @@ import { CARGO_INFO, MODULO_ADMIN_LABEL, type Cargo } from '@npac/shared/cargos'
 import { PERFIL_LABEL, PERFIS, type Perfil } from '@npac/shared/mentoria';
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { CargoDica } from '@/components/cargo-field';
+import { ComDica } from '@/components/dica';
 import { control, Field, FormError } from '@/components/crm-ui';
 import { showToast } from '@/components/toast';
 import { clientApi } from '@/lib/client-api';
@@ -89,27 +91,31 @@ function AlcanceCampo({
         aria-label={nome ? `${ALCANCE_TITULO} de ${nome}` : ALCANCE_TITULO}
       >
         {ALCANCES_NA_TELA.map((a, i) => (
-          <button
-            key={a}
-            ref={(b) => {
-              botoes.current[i] = b;
-            }}
-            type="button"
-            role="radio"
-            aria-checked={value === a}
-            tabIndex={value === a ? 0 : -1}
-            className="acesso-tag toque"
-            disabled={disabled}
-            onClick={() => escolher(a)}
-            onKeyDown={(e) => teclas(e, i)}
-          >
-            {value === a && (
-              <svg viewBox="0 0 12 12" aria-hidden="true">
-                <path d="M2.5 6.4 4.9 8.7 9.5 3.6" />
-              </svg>
+          <ComDica key={a} texto={ALCANCE_DICA[a]}>
+            {(alvo) => (
+              <button
+                {...alvo}
+                ref={(b) => {
+                  botoes.current[i] = b;
+                }}
+                type="button"
+                role="radio"
+                aria-checked={value === a}
+                tabIndex={value === a ? 0 : -1}
+                className="acesso-tag toque"
+                disabled={disabled}
+                onClick={() => escolher(a)}
+                onKeyDown={(e) => teclas(e, i)}
+              >
+                {value === a && (
+                  <svg viewBox="0 0 12 12" aria-hidden="true">
+                    <path d="M2.5 6.4 4.9 8.7 9.5 3.6" />
+                  </svg>
+                )}
+                {ALCANCE_LABEL[a]}
+              </button>
             )}
-            {ALCANCE_LABEL[a]}
-          </button>
+          </ComDica>
         ))}
       </div>
     </div>

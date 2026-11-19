@@ -12,12 +12,23 @@ const SENHA_NOVA = 'fase3b-nova-1';
 const MINHA = 'Mentorado Fictício Carteira 1';
 const OUTRA = 'Mentorado Fictício Carteira 2';
 
-async function limpar() {
+async function limparUmaVez() {
   await owner`delete from mentoria_inscricoes where id in (
     select inscricao_id from mentoria_pessoas where nome like 'Mentorado Fictício Carteira%')`;
   await owner`delete from session where user_id in (select id from "user" where email like '%@fase3b.test')`;
   await owner`delete from account where user_id in (select id from "user" where email like '%@fase3b.test')`;
   await owner`delete from "user" where email like '%@fase3b.test'`;
+}
+
+/** A API ainda pode estar gravando o "entrou há X" da conta do teste anterior: deadlock tenta de novo. */
+async function limpar() {
+  for (let i = 0; ; i++) {
+    try {
+      return await limparUmaVez();
+    } catch (e) {
+      if ((e as { code?: string }).code !== '40P01' || i >= 2) throw e;
+    }
+  }
 }
 
 test.beforeEach(async () => {
@@ -146,6 +157,21 @@ test('Duda dá a tag "Carteira"; a pessoa entra e vê só os mentorados dela', a
   await expect(resp).toBeDisabled();
   await expect(resp.locator('option:checked')).toHaveText('Pessoa Carteira');
   await nova.ctx.close();
+
+  // Celular (toque): na lista da Diretoria, tocar na tag "Carteira" abre a dica, inteira na tela.
+  const cel = await browser.newContext({ viewport: { width: 375, height: 812 }, hasTouch: true });
+  const d = await cel.newPage();
+  await entrar(d, 'diretor');
+  await d.goto('/admin');
+  const tag = d.locator('li').filter({ hasText: USUARIO }).first().locator('.role-TAG');
+  await tag.scrollIntoViewIfNeeded();
+  await tag.tap();
+  const dica = d.getByRole('tooltip').filter({ hasText: 'Cadastra mentorados novos' });
+  await expect(dica).toBeVisible();
+  const caixa = (await dica.boundingBox())!;
+  expect(caixa.x).toBeGreaterThanOrEqual(0);
+  expect(caixa.x + caixa.width).toBeLessThanOrEqual(375);
+  await cel.close();
 });
 
 test('Duda troca de "Carteira" para "Todos os mentorados" na linha', async ({ page }) => {
@@ -167,6 +193,20 @@ test('Duda troca de "Carteira" para "Todos os mentorados" na linha', async ({ pa
         )[0]?.alcance,
     )
     .toBe('TODOS');
+  // Dica do acesso: no mouse e no foco do teclado, ligada à tag (aria-describedby).
+  const todosTag = linha.getByRole('radio', { name: 'Todos os mentorados' });
+  // O mouse ainda está sobre a tag depois do clique: sai e volta para o hover valer.
+  await page.mouse.move(0, 0);
+  await todosTag.hover();
+  const dicaTodos = page
+    .getByRole('tooltip')
+    .filter({ hasText: 'Vê e cuida de todos os mentorados do Acompanhamento.' });
+  await expect(dicaTodos).toBeVisible();
+  await expect(todosTag).toHaveAccessibleDescription(
+    'Vê e cuida de todos os mentorados do Acompanhamento.',
+  );
+  await page.mouse.move(0, 0);
+  await expect(dicaTodos).toBeHidden();
   // Teclado: a marcada recebe o foco e as setas trocam (escolha única).
   await linha.getByRole('radio', { name: 'Todos os mentorados' }).focus();
   await page.keyboard.press('ArrowLeft');
@@ -175,6 +215,13 @@ test('Duda troca de "Carteira" para "Todos os mentorados" na linha', async ({ pa
     'true',
   );
   await expect(linha.getByRole('radio', { name: 'Carteira' })).toBeFocused();
+  await expect(
+    page
+      .getByRole('tooltip')
+      .filter({ hasText: 'Vê e cuida só dos mentorados em que é a responsável.' }),
+  ).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('tooltip').filter({ hasText: 'Vê e cuida só' })).toBeHidden();
   // Em outro perfil o campo some.
   await page.getByLabel('Perfil de Pessoa Carteira').selectOption('OPERACAO');
   await expect(linha.getByRole('radiogroup')).toHaveCount(0);

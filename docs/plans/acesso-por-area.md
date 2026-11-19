@@ -208,6 +208,11 @@ Branch `feat/NPAC-54-fase-3b-carteira`. Spec: "Fase 3B — Alcance 'só a cartei
   "Carteira" / "Todos os mentorados" na aba Perfis, no Convidar e no pedido; nas listas, o selo "Acompanhamento" e a tag
   neutra "Carteira" ao lado; no quadro "Acessos", a frase do cargo com a tag. Só tela e textos (banco, API e regras iguais;
   a API passou a mandar `alcance: TODOS` no quadro quando a pessoa sai da carteira). Branch `fix/NPAC-54-acessos-tags`.
+- **Dica nas tags de "Acessos"** (Gabriel 19/11: "acho q vale add um tooltip nas tags de acesso para saberem o q esse acesso
+  tem de permissão"; textos "pode ser"): "Carteira" = "Vê e cuida só dos mentorados em que é a responsável. Cadastra
+  mentorados novos, que já entram na carteira dela."; "Todos os mentorados" = "Vê e cuida de todos os mentorados do
+  Acompanhamento."; a dica do cargo Acompanhamento vira "Cuida da jornada dos mentorados.". Branch
+  `feat/NPAC-54-acessos-tooltip`, para a release seguinte à v0.19.
 
 ## Fase 4 — Pessoa em duas áreas
 

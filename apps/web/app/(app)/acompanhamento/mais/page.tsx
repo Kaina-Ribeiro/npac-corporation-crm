@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { CargoTag } from '@/components/role-tag';
+import { CargoTag } from '@/components/cargo-tag';
 import { ContaCard } from '@/components/shell/conta-card';
 import { ICONES, Icone } from '@/components/acompanhamento/ui';
 import { lerEu, podeCadastrar, sessaoDoModulo, ultimaFicha } from '@/lib/acompanhamento';
