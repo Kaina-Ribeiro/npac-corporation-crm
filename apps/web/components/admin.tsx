@@ -1,6 +1,8 @@
 'use client';
 import type { Role } from '@npac/shared';
+import type { Perfil } from '@npac/shared/mentoria';
 import {
+  AREAS,
   ATUA_COMO,
   cargoDe,
   CARGO_INFO,
@@ -36,6 +38,7 @@ import {
   SEM_EXTRAS,
   type Extras,
 } from './cargo-field';
+import { AdicionarArea, CargosPorArea, pedidoDeArea, type MudancaDeArea } from './areas-conta';
 import { Avatar, AVATAR_OUTRO } from './avatar';
 import { CargoTag } from './role-tag';
 import { button, control, Field, FormError, quietButton } from './crm-ui';
@@ -235,6 +238,19 @@ export function Admin({
     confirm(
       `${u.name} tem ${u.leads} ${u.leads === 1 ? 'lead' : 'leads'}. Depois, passe em "Passar leads para…".`,
     );
+  /** Conta com as duas áreas, vista pela Diretoria: cargo por área (Fase 4). */
+  const duasAreas = (u: User) => diretor && !u.mestre && u.areas.length > 1;
+  /** Pôr, trocar ou tirar uma área (só a Diretoria; a API repete a regra). */
+  function mudarArea(u: User, m: MudancaDeArea) {
+    const nova = m.tipo === 'definir' && !u.areas.some((v) => v.area === m.area);
+    const p = pedidoDeArea(u.name, m, nova);
+    if (p.confirmar && !confirm(p.confirmar)) return;
+    if (m.tipo === 'tirar' && m.area === 'COMERCIAL' && !confirmarLeads(u)) return;
+    void run(
+      () => clientApi(`/api/admin/users/${u.id}/areas/${m.area}`, p.metodo, p.corpo),
+      p.aviso,
+    );
+  }
   const closers = data.users.filter((u) => u.active && u.canClose);
   const sdrs = data.users.filter((u) => u.active && u.canProspect);
 
@@ -407,13 +423,31 @@ export function Admin({
                     <div className="min-w-0">
                       <p className="flex flex-wrap items-center gap-2 font-semibold">
                         {u.name}{' '}
-                        <CargoTag
-                          role={u.role}
-                          perfil={u.perfil}
-                          moduloAdmin={u.moduloAdmin}
-                          alcance={u.alcance}
-                          faltaPerfil={diretor && u.role === 'ACOMPANHAMENTO' && !u.perfil}
-                        />
+                        {u.areas.length > 1 ? (
+                          // Duas áreas (só a Diretoria vê as duas): o cargo de cada uma.
+                          [...u.areas]
+                            .sort((a, b) => AREAS.indexOf(a.area) - AREAS.indexOf(b.area))
+                            .map((v) => (
+                              <CargoTag
+                                key={v.area}
+                                role={v.area === 'COMERCIAL' ? (v.cargo as Role) : 'ACOMPANHAMENTO'}
+                                perfil={
+                                  v.area === 'ACOMPANHAMENTO' ? (v.cargo as Perfil | null) : null
+                                }
+                                moduloAdmin={v.area === 'ACOMPANHAMENTO' && v.head}
+                                alcance={v.area === 'ACOMPANHAMENTO' ? v.alcance : null}
+                                faltaPerfil={v.area === 'ACOMPANHAMENTO' && !v.cargo}
+                              />
+                            ))
+                        ) : (
+                          <CargoTag
+                            role={u.role}
+                            perfil={u.perfil}
+                            moduloAdmin={u.moduloAdmin}
+                            alcance={u.alcance}
+                            faltaPerfil={diretor && u.role === 'ACOMPANHAMENTO' && !u.perfil}
+                          />
+                        )}
                         {!u.active && <span className="text-xs text-danger">inativo</span>}
                         {u.outraArea && (
                           <span className="text-xs font-normal text-ink2">
@@ -444,7 +478,12 @@ export function Admin({
                       <CargoExtras
                         compacto
                         nome={u.name}
-                        cargo={cargoDe(u.role, u.perfil)}
+                        cargo={
+                          duasAreas(u)
+                            ? ((u.areas.find((v) => v.area === 'COMERCIAL')?.cargo as Cargo) ??
+                              null)
+                            : cargoDe(u.role, u.perfil)
+                        }
                         value={{
                           canProspect: u.canProspect,
                           canClose: u.canClose,
@@ -471,43 +510,60 @@ export function Admin({
                           );
                         }}
                       />
-                      <CargoSelect
-                        ariaLabel={`Cargo de ${u.name}`}
-                        value={cargoDe(u.role, u.perfil)}
-                        permitidos={cargos}
-                        className={`${quietButton} bg-transparent`}
-                        onChange={(cargo) => {
-                          const info = CARGO_INFO[cargo];
-                          if (
-                            isLeader(info.role) &&
-                            !confirm(`Dar cargo de ${info.label} para ${u.name}?`)
-                          )
-                            return;
-                          if (
-                            info.perfil &&
-                            u.role !== 'ACOMPANHAMENTO' &&
-                            !confirm(
-                              `Dar o cargo ${info.label} para ${u.name}? Esse cargo lê dados sensíveis de mentorados.`,
+                      {duasAreas(u) ? (
+                        <CargosPorArea
+                          nome={u.name}
+                          areas={u.areas}
+                          className={`${quietButton} bg-transparent`}
+                          onMudar={(m) => mudarArea(u, m)}
+                        />
+                      ) : (
+                        <CargoSelect
+                          ariaLabel={`Cargo de ${u.name}`}
+                          value={cargoDe(u.role, u.perfil)}
+                          permitidos={cargos}
+                          className={`${quietButton} bg-transparent`}
+                          onChange={(cargo) => {
+                            const info = CARGO_INFO[cargo];
+                            if (
+                              isLeader(info.role) &&
+                              !confirm(`Dar cargo de ${info.label} para ${u.name}?`)
                             )
-                          )
-                            return;
-                          // Quem deixa de atuar como SDR fica com os leads (a liderança vê); avisa.
-                          const atuaSdr =
-                            info.role === 'SDR' || (temCaixas(info.role) && u.canProspect);
-                          if (!atuaSdr && !confirmarLeads(u)) return;
-                          void run(
-                            () =>
-                              clientApi(
-                                `/api/admin/users/${u.id}`,
-                                'PATCH',
-                                info.perfil
-                                  ? { role: info.role, perfil: info.perfil }
-                                  : { role: info.role },
-                              ),
-                            `${u.name} agora é ${info.label}`,
-                          );
-                        }}
-                      />
+                              return;
+                            if (
+                              info.perfil &&
+                              u.role !== 'ACOMPANHAMENTO' &&
+                              !confirm(
+                                `Dar o cargo ${info.label} para ${u.name}? Esse cargo lê dados sensíveis de mentorados.`,
+                              )
+                            )
+                              return;
+                            // Quem deixa de atuar como SDR fica com os leads (a liderança vê); avisa.
+                            const atuaSdr =
+                              info.role === 'SDR' || (temCaixas(info.role) && u.canProspect);
+                            if (!atuaSdr && !confirmarLeads(u)) return;
+                            void run(
+                              () =>
+                                clientApi(
+                                  `/api/admin/users/${u.id}`,
+                                  'PATCH',
+                                  info.perfil
+                                    ? { role: info.role, perfil: info.perfil }
+                                    : { role: info.role },
+                                ),
+                              `${u.name} agora é ${info.label}`,
+                            );
+                          }}
+                        />
+                      )}
+                      {diretor && !u.mestre && u.areas.length === 1 && (
+                        <AdicionarArea
+                          nome={u.name}
+                          areas={u.areas}
+                          className={`${quietButton} bg-transparent`}
+                          onEscolher={(m) => mudarArea(u, m)}
+                        />
+                      )}
                       <button
                         type="button"
                         className={quietButton}

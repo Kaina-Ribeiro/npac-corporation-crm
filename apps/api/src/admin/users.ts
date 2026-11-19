@@ -4,6 +4,7 @@ import {
   Body,
   ConflictException,
   Controller,
+  Delete,
   ForbiddenException,
   Get,
   HttpCode,
@@ -13,6 +14,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
 } from '@nestjs/common';
 import { hash } from '@node-rs/argon2';
 import {
@@ -27,13 +29,16 @@ import {
   type Tx,
 } from '@npac/db';
 import {
+  AREAS,
   areasDeHead,
   can,
+  CARGOS,
   hasCommercialAccess,
   podeGerenciar,
   temCaixas,
   userChangeSchema,
   userInviteSchema,
+  type Area,
   type AuthUser,
   type Perfil,
   type UserChange,
@@ -50,6 +55,7 @@ import { MAIL_SENDER, type MailSender } from '../mail/mail.js';
 import { inviteMail } from '../mail/templates.js';
 import { validate } from '../common/validate.js';
 import { photoUrl } from '../conta/photo-url.js';
+import { erroDoBanco } from '../mentoria/erros.js';
 import {
   aplicar,
   definirMembro,
@@ -77,6 +83,21 @@ const CAMPOS_DO_CARGO = [
   'canClose',
   'alcance',
 ] as const;
+
+/** Campos que escolhem o cargo de uma área (as caixas "Atua como" não: são da conta). */
+const CAMPOS_DE_AREA = ['role', 'perfil', 'moduloAdmin', 'alcance'] as const;
+
+/** Conta com as duas áreas: o PATCH da Diretoria não sabe de qual área é o campo Cargo (Fase 4). */
+export const MSG_CARGO_POR_AREA = 'Conta em mais de uma área: troque o cargo em cada área';
+
+/** Corpo de `PUT admin/users/:id/areas/:area` (só a Diretoria). */
+const areaBodySchema = z.object({ cargo: z.enum(CARGOS), head: z.boolean().optional() }).strict();
+export type AreaBody = z.infer<typeof areaBodySchema>;
+
+const areaDaRota = (area: string): Area => {
+  if (!(AREAS as readonly string[]).includes(area)) throw new NotFoundException();
+  return area as Area;
+};
 
 /** Senha temporária mostrada uma única vez a quem administra; o titular troca no primeiro acesso. */
 const temporaryPassword = () => randomBytes(12).toString('base64url');
@@ -292,6 +313,12 @@ export class AdminUsersService {
       const antes = await cargoAtual(tx, id, alvo);
       if (!antes) throw new NotFoundException();
 
+      // A Diretoria vê os dois cargos da conta: troca cada um pela rota por área. O Head vê só o da
+      // área dele e continua trocando por aqui (M5). Dar a Diretoria continua por aqui.
+      const porArea = CAMPOS_DE_AREA.some((k) => input[k] !== undefined) && role !== 'DIRETOR';
+      if (eu.mestre && alvo.areas.length > 1 && porArea)
+        throw new BadRequestException(MSG_CARGO_POR_AREA);
+
       if (mexeNoCargo) {
         const cargo = resolverOuRecusar(
           { role: role ?? antes.role, perfil, moduloAdmin, canProspect, canClose },
@@ -315,7 +342,8 @@ export class AdminUsersService {
             await definirMembro(tx, r, id, atual, novo);
           }
           // Troca de área (a conta tinha só a outra): sai da antiga. Em conta com as duas áreas o
-          // campo Cargo troca só o cargo da área dele (M5); pôr ou tirar área é rota da Fase 4.
+          // campo Cargo do Head troca só o cargo da área dele (M5); pôr ou tirar área é a rota por
+          // área (`definirArea`, `removerArea`).
           const [unica] = alvo.areas;
           if (alvo.areas.length === 1 && unica && unica.area !== novo.area) {
             aplicar({ ...base, acao: 'REMOVER_AREA', area: unica.area });
@@ -379,6 +407,49 @@ export class AdminUsersService {
       registro: 2,
       ...(input.active !== undefined ? { ativo: input.active } : {}),
     });
+    return { id };
+  }
+
+  /**
+   * Pessoa em duas áreas (NPAC-54, Fase 4; spec "API"): só a Diretoria põe alguém numa área, troca
+   * o cargo dele ali ou o tira (M4). O Head recebe 404 na conta que não enxerga e 403 com o motivo
+   * na que enxerga. O banco repete a regra e recusa cargo de outra área e tirar a última área.
+   */
+  private async exigirDiretoria(tx: Tx, actor: AuthUser, id: string) {
+    const eu = await this.eu(tx, actor);
+    const alvo = await lerConta(tx, id);
+    if (!alvo) throw new NotFoundException();
+    const base = { ator: eu, alvo, proprio: id === actor.id };
+    aplicar({ ...base, acao: 'VER' });
+    aplicar({ ...base, acao: 'REMOVER_AREA' });
+    return alvo;
+  }
+
+  async definirArea(actor: AuthUser, id: string, rota: string, body: AreaBody) {
+    const area = areaDaRota(rota);
+    await withUser(this.db, actor.id, async (tx) => {
+      const alvo = await this.exigirDiretoria(tx, actor, id);
+      const antes = alvo.areas.find((a) => a.area === area);
+      const head =
+        area === 'COMERCIAL' ? body.cargo === 'HEAD' : (body.head ?? antes?.head ?? false);
+      if (antes && antes.cargo === body.cargo && antes.head === head) return;
+      await definirMembro(tx, { audit: this.audit, actorId: actor.id }, id, antes, {
+        mestre: false,
+        area,
+        cargo: body.cargo,
+        head,
+      });
+    }).catch((e: unknown) => erroDoBanco(e));
+    return { id };
+  }
+
+  async removerArea(actor: AuthUser, id: string, rota: string) {
+    const area = areaDaRota(rota);
+    await withUser(this.db, actor.id, async (tx) => {
+      const alvo = await this.exigirDiretoria(tx, actor, id);
+      if (!alvo.areas.some((a) => a.area === area)) throw new NotFoundException();
+      await removerMembro(tx, { audit: this.audit, actorId: actor.id }, id, area);
+    }).catch((e: unknown) => erroDoBanco(e));
     return { id };
   }
 
@@ -467,6 +538,21 @@ export class AdminUsersController {
     @Body() body: unknown,
   ) {
     return this.users.update(u, id, validate(userChangeSchema, body));
+  }
+  @Put(':id/areas/:area') definirArea(
+    @CurrentUser() u: SessionUser,
+    @Param('id') id: string,
+    @Param('area') area: string,
+    @Body() body: unknown,
+  ) {
+    return this.users.definirArea(u, id, area, validate(areaBodySchema, body));
+  }
+  @Delete(':id/areas/:area') removerArea(
+    @CurrentUser() u: SessionUser,
+    @Param('id') id: string,
+    @Param('area') area: string,
+  ) {
+    return this.users.removerArea(u, id, area);
   }
   @Post(':id/reset-password') @HttpCode(200) resetPassword(
     @CurrentUser() u: SessionUser,
