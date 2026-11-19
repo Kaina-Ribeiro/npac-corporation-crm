@@ -114,6 +114,7 @@ export class AdminUsersService {
           active: user.active,
           twoFactorEnabled: user.twoFactorEnabled,
           mustChangePassword: user.mustChangePassword,
+          ultimoUso: user.ultimoUso,
           image: user.image,
         })
         .from(user)

@@ -2,7 +2,6 @@ import {
   MENTORIAS,
   type MensagemModelo,
   type Mentoria,
-  type PerfilLinha,
   type PlanoModeloLinha,
   type PmeDTO,
   type Responsavel,
@@ -12,7 +11,8 @@ import { notFound } from 'next/navigation';
 import { LembrarUrl } from '@/components/acompanhamento/lembrar-url';
 import { ImportarCarteira } from '@/components/acompanhamento/importar-carteira';
 import { MensagensAdmin } from '@/components/acompanhamento/mensagens-admin';
-import { PerfisAdmin } from '@/components/acompanhamento/perfis-admin';
+import { ConvidarBotao, PerfisAdmin } from '@/components/acompanhamento/perfis-admin';
+import type { AccessRequest } from '@/components/access-requests';
 import { PlanoModeloAdmin } from '@/components/acompanhamento/plano-modelo-admin';
 import { PmesAdmin } from '@/components/acompanhamento/pmes-admin';
 import { TransferirCarteira } from '@/components/acompanhamento/transferir-carteira';
@@ -20,6 +20,7 @@ import { ICONES, Icone } from '@/components/acompanhamento/ui';
 import { lerEu, sessaoDoModulo } from '@/lib/acompanhamento';
 import { abasLembradas } from '@/lib/acompanhamento-abas';
 import { apiGet } from '@/lib/api';
+import type { ContaEquipe } from '@/lib/equipe';
 
 export const metadata = { title: 'Configurações' };
 
@@ -66,7 +67,14 @@ export default async function ConfiguracoesPage({
   });
   const { aba, q } = lembradas;
   const mentoria = MENTORIAS.includes(q.mentoria as Mentoria) ? (q.mentoria as Mentoria) : 'RDV';
-  const perfis = aba === 'perfis' ? await apiGet<PerfilLinha[]>('/api/mentoria/perfis') : [];
+  // Equipe do Acompanhamento pelas rotas de contas (NPAC-54, Fase 3): o Admin do módulo é o Head da área.
+  const [contas, pedidos] =
+    aba === 'perfis'
+      ? await Promise.all([
+          apiGet<ContaEquipe[]>('/api/admin/users'),
+          apiGet<AccessRequest[]>('/api/admin/access-requests'),
+        ])
+      : [[], []];
   const responsaveis =
     aba === 'carteira' ? await apiGet<Responsavel[]>('/api/mentoria/responsaveis') : [];
   const modelo =
@@ -80,9 +88,16 @@ export default async function ConfiguracoesPage({
         <Icone d={ICONES.voltar} />
         Mais
       </Link>
-      <div>
-        <h1 className="h1">Configurações</h1>
-        <p className="sub">{SUB[aba]}</p>
+      <div className="hrow">
+        <div>
+          <h1 className="h1">Configurações</h1>
+          <p className="sub">{SUB[aba]}</p>
+        </div>
+        {aba === 'perfis' && (
+          <div className="acts">
+            <ConvidarBotao />
+          </div>
+        )}
       </div>
       <div className="tabs">
         {ABAS.map((id) => (
@@ -106,13 +121,13 @@ export default async function ConfiguracoesPage({
         doMenu={lembradas.doMenu}
       />
       {aba === 'perfis' && (
-        <>
-          <PerfisAdmin inicial={perfis} />
-          <p className="pf-nota">
-            A Diretoria é Admin automaticamente. Conta nova: a Diretoria cria o login no Admin do
-            CRM, já com o perfil. Aqui você troca o perfil de quem já está na equipe.
-          </p>
-        </>
+        <PerfisAdmin
+          contas={contas}
+          pedidos={pedidos}
+          euId={me.id}
+          eu={{ mestre: me.mestre, areas: me.areas }}
+          agora={new Date().toISOString()}
+        />
       )}
     </section>
   );

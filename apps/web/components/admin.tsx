@@ -8,17 +8,25 @@ import {
   temCaixas,
   type Cargo,
 } from '@npac/shared/cargos';
+import { entrouHa } from '@npac/shared/acessos';
+import { MOTIVO } from '@npac/shared/areas';
 import { isLeader } from '@npac/shared/enums';
-import type { Perfil } from '@npac/shared/mentoria';
 import { money, parseCents } from '@npac/shared/money';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
-import { oneOf, readPrefs, writePrefs } from '@npac/shared/screen-prefs';
-import { ADMIN_TABS as TABS, type AdminTab } from '@/lib/admin-tabs';
+import { readPrefs, writePrefs } from '@npac/shared/screen-prefs';
+import {
+  ADMIN_PREFS_RULE,
+  ADMIN_TABS as TABS,
+  type AdminTab,
+  type FiltroArea,
+} from '@/lib/admin-tabs';
 import { rememberPrefs } from '@/lib/screen-prefs';
 import { useLatestPrefs } from '@/lib/use-latest-prefs';
 import { clientApi } from '@/lib/client-api';
+import type { ContaEquipe } from '@/lib/equipe';
 import { AccessRequests, type AccessRequest } from './access-requests';
+import { AcessosCard, type AcessosPagina } from './acessos-card';
 import {
   CargoDica,
   CargoExtras,
@@ -32,25 +40,7 @@ import { Avatar, AVATAR_OUTRO } from './avatar';
 import { CargoTag } from './role-tag';
 import { button, control, Field, FormError, quietButton } from './crm-ui';
 
-type User = {
-  id: string;
-  name: string;
-  /** Foto do perfil (NPAC-53), ou null. */
-  photo: string | null;
-  email: string;
-  username: string | null;
-  role: Role;
-  canProspect: boolean;
-  canClose: boolean;
-  /** Perfil do Acompanhamento: só vem para a Diretoria (para o Head, `null`). */
-  perfil: Perfil | null;
-  moduloAdmin: boolean | null;
-  active: boolean;
-  twoFactorEnabled: boolean | null;
-  mustChangePassword: boolean;
-  /** Leads abertos em nome da pessoa (como SDR). */
-  leads: number;
-};
+type User = ContaEquipe;
 type Product = {
   id: string;
   code: string;
@@ -90,7 +80,12 @@ export type AdminData = {
   requests: AccessRequest[];
 };
 
-const ADMIN_TAB_RULE = { tab: oneOf(TABS.filter((t) => t !== 'Usuários')) };
+const ADMIN_TAB_RULE = ADMIN_PREFS_RULE;
+const FILTROS: [FiltroArea, string][] = [
+  ['COMERCIAL', 'Comercial'],
+  ['ACOMPANHAMENTO', 'Acompanhamento'],
+  [undefined, 'Todas'],
+];
 const KIND: Record<Lgpd['kind'], string> = {
   ACCESS: 'Acesso',
   CORRECTION: 'Correção',
@@ -107,11 +102,22 @@ const date = (at: string) =>
 const split =
   'grid items-start gap-5 xl:grid-cols-[minmax(320px,400px)_minmax(0,1fr)] 4xl:grid-cols-[460px_minmax(0,1fr)]';
 
-function Card({ title, children }: { title: string; children: ReactNode }) {
+function Card({
+  title,
+  extra,
+  children,
+}: {
+  title: string;
+  extra?: ReactNode;
+  children: ReactNode;
+}) {
   return (
     // @container: o formulário escolhe 1 ou 2 colunas pela largura do card, não da tela.
     <section className="glass-card @container flex min-w-0 flex-col gap-3 p-5">
-      <h2 className="text-lg font-bold tracking-[-0.03em]">{title}</h2>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-lg font-bold tracking-[-0.03em]">{title}</h2>
+        {extra}
+      </div>
       {children}
     </section>
   );
@@ -132,10 +138,19 @@ export function Admin({
   meRole,
   prefs,
   initialTab = 'Usuários',
+  initialArea,
+  acessos,
+  agora,
 }: {
   initial: AdminData;
   meId: string;
   meRole: Role;
+  /** Filtro de área lembrado (só a Diretoria). */
+  initialArea?: FiltroArea;
+  /** Quadro "Acessos" (só a Diretoria, D10). */
+  acessos?: { inicial: AcessosPagina; vistoAte: number; cookie: string };
+  /** Hora do servidor para o "entrou há X" (igual no servidor e no navegador). */
+  agora: string;
   /** Aba lembrada (NPAC-46): cookie da pessoa e o valor que o servidor usou. */
   prefs: { cookie: string; value: string };
   initialTab?: AdminTab;
@@ -150,6 +165,8 @@ export function Admin({
   });
   const router = useRouter();
   const [tab, setTab] = useState<AdminTab>(initialTab);
+  const [area, setArea] = useState<FiltroArea>(diretor ? initialArea : undefined);
+  const hora = new Date(agora);
   const [data, setData] = useState(initial);
   const [error, setError] = useState<string>();
   const [notice, setNotice] = useState<string>();
@@ -176,15 +193,18 @@ export function Admin({
     }
   }
   /** Troca de aba; a Auditoria só carrega quando abre. */
-  function openTab(t: AdminTab) {
+  function openTab(t: AdminTab, a: FiltroArea = area) {
     setTab(t);
-    rememberPrefs('admin', prefs.cookie, writePrefs({ tab: t }, ADMIN_TAB_RULE));
+    rememberPrefs('admin', prefs.cookie, writePrefs({ tab: t, area: a }, ADMIN_TAB_RULE));
     if (t === 'Auditoria' && !audit) void loadAudit(1);
   }
   // Ao montar: aba do cookie (voltar do navegador traz a página antiga) e Auditoria já aberta.
-  useLatestPrefs(prefs.cookie, prefs.value, (saved) =>
-    openTab((readPrefs(saved, ADMIN_TAB_RULE).tab as AdminTab | undefined) ?? 'Usuários'),
-  );
+  useLatestPrefs(prefs.cookie, prefs.value, (saved) => {
+    const lido = readPrefs(saved, ADMIN_TAB_RULE);
+    const a = diretor ? (lido.area as FiltroArea) : undefined;
+    setArea(a);
+    openTab((lido.tab as AdminTab | undefined) ?? 'Usuários', a);
+  });
   const auditFirst = useRef(initialTab === 'Auditoria');
   useEffect(() => {
     if (auditFirst.current) void loadAudit(1);
@@ -203,7 +223,9 @@ export function Admin({
   }
 
   /** Head só altera SDR e Closer; liderança e Acompanhamento, só a Diretoria. */
-  const podeAlterar = (u: User) => diretor || (!isLeader(u.role) && u.role !== 'ACOMPANHAMENTO');
+  const podeAlterar = (u: User) =>
+    diretor || (!isLeader(u.role) && u.role !== 'ACOMPANHAMENTO' && !u.outraArea);
+  const equipe = area ? data.users.filter((u) => u.areas.some((v) => v.area === area)) : data.users;
   /** Regra 8 do spec: trocar não bloqueia, mas lembra de passar os leads. */
   const confirmarLeads = (u: User) =>
     u.leads === 0 ||
@@ -258,6 +280,15 @@ export function Admin({
         </p>
       )}
 
+      {tab === 'Usuários' && acessos && (
+        <AcessosCard
+          inicial={acessos.inicial}
+          euId={meId}
+          vistoAte={acessos.vistoAte}
+          cookie={acessos.cookie}
+          agora={agora}
+        />
+      )}
       {tab === 'Usuários' && (
         <div className={split}>
           <div className="xl:sticky xl:top-6">
@@ -326,9 +357,39 @@ export function Admin({
               </form>
             </Card>
           </div>
-          <Card title="Equipe">
+          <Card
+            title="Equipe"
+            extra={
+              diretor && (
+                <div
+                  role="group"
+                  aria-label="Área"
+                  className="inline-flex rounded-xl bg-black/[0.06] p-[3px] dark:bg-white/10"
+                >
+                  {FILTROS.map(([a, label]) => (
+                    <button
+                      key={label}
+                      type="button"
+                      aria-pressed={area === a}
+                      className={`toque h-8 rounded-[9px] px-3 text-[13px] font-semibold ${area === a ? 'bg-white text-ink shadow-sm dark:bg-white/20' : 'text-ink2'}`}
+                      onClick={() => {
+                        setArea(a);
+                        rememberPrefs(
+                          'admin',
+                          prefs.cookie,
+                          writePrefs({ tab, area: a }, ADMIN_TAB_RULE),
+                        );
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )
+            }
+          >
             <ul className="divide-y divide-line">
-              {data.users.map((u) => (
+              {equipe.map((u) => (
                 <li key={u.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
                   <div className="flex min-w-0 items-center gap-3">
                     <Avatar
@@ -346,17 +407,28 @@ export function Admin({
                           faltaPerfil={diretor && u.role === 'ACOMPANHAMENTO' && !u.perfil}
                         />
                         {!u.active && <span className="text-xs text-danger">inativo</span>}
+                        {u.outraArea && (
+                          <span className="text-xs font-normal text-ink2">
+                            também no{' '}
+                            {u.areas.some((v) => v.area === 'COMERCIAL')
+                              ? 'Acompanhamento'
+                              : 'Comercial'}
+                          </span>
+                        )}
                       </p>
                       <p className="text-xs text-ink2">
                         {u.username && <b className="font-semibold text-ink">{u.username} · </b>}
                         {u.email}
                         {u.twoFactorEnabled ? ' · MFA ativo' : ''}
                         {u.leads > 0 && ` · ${u.leads} ${u.leads === 1 ? 'lead' : 'leads'}`}
+                        {u.active && ` · ${entrouHa(u.ultimoUso, hora)}`}
                       </p>
                     </div>
                   </div>
                   {u.id !== meId && !podeAlterar(u) && (
-                    <p className="text-xs text-ink3">Só a Diretoria altera esta conta</p>
+                    <p className="text-xs text-ink3">
+                      {u.outraArea ? MOTIVO.DUAS_AREAS : 'Só a Diretoria altera esta conta'}
+                    </p>
                   )}
                   {u.id !== meId && podeAlterar(u) && (
                     <div className="flex flex-wrap items-center gap-2">

@@ -1,5 +1,6 @@
 import 'server-only';
 import type { Role } from '@npac/shared';
+import type { Vinculo } from '@npac/shared/areas';
 import { cache } from 'react';
 import { ApiError, apiGet } from './api';
 
@@ -14,6 +15,10 @@ export type Me = {
   twoFactorEnabled: boolean;
   mustChangePassword: boolean;
   modules: { mentoria: boolean };
+  /** Diretoria (conta Mestre, NPAC-54). */
+  mestre: boolean;
+  /** Vínculos por área (`area_membros`): a fonte do cargo; `role` é o resumo. */
+  areas: Vinculo[];
   /** Contador do canal ao vivo no render (ver `LiveUpdates`). */
   revision?: string;
 };

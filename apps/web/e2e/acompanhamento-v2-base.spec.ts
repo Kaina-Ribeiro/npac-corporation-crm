@@ -203,9 +203,10 @@ test('Configurações: só Admin vê e define o perfil', async ({ page, browser 
   ]);
   await page.getByLabel('Perfil de Carla').selectOption('ESPECIALISTA');
   await expect.poll(perfilDaCarla).toBe('ESPECIALISTA');
+  // O selo de Admin é só da Diretoria (NPAC-54, D9): a Duda não vê o interruptor.
   await expect(
     page.getByRole('switch', { name: 'Admin do Acompanhamento para Carla' }),
-  ).toBeVisible();
+  ).toHaveCount(0);
   await page.screenshot({ path: 'test-results/acompanhamento-perfis.png', fullPage: true });
   // Volta ao seed: Carla é a conta antiga sem perfil dos outros testes.
   await owner`delete from mentoria_perfis where user_id = (select id from "user" where username = 'carla')`;

@@ -25,7 +25,7 @@ indicar. Mantenha denso; ao mudar arquitetura, regra ou comando, atualize aqui.
 pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps/api/src`,
 `web/` = `apps/web`, `db/` = `packages/db`, `sh/` = `packages/shared/src`.
 
-- **Shared:** papéis/`isLeader`/enums `sh/enums.ts` · cargos e resolvedor `sh/cargos.ts` · `can` `sh/permissions.ts` · Zod de lead
+- **Shared:** papéis/`isLeader`/enums `sh/enums.ts` · cargos e resolvedor `sh/cargos.ts` · frases do registro de acessos e "entrou há X" `sh/acessos.ts` (`@npac/shared/acessos`, sem zod) · `can` `sh/permissions.ts` · Zod de lead
   `sh/schemas/lead.ts`, `lead-update.ts` · usuário/pedido de acesso `sh/schemas/account.ts` ·
   DTOs `sh/dto.ts`, `finance.ts`, `today.ts` · dinheiro/datas BR `sh/money.ts`, `dates.ts`
   · filtros lembrados `sh/screen-prefs.ts` (`@npac/shared/screen-prefs`)
@@ -68,7 +68,7 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
 - **Telas:** leads `components/leads-browser.tsx`, `lead-filters.tsx` · ficha/venda `lead-detail.tsx`,
   `sale-flow.tsx`, `finance-panel.tsx` · `pipeline.tsx`, `today.tsx`, `reports.tsx`, `dashboard-*.tsx`
   (cards reordenáveis: `dashboard-board.tsx`, `lib/dashboard-layout.ts`, `lib/board-motion.ts`) ·
-  admin `admin.tsx`, `access-requests.tsx` · Ctrl+K `shell/command-palette.tsx` · avisos `inbox.tsx` ·
+  admin `admin.tsx`, `access-requests.tsx`, quadro "Acessos" `acessos-card.tsx`, linha da equipe `lib/equipe.ts` · Ctrl+K `shell/command-palette.tsx` · avisos `inbox.tsx` ·
   textos de atividade `lib/activity-text.ts` · campos por etapa `stage-fields.tsx` (+ `lib/stage-fields.ts`,
   `lib/stage-kind.ts`) e janelinha `stage-move-dialog.tsx` (Pipeline, lista, massa) · editor de colunas `pipeline-columns-editor.tsx` · ação
   rápida do Hoje `today-quick-action.tsx` · closer completa o pagamento `payment-complete.tsx` · SDR marca a
@@ -193,7 +193,19 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   página, lido do `audit_log`: conta criada, pedido aprovado/recusado, cargo, Head/selo, área posta/tirada, Diretoria,
   senha, MFA, desativar/reativar; cada linha com `tipo`, `ator`, `alvo` (nomes lidos da conta na hora), `area`, `cargo`,
   `head`. Logins e o resto da auditoria ficam fora. `admin.user.update` com `registro: 2` (desde a Fase 2) só entra se
-  mudou `ativo`; o cargo vem de `area.*`. A tela (cartão "Acessos") é da Fase 3.
+  mudou `ativo`; o cargo vem de `area.*`. Tela (Fase 3, opção 2A, D13): quadro "Acessos" no topo de Admin → Usuários, só
+  a Diretoria, 5 linhas + "Ver tudo" (janelinha paginada) + "novo" (cookie `npac_acessos_<hash>`, `Path=/admin`, só o maior
+  id visto); frase montada por `fraseAcesso`/`quandoAcesso` (`sh/acessos.ts`, tipos `Acesso`/`TIPOS_ACESSO` também lá).
+  A Diretoria filtra a Equipe por área ("Comercial | Acompanhamento | Todas", lembrado em `npac_f_admin_*`).
+- **Equipe por área na tela** (NPAC-54, Fase 3, 19/11/2026, D13 = "1A, 2A, 3A"): a aba Perfis do módulo
+  (`components/acompanhamento/perfis-admin.tsx`) é a equipe do Acompanhamento pelas rotas `admin/users` e
+  `admin/access-requests` (o Admin do módulo é o Head da área): "Convidar" no topo da página abre janelinha (campo
+  "Perfil"), pedidos de acesso só do Acompanhamento, perfil por `PUT mentoria/perfis`, "Nova senha" e
+  "Desativar"/"Reativar" na linha; o interruptor de Admin só para a Diretoria. A tela esconde o que `podeGerenciar` recusa e
+  mostra a frase da regra; quem decide é a API. **"Entrou há X"** (D12, M12): `user.ultimo_uso` (0074), gravado pela
+  `SessionGuard` via `UltimoUso` (`api/auth/ultimo-uso.ts`: no máximo 1 gravação a cada 15 min por pessoa e instância, e o
+  UPDATE confere a data no banco); `user` fica fora do canal ao vivo; o Sair não apaga. Vem em `GET admin/users` como
+  `ultimoUso`; frase `entrouHa` (`sh/acessos.ts`, dias de calendário de Brasília). e2e `e2e/acesso-por-area.spec.ts`.
 - **Fonte do cargo = `area_membros`** (NPAC-54, Fase 1, 0072; plano `docs/plans/acesso-por-area.md`, spec
   `docs/superpowers/specs/2026-11-19-acesso-por-area-design.md`): uma linha por (pessoa, área `COMERCIAL`/`ACOMPANHAMENTO`,
   cargo, `head`); a Diretoria é `user.mestre` (sem linha). Comercial: cargo SDR/CLOSER/HEAD, `head` = HEAD. Acompanhamento:
@@ -215,9 +227,9 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   transação; sem perfil, 400. Sair do cargo apaga o perfil. "Atua como SDR/Closer" (`can_prospect`/
   `can_close`) só para Head/Diretoria (sem vir, mantêm o que tinham); SDR `t/f`, Closer `f/t`,
   Acompanhamento `f/f`, fixos pelo cargo (caixa contrária: 400) e por `CHECK user_cargo_caixas` (0049).
-  `GET /admin/users` traz `perfil`/`moduloAdmin` só para a Diretoria. A aba Perfis do módulo só troca
-  perfil (`PUT /mentoria/perfis` recusa `null`); "Peça ao Admin" fica para conta antiga sem perfil
-  (selo "falta perfil" no Admin). O selo aparece como "Admin do Acompanhamento".
+  `GET /admin/users` traz `perfil`/`moduloAdmin` para a Diretoria e o Admin do Acompanhamento. A aba Perfis do módulo
+  troca perfil (`PUT /mentoria/perfis` recusa `null`) e, desde a Fase 3 do NPAC-54, convida, aprova e desativa; "Peça ao
+  Admin" fica para conta antiga sem perfil (selo "falta perfil"). O selo aparece como "Admin do Acompanhamento".
 - Liderança vê tudo; SDR, os próprios leads; CLOSER, leads com reunião não cancelada dele ou
   que o SDR lhe passou em Agendou Pagamento (`leads.closer_id`).
   Invisível e inexistente → **404**, nunca 403. `canProspect`/`canClose` são dados; nada depende de nomes.
@@ -247,7 +259,7 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   recusar apaga; expira em 7 dias; 3/hora por IP; resposta igual exista ou não o usuário (hash
   sempre, para o tempo não revelar). Guarda a **área** da tela (`access_requests.area`, 0068: `COMERCIAL` por
   `/login/solicitar`, `ACOMPANHAMENTO` por `/login/acompanhamento/solicitar`; `ACCESS_AREAS` em `sh/enums.ts`) e o
-  Admin mostra a etiqueta (a tela da fila do Admin do Acompanhamento é a Fase 3). A liderança segue redefinindo a senha no Admin;
+  Admin mostra a etiqueta (os do Acompanhamento aparecem também na aba Perfis do módulo, NPAC-54 Fase 3). A liderança segue redefinindo a senha no Admin;
   Diretoria trancada: `reset-password-cli.js <usuário> [--mfa]` no shell da api (`db/src/reset-password.ts`).
 - **Esqueci minha senha por e-mail** (NPAC-50, 18/11/2026, plano `docs/plans/pedidos-18-11.md`, Fase 2):
   `/login/esqueci` (usuário ou e-mail) → `POST /api/auth/forgot-password` → e-mail "Crie a sua senha nova"

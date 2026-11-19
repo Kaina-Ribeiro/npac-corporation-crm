@@ -14,7 +14,8 @@ Legenda: ⏳ a fazer · 🔧 em andamento · ✅ feito · ❌ travado (dizer por
 |---|---|---|---|
 | 1 | Banco: a tabela de membros vira a fonte do cargo, sem mudar nada na tela | 2–3 dias | ✅ (migration 0072; falta só o roteiro no ITODEV, ver notas) |
 | 2 | Regra única de quem gerencia quem, na API e no banco | 2 dias | ✅ (migration 0073; ver notas) |
-| 3 | Telas: equipe por área (Admin do CRM e aba Perfis do módulo) | 2–3 dias | ⏳ |
+| 3 | Telas: equipe por área (Admin do CRM e aba Perfis do módulo) | 2–3 dias | 🔧 (telas e testes prontos; falta o roteiro no ITODEV, ver notas) |
+| 3B | Cargo da carteira (2B), "Acompanhamento da carteira": faz o que o perfil Acompanhamento faz, só nas inscrições em que é responsável | a estimar | ⏳ (respostas da Eduarda em 19/11; ver "Fase 3B") |
 | 4 | Pessoa em duas áreas | 2 dias | ⏳ |
 | 5 | Limpeza da compatibilidade | 1 dia | ⏳ |
 
@@ -111,14 +112,52 @@ novos listados no fim da seção "Telas" (M3, M6) e mostrar 2–3 opções em im
 
 | # | Tarefa | Pronto quando | Status |
 |---|---|---|---|
-| 3.1 | Textos e desenho aprovados pelo Gabriel (aba Perfis e Admin → Usuários da Diretoria) | Resposta dele registrada na spec | ⏳ |
-| 3.2 | Módulo → Configurações → Perfis: Convidar, Pedidos de acesso, cargo, Redefinir senha, Desativar; sai a nota "Conta nova: a Diretoria cria…" | Playwright: `duda` convida uma Operação, que entra direto no módulo; `duda` aprova um pedido; `duda` não vê o interruptor de Admin | ⏳ |
-| 3.3 | Admin → Usuários: Head do Comercial só vê o Comercial; Diretoria com filtro por área, cargos por área e o cartão "Acessos" (spec, D10) | Playwright: `ana` não vê contas do Acompanhamento nem o cartão; `diretor` filtra por área e vê no cartão, com "novo", a conta que a `duda` criou; `e2e/admin.spec.ts` verde | ⏳ |
-| 3.4 | "Entrou há X" (spec, D12): `ultimoUso` guardado na conta (no máximo uma gravação a cada 15 min por pessoa) e devolvido em `GET admin/users`; texto ao lado de cada nome nas duas listas | e2e da API: `ultimoUso` dentro do último minuto depois de um pedido; dois pedidos seguidos gravam uma vez; Sair não apaga; teste das frases; Playwright: `diretor` vê "entrou há…" em quem acabou de logar e "nunca entrou" em conta nova | ⏳ |
-| 3.5 | Verificação visual e de peso | Capturas 375 / 768 / 1024 / 1440 das duas telas, sem rolagem lateral nem texto cortado; JS de `/leads` < 150 KB; cada tela que usa `cargo-field` reconferida | ⏳ |
-| 3.6 | Roteiro no ITODEV por cargo (login → onde cai → cliques no menu) + `CLAUDE.md` e status | Lista do que passou, com URL e login por cargo, entregue ao Gabriel | ⏳ |
+| 3.1 | Textos e desenho aprovados pelo Gabriel (aba Perfis e Admin → Usuários da Diretoria) | Resposta dele registrada na spec | ✅ "1A, 2A, 3A" (D13 na spec) |
+| 3.2 | Módulo → Configurações → Perfis: Convidar, Pedidos de acesso, cargo, Redefinir senha, Desativar; sai a nota "Conta nova: a Diretoria cria…" | Playwright: `duda` convida uma Operação, que entra direto no módulo; `duda` aprova um pedido; `duda` não vê o interruptor de Admin | ✅ |
+| 3.3 | Admin → Usuários: Head do Comercial só vê o Comercial; Diretoria com filtro por área, cargos por área e o cartão "Acessos" (spec, D10) | Playwright: `ana` não vê contas do Acompanhamento nem o cartão; `diretor` filtra por área e vê no cartão, com "novo", a conta que a `duda` criou; `e2e/admin.spec.ts` verde | ✅ |
+| 3.4 | "Entrou há X" (spec, D12): `ultimoUso` guardado na conta (no máximo uma gravação a cada 15 min por pessoa) e devolvido em `GET admin/users`; texto ao lado de cada nome nas duas listas | e2e da API: `ultimoUso` dentro do último minuto depois de um pedido; dois pedidos seguidos gravam uma vez; Sair não apaga; teste das frases; Playwright: `diretor` vê "entrou há…" em quem acabou de logar e "nunca entrou" em conta nova | ✅ (migration 0074) |
+| 3.5 | Verificação visual e de peso | Capturas 375 / 768 / 1024 / 1440 das duas telas, sem rolagem lateral nem texto cortado; JS de `/leads` < 150 KB; cada tela que usa `cargo-field` reconferida | ✅ |
+| 3.6 | Roteiro no ITODEV por cargo (login → onde cai → cliques no menu) + `CLAUDE.md` e status | Lista do que passou, com URL e login por cargo, entregue ao Gabriel | ⏳ depois do merge, no rc da release |
 
 **Pronto quando (fase):** a Eduarda consegue, no ITODEV, fazer sozinha as 3 contas que pediu.
+(19/11: com as respostas 1B e 2B da Eduarda, as 3 contas não existem mais como pedido. **Sugestão pendente**, sem o sim do
+Gabriel: "a Eduarda cria sozinha, no ITODEV, uma conta de cada cargo atual do Acompanhamento e aprova um pedido de
+acesso". A Fase 3 é conferida pelos dois critérios.)
+
+**Notas da Fase 3 (19/11/2026):**
+- Visual e textos aprovados: D13 na spec ("1A, 2A, 3A"), opções mostradas em imagem no visual real antes de codar.
+- Aba Perfis do módulo usa `GET admin/users` e `GET admin/access-requests` (o Admin do módulo é o Head da área); perfil e
+  selo continuam por `PUT mentoria/perfis`. O botão "Convidar" do topo da página abre a janelinha da lista por um evento da
+  janela (`npac:perfis-convidar`). `GET mentoria/perfis` ficou sem uso na tela (a API continua).
+- "Entrou há X": migration `0074_ultimo_uso` (`user.ultimo_uso`), `UltimoUso` na guarda de sessão. Testes: e2e da API
+  `test/ultimo-uso.e2e.test.ts` (4) e `shared/test/acessos.test.ts` (frases do "entrou há" e do registro).
+- `fraseAcesso` junta o selo ao cargo quando a conta nasce Admin do Acompanhamento ("· Acompanhamento, Acompanhamento e Admin
+  do Acompanhamento"); a Diretoria convidada sai "· Diretoria". Combinação dos textos aprovados, sem texto novo.
+- Teste antigo com expectativa trocada: `e2e/acompanhamento-v2-base.spec.ts` (a Duda não vê mais o interruptor de Admin, D9).
+- Pedido do Gabriel no meio da fase (19/11): o convite chegar por e-mail. Recomendação: e-mail com o usuário e um link
+  "Criar minha senha" (caminho do "Esqueci minha senha"), sem a senha no e-mail; PR à parte, aguardando o sim dele.
+- **Para a Fase 4:** "também no Comercial/Acompanhamento" e a frase de conta em duas áreas já aparecem quando a API manda
+  `outraArea`; "Adicionar a outra área" continua da Fase 4.
+
+## Fase 3B — Cargo da carteira (2B)
+
+Entre a 3 e a 4 (Gabriel, 19/11: "Sim, entre 3 e 4"). Sem tarefas ainda: a sessão da fase escreve a spec e confere com o
+Gabriel no começo.
+
+**Respostas da Eduarda (19/11, "1A, 2A, 3A", repassadas pelo Gabriel):**
+- 1A. Na carteira dela, a pessoa faz tudo o que o perfil Acompanhamento faz no dia a dia (reuniões, tarefas, metas, PME e
+  onboarding), mas só nos mentorados em que é a responsável.
+- 2A. Cadastra mentorado novo, que já entra na carteira dela, com ela como responsável.
+- 3A. Nome do cargo na tela: **"Acompanhamento da carteira"**.
+
+**Leitura (a conferir com o Gabriel, ainda não é decisão):** vê só as inscrições em que é responsável (Fila, Mentorados,
+Ficha, Reuniões, Metas); edita as mesmas áreas do perfil Acompanhamento, só na carteira; pode ser responsável e receber
+carteira na transferência; o que é só do Admin continua só do Admin (excluir, anonimizar, transferir carteira, catálogo de
+PMEs, CSV com contato); quem cria o cargo: o Admin do Acompanhamento e a Diretoria.
+
+**Em aberto para o Gabriel no começo da fase:** (a) CSV do módulo para esse cargo: só da carteira ou nenhum? (b) A visão
+"Equipe" da Fila some para ele? (c) O push da Fila que vai "a todos do perfil": só os da carteira? (d) Inscrição tirada da
+carteira deixa de ser vista (esperado).
 
 ## Fase 4 — Pessoa em duas áreas
 
@@ -146,6 +185,10 @@ inteira sem rollback. Spec: "Compatibilidade".
 | 5.2 | Migration: sai o gatilho que traduz escrita em `user.role` (escrita direta passa a dar erro), sai a visão `mentoria_perfis` e `mentoria_definir_perfil` | Teste-guarda da fase 1 sem lista de compatibilidade; `migrations.test.ts` verde | ⏳ |
 | 5.3 | `CLAUDE.md`, status e nota de que `user.role` é resumo (M7) | Suítes `db`, `api`, `shared` e e2e do web verdes | ⏳ |
 
+**Notas para a Fase 5:**
+- O convite de conta nova ainda registra a área pelo gatilho de compatibilidade de `user.role` (insert com `role`); antes
+  de remover o gatilho, o convite precisa de caminho próprio no banco.
+
 ---
 
 ## Pendências com o Gabriel (não travam as fases 1 e 2)
@@ -153,8 +196,13 @@ inteira sem rollback. Spec: "Compatibilidade".
 - Conferir as decisões M2–M10, M12 e M13 da spec (M1 e M11 ele confirmou em 19/11).
 - Textos novos de tela (antes da fase 3).
 - Religar MFA para Diretoria e Heads e ter duas contas de Diretoria (recomendação, fora deste plano).
-- Com a Eduarda: 1A/1B (Maria) e 2A/2B (segunda Maria); até a fase 3 chegar a prod, quem cria as contas
-  é o Gabriel (Admin → Convidar → Cargo).
+- Com a Eduarda (respondido em 19/11): **1B** — a Maria dos envios só ganha conta quando existir o cargo Envios, que vem
+  com a tela Envios físicos (fase 4 do Acompanhamento; D6). **2B** — a segunda Maria deve ver só os mentorados da carteira
+  dela (inscrições em que é responsável); o cargo não existe e é a fase 3B da tabela de fases (Gabriel, 19/11: "Sim, entre 3 e 4").
+  Até lá, nenhuma das duas tem conta. A Fase 3 não acrescenta cargo: a lista do Acompanhamento continua a de hoje.
+  Dica para o cargo da carteira (não conferida no código): a lista que hoje cobre só a Especialista
+  (`mentoria_ids_especialista`) pode ganhar o caso da carteira sem reescrever políticas; a regra de quem pode ser
+  responsável (hoje só o perfil Acompanhamento) precisa aceitar o cargo novo.
 
 ## Brief de cada sessão (copiar e trocar a fase)
 

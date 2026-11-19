@@ -1,6 +1,7 @@
 import { Controller, Get, Inject, Injectable, NotFoundException, Query } from '@nestjs/common';
 import { withUser, type Db } from '@npac/db';
 import type { AuthUser } from '@npac/shared';
+import type { Acesso } from '@npac/shared/acessos';
 import { sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { AllRoles } from '../auth/all-roles.decorator.js';
@@ -13,40 +14,8 @@ import { lerMinhaConta } from './areas.js';
  * Registro de acessos da Diretoria (NPAC-54, D10, D11; spec "Registro de acessos da Diretoria"): o
  * que mudou em contas e acessos, lido da auditoria que já existe. Sem logins, sem lead, venda ou
  * mentorado. A auditoria não guarda nome nem e-mail: os nomes vêm da conta na hora de ler. A frase é
- * montada no web (Fase 3).
+ * montada no web (`fraseAcesso`, `@npac/shared/acessos`, onde ficam também os tipos).
  */
-export const TIPOS_ACESSO = [
-  'CONTA_CRIADA',
-  'PEDIDO_APROVADO',
-  'PEDIDO_RECUSADO',
-  'CARGO_TROCADO',
-  'HEAD_DADO',
-  'HEAD_TIRADO',
-  'AREA_ADICIONADA',
-  'AREA_REMOVIDA',
-  'DIRETORIA_DADA',
-  'DIRETORIA_TIRADA',
-  'SENHA_REDEFINIDA',
-  'MFA_ZERADO',
-  'CONTA_DESATIVADA',
-  'CONTA_REATIVADA',
-  /** Evento antigo (antes da Fase 2): ativou ou desativou, sem dizer qual. */
-  'CONTA_ATIVO_ALTERADO',
-] as const;
-export type TipoAcesso = (typeof TIPOS_ACESSO)[number];
-
-export type Acesso = {
-  id: number;
-  at: string;
-  tipo: TipoAcesso;
-  ator: { id: string; nome: string } | null;
-  alvo: { id: string; nome: string } | null;
-  /** Área e cargo (chaves de `AREAS` e `CARGOS`, sh/cargos.ts); nulos em evento antigo. */
-  area: string | null;
-  cargo: string | null;
-  head: boolean | null;
-};
-
 const POR_PAGINA = 20;
 const query = z.object({ page: z.coerce.number().int().min(1).max(100000).default(1) }).strict();
 

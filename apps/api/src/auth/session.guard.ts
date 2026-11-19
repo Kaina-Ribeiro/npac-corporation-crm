@@ -16,6 +16,7 @@ import { AUTH, type Auth } from './auth.js';
 import { toHeaders } from './headers.js';
 import { ALLOW_INCOMPLETE, IS_PUBLIC } from './public.decorator.js';
 import { REQUIRES_MFA } from './requires-mfa.decorator.js';
+import { UltimoUso } from './ultimo-uso.js';
 
 /** Papéis que usam o Acompanhamento: precisam de MFA ativo nas rotas que exigem (D18). */
 const MFA_ROLES: readonly Role[] = ['DIRETOR', 'ACOMPANHAMENTO'];
@@ -26,6 +27,7 @@ export class SessionGuard implements CanActivate {
     private readonly reflector: Reflector,
     @Inject(AUTH) private readonly auth: Auth,
     @Inject(DB) private readonly db: Db,
+    private readonly ultimoUso: UltimoUso,
   ) {}
 
   async canActivate(ctx: ExecutionContext): Promise<boolean> {
@@ -55,6 +57,8 @@ export class SessionGuard implements CanActivate {
       email: u.email,
       username: (u as { username?: string | null }).username ?? '',
     };
+    // "Entrou há X" (NPAC-54, D12): uso do sistema, no máximo uma gravação a cada 15 min.
+    await this.ultimoUso.marcar(u.id);
 
     if (this.reflector.getAllAndOverride<boolean>(ALLOW_INCOMPLETE, targets)) return true;
     if (req.user.mustChangePassword) {
