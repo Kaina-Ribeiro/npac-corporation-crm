@@ -14,7 +14,7 @@ Legenda: ⏳ a fazer · 🔧 em andamento · ✅ feito · ❌ travado (dizer por
 |---|---|---|---|
 | 1 | Banco: a tabela de membros vira a fonte do cargo, sem mudar nada na tela | 2–3 dias | ✅ (migration 0072; falta só o roteiro no ITODEV, ver notas) |
 | 2 | Regra única de quem gerencia quem, na API e no banco | 2 dias | ✅ (migration 0073; ver notas) |
-| 3 | Telas: equipe por área (Admin do CRM e aba Perfis do módulo) | 2–3 dias | 🔧 (telas e testes prontos; falta o roteiro no ITODEV, ver notas) |
+| 3 | Telas: equipe por área (Admin do CRM e aba Perfis do módulo) | 2–3 dias | ✅ (PRs #140 e #141; roteiro no ITODEV em 19/11, ver notas) |
 | 3B | Cargo da carteira (2B), "Acompanhamento da carteira": faz o que o perfil Acompanhamento faz, só nas inscrições em que é responsável | a estimar | ⏳ (respostas da Eduarda em 19/11; ver "Fase 3B") |
 | 4 | Pessoa em duas áreas | 2 dias | ⏳ |
 | 5 | Limpeza da compatibilidade | 1 dia | ⏳ |
@@ -117,7 +117,7 @@ novos listados no fim da seção "Telas" (M3, M6) e mostrar 2–3 opções em im
 | 3.3 | Admin → Usuários: Head do Comercial só vê o Comercial; Diretoria com filtro por área, cargos por área e o cartão "Acessos" (spec, D10) | Playwright: `ana` não vê contas do Acompanhamento nem o cartão; `diretor` filtra por área e vê no cartão, com "novo", a conta que a `duda` criou; `e2e/admin.spec.ts` verde | ✅ |
 | 3.4 | "Entrou há X" (spec, D12): `ultimoUso` guardado na conta (no máximo uma gravação a cada 15 min por pessoa) e devolvido em `GET admin/users`; texto ao lado de cada nome nas duas listas | e2e da API: `ultimoUso` dentro do último minuto depois de um pedido; dois pedidos seguidos gravam uma vez; Sair não apaga; teste das frases; Playwright: `diretor` vê "entrou há…" em quem acabou de logar e "nunca entrou" em conta nova | ✅ (migration 0074) |
 | 3.5 | Verificação visual e de peso | Capturas 375 / 768 / 1024 / 1440 das duas telas, sem rolagem lateral nem texto cortado; JS de `/leads` < 150 KB; cada tela que usa `cargo-field` reconferida | ✅ |
-| 3.6 | Roteiro no ITODEV por cargo (login → onde cai → cliques no menu) + `CLAUDE.md` e status | Lista do que passou, com URL e login por cargo, entregue ao Gabriel | ⏳ depois do merge, no rc da release |
+| 3.6 | Roteiro no ITODEV por cargo (login → onde cai → cliques no menu) + `CLAUDE.md` e status | Lista do que passou, com URL e login por cargo, entregue ao Gabriel | ✅ ITODEV v0.19.9-rc, 19/11 |
 
 **Pronto quando (fase):** a Eduarda consegue, no ITODEV, fazer sozinha as 3 contas que pediu.
 (19/11: com as respostas 1B e 2B da Eduarda, as 3 contas não existem mais como pedido. **Sugestão pendente**, sem o sim do
@@ -136,6 +136,15 @@ acesso". A Fase 3 é conferida pelos dois critérios.)
 - Teste antigo com expectativa trocada: `e2e/acompanhamento-v2-base.spec.ts` (a Duda não vê mais o interruptor de Admin, D9).
 - Pedido do Gabriel no meio da fase (19/11): o convite chegar por e-mail. Recomendação: e-mail com o usuário e um link
   "Criar minha senha" (caminho do "Esqueci minha senha"), sem a senha no e-mail; PR à parte, aguardando o sim dele.
+- **Convite por e-mail** (PR #141, Gabriel "texto ok, 1A, 2A"): o convite manda usuário, senha temporária e o botão para a
+  tela de entrada da área; a tela continua mostrando a senha e avisa numa linha embaixo; "Nova senha" não manda e-mail.
+- **Roteiro no ITODEV** (v0.19.9-rc, 19/11, um login por cargo e duas contas de teste novas criadas no próprio roteiro):
+  Eduarda entra pela tela do Acompanhamento e cai na Fila; Configurações → Perfis sem
+  interruptor de Admin; convida uma Operação (a tela diz que o e-mail saiu), gera nova senha, desativa e reativa; a conta
+  nova troca a senha e cai na Fila (celular, 390 px). Diretoria cai no Dashboard; Admin → quadro "Acessos" com "Eduarda criou
+  a conta de … · Acompanhamento, Operação" e "novo"; "entrou agora" na conta nova; filtro Acompanhamento esconde o Comercial;
+  "Ver tudo" abre. Head do Comercial novo cai no Dashboard e, no Admin, não vê o quadro nem contas do Acompanhamento.
+  14 de 14 passos ✅. Não conferido: a chegada do e-mail (endereço de teste `.local`, sem caixa real).
 - **Para a Fase 4:** "também no Comercial/Acompanhamento" e a frase de conta em duas áreas já aparecem quando a API manda
   `outraArea`; "Adicionar a outra área" continua da Fase 4.
 
