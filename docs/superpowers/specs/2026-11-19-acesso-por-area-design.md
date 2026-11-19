@@ -470,7 +470,7 @@ tarefas, reuniões e metas juntas. O que ela registrou fica no histórico da ins
 
 ### Perguntas ao Gabriel (respostas entram aqui)
 
-- (a) CSV de Mentorados para quem tem "só a carteira": só da carteira, sem contato, ou nenhum? Recomendo: só da carteira.
+- (a) CSV de Mentorados para quem tem "só a carteira": ✅ **só da carteira**, sem contato, como o cargo Acompanhamento (Gabriel, 19/11, "A: só da carteira").
 - (b) Fila: só "Minha fila" ou também a visão "Equipe" (itens da carteira de outros perfis, ex.: Operação)? Recomendo:
   só "Minha fila".
 - (c) Push da Fila: só dos itens da carteira dela? Recomendo: sim.
