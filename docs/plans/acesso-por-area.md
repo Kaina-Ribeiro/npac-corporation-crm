@@ -213,7 +213,7 @@ Branch `feat/NPAC-54-fase-4-duas-areas`. Spec: "API" (rotas por área), "Telas" 
 |---|---|---|---|
 | 4.1 | `PUT` e `DELETE admin/users/:id/areas/:area` (só Diretoria); `PATCH` em conta com duas áreas responde 400 | e2e: Diretoria põe a `sonia` como Especialista e tira; Head recebe 404/403 | ✅ |
 | 4.2 | Guardas: `MentoriaGuard` pelo vínculo; `PerfilGuard` com `membro`; MFA do módulo pelo vínculo | e2e novo `duas-areas`: a `sonia` usa as rotas do comercial como Closer e as do módulo como Especialista (só as reuniões que conduz); `acompanhamento-sem-comercial` verde | ✅ |
-| 4.3 | Web: menu, `/`, `not-found`, Mais e `modules.mentoria` pelo vínculo; "Adicionar a outra área" no Admin da Diretoria | Playwright: `sonia` entra por `/login` e vê os dois menus; entra por `/login/acompanhamento` e cai no módulo | ✅ (textos novos aguardando o Gabriel) |
+| 4.3 | Web: menu, `/`, `not-found`, Mais e `modules.mentoria` pelo vínculo; "Adicionar a outra área" no Admin da Diretoria | Playwright: `sonia` entra por `/login` e vê os dois menus; entra por `/login/acompanhamento` e cai no módulo | ✅ (textos aprovados: "1A, 2A, 3A") |
 | 4.4 | Head de cada área vê a pessoa com `outraArea`; senha e desativar bloqueados com a frase da spec | Playwright + capturas 375 / 768 / 1024 / 1440 | ✅ |
 | 4.5 | Roteiro no ITODEV + `CLAUDE.md` e status | Lista do que passou entregue ao Gabriel | ⏳ |
 
@@ -230,7 +230,7 @@ alcança a outra área por ela.
 - **Guardas:** `MentoriaGuard` e `PerfilGuard` leem uma vez por pedido `lerAcesso` (`membro` = Diretoria ou vínculo no
   Acompanhamento); o MFA do módulo só consulta em rota com `@RequiresMfa` e sem autenticador (MFA desligado: não testado
   ligado). Ganhar ou perder a área vale no pedido seguinte, sem novo login.
-- **Textos novos de tela** (aguardando o sim do Gabriel): confirmação "Adicionar Sônia ao Acompanhamento como Especialista?"
+- **Textos novos de tela** (Gabriel, 19/11, "1A, 2A, 3A": select "Tirar de uma área" na linha, confirmações e avisos abaixo, "Adicionar a outra área" em toda linha): confirmação "Adicionar Sônia ao Acompanhamento como Especialista?"
   (+ a frase de dados sensíveis que já existe), aviso "Sônia agora também é Especialista", "Tirar de uma área", "Tirar Sônia
   do Acompanhamento?" e "Sônia saiu do Acompanhamento". "Adicionar a outra área" é da spec.
 - **Fica de fora:** foto de quem tem as duas áreas para quem só é do Acompanhamento (`conta/foto.controller.ts` decide pelo

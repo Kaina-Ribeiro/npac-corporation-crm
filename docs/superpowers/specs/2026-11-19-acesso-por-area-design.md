@@ -397,6 +397,15 @@ Opções mostradas em imagem, no visual real (3 por tela). Escolhidas:
     Diretoria redefine a senha ou desativa" no lugar dos botões (só aparece com conta em duas áreas).
   - "Adicionar a outra área" fica para a Fase 4.
 
+### Aprovado pelo Gabriel na Fase 4 (19/11/2026, "1A, 2A, 3A")
+
+- **1A:** na linha de uma conta com as duas áreas (Admin → Usuários da Diretoria), um select "Tirar de uma área"
+  (Comercial / Acompanhamento), ao lado de um campo Cargo por área.
+- **2A:** "Adicionar Sônia ao Acompanhamento como Especialista?" (no Acompanhamento, mais "Esse cargo lê dados sensíveis
+  de mentorados.") → "Sônia agora também é Especialista"; "Tirar Sônia do Acompanhamento?" → "Sônia saiu do
+  Acompanhamento".
+- **3A:** "Adicionar a outra área" (select com os cargos da área que falta) em toda linha de conta com uma área só.
+
 ## Fase 3B — Alcance "só a carteira"
 
 Pedido da Eduarda (19/11, "1A, 2A, 3A", plano, Fase 3B) e desenho do Gabriel (19/11, sessão coordenadora). Código conferido
