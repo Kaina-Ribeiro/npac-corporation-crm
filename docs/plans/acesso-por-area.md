@@ -15,7 +15,7 @@ Legenda: ⏳ a fazer · 🔧 em andamento · ✅ feito · ❌ travado (dizer por
 | 1 | Banco: a tabela de membros vira a fonte do cargo, sem mudar nada na tela | 2–3 dias | ✅ (migration 0072; falta só o roteiro no ITODEV, ver notas) |
 | 2 | Regra única de quem gerencia quem, na API e no banco | 2 dias | ✅ (migration 0073; ver notas) |
 | 3 | Telas: equipe por área (Admin do CRM e aba Perfis do módulo) | 2–3 dias | ✅ (PRs #140 e #141; roteiro no ITODEV em 19/11, ver notas) |
-| 3B | Alcance "só a carteira" no cargo Acompanhamento (2B): a pessoa faz o que o cargo faz, só nos mentorados em que é responsável; a Eduarda escolhe por pessoa | 3–4 dias | 🔧 (spec aprovada 19/11; construindo) |
+| 3B | Alcance "só a carteira" no cargo Acompanhamento (2B): a pessoa faz o que o cargo faz, só nos mentorados em que é responsável; a Eduarda escolhe por pessoa | 3–4 dias | ✅ (PR #144, migration 0075; roteiro no ITODEV v0.19.12-rc em 19/11, ver notas) |
 | 4 | Pessoa em duas áreas | 2 dias | ⏳ |
 | 5 | Limpeza da compatibilidade | 1 dia | ⏳ |
 
@@ -173,10 +173,10 @@ Branch `feat/NPAC-54-fase-3b-carteira`. Spec: "Fase 3B — Alcance 'só a cartei
 | # | Tarefa | Pronto quando | Status |
 |---|---|---|---|
 | 3B.1 | Spec da fase (cargo Acompanhamento + alcance, Gabriel 19/11) + desenho do formulário, textos novos e respostas (a)–(e) | Respostas registradas na spec | ✅ (19/11: formulário "Alcance", textos, (a) CSV só da carteira, (b) só "Minha fila", (c) push só da carteira, (d) some na hora, (e) não troca a responsável) |
-| 3B.2 | Banco (migration 0075): `area_membros.alcance` (`TODOS` padrão, `CARTEIRA` só no cargo Acompanhamento), `area_definir_membro` com o alcance e a regra única, `mentoria_so_carteira()`, lista da 0061 com a carteira, políticas de reuniões, tarefas, metas e check-ins, funções por linha e `SECURITY DEFINER` que devolvem dado de inscrição, INSERT de inscrição só com ela de responsável, push "a todos do perfil" recortado | `db/test/carteira.test.ts`: com "só a carteira" vê e edita só a carteira; inscrição tirada some; não cria inscrição de outra; `TODOS` = hoje (equivalência); `rls-por-consulta`, `areas-equivalencia`, `fila-equivalencia`, `areas-regra` e `migrations` verdes | ⏳ |
-| 3B.3 | Shared + API: alcance em `sh/cargos.ts`, casos em `areas-casos.ts` (Head troca o alcance de quem não é Head; ninguém o próprio), `admin/users`, `access-requests` e `mentoria/perfis` recebem o alcance, `/api/me` e `GET admin/users` devolvem, cadastro com responsável fixo, CSV, Fila e push pelas respostas | e2e da API `carteira.e2e.test.ts`: cada rota do módulo com "só a carteira" (200 na carteira, 404 fora, 404 no que é só do Admin); `duda` convida e aprova com "só a carteira"; suítes `shared` e `api` verdes | ⏳ |
-| 3B.4 | Web: campo "Alcance" (Todos os mentorados / Só a carteira) na aba Perfis, no convite e na aprovação, só no cargo Acompanhamento; "Acompanhamento · só a carteira" nas listas; Fila, cadastro com responsável fixo, filtro "Responsável" escondido | Playwright por login real (entra → cai na Fila → Mentorados → Ficha → Reuniões) vendo só a carteira; capturas 375 / 768 / 1024 / 1440; JS de `/leads` < 150 KB | ⏳ |
-| 3B.5 | Roteiro no ITODEV (conta de teste com "só a carteira" criada pela conta de teste da Eduarda) + `CLAUDE.md` e status | Lista do que passou, com URL e login por cargo, entregue ao Gabriel | ⏳ |
+| 3B.2 | Banco (migration 0075): `area_membros.alcance` (`TODOS` padrão, `CARTEIRA` só no cargo Acompanhamento), `area_definir_membro` com o alcance e a regra única, `mentoria_so_carteira()`, lista da 0061 com a carteira, políticas de reuniões, tarefas, metas e check-ins, funções por linha e `SECURITY DEFINER` que devolvem dado de inscrição, INSERT de inscrição só com ela de responsável, push "a todos do perfil" recortado | `db/test/carteira.test.ts`: com "só a carteira" vê e edita só a carteira; inscrição tirada some; não cria inscrição de outra; `TODOS` = hoje (equivalência); `rls-por-consulta`, `areas-equivalencia`, `fila-equivalencia`, `areas-regra` e `migrations` verdes | ✅ |
+| 3B.3 | Shared + API: alcance em `sh/cargos.ts`, casos em `areas-casos.ts` (Head troca o alcance de quem não é Head; ninguém o próprio), `admin/users`, `access-requests` e `mentoria/perfis` recebem o alcance, `/api/me` e `GET admin/users` devolvem, cadastro com responsável fixo, CSV, Fila e push pelas respostas | e2e da API `carteira.e2e.test.ts`: cada rota do módulo com "só a carteira" (200 na carteira, 404 fora, 404 no que é só do Admin); `duda` convida e aprova com "só a carteira"; suítes `shared` e `api` verdes | ✅ |
+| 3B.4 | Web: campo "Alcance" (Todos os mentorados / Só a carteira) na aba Perfis, no convite e na aprovação, só no cargo Acompanhamento; "Acompanhamento · só a carteira" nas listas; Fila, cadastro com responsável fixo, filtro "Responsável" escondido | Playwright por login real (entra → cai na Fila → Mentorados → Ficha → Reuniões) vendo só a carteira; capturas 375 / 768 / 1024 / 1440; JS de `/leads` < 150 KB | ✅ |
+| 3B.5 | Roteiro no ITODEV (conta de teste com "só a carteira" criada pela conta de teste da Eduarda) + `CLAUDE.md` e status | Lista do que passou, com URL e login por cargo, entregue ao Gabriel | ✅ ITODEV v0.19.12-rc, 19/11 |
 
 **Notas da Fase 3B (19/11/2026):**
 - Migration `0075_alcance_carteira`: coluna `area_membros.alcance` (CHECK + gatilho que volta a `TODOS` ao trocar de
@@ -195,6 +195,15 @@ Branch `feat/NPAC-54-fase-3b-carteira`. Spec: "Fase 3B — Alcance 'só a cartei
   de fora dá 404 (caso no `carteira.e2e.test.ts`, com semáforo vermelho real). Recortar a política no banco fica como
   melhoria, se um dia outra rota gravar ali. Admin → Usuários
   mostra "Acompanhamento · só a carteira", mas o alcance se troca pela aba Perfis do módulo (Diretoria e Admin).
+- **Roteiro no ITODEV** (v0.19.12-rc, 19/11, script Playwright com capturas): Eduarda entra e cai na Fila; Configurações →
+  Perfis → Convidar mostra "Alcance" no perfil Acompanhamento; convida com "Só a carteira" e a linha mostra a escolha;
+  cadastra um mentorado com a conta nova de responsável. A conta nova (celular, 390 px) troca a senha (1234) e cai na
+  Fila sem "Minha/Equipe"; Mentorados com 1 mentorado e sem o filtro Responsável; ficha com o Responsável só para
+  leitura; ficha de outro mentorado = 404; Nova inscrição com ela fixa de responsável. Eduarda troca para "Todos os
+  mentorados" (a conta passa a ver 50) e volta (1). Diretoria: Admin → Usuários com "Acompanhamento · só a carteira" e o
+  quadro "Acessos" com "Eduarda trocou o cargo de … · Acompanhamento, Acompanhamento · só a carteira". Contas de teste
+  `teste.cart1808` e `teste.cart1809` (senha 1234, "Só a carteira"), cada uma com um "Mentorado Teste Carteira".
+  Não medido: tempo da Fila e de Mentorados no `npac_e2e_perf`.
 
 ## Fase 4 — Pessoa em duas áreas
 
