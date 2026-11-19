@@ -105,7 +105,8 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   `media-store.ts`, `media-sniff.ts`, `media-worker.ts`; cifra `mentoria-crypto.ts`; onboarding e Caixa `onboarding.*`
   (regras puras `sh/mentoria/onboarding.ts`; CAIXA e IDR são derivadas, gatilhos da 0048); importação `importacao/*`, junção das
   fontes `sh/mentoria/importacao.ts`, planilha lida por título em `ler-planilha.ts`, CPF descartado ali; `importacao_chave` impede
-  reimportar quem foi renomeado); reuniões e contatos `reunioes.*`, `contatos.controller.ts` (0052: estados e
+  reimportar quem foi renomeado; reimportar só acrescenta, quem já está não muda; tela em Configurações > Importação, com
+  atalho "Importar" no topo de Mentorados só para Admin, 18/11/2026); reuniões e contatos `reunioes.*`, `contatos.controller.ts` (0052: estados e
   remarcar/excluir no banco; IDR realizada → `data_idr`/início de Brasília + ATIVO + ações em `iniciarPelaIdr`;
   reunião realizada conclui a ação do mesmo `reuniao_tipo`; Especialista vê só inscrições/reuniões que conduz,
   nunca IDR); Fila do dia `fila.*` (0053: `mentoria_fila(agora)` calcula na leitura, SECURITY INVOKER;

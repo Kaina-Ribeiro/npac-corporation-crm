@@ -188,6 +188,7 @@ export function MentoradosLista({
   responsaveis,
   podeCriar,
   exportar = false,
+  importar = false,
   inicial,
   lembrar,
   photos = SEM_FOTOS,
@@ -196,6 +197,8 @@ export function MentoradosLista({
   responsaveis: Pessoa[];
   podeCriar: boolean;
   exportar?: boolean;
+  /** Atalho para Configurações > Importação; só Admin do módulo (a API também recusa os demais). */
+  importar?: boolean;
   inicial: Filtros;
   /** Cookie dos filtros lembrados (NPAC-46) e o valor que o servidor usou. */
   lembrar: { cookie: string; valor: string };
@@ -274,8 +277,13 @@ export function MentoradosLista({
             {resumo.pausados === 1 ? 'pausado' : 'pausados'}.
           </p>
         </div>
-        {(podeCriar || exportar) && (
+        {(podeCriar || exportar || importar) && (
           <div className="acts so-desk">
+            {importar && (
+              <Link className={quietButton} href="/acompanhamento/configuracoes?aba=importacao">
+                Importar
+              </Link>
+            )}
             {exportar && (
               <ExportarBotao
                 aba="MENTORADOS"
