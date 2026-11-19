@@ -413,6 +413,9 @@ a carteira e envios por exemplo"; "eu ja to pensando com o sistema pronto".
   um **alcance**: "Todos os mentorados" (padrão, igual a hoje) ou "Só a carteira".
 - Quem escolhe: a Diretoria e o Admin do Acompanhamento, pela regra única (mudar o alcance = trocar o cargo de alguém da
   área: o Head não mexe em outro Head nem no próprio). Não dá nem tira Admin (D9).
+- **Volta a "Todos os mentorados"** quando o cargo deixa de ser Acompanhamento ou a pessoa ganha o selo de Admin, e não
+  volta sozinha a "Só a carteira" se o cargo voltar ou o selo sair: é a volta para o lado mais aberto, de propósito (o
+  alcance só existe no cargo Acompanhamento sem o selo). A linha da pessoa na aba Perfis mostra o alcance atual.
 - Com "Só a carteira" a pessoa faz tudo o que o cargo Acompanhamento faz (1A), só nos mentorados da carteira. Fora dela,
   nada: mentorado de outra pessoa é **404**, como para a Especialista.
 - **Destino (não entra na 3B): extras por pessoa** (o "+ envios" do Gabriel), caixinhas de uma lista fechada no código. A

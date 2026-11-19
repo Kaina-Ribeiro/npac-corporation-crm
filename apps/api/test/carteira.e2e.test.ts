@@ -1,6 +1,16 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { api, closeTestApp, createTestApp, owner, resetAuthState, type Cookie } from './helpers.js';
+import type { FilaDTO } from '@npac/shared';
+import { MENTORIA_CLOCK } from '../src/mentoria/relogio.js';
+import {
+  api,
+  closeTestApp,
+  createTestApp,
+  owner,
+  resetAuthState,
+  type Cookie,
+  type FakeClock,
+} from './helpers.js';
 
 // NPAC-54, Fase 3B: alcance "Só a carteira" no cargo Acompanhamento. A Carla (Acompanhamento) fica com
 // "só a carteira": vê e cuida só das inscrições em que é a responsável; o resto do módulo dá 404.
@@ -124,6 +134,35 @@ describe('o que "só a carteira" vê', () => {
       (await h.post('/api/mentoria/carteira/transferir', { de: carlaId, para: outraId }, carla))
         .status,
     ).toBe(404);
+  });
+
+  it('não conclui item da Fila de mentorado de fora (o feito calaria o item da equipe)', async () => {
+    // Semáforo vermelho real de um mentorado da outra pessoa: sem check-in nas semanas encerradas.
+    const relogio = app.get<FakeClock>(MENTORIA_CLOCK);
+    const [d] = await owner<{ desde: string }[]>`
+      select to_char(desde, 'YYYY-MM-DD') as desde from mentoria_semaforo_inicio`;
+    try {
+      await owner`update mentoria_semaforo_inicio set desde = '2026-11-18'`;
+      relogio.set(Date.parse('2026-12-08T12:00:00-03:00'));
+      const [i] = await owner<{ id: string }[]>`
+        insert into mentoria_inscricoes (tipo, mentoria, status, inicio_jornada, termino_previsto,
+          responsavel_id)
+        values ('INDIVIDUAL', 'RDV', 'ATIVO', '2026-10-01', '2027-10-01', ${outraId}) returning id`;
+      await owner`insert into mentoria_pessoas (inscricao_id, ordem, nome, nome_norm)
+        values (${i!.id}, 1, 'Mentorado Fictício Semáforo', 'mentorado ficticio semaforo')`;
+      const chave = `semaforo:${i!.id}:2026-12-07`;
+      const daDiretoria = await h.post('/api/mentoria/fila', { escopo: 'EQUIPE' }, diretor);
+      expect((daDiretoria.body as FilaDTO).itens.map((x) => x.chave)).toContain(chave);
+      const r = await h.post('/api/mentoria/fila/feito', { chave }, carla);
+      expect(r.status).toBe(404);
+      const [f] = await owner<{ n: number }[]>`
+        select count(*)::int as n from mentoria_fila_feitos where chave = ${chave}`;
+      expect(f!.n).toBe(0);
+    } finally {
+      await owner`update mentoria_semaforo_inicio set desde = ${d!.desde}`;
+      await owner`delete from mentoria_fila_feitos`;
+      relogio.reset();
+    }
   });
 
   it('inscrição que sai da carteira some na hora (d)', async () => {

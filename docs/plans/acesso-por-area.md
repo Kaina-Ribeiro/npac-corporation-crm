@@ -190,8 +190,10 @@ Branch `feat/NPAC-54-fase-3b-carteira`. Spec: "Fase 3B — Alcance 'só a cartei
   o caso. A regra de responsável não mudou: o perfil continua `ACOMPANHAMENTO`.
 - Testes antigos com expectativa trocada: `GET mentoria/eu` passou a trazer `soCarteira` (`mentoria-v2-base`, `cargos`,
   `acesso-por-area` da API); `rls-por-consulta` ganhou a conta "só a carteira" e as expressões novas.
-- Fora da 3B, sem risco de dado pessoal: `mentoria_fila_feitos` (o "feito" da Fila) continua lido e gravado pelo perfil;
-  quem tem "só a carteira" poderia marcar como feito um item fora da carteira se soubesse a chave (ids). Admin → Usuários
+- `mentoria_fila_feitos` (o "feito" da Fila): as políticas continuam pelo perfil, mas a única rota que grava
+  (`POST mentoria/fila/feito`) só aceita item que está na fila de quem pede, e essa fila vem da RLS: item de mentorado
+  de fora dá 404 (caso no `carteira.e2e.test.ts`, com semáforo vermelho real). Recortar a política no banco fica como
+  melhoria, se um dia outra rota gravar ali. Admin → Usuários
   mostra "Acompanhamento · só a carteira", mas o alcance se troca pela aba Perfis do módulo (Diretoria e Admin).
 
 ## Fase 4 — Pessoa em duas áreas
