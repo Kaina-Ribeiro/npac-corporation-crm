@@ -435,7 +435,7 @@ a carteira e envios por exemplo"; "eu ja to pensando com o sistema pronto".
 
 | Tela, para quem tem "Só a carteira" | O que muda |
 |---|---|
-| Fila | Só itens da carteira (pergunta b: só "Minha fila" ou também "Equipe") |
+| Fila | Só itens da carteira, só "Minha fila" (sem o botão "Equipe") |
 | Mentorados, Ficha, Plano, Reuniões, PMEs e ciclos | Só a carteira; o filtro "Responsável" não aparece |
 | Cadastro de mentorado (2A) | Responsável = ela, fixo (o campo mostra o nome dela, sem trocar) |
 | Configurações | O mesmo que o cargo Acompanhamento já vê |
@@ -471,8 +471,7 @@ tarefas, reuniões e metas juntas. O que ela registrou fica no histórico da ins
 ### Perguntas ao Gabriel (respostas entram aqui)
 
 - (a) CSV de Mentorados para quem tem "só a carteira": ✅ **só da carteira**, sem contato, como o cargo Acompanhamento (Gabriel, 19/11, "A: só da carteira").
-- (b) Fila: só "Minha fila" ou também a visão "Equipe" (itens da carteira de outros perfis, ex.: Operação)? Recomendo:
-  só "Minha fila".
+- (b) Fila: ✅ **só "Minha fila"**, sem o botão "Equipe" (Gabriel, 19/11, "A: só Minha fila").
 - (c) Push da Fila: só dos itens da carteira dela? Recomendo: sim.
 - (d) Inscrição tirada da carteira some para ela na hora, como acima? Recomendo: sim.
 - (e) Ela pode trocar o responsável de um mentorado da carteira (passar para outra pessoa)? Recomendo: não, só o Admin
