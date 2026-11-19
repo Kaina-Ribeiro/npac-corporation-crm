@@ -1,6 +1,6 @@
 # Spec: acesso por área (Head por área + conta Mestre)
 
-NPAC-54. Pedido do Gabriel, 19/11/2026. Status: fase 1 mesclada (migration `0072`); M1 confirmada por
+NPAC-54. Pedido do Gabriel, 19/11/2026. Status: fases 1 e 2 mescladas (migrations `0072` e `0073`); M1 confirmada por
 ele; as demais decisões marcadas "minha" são recomendações que ele pode trocar. Plano por fases:
 `docs/plans/acesso-por-area.md`.
 

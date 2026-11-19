@@ -172,8 +172,28 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
 ## Papéis e acesso
 
 - **DIRETOR** ("Diretoria") > **HEAD** > SDR / CLOSER. `isLeader(role)` (`LEADER_ROLES` = DIRETOR+HEAD), nunca `role === 'HEAD'`.
-- Só a Diretoria dá/tira liderança e administra contas de Head/Diretoria (`guardLeadership` em
-  `admin/users.ts`); Head gerencia SDR/closer. Na RLS, `app_role()` devolve `'HEAD'` para DIRETOR (0021).
+- **Regra única de quem gerencia quem** (NPAC-54, Fase 2, 0073): função pura `podeGerenciar` em `sh/areas.ts`
+  (`@npac/shared/areas`, sem zod) e a gêmea em SQL `area_regra`, que rodam o **mesmo arquivo de casos**
+  (`packages/shared/test/areas-casos.ts`, nos testes `shared/test/areas.test.ts` e `db/test/areas-regra.test.ts`, que
+  compara veredito e frase): mudou uma, mude a outra e os casos. A Diretoria (Mestre) faz tudo, menos mexer no próprio
+  cargo; o Head de cada área (Head do Comercial; Admin do Acompanhamento) vê e gerencia só as contas com vínculo na área
+  dele, convida e aprova com cargo dessa área, **nunca dá nem tira Head/selo** (D9), não mexe em outro Head e, em conta com
+  duas áreas, só troca o cargo da área dele (senha, MFA, desativar e e-mail só a Diretoria, M5). Pôr ou tirar área e dar
+  Diretoria: só a Mestre. Respostas: invisível 404, enxerga mas não pode 403 com o motivo (`MOTIVO`), o próprio cargo 400.
+  Na API: `admin/areas.ts` (`lerContas`/`lerConta` por `area_contas()`, `aplicar`, `definirMembro`/`removerMembro`/
+  `definirMestre`, que auditam `area.membro.definido`/`removido`/`area.mestre.definido` com área, cargo e Head) e a guarda
+  `@Gerente()` (Diretoria ou Head de alguma área; comercial sem isso 403, Acompanhamento sem o selo 404) em
+  `admin/users` e `admin/access-requests`; transferir leads continua do comercial (`admin:manage`). No banco,
+  `area_definir_membro`, `area_remover_membro`, `area_definir_mestre`, `area_gerencia` e `push_purge_user` decidem por
+  `area_decidir` (regra com quem está logado). A API não grava mais `user.role`: conta nova é INSERT + `area_definir_membro`;
+  troca de cargo vai pelas funções. `GET admin/users` traz `mestre`, `areas` (o Head vê só as da área dele) e `outraArea`;
+  `/api/me` traz `mestre` e `areas`, e `modules.mentoria` vem do vínculo. Na RLS, `app_role()` devolve `'HEAD'` para
+  DIRETOR (0021).
+- **Registro de acessos** (D10, D11): `GET admin/acessos?page=` (`admin/acessos.ts`), só a Diretoria (demais 404), 20 por
+  página, lido do `audit_log`: conta criada, pedido aprovado/recusado, cargo, Head/selo, área posta/tirada, Diretoria,
+  senha, MFA, desativar/reativar; cada linha com `tipo`, `ator`, `alvo` (nomes lidos da conta na hora), `area`, `cargo`,
+  `head`. Logins e o resto da auditoria ficam fora. `admin.user.update` com `registro: 2` (desde a Fase 2) só entra se
+  mudou `ativo`; o cargo vem de `area.*`. A tela (cartão "Acessos") é da Fase 3.
 - **Fonte do cargo = `area_membros`** (NPAC-54, Fase 1, 0072; plano `docs/plans/acesso-por-area.md`, spec
   `docs/superpowers/specs/2026-11-19-acesso-por-area-design.md`): uma linha por (pessoa, área `COMERCIAL`/`ACOMPANHAMENTO`,
   cargo, `head`); a Diretoria é `user.mestre` (sem linha). Comercial: cargo SDR/CLOSER/HEAD, `head` = HEAD. Acompanhamento:
@@ -182,7 +202,7 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   Acompanhamento). `app_role()`, `mentoria_perfil()`, `mentoria_perfil_de()`, `mentoria_admin()`, destinatários do push e
   aviso de formulário leem da fonte, com o mesmo resultado (`db/test/areas-equivalencia.test.ts`). Escrita só por
   `area_definir_membro`, `area_remover_membro`, `area_definir_mestre` (`area_gerencia` responde "pode mexer na conta"),
-  ainda com a regra de hoje; a regra única por área é da Fase 2. Invariantes no commit: conta ativa que não é Diretoria tem
+  com a regra única (item acima). Invariantes no commit: conta ativa que não é Diretoria tem
   vínculo; sempre uma Diretoria ativa. **Compatibilidade até a Fase 5**: escrita em `user.role` (API de hoje, seeds,
   testes) é traduzida para o vínculo (um cargo por pessoa, como antes); `mentoria_perfis` é visão (npac_app só lê; o dono
   do banco grava por ela) e `mentoria_definir_perfil` chama `area_definir_membro`. Coluna `mestre` só pelas funções.
@@ -222,11 +242,12 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   `/is-username-available` desligados. Senha mínima 3 (provisório, decisão de 29/10/2026: no dev
   todas são `123`; as regras voltam no fim).
 - **Pedido de acesso** (29/10/2026): `/login/solicitar` grava em `access_requests`, fora de `user`
-  (pendente não loga). Head/Diretoria aprovam no Admin escolhendo o cargo (`guardLeadership`);
+  (pendente não loga). Quem aprova escolhe o cargo (regra única: a Diretoria vê todos e aprova em qualquer área; o
+  Head de cada área vê e aprova só os da área dele, com cargo dessa área, M9);
   recusar apaga; expira em 7 dias; 3/hora por IP; resposta igual exista ou não o usuário (hash
   sempre, para o tempo não revelar). Guarda a **área** da tela (`access_requests.area`, 0068: `COMERCIAL` por
   `/login/solicitar`, `ACOMPANHAMENTO` por `/login/acompanhamento/solicitar`; `ACCESS_AREAS` em `sh/enums.ts`) e o
-  Admin mostra a etiqueta; quem aprova é o mesmo (a fila da Head do Acompanhamento é a Fase 5). A liderança segue redefinindo a senha no Admin;
+  Admin mostra a etiqueta (a tela da fila do Admin do Acompanhamento é a Fase 3). A liderança segue redefinindo a senha no Admin;
   Diretoria trancada: `reset-password-cli.js <usuário> [--mfa]` no shell da api (`db/src/reset-password.ts`).
 - **Esqueci minha senha por e-mail** (NPAC-50, 18/11/2026, plano `docs/plans/pedidos-18-11.md`, Fase 2):
   `/login/esqueci` (usuário ou e-mail) → `POST /api/auth/forgot-password` → e-mail "Crie a sua senha nova"

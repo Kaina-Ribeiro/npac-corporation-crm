@@ -13,7 +13,7 @@ Legenda: ⏳ a fazer · 🔧 em andamento · ✅ feito · ❌ travado (dizer por
 | Fase | O que entrega | Estimativa | Status |
 |---|---|---|---|
 | 1 | Banco: a tabela de membros vira a fonte do cargo, sem mudar nada na tela | 2–3 dias | ✅ (migration 0072; falta só o roteiro no ITODEV, ver notas) |
-| 2 | Regra única de quem gerencia quem, na API e no banco | 2 dias | ⏳ |
+| 2 | Regra única de quem gerencia quem, na API e no banco | 2 dias | ✅ (migration 0073; ver notas) |
 | 3 | Telas: equipe por área (Admin do CRM e aba Perfis do módulo) | 2–3 dias | ⏳ |
 | 4 | Pessoa em duas áreas | 2 dias | ⏳ |
 | 5 | Limpeza da compatibilidade | 1 dia | ⏳ |
@@ -73,11 +73,33 @@ Branch `feat/NPAC-54-fase-2-regra`. Spec: "Regra única", "API", "Fechamento do 
 
 | # | Tarefa | Pronto quando | Status |
 |---|---|---|---|
-| 2.1 | `packages/shared/src/areas.ts`: tipos, `podeGerenciar` e o arquivo de casos (todas as linhas da tabela da spec + os anti-objetivos) | `pnpm --filter @npac/shared test` verde com a tabela de casos; export `@npac/shared/areas` sem zod | ⏳ |
-| 2.2 | Gêmea em SQL dentro de `area_definir_membro`, `area_remover_membro`, `area_definir_mestre`, `area_gerencia`; `push_purge_user` usa `area_gerencia`; selo de Admin só pela Diretoria | O mesmo arquivo de casos roda em `db/test` contra o SQL e dá o mesmo resultado | ⏳ |
-| 2.3 | `admin/users` e `admin/access-requests`: sai `guardLeadership`, entra a regra; `@AllRoles()` + guarda "Mestre ou Head de alguma área"; lista e pedidos filtrados por área; escrita de cargo só por `area_definir_membro` | e2e novo por ator (Diretoria, Head do Comercial, Head do Acompanhamento): convida, aprova, troca cargo, redefine senha, desativa; 404 e 403 da regra; `admin.e2e`, `cargos.e2e`, `access-requests.e2e` atuais verdes | ⏳ |
-| 2.4 | `/api/me` com `mestre` e `areas`; `PUT /mentoria/perfis` recusa mudar `admin` sem ser Diretoria; leitores do cargo no código passam a olhar o vínculo | e2e: Admin do módulo tenta dar e tirar o selo de outro → 403; `acompanhamento-sem-comercial` verde com o caso "sem Head recebe 404 em `admin/*`" | ⏳ |
-| 2.5 | Auditoria das ações novas (com `area`, `cargo`, `head`) e `GET admin/acessos`, o registro de acessos da Diretoria (spec, D10); `CLAUDE.md` e status | e2e: cada ação da tabela da spec vira uma linha em `admin/acessos`; login e ação de lead não aparecem; quem não é Diretoria recebe 404; `pnpm lint && pnpm typecheck`; suítes `shared`, `db`, `api` verdes | ⏳ |
+| 2.1 | `packages/shared/src/areas.ts`: tipos, `podeGerenciar` e o arquivo de casos (todas as linhas da tabela da spec + os anti-objetivos) | `pnpm --filter @npac/shared test` verde com a tabela de casos; export `@npac/shared/areas` sem zod | ✅ |
+| 2.2 | Gêmea em SQL dentro de `area_definir_membro`, `area_remover_membro`, `area_definir_mestre`, `area_gerencia`; `push_purge_user` usa `area_gerencia`; selo de Admin só pela Diretoria | O mesmo arquivo de casos roda em `db/test` contra o SQL e dá o mesmo resultado | ✅ |
+| 2.3 | `admin/users` e `admin/access-requests`: sai `guardLeadership`, entra a regra; `@AllRoles()` + guarda "Mestre ou Head de alguma área"; lista e pedidos filtrados por área; escrita de cargo só por `area_definir_membro` | e2e novo por ator (Diretoria, Head do Comercial, Head do Acompanhamento): convida, aprova, troca cargo, redefine senha, desativa; 404 e 403 da regra; `admin.e2e`, `cargos.e2e`, `access-requests.e2e` atuais verdes | ✅ |
+| 2.4 | `/api/me` com `mestre` e `areas`; `PUT /mentoria/perfis` recusa mudar `admin` sem ser Diretoria; leitores do cargo no código passam a olhar o vínculo | e2e: Admin do módulo tenta dar e tirar o selo de outro → 403; `acompanhamento-sem-comercial` verde com o caso "sem Head recebe 404 em `admin/*`" | ✅ |
+| 2.5 | Auditoria das ações novas (com `area`, `cargo`, `head`) e `GET admin/acessos`, o registro de acessos da Diretoria (spec, D10); `CLAUDE.md` e status | e2e: cada ação da tabela da spec vira uma linha em `admin/acessos`; login e ação de lead não aparecem; quem não é Diretoria recebe 404; `pnpm lint && pnpm typecheck`; suítes `shared`, `db`, `api` verdes | ✅ |
+
+**Notas da Fase 2 (19/11/2026):**
+- Migration `0073_area_regra`: `area_regra` (gêmea pura, sem tabela), `area_conta_json`, `area_decidir` (regra com quem está
+  logado), `area_exigir` (42501 com o motivo; invisível = "Acesso negado") e `area_contas()` (contas e vínculos só para a
+  Diretoria e os Heads, para a API aplicar a regra). Testes: `shared/test/areas.test.ts` e `db/test/areas-regra.test.ts`
+  (105 casos, mesmo veredito e mesma frase) e `apps/api/test/acesso-por-area.e2e.test.ts` (18 casos por ator, conta em duas
+  áreas, `/api/me` e o registro de acessos).
+- **Testes antigos que a spec mudou** (só a expectativa, nenhum outro): Head do Comercial não vê a conta da Carla (404 e
+  fora da lista; `cargos.e2e`, `admin.spec.ts` do web) nem o pedido do Acompanhamento (`access-requests.e2e`, M9); o Admin
+  do módulo não troca o próprio perfil (`mentoria-v2-base.e2e`, passa a trocar o de outra conta); `area_gerencia` do Admin
+  do módulo sobre a área dele passa a ser verdadeiro (`db/test/areas-compat.test.ts`, que descrevia a regra de hoje).
+- **Conta em duas áreas pelo `PATCH`**: troca só o cargo da área do campo Cargo e não tira a outra (M5). Se o cargo pedido
+  é de outra área e a conta tem uma só, é troca de área (só a Diretoria: define a nova e tira a antiga). O `PATCH` com perfil
+  numa conta cujo resumo é comercial dá 400 (o resolvedor ainda pensa em um cargo por pessoa). **Fase 4:** rotas por área e,
+  se fizer sentido, o 400 "use o caminho por área" no `PATCH` de conta com duas áreas.
+- **Conta nova** nasce do INSERT em `user` (o gatilho de compatibilidade cria o vínculo provisório) e o cargo é gravado
+  por `area_definir_membro`, que confere a regra no banco; a Diretoria convidada nasce do próprio INSERT (a API conferiu).
+  **Fase 5:** sem o gatilho, o INSERT passa a precisar de outro caminho (função que cria a conta já com o vínculo).
+- **Ficou para a Fase 4:** `MentoriaGuard`, `PerfilGuard` e o MFA do módulo (`MFA_ROLES`) ainda olham o `role`; o web
+  ainda decide `modules.mentoria` pelo resumo em alguns lugares. Só importam para quem tem as duas áreas.
+- **Ficou para a Fase 3:** a tela do registro (`admin/acessos` devolve `tipo`, ator, alvo, área, cargo; a frase é do web) e o
+  "entrou há X" (D12, tarefa 3.4).
 
 **Pronto quando (fase):** pela API, a `duda` cria uma conta de Operação e aprova um pedido do
 Acompanhamento; a `ana` não enxerga contas do Acompanhamento; ninguém além da Diretoria dá Head.
