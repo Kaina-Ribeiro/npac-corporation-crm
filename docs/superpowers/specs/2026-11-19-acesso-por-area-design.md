@@ -426,7 +426,7 @@ a carteira e envios por exemplo"; "eu ja to pensando com o sistema pronto".
 
 ### Na tela (textos novos, precisam do sim do Gabriel)
 
-- Aba Perfis do módulo, na linha da pessoa com cargo Acompanhamento: **"Vê: Todos os mentorados / Só a carteira"**. O mesmo
+- Aba Perfis do módulo, na linha da pessoa com cargo Acompanhamento: **"Alcance: Todos os mentorados / Só a carteira"** (Gabriel, 19/11: tira o "Vê"; "Alcance" escolhido entre "Alcance", "Permissões" e "Acessos": "Acessos" já é o quadro da Diretoria e "Permissões" fica para a futura linha de extras; a confirmar). O mesmo
   campo no **Convidar** e ao **aprovar pedido de acesso** (com "Todos os mentorados" marcado). Outros cargos não mostram o campo.
 - Nas listas (aba Perfis e Admin → Usuários): **"Acompanhamento · só a carteira"**. O nome "Acompanhamento da carteira" (3A da
   Eduarda) não vira cargo (pendência: avisar a Eduarda).
