@@ -1,6 +1,7 @@
 import {
   applyDecorators,
   Controller,
+  Inject,
   Injectable,
   NotFoundException,
   UseGuards,
@@ -8,24 +9,27 @@ import {
   type CanActivate,
   type ExecutionContext,
 } from '@nestjs/common';
-import type { Role } from '@npac/shared';
+import type { Db } from '@npac/db';
 import type { FastifyRequest } from 'fastify';
 import { AllRoles } from '../auth/all-roles.decorator.js';
 import { RequiresMfa } from '../auth/requires-mfa.decorator.js';
+import { DB } from '../common/db/db.module.js';
 import { AvisosRearme } from './avisos.scheduler.js';
-import { PerfilGuard } from './perfil.guard.js';
-
-const PAPEIS: readonly Role[] = ['DIRETOR', 'ACOMPANHAMENTO'];
+import { acessoDoPedido, PerfilGuard } from './perfil.guard.js';
 
 /**
- * Só Diretoria e Acompanhamento enxergam o módulo (D1). Os demais recebem 404, não 403: o
- * módulo não se revela (D14). A RLS (mentoria_perfil, mentoria_admin) repete a regra no banco.
+ * Só a Diretoria e quem tem vínculo no Acompanhamento enxergam o módulo (D1; NPAC-54 Fase 4: pelo
+ * vínculo em `area_membros`, não pelo resumo `role`, para quem está nas duas áreas). Os demais
+ * recebem 404, não 403: o módulo não se revela (D14). A RLS (mentoria_perfil, mentoria_admin)
+ * repete a regra no banco.
  */
 @Injectable()
 export class MentoriaGuard implements CanActivate {
-  canActivate(ctx: ExecutionContext): boolean {
-    const u = ctx.switchToHttp().getRequest<FastifyRequest>().user;
-    if (!u || !PAPEIS.includes(u.role)) throw new NotFoundException();
+  constructor(@Inject(DB) private readonly db: Db) {}
+
+  async canActivate(ctx: ExecutionContext): Promise<boolean> {
+    const eu = await acessoDoPedido(this.db, ctx.switchToHttp().getRequest<FastifyRequest>());
+    if (!eu.membro) throw new NotFoundException();
     return true;
   }
 }

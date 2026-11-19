@@ -227,6 +227,21 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   (ex.: Envios) ficam para quando houver o primeiro extra real. Rótulos e regra pura em `sh/alcance.ts`
   (`@npac/shared/alcance`, fora de `cargos.ts` pelo peso de `/leads`). Testes: `db/test/carteira.test.ts`,
   `api/test/carteira.e2e.test.ts`, `e2e/acompanhamento-carteira.spec.ts`.
+- **Pessoa em duas áreas** (NPAC-54, Fase 4, 19/11/2026): só a Diretoria põe, troca ou tira alguém de uma área, por
+  `PUT admin/users/:id/areas/:area` (`{ cargo, head? }`; `head` só no Acompanhamento, ausente mantém) e
+  `DELETE admin/users/:id/areas/:area` (`definirArea`/`removerArea` em `admin/users.ts`; a última área não sai, 400). O
+  Head recebe 404 na conta que não enxerga e 403 "Só a Diretoria põe ou tira alguém de uma área" na que enxerga.
+  `PATCH` com cargo (`role`/`perfil`/`moduloAdmin`/`alcance`) de conta com duas áreas: a Diretoria recebe 400 (usa a
+  rota por área; dar Diretoria e as caixas "Atua como" seguem pelo `PATCH`); o Head troca o cargo da área dele pelo
+  `PATCH` (Comercial) ou pela aba Perfis (M5). O módulo é aberto pelo **vínculo**, não pelo resumo `role`:
+  `MentoriaGuard` e `PerfilGuard` leem `lerAcesso` (`perfil.guard.ts`: perfil, selo, carteira e `membro` = Diretoria ou
+  vínculo no Acompanhamento, uma consulta por pedido, guardada em `req.mentoriaAcesso`); o MFA do módulo (`session.guard.ts`)
+  consulta o mesmo só em rota com `@RequiresMfa`, sem autenticador e com `MFA_LIGADO`. Rotas do comercial seguem pelo
+  resumo (cargo comercial), sem consulta nova. Web: `modules.mentoria` (do vínculo) decide menu, `/`, Mais, 404 e o aviso
+  de MFA (`precisaMfa`); quem tem as duas áreas navega como a Diretoria (menu do comercial + Acompanhamento) e cada tela de
+  entrada leva à área dela. No Admin da Diretoria (`components/areas-conta.tsx`): "Adicionar a outra área" (select com
+  os cargos da área que falta), numa conta com as duas um campo Cargo por área, o selo e "Tirar de uma área"; as
+  etiquetas mostram o cargo de cada área. e2e `apps/api/test/duas-areas.e2e.test.ts`, `e2e/duas-areas.spec.ts`.
 - **Fonte do cargo = `area_membros`** (NPAC-54, Fase 1, 0072; plano `docs/plans/acesso-por-area.md`, spec
   `docs/superpowers/specs/2026-11-19-acesso-por-area-design.md`): uma linha por (pessoa, área `COMERCIAL`/`ACOMPANHAMENTO`,
   cargo, `head`); a Diretoria é `user.mestre` (sem linha). Comercial: cargo SDR/CLOSER/HEAD, `head` = HEAD. Acompanhamento:
@@ -317,7 +332,7 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   (`mentoria_perfis`: Acompanhamento, Operação, Especialista, Mentor) e o selo de Admin decidem o resto, por RLS
   (`mentoria_ve`, `mentoria_edita`; Diretoria é Admin sem linha). Cargo sem perfil vê "Peça ao Admin" e Mentor vê
   "Seu painel chega em breve", sem menu (`components/acompanhamento/sem-acesso.tsx`, no layout de `(app)`); API 404 em tudo menos
-  `mentoria/eu`. MFA obrigatório nas rotas `mentoria/*` para Diretoria e Acompanhamento, 404 para os demais. O cargo não vê nada do comercial
+  `mentoria/eu`. MFA obrigatório nas rotas `mentoria/*` para quem usa o módulo (Diretoria ou vínculo no Acompanhamento), 404 para os demais. O cargo não vê nada do comercial
   (05/11/2026): `PermissionsGuard` dá 404 em toda rota sem `@AllRoles()` (`api/auth/all-roles.decorator.ts`;
   hoje `me`, `events`, `push` e o módulo), e o web mostra só as abas do módulo (`hasCommercialAccess`,
   sidebar/Ctrl+K/Mais/rodapé). Telas comerciais ficam em `web/app/(app)/(comercial)/`, cujo layout

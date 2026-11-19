@@ -11,9 +11,11 @@ const API = process.env.API_INTERNAL_URL ?? 'http://localhost:4000';
 /** Último endereço de ficha aberta: só o id, para o menu "Ficha do mentorado" voltar a ela. */
 export const COOKIE_ULTIMA_FICHA = 'npac_ultima_ficha';
 
-/** Diretoria e Acompanhamento precisam de MFA ativo para o módulo (D18), quando o MFA está ligado. */
-export const precisaMfa = (me: Me) =>
-  MFA_LIGADO && (me.role === 'DIRETOR' || me.role === 'ACOMPANHAMENTO') && !me.twoFactorEnabled;
+/**
+ * Quem usa o módulo (Diretoria ou vínculo no Acompanhamento, `modules.mentoria`; NPAC-54 Fase 4)
+ * precisa de MFA ativo nele (D18), quando o MFA está ligado.
+ */
+export const precisaMfa = (me: Me) => MFA_LIGADO && me.modules.mentoria && !me.twoFactorEnabled;
 
 /**
  * Sessão de quem pode usar o módulo. Sem acesso: 404 (o módulo não se revela, D14). Sem MFA:

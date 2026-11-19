@@ -16,7 +16,7 @@ Legenda: ⏳ a fazer · 🔧 em andamento · ✅ feito · ❌ travado (dizer por
 | 2 | Regra única de quem gerencia quem, na API e no banco | 2 dias | ✅ (migration 0073; ver notas) |
 | 3 | Telas: equipe por área (Admin do CRM e aba Perfis do módulo) | 2–3 dias | ✅ (PRs #140 e #141; roteiro no ITODEV em 19/11, ver notas) |
 | 3B | Alcance "só a carteira" no cargo Acompanhamento (2B): a pessoa faz o que o cargo faz, só nos mentorados em que é responsável; a Eduarda escolhe por pessoa | 3–4 dias | ✅ (PR #144, migration 0075; roteiro no ITODEV v0.19.12-rc em 19/11, ver notas) |
-| 4 | Pessoa em duas áreas | 2 dias | ⏳ |
+| 4 | Pessoa em duas áreas | 2 dias | 🔧 (PR aberto, parado para a leitura; ver notas) |
 | 5 | Limpeza da compatibilidade | 1 dia | ⏳ |
 
 Estimativas são minhas (sem medição): 9–11 dias de sessão no total.
@@ -215,14 +215,38 @@ Branch `feat/NPAC-54-fase-4-duas-areas`. Spec: "API" (rotas por área), "Telas" 
 
 | # | Tarefa | Pronto quando | Status |
 |---|---|---|---|
-| 4.1 | `PUT` e `DELETE admin/users/:id/areas/:area` (só Diretoria); `PATCH` em conta com duas áreas responde 400 | e2e: Diretoria põe a `sonia` como Especialista e tira; Head recebe 404/403 | ⏳ |
-| 4.2 | Guardas: `MentoriaGuard` pelo vínculo; `PerfilGuard` com `membro`; MFA do módulo pelo vínculo | e2e novo `duas-areas`: a `sonia` usa as rotas do comercial como Closer e as do módulo como Especialista (só as reuniões que conduz); `acompanhamento-sem-comercial` verde | ⏳ |
-| 4.3 | Web: menu, `/`, `not-found`, Mais e `modules.mentoria` pelo vínculo; "Adicionar a outra área" no Admin da Diretoria | Playwright: `sonia` entra por `/login` e vê os dois menus; entra por `/login/acompanhamento` e cai no módulo | ⏳ |
-| 4.4 | Head de cada área vê a pessoa com `outraArea`; senha e desativar bloqueados com a frase da spec | Playwright + capturas 375 / 768 / 1024 / 1440 | ⏳ |
+| 4.1 | `PUT` e `DELETE admin/users/:id/areas/:area` (só Diretoria); `PATCH` em conta com duas áreas responde 400 | e2e: Diretoria põe a `sonia` como Especialista e tira; Head recebe 404/403 | ✅ |
+| 4.2 | Guardas: `MentoriaGuard` pelo vínculo; `PerfilGuard` com `membro`; MFA do módulo pelo vínculo | e2e novo `duas-areas`: a `sonia` usa as rotas do comercial como Closer e as do módulo como Especialista (só as reuniões que conduz); `acompanhamento-sem-comercial` verde | ✅ |
+| 4.3 | Web: menu, `/`, `not-found`, Mais e `modules.mentoria` pelo vínculo; "Adicionar a outra área" no Admin da Diretoria | Playwright: `sonia` entra por `/login` e vê os dois menus; entra por `/login/acompanhamento` e cai no módulo | ✅ (textos aprovados: "1A, 2A, 3A") |
+| 4.4 | Head de cada área vê a pessoa com `outraArea`; senha e desativar bloqueados com a frase da spec | Playwright + capturas 375 / 768 / 1024 / 1440 | ✅ |
 | 4.5 | Roteiro no ITODEV + `CLAUDE.md` e status | Lista do que passou entregue ao Gabriel | ⏳ |
 
 **Pronto quando (fase):** uma conta com as duas áreas trabalha nas duas com um login, e nenhum Head
 alcança a outra área por ela.
+
+**Notas da Fase 4 (19/11/2026):**
+- Sem migration: as funções `area_definir_membro`/`area_remover_membro` (0073/0075) já repetiam a regra e recusavam a
+  última área. A rota aplica `VER` (404 para o Head que não enxerga) e `REMOVER_AREA` (só a Diretoria; 403 "Só a
+  Diretoria põe ou tira alguém de uma área" para o Head que enxerga). Erros do banco viram 400/404 por `erroDoBanco`.
+- **`PATCH` em conta com duas áreas:** o 400 vale para a Diretoria (que vê os dois cargos e usa a rota por área). O Head
+  continua trocando o cargo da área dele pelo `PATCH` (M5; teste da Fase 2 mantido). Dar a Diretoria e as caixas "Atua como"
+  seguem pelo `PATCH`. Frase da API (a tela não a mostra): "Conta em mais de uma área: troque o cargo em cada área".
+- **Guardas:** `MentoriaGuard` e `PerfilGuard` leem uma vez por pedido `lerAcesso` (`membro` = Diretoria ou vínculo no
+  Acompanhamento); o MFA do módulo só consulta em rota com `@RequiresMfa` e sem autenticador (MFA desligado: não testado
+  ligado). Ganhar ou perder a área vale no pedido seguinte, sem novo login.
+- **Textos novos de tela** (Gabriel, 19/11, "1A, 2A, 3A": select "Tirar de uma área" na linha, confirmações e avisos abaixo, "Adicionar a outra área" em toda linha): confirmação "Adicionar Sônia ao Acompanhamento como Especialista?"
+  (+ a frase de dados sensíveis que já existe), aviso "Sônia agora também é Especialista", "Tirar de uma área", "Tirar Sônia
+  do Acompanhamento?" e "Sônia saiu do Acompanhamento". "Adicionar a outra área" é da spec.
+- **Tirar de uma área com trabalho em aberto** (fica para depois, sem código nesta fase): tirar o Comercial não mexe nos
+  leads em que a pessoa é SDR (`leads.sdr_id`) nem nos em que é closer (`leads.closer_id`, `meetings.closer_id`): ficam no
+  nome dela, a liderança vê e passa os de SDR por "Passar leads para…". A tela só lembra dos leads de SDR (o mesmo
+  `confirmarLeads` da troca de cargo); nada avisa dos de closer. Tirar o Acompanhamento não mexe nas inscrições em que
+  ela é responsável: a Fila trata como responsável sem perfil (o item vai a todos do perfil) e `GET mentoria/responsaveis`
+  a mostra como quem saiu, para o Admin transferir a carteira; a tela não avisa. **Recomendação:** na confirmação de
+  "Tirar de uma área", contar e dizer o que fica no nome da pessoa (leads como SDR e como closer; inscrições como
+  responsável) e apontar "Passar leads para…" / transferir carteira, com texto aprovado pelo Gabriel.
+- **Fica de fora:** foto de quem tem as duas áreas para quem só é do Acompanhamento (`conta/foto.controller.ts` decide pelo
+  resumo `role`; aparece a inicial). Precisa ler o vínculo de outra conta fora da RLS (função nova); anotar para a Fase 5.
 
 ## Fase 5 — Limpeza da compatibilidade
 
@@ -236,6 +260,10 @@ inteira sem rollback. Spec: "Compatibilidade".
 | 5.3 | `CLAUDE.md`, status e nota de que `user.role` é resumo (M7) | Suítes `db`, `api`, `shared` e e2e do web verdes | ⏳ |
 
 **Notas para a Fase 5:**
+- Foto de quem tem as duas áreas (vinda da Fase 4): `conta/foto.controller.ts` (`visivel`, em `users/:id/photo` e
+  `team/photos`) decide pelo resumo `role`, então quem só é do Acompanhamento vê a inicial no lugar da foto de uma conta
+  com as duas áreas (resumo comercial). Falta uma função `SECURITY DEFINER` que diga "esta conta tem vínculo no
+  Acompanhamento" (a RLS de `area_membros` não mostra a linha de outra pessoa) e trocar `visivel` para usá-la.
 - O convite de conta nova ainda registra a área pelo gatilho de compatibilidade de `user.role` (insert com `role`); antes
   de remover o gatilho, o convite precisa de caminho próprio no banco.
 
