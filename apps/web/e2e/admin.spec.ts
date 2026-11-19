@@ -54,13 +54,14 @@ test('HEAD convida usuário, vê auditoria e registra pedido LGPD', async ({ pag
   await expect(page.getByText('Ale agora é SDR')).toBeVisible();
   // SDR e Closer não têm caixa: o cargo define.
   await expect(page.getByLabel('Atua como Closer para Ale')).toHaveCount(0);
-  for (const email of ['ronaldo@npac.com.br', 'carla@npac.com.br'])
-    await expect(
-      page
-        .getByRole('listitem')
-        .filter({ hasText: email })
-        .getByText('Só a Diretoria altera esta conta'),
-    ).toBeVisible();
+  await expect(
+    page
+      .getByRole('listitem')
+      .filter({ hasText: 'ronaldo@npac.com.br' })
+      .getByText('Só a Diretoria altera esta conta'),
+  ).toBeVisible();
+  // NPAC-54, Fase 2: o Head do Comercial só vê as contas do Comercial.
+  await expect(page.getByRole('listitem').filter({ hasText: 'carla@npac.com.br' })).toHaveCount(0);
   await page.screenshot({ path: 'test-results/admin.png', fullPage: true });
 
   await page.getByRole('tab', { name: 'Auditoria' }).click();

@@ -165,19 +165,22 @@ function CamposFiltro({
           </option>
         ))}
       </select>
-      <select
-        className={`${control} todo`}
-        aria-label="Responsável"
-        value={f.responsavelId ?? ''}
-        onChange={(e) => mudar({ ...f, responsavelId: e.target.value || undefined })}
-      >
-        <option value="">Todos os responsáveis</option>
-        {responsaveis.map((r) => (
-          <option key={r.id} value={r.id}>
-            {r.nome}
-          </option>
-        ))}
-      </select>
+      {/* Sem lista ("só a carteira", Fase 3B): todos são de quem vê, sem o filtro. */}
+      {responsaveis.length > 0 && (
+        <select
+          className={`${control} todo`}
+          aria-label="Responsável"
+          value={f.responsavelId ?? ''}
+          onChange={(e) => mudar({ ...f, responsavelId: e.target.value || undefined })}
+        >
+          <option value="">Todos os responsáveis</option>
+          {responsaveis.map((r) => (
+            <option key={r.id} value={r.id}>
+              {r.nome}
+            </option>
+          ))}
+        </select>
+      )}
     </>
   );
 }
@@ -188,6 +191,7 @@ export function MentoradosLista({
   responsaveis,
   podeCriar,
   exportar = false,
+  importar = false,
   inicial,
   lembrar,
   photos = SEM_FOTOS,
@@ -196,6 +200,8 @@ export function MentoradosLista({
   responsaveis: Pessoa[];
   podeCriar: boolean;
   exportar?: boolean;
+  /** Atalho para Configurações > Importação; só Admin do módulo (a API também recusa os demais). */
+  importar?: boolean;
   inicial: Filtros;
   /** Cookie dos filtros lembrados (NPAC-46) e o valor que o servidor usou. */
   lembrar: { cookie: string; valor: string };
@@ -274,8 +280,13 @@ export function MentoradosLista({
             {resumo.pausados === 1 ? 'pausado' : 'pausados'}.
           </p>
         </div>
-        {(podeCriar || exportar) && (
+        {(podeCriar || exportar || importar) && (
           <div className="acts so-desk">
+            {importar && (
+              <Link className={quietButton} href="/acompanhamento/configuracoes?aba=importacao">
+                Importar
+              </Link>
+            )}
             {exportar && (
               <ExportarBotao
                 aba="MENTORADOS"

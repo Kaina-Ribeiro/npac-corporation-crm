@@ -9,6 +9,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import { session as sessionTable, type Db } from '@npac/db';
 import { MFA_LIGADO, type Role } from '@npac/shared';
+import { acessoDoPedido } from '../mentoria/perfil.guard.js';
 import { eq } from 'drizzle-orm';
 import type { FastifyRequest } from 'fastify';
 import { DB } from '../common/db/db.module.js';
@@ -16,9 +17,7 @@ import { AUTH, type Auth } from './auth.js';
 import { toHeaders } from './headers.js';
 import { ALLOW_INCOMPLETE, IS_PUBLIC } from './public.decorator.js';
 import { REQUIRES_MFA } from './requires-mfa.decorator.js';
-
-/** Papéis que usam o Acompanhamento: precisam de MFA ativo nas rotas que exigem (D18). */
-const MFA_ROLES: readonly Role[] = ['DIRETOR', 'ACOMPANHAMENTO'];
+import { UltimoUso } from './ultimo-uso.js';
 
 @Injectable()
 export class SessionGuard implements CanActivate {
@@ -26,6 +25,7 @@ export class SessionGuard implements CanActivate {
     private readonly reflector: Reflector,
     @Inject(AUTH) private readonly auth: Auth,
     @Inject(DB) private readonly db: Db,
+    private readonly ultimoUso: UltimoUso,
   ) {}
 
   async canActivate(ctx: ExecutionContext): Promise<boolean> {
@@ -55,6 +55,8 @@ export class SessionGuard implements CanActivate {
       email: u.email,
       username: (u as { username?: string | null }).username ?? '',
     };
+    // "Entrou há X" (NPAC-54, D12): uso do sistema, no máximo uma gravação a cada 15 min.
+    await this.ultimoUso.marcar(u.id);
 
     if (this.reflector.getAllAndOverride<boolean>(ALLOW_INCOMPLETE, targets)) return true;
     if (req.user.mustChangePassword) {
@@ -63,13 +65,14 @@ export class SessionGuard implements CanActivate {
         message: 'Troque a senha inicial para continuar.',
       });
     }
-    // Só para os papéis do módulo: os demais seguem e recebem 404 da guarda do módulo.
-    // MFA desligado (`MFA_LIGADO`, 05/11/2026): o módulo não exige o autenticador por ora.
+    // Só para quem usa o módulo (Diretoria ou vínculo no Acompanhamento, NPAC-54 Fase 4): os
+    // demais seguem e recebem 404 da guarda do módulo. A consulta só roda em rota que exige MFA, sem
+    // o autenticador. MFA desligado (`MFA_LIGADO`, 05/11/2026): o módulo não exige por ora.
     if (
       MFA_LIGADO &&
       this.reflector.getAllAndOverride<boolean>(REQUIRES_MFA, targets) &&
-      MFA_ROLES.includes(req.user.role) &&
-      !req.user.twoFactorEnabled
+      !req.user.twoFactorEnabled &&
+      (await acessoDoPedido(this.db, req)).membro
     ) {
       throw new ForbiddenException({
         code: 'MFA_REQUIRED',

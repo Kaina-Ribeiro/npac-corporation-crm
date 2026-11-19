@@ -1015,6 +1015,180 @@
     font-size: 13px;
     color: var(--ink2);
   }
+  /* Perfis com a equipe (NPAC-54, Fase 3, opção 1A): ações na linha, "entrou há X" sob o nome. */
+  .pf .nm b {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 6px;
+  }
+  .pf .nm .tag,
+  .pf-pedido .nm .tag {
+    display: inline-flex;
+    font-size: 12px;
+    color: var(--tag-neutro);
+  }
+  .pf .nm .tag.gold {
+    color: var(--tag-gold);
+  }
+  .pf .nm .tag.canc {
+    color: var(--tag-bad);
+  }
+  .pf .nm .pf-voce {
+    display: inline;
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--ink2);
+  }
+  .pf-acoes {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .pf-acoes:empty {
+    display: none;
+  }
+  /* Alcance (Fase 3B): "Todos os mentorados / Só a carteira", numa linha própria abaixo do perfil. */
+  .pf-alcance {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+  }
+  .pf-alcance > span {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink2);
+  }
+  /* "Acessos" (Fase 3B, desenho A): tags de escolha única. Marcada = seleção dourada com ✓; a outra,
+     só a borda. Desativada mantém o texto inteiro (sem cinza sobre cinza). */
+  .acessos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .acesso-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 28px;
+    padding: 0 11px;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--ink2) 32%, transparent);
+    background: transparent;
+    color: var(--ink2);
+    font-size: 12.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+      background-color 0.15s ease,
+      border-color 0.15s ease,
+      color 0.15s ease,
+      transform 0.1s ease;
+  }
+  .acesso-tag svg {
+    width: 12px;
+    height: 12px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .acesso-tag[aria-checked='true'] {
+    background: var(--tag-gold-bg);
+    border-color: color-mix(in srgb, var(--gold-deep) 50%, transparent);
+    color: var(--tag-gold);
+  }
+  .acesso-tag:not(:disabled, [aria-checked='true']):hover {
+    background: rgba(120, 120, 128, 0.1);
+    color: var(--ink);
+  }
+  .acesso-tag:not(:disabled):active {
+    transform: scale(0.97);
+  }
+  .acesso-tag:focus-visible {
+    outline: 2px solid var(--gold-deep);
+    outline-offset: 2px;
+  }
+  .acesso-tag:disabled {
+    cursor: default;
+  }
+  .pf .pf-alcance {
+    grid-row: 3;
+  }
+  .pf:has(.pf-alcance) .pf-acoes {
+    grid-row: 4;
+  }
+  .pf-acoes small {
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--ink2);
+  }
+  .pf-aviso {
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: var(--tag-gold-bg);
+    color: var(--tag-gold);
+    font-size: 14px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+  .pf-aviso-email {
+    margin-top: -10px;
+    font-size: 13px;
+    color: var(--ink2);
+  }
+  .pf-pedidos {
+    box-shadow:
+      0 0 0 2px var(--gold-ring),
+      var(--glhi),
+      var(--gld);
+  }
+  .pf-pedidos h2 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .pf-pedidos ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .pf-pedido {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr);
+    gap: 10px 12px;
+    align-items: center;
+    padding: 10px 0;
+    border-top: 1px solid var(--line);
+  }
+  .pf-pedido:first-child {
+    border-top: 0;
+    padding-top: 0;
+  }
+  .pf-pedido .nm b {
+    display: block;
+    font-weight: 600;
+  }
+  .pf-pedido .nm span {
+    display: block;
+    font-size: 12px;
+    color: var(--ink2);
+    overflow-wrap: anywhere;
+  }
+  .pf-pedido select {
+    grid-column: 1 / -1;
+  }
+  .pf-pedido-bt {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 8px;
+  }
 
   /* Ficha: cabeçalho compacto, uma aba por vez e Inscrição ao lado */
   .fc-h {
@@ -1506,15 +1680,37 @@
   /* Perfis em uma linha só quando o card tem largura (com a barra lateral, a partir de 1024 px);
      "Admin do Acompanhamento" por extenso não cabe ao lado do nome e do perfil em 768. */
   @media (min-width: 1024px) {
+    /* Coluna das ações com largura fixa: as linhas são grades separadas e o perfil fica alinhado
+       mesmo na linha sem botões (a sua). */
     .pf {
-      grid-template-columns: 40px minmax(0, 1fr) 200px auto;
+      grid-template-columns: 40px minmax(0, 1fr) 200px 224px auto;
     }
     .pf select {
       grid-column: 3;
       grid-row: 1;
     }
-    .pf-admin {
+    .pf-acoes {
       grid-column: 4;
+      grid-row: 1;
+      justify-content: flex-end;
+    }
+    /* Alinhado à caixa do cargo, logo abaixo dela. */
+    .pf .pf-alcance {
+      grid-column: 3 / 5;
+      grid-row: 2;
+    }
+    .pf:has(.pf-alcance) .pf-acoes {
+      grid-row: 1;
+    }
+    .pf-acoes:empty {
+      display: block;
+    }
+    .pf-acoes small {
+      max-width: 220px;
+      text-align: right;
+    }
+    .pf-admin {
+      grid-column: 5;
       grid-row: 1;
     }
     .pf-cab-perfil {
@@ -1522,8 +1718,15 @@
       grid-column: 3;
     }
     .pf-cab-admin {
-      grid-column: 4;
+      grid-column: 5;
       max-width: none;
+    }
+    .pf-pedido {
+      grid-template-columns: 40px minmax(0, 1fr) 200px auto;
+    }
+    .pf-pedido select,
+    .pf-pedido-bt {
+      grid-column: auto;
     }
   }
   @media (min-width: 768px) {

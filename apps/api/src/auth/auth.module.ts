@@ -9,6 +9,7 @@ import { AUTH, createAuth } from './auth.js';
 import { AuthController } from './auth.controller.js';
 import { PermissionsGuard } from './permissions.guard.js';
 import { SessionGuard } from './session.guard.js';
+import { UltimoUso } from './ultimo-uso.js';
 
 @Module({
   controllers: [AuthController],
@@ -19,10 +20,11 @@ import { SessionGuard } from './session.guard.js';
       useFactory: (db: Db, env: Env, audit: AuditService, mail: MailSender) =>
         createAuth(db, env, audit, mail),
     },
+    UltimoUso,
     // Ordem importa: a sessão é resolvida antes da checagem de permissão.
     { provide: APP_GUARD, useClass: SessionGuard },
     { provide: APP_GUARD, useClass: PermissionsGuard },
   ],
-  exports: [AUTH],
+  exports: [AUTH, UltimoUso],
 })
 export class AuthModule {}

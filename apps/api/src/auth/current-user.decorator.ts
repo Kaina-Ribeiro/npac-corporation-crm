@@ -1,5 +1,5 @@
 import { createParamDecorator, type ExecutionContext } from '@nestjs/common';
-import type { AuthUser, Role } from '@npac/shared';
+import type { AuthUser, EuMentoria, Role } from '@npac/shared';
 import type { FastifyRequest } from 'fastify';
 
 export interface SessionUser extends AuthUser {
@@ -15,6 +15,8 @@ export interface SessionUser extends AuthUser {
 declare module 'fastify' {
   interface FastifyRequest {
     user?: SessionUser;
+    /** Acesso ao módulo de mentorados, lido uma vez por pedido pelas guardas do módulo. */
+    mentoriaAcesso?: EuMentoria & { membro: boolean };
   }
 }
 

@@ -20,7 +20,7 @@ export default async function MentoradosPage() {
   ]);
   // Filtros lembrados (NPAC-46): responsável que não está mais na lista cai.
   const cookie = acCookie('mentorados', me.id);
-  const regras = mentoradosRegras(responsaveis.map((r) => r.id));
+  const regras = mentoradosRegras(eu?.soCarteira ? [] : responsaveis.map((r) => r.id));
   const salvo = readPrefs(jar.get(cookie)?.value, regras);
   const inicial = prefsParaFiltros(salvo);
   const pagina = await apiPost<PaginaInscricoes>('/api/mentoria/inscricoes/lista', inicial);
@@ -29,9 +29,13 @@ export default async function MentoradosPage() {
       photos={await getTeamPhotos()}
       pagina={pagina}
       // O filtro acha também quem saiu e ainda tem carteira.
-      responsaveis={responsaveis.map((r) => ({ id: r.id, nome: rotuloResponsavel(r) }))}
+      // "Só a carteira" (Fase 3B): todos são dela, sem o filtro Responsável.
+      responsaveis={
+        eu?.soCarteira ? [] : responsaveis.map((r) => ({ id: r.id, nome: rotuloResponsavel(r) }))
+      }
       podeCriar={podeCadastrar(eu)}
       exportar={podeExportar(eu)}
+      importar={!!eu?.admin}
       inicial={inicial}
       lembrar={{ cookie, valor: writePrefs(salvo, regras) }}
     />

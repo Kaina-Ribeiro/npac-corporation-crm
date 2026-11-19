@@ -114,6 +114,7 @@ export class FichaService {
       meta: boolean;
       checkin: boolean;
       segunda_chance: boolean;
+      so_carteira: boolean;
       admin: boolean;
       travado_por: string | null;
       pausa_dias: number | null;
@@ -132,6 +133,7 @@ export class FichaService {
         mentoria_edita('CHECKIN', ${id}::uuid) as checkin,
         mentoria_edita('SEGUNDA_CHANCE', ${id}::uuid) as segunda_chance,
         mentoria_admin() as admin,
+        mentoria_so_carteira() as so_carteira,
         (select name from "user" where id = ${momento?.travadoPor ?? null}) as travado_por,
         (select (now() at time zone 'America/Sao_Paulo')::date - p.inicio
          from mentoria_pausas p where p.inscricao_id = ${id}::uuid and p.fim is null) as pausa_dias`);
@@ -292,6 +294,7 @@ export class FichaService {
         meta: extra?.meta === true,
         checkin: extra?.checkin === true,
         segundaChance: extra?.segunda_chance === true,
+        responsavel: extra?.inscricao === true && extra?.so_carteira !== true,
         admin: extra?.admin === true,
       },
     };

@@ -30,6 +30,10 @@ const apiEnv = {
   // O e2e prova o MFA real de HEAD, independente do .env local.
 } as Record<string, string>;
 
+// CI: API e web já chegam compilados por um passo anterior (os dois builds em paralelo, ver ci.yml);
+// aqui só sobem. Local: cada execução compila de novo, para nunca testar build velho.
+const prebuilt = process.env.E2E_PREBUILT === '1';
+
 export default defineConfig({
   testDir: './e2e',
   globalSetup: './e2e/global-setup.ts',
@@ -55,18 +59,20 @@ export default defineConfig({
       timeout: 30_000,
     },
     {
-      command: 'pnpm --filter @npac/api build && node ../api/dist/main.js',
+      command: `${prebuilt ? '' : 'pnpm --filter @npac/api build && '}node ../api/dist/main.js`,
       url: `http://localhost:${API_PORT}/api/health`,
       env: apiEnv,
       reuseExistingServer: false,
       timeout: 120_000,
     },
     {
-      command: `pnpm build && pnpm exec next start --port ${WEB_PORT}`,
+      command: `${prebuilt ? '' : 'pnpm build && '}pnpm exec next start --port ${WEB_PORT}`,
       url: `${WEB_ORIGIN}/login`,
       env: {
         ...process.env,
         API_INTERNAL_URL: `http://localhost:${API_PORT}`,
+        // O build do e2e não checa tipos: `pnpm typecheck` e o job `static` do CI já checam.
+        NEXT_SKIP_TYPECHECK: '1',
       } as Record<string, string>,
       reuseExistingServer: false,
       timeout: 300_000,

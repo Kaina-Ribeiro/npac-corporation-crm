@@ -1,7 +1,7 @@
 // Fixtures sintéticos do Acompanhamento para dev e demo: nunca rodam em produção (`seed-cli`).
 // Contato e textos sensíveis são cifrados pela API; aqui ficam vazios.
 import { randomUUID } from 'node:crypto';
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import type { Db } from './client.js';
 import {
   account,
@@ -11,7 +11,6 @@ import {
   mentoriaMomentoInicial,
   mentoriaOnboardingEtapas,
   mentoriaPausas,
-  mentoriaPerfis,
   mentoriaPessoas,
   mentoriaReunioes,
   user,
@@ -148,10 +147,22 @@ export async function seedMentoria(db: Db): Promise<void> {
 
     const contas = await tx.select({ id: user.id, username: user.username }).from(user);
     const idDe = (username: string) => contas.find((c) => c.username === username)!.id;
-    await tx
-      .insert(mentoriaPerfis)
-      .values(EQUIPE.map((m) => ({ userId: idDe(m.username), perfil: m.perfil, admin: m.admin })))
-      .onConflictDoNothing({ target: mentoriaPerfis.userId });
+    // O perfil é o cargo da pessoa na área Acompanhamento (`area_membros`, NPAC-54), gravado pela função
+    // do banco em nome da Diretoria; quem já tem perfil fica como está.
+    const [mestre] = await tx
+      .select({ id: user.id })
+      .from(user)
+      .where(and(eq(user.mestre, true), eq(user.active, true)))
+      .orderBy(user.createdAt)
+      .limit(1);
+    if (mestre) {
+      await tx.execute(sql`select set_config('app.user_id', ${mestre.id}, true)`);
+      for (const p of EQUIPE)
+        await tx.execute(sql`select area_definir_membro(a.user_id, 'ACOMPANHAMENTO', ${p.perfil},
+          ${p.admin}) from area_membros a
+          where a.user_id = ${idDe(p.username)} and a.area = 'ACOMPANHAMENTO' and a.cargo is null`);
+      await tx.execute(sql`select set_config('app.user_id', '', true)`);
+    }
 
     const duda = idDe('duda');
     for (const i of INSCRICOES) {

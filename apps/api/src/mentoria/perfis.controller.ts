@@ -31,7 +31,7 @@ export class PerfisController {
   @SoAdmin()
   definir(@CurrentUser() u: SessionUser, @Body() body: unknown) {
     const b = validate(perfilPutSchema, body);
-    return this.perfis.definir(u, b.userId, b.perfil, b.admin);
+    return this.perfis.definir(u, b.userId, b.perfil, b.admin, b.alcance);
   }
 
   @Get('condutores')

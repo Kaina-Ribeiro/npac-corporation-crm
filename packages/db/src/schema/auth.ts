@@ -27,11 +27,17 @@ export const user = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
     twoFactorEnabled: boolean('two_factor_enabled').default(false),
+    // Resumo calculado de `area_membros` + `mestre` (0072, NPAC-54): não é a fonte do cargo.
     role: roleEnum('role').notNull(),
     canProspect: boolean('can_prospect').notNull().default(false),
     canClose: boolean('can_close').notNull().default(false),
     active: boolean('active').notNull().default(true),
     mustChangePassword: boolean('must_change_password').notNull().default(true),
+    // Conta Mestre = Diretoria (0072): sem vínculo em `area_membros`, Head de todas as áreas.
+    mestre: boolean('mestre').notNull().default(false),
+    // Última vez que a pessoa usou o sistema ("entrou há X", NPAC-54 D12/M12): gravada pela guarda
+    // de sessão no máximo a cada 15 min; o Sair não apaga. `user` fica fora do canal ao vivo.
+    ultimoUso: timestamp('ultimo_uso', { withTimezone: true }),
   },
   // Cargos em um passo (0049): SDR, Closer e Acompanhamento têm as caixas definidas pelo cargo;
   // só Head e Diretoria escolhem "Atua como SDR/Closer". Cargo comparado como texto.

@@ -25,7 +25,7 @@ indicar. Mantenha denso; ao mudar arquitetura, regra ou comando, atualize aqui.
 pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps/api/src`,
 `web/` = `apps/web`, `db/` = `packages/db`, `sh/` = `packages/shared/src`.
 
-- **Shared:** papéis/`isLeader`/enums `sh/enums.ts` · cargos e resolvedor `sh/cargos.ts` · `can` `sh/permissions.ts` · Zod de lead
+- **Shared:** papéis/`isLeader`/enums `sh/enums.ts` · cargos e resolvedor `sh/cargos.ts` · frases do registro de acessos e "entrou há X" `sh/acessos.ts` (`@npac/shared/acessos`, sem zod) · `can` `sh/permissions.ts` · Zod de lead
   `sh/schemas/lead.ts`, `lead-update.ts` · usuário/pedido de acesso `sh/schemas/account.ts` ·
   DTOs `sh/dto.ts`, `finance.ts`, `today.ts` · dinheiro/datas BR `sh/money.ts`, `dates.ts`
   · filtros lembrados `sh/screen-prefs.ts` (`@npac/shared/screen-prefs`)
@@ -68,7 +68,7 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
 - **Telas:** leads `components/leads-browser.tsx`, `lead-filters.tsx` · ficha/venda `lead-detail.tsx`,
   `sale-flow.tsx`, `finance-panel.tsx` · `pipeline.tsx`, `today.tsx`, `reports.tsx`, `dashboard-*.tsx`
   (cards reordenáveis: `dashboard-board.tsx`, `lib/dashboard-layout.ts`, `lib/board-motion.ts`) ·
-  admin `admin.tsx`, `access-requests.tsx` · Ctrl+K `shell/command-palette.tsx` · avisos `inbox.tsx` ·
+  admin `admin.tsx`, `access-requests.tsx`, quadro "Acessos" `acessos-card.tsx`, linha da equipe `lib/equipe.ts` · Ctrl+K `shell/command-palette.tsx` · avisos `inbox.tsx` ·
   textos de atividade `lib/activity-text.ts` · campos por etapa `stage-fields.tsx` (+ `lib/stage-fields.ts`,
   `lib/stage-kind.ts`) e janelinha `stage-move-dialog.tsx` (Pipeline, lista, massa) · editor de colunas `pipeline-columns-editor.tsx` · ação
   rápida do Hoje `today-quick-action.tsx` · closer completa o pagamento `payment-complete.tsx` · SDR marca a
@@ -98,14 +98,15 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   sem mudar o desenho (`::after`; não serve com `overflow: hidden`; caixa pequena vai dentro de `<label class="toque">`) ·
   barra de baixo do celular leva `barra-celular` (some enquanto um campo de texto tem foco) · `viewport-fit=cover`
   (`app/layout.tsx`): o que encosta na borda usa `env(safe-area-inset-*)` (`.shell` nas laterais, barras e `.nf-barra`
-  embaixo) · ícone da Tela de Início `app/apple-icon.png` (180 px) · menu de CSV fica dentro da tela (`caberNaTela`)
+  embaixo) · ícone (NPAC-55, opção C: N dourado degradê com contorno) na aba `app/favicon.ico` + `app/icon.png`, na Tela de Início do iPhone `app/apple-icon.png` (180 px) e no Android `public/icon-192.png`, `icon-512.png`, `icon-maskable-512.png` (manifesto); refazer: desenho em HTML com a fonte Anton, foto por Playwright · menu de CSV fica dentro da tela (`caberNaTela`)
 - **Acompanhamento (mentorados), v2 em 5 partes** (plano `docs/superpowers/plans/2026-11-10-acompanhamento-v2-fase-1.md`, protótipo `docs/acompanhamento/prototipo/canvas/`):
   API `api/mentoria/*` (guarda 404 + MFA: `MentoriaController` em `mentoria.guard.ts`; perfil `perfil.guard.ts`,
   `perfis.*`; inscrição e ficha `inscricoes.*`, `ficha.service.ts`, `historico.ts`; mídia `midia.controller.ts`,
   `media-store.ts`, `media-sniff.ts`, `media-worker.ts`; cifra `mentoria-crypto.ts`; onboarding e Caixa `onboarding.*`
   (regras puras `sh/mentoria/onboarding.ts`; CAIXA e IDR são derivadas, gatilhos da 0048); importação `importacao/*`, junção das
   fontes `sh/mentoria/importacao.ts`, planilha lida por título em `ler-planilha.ts`, CPF descartado ali; `importacao_chave` impede
-  reimportar quem foi renomeado); reuniões e contatos `reunioes.*`, `contatos.controller.ts` (0052: estados e
+  reimportar quem foi renomeado; reimportar só acrescenta, quem já está não muda; tela em Configurações > Importação, com
+  atalho "Importar" no topo de Mentorados só para Admin, 18/11/2026); reuniões e contatos `reunioes.*`, `contatos.controller.ts` (0052: estados e
   remarcar/excluir no banco; IDR realizada → `data_idr`/início de Brasília + ATIVO + ações em `iniciarPelaIdr`;
   reunião realizada conclui a ação do mesmo `reuniao_tipo`; Especialista vê só inscrições/reuniões que conduz,
   nunca IDR); Fila do dia `fila.*` (0053: `mentoria_fila(agora)` calcula na leitura, SECURITY INVOKER;
@@ -171,8 +172,88 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
 ## Papéis e acesso
 
 - **DIRETOR** ("Diretoria") > **HEAD** > SDR / CLOSER. `isLeader(role)` (`LEADER_ROLES` = DIRETOR+HEAD), nunca `role === 'HEAD'`.
-- Só a Diretoria dá/tira liderança e administra contas de Head/Diretoria (`guardLeadership` em
-  `admin/users.ts`); Head gerencia SDR/closer. Na RLS, `app_role()` devolve `'HEAD'` para DIRETOR (0021).
+- **Regra única de quem gerencia quem** (NPAC-54, Fase 2, 0073): função pura `podeGerenciar` em `sh/areas.ts`
+  (`@npac/shared/areas`, sem zod) e a gêmea em SQL `area_regra`, que rodam o **mesmo arquivo de casos**
+  (`packages/shared/test/areas-casos.ts`, nos testes `shared/test/areas.test.ts` e `db/test/areas-regra.test.ts`, que
+  compara veredito e frase): mudou uma, mude a outra e os casos. A Diretoria (Mestre) faz tudo, menos mexer no próprio
+  cargo; o Head de cada área (Head do Comercial; Admin do Acompanhamento) vê e gerencia só as contas com vínculo na área
+  dele, convida e aprova com cargo dessa área, **nunca dá nem tira Head/selo** (D9), não mexe em outro Head e, em conta com
+  duas áreas, só troca o cargo da área dele (senha, MFA, desativar e e-mail só a Diretoria, M5). Pôr ou tirar área e dar
+  Diretoria: só a Mestre. Respostas: invisível 404, enxerga mas não pode 403 com o motivo (`MOTIVO`), o próprio cargo 400.
+  Na API: `admin/areas.ts` (`lerContas`/`lerConta` por `area_contas()`, `aplicar`, `definirMembro`/`removerMembro`/
+  `definirMestre`, que auditam `area.membro.definido`/`removido`/`area.mestre.definido` com área, cargo e Head) e a guarda
+  `@Gerente()` (Diretoria ou Head de alguma área; comercial sem isso 403, Acompanhamento sem o selo 404) em
+  `admin/users` e `admin/access-requests`; transferir leads continua do comercial (`admin:manage`). No banco,
+  `area_definir_membro`, `area_remover_membro`, `area_definir_mestre`, `area_gerencia` e `push_purge_user` decidem por
+  `area_decidir` (regra com quem está logado). A API não grava mais `user.role`: conta nova é INSERT + `area_definir_membro`;
+  troca de cargo vai pelas funções. `GET admin/users` traz `mestre`, `areas` (o Head vê só as da área dele) e `outraArea`;
+  `/api/me` traz `mestre` e `areas`, e `modules.mentoria` vem do vínculo. Na RLS, `app_role()` devolve `'HEAD'` para
+  DIRETOR (0021).
+- **Registro de acessos** (D10, D11): `GET admin/acessos?page=` (`admin/acessos.ts`), só a Diretoria (demais 404), 20 por
+  página, lido do `audit_log`: conta criada, pedido aprovado/recusado, cargo, Head/selo, área posta/tirada, Diretoria,
+  senha, MFA, desativar/reativar; cada linha com `tipo`, `ator`, `alvo` (nomes lidos da conta na hora), `area`, `cargo`,
+  `head`. Logins e o resto da auditoria ficam fora. `admin.user.update` com `registro: 2` (desde a Fase 2) só entra se
+  mudou `ativo`; o cargo vem de `area.*`. Tela (Fase 3, opção 2A, D13): quadro "Acessos" no topo de Admin → Usuários, só
+  a Diretoria, 5 linhas + "Ver tudo" (janelinha paginada) + "novo" (cookie `npac_acessos_<hash>`, `Path=/admin`, só o maior
+  id visto); frase montada por `fraseAcesso`/`quandoAcesso` (`sh/acessos.ts`, tipos `Acesso`/`TIPOS_ACESSO` também lá).
+  A Diretoria filtra a Equipe por área ("Comercial | Acompanhamento | Todas", lembrado em `npac_f_admin_*`).
+- **Equipe por área na tela** (NPAC-54, Fase 3, 19/11/2026, D13 = "1A, 2A, 3A"): a aba Perfis do módulo
+  (`components/acompanhamento/perfis-admin.tsx`) é a equipe do Acompanhamento pelas rotas `admin/users` e
+  `admin/access-requests` (o Admin do módulo é o Head da área): "Convidar" no topo da página abre janelinha (campo
+  "Perfil"), pedidos de acesso só do Acompanhamento, perfil por `PUT mentoria/perfis`, "Nova senha" e
+  "Desativar"/"Reativar" na linha; o interruptor de Admin só para a Diretoria. A tela esconde o que `podeGerenciar` recusa e
+  mostra a frase da regra; quem decide é a API. **"Entrou há X"** (D12, M12): `user.ultimo_uso` (0074), gravado pela
+  `SessionGuard` via `UltimoUso` (`api/auth/ultimo-uso.ts`: no máximo 1 gravação a cada 15 min por pessoa e instância, e o
+  UPDATE confere a data no banco); `user` fica fora do canal ao vivo; o Sair não apaga. Vem em `GET admin/users` como
+  `ultimoUso`; frase `entrouHa` (`sh/acessos.ts`, dias de calendário de Brasília). e2e `e2e/acesso-por-area.spec.ts`.
+- **Alcance "Só a carteira"** (NPAC-54, Fase 3B, 19/11/2026, 0075; Gabriel aprovou formulário, textos e (a)–(e)): no
+  cargo Acompanhamento sem o selo, `area_membros.alcance` = `TODOS` (padrão, igual a antes) ou `CARTEIRA` (só as
+  inscrições em que a pessoa é `responsavel_id`). Não é cargo novo: o perfil continua `ACOMPANHAMENTO` (guardas `@Perfis`,
+  responsável, transferência e catálogos iguais). Grava pela regra única como troca de cargo: `area_definir_membro(…,
+  alcance)` (5 argumentos; a de 4 mantém o alcance), por convite, aprovação, `PATCH admin/users` e `PUT mentoria/perfis`
+  (campo `alcance`; "Só a carteira" em outro cargo = 400); trocar o cargo ou dar o selo volta a `TODOS` (gatilho
+  `area_membros_alcance` + CHECK). Recorte só no banco: `mentoria_so_carteira()`, `mentoria_ids_carteira()`,
+  `mentoria_carteira_ok(inscricao)`; `mentoria_ve_todas()` exclui quem tem "só a carteira"; as políticas que liam
+  `mentoria_ids_especialista()` leem `mentoria_ids_visiveis()` (Especialista + carteira); reuniões, tarefas, metas,
+  check-ins e histórico do semáforo ganham `OR inscricao_id = any (carteira)`; funções por linha, semáforo, pausar,
+  retomar, excluir reunião e sequência de check-ins recortam. Ela cria inscrição só com ela de responsável e não troca o
+  responsável (política da inscrição; API força no cadastro e dá 403 na troca; ficha `pode.responsavel`). Fila só "Minha"
+  (API força `escopo`), CSV só da carteira (RLS), push "a todos do perfil" sem ela (`mentoria_destinatarios`,
+  `mentoria_avisos_candidatos.acomp_todos`), inscrição tirada da carteira some na hora. `GET mentoria/eu` traz
+  `soCarteira`; `admin/users` e `/api/me` trazem `alcance`. Tela (desenho A, Gabriel 19/11): "Acessos" com as tags de
+  escolha única "Carteira" / "Todos os mentorados" na aba Perfis (linha, Convidar, pedido; `.acessos`/`.acesso-tag` em
+  `modulo.css`); nas listas, o selo "Acompanhamento" e a tag neutra "Carteira" ao lado (`.role-TAG`, `CargoTag`); no quadro
+  "Acessos", a frase do cargo com a tag (`FraseAcesso.tag`). Nunca "Acompanhamento · só a carteira" (reprovado). Extras por pessoa
+  (ex.: Envios) ficam para quando houver o primeiro extra real. Rótulos e regra pura em `sh/alcance.ts`
+  (`@npac/shared/alcance`, fora de `cargos.ts` pelo peso de `/leads`). Testes: `db/test/carteira.test.ts`,
+  `api/test/carteira.e2e.test.ts`, `e2e/acompanhamento-carteira.spec.ts`.
+- **Pessoa em duas áreas** (NPAC-54, Fase 4, 19/11/2026): só a Diretoria põe, troca ou tira alguém de uma área, por
+  `PUT admin/users/:id/areas/:area` (`{ cargo, head? }`; `head` só no Acompanhamento, ausente mantém) e
+  `DELETE admin/users/:id/areas/:area` (`definirArea`/`removerArea` em `admin/users.ts`; a última área não sai, 400). O
+  Head recebe 404 na conta que não enxerga e 403 "Só a Diretoria põe ou tira alguém de uma área" na que enxerga.
+  `PATCH` com cargo (`role`/`perfil`/`moduloAdmin`/`alcance`) de conta com duas áreas: a Diretoria recebe 400 (usa a
+  rota por área; dar Diretoria e as caixas "Atua como" seguem pelo `PATCH`); o Head troca o cargo da área dele pelo
+  `PATCH` (Comercial) ou pela aba Perfis (M5). O módulo é aberto pelo **vínculo**, não pelo resumo `role`:
+  `MentoriaGuard` e `PerfilGuard` leem `lerAcesso` (`perfil.guard.ts`: perfil, selo, carteira e `membro` = Diretoria ou
+  vínculo no Acompanhamento, uma consulta por pedido, guardada em `req.mentoriaAcesso`); o MFA do módulo (`session.guard.ts`)
+  consulta o mesmo só em rota com `@RequiresMfa`, sem autenticador e com `MFA_LIGADO`. Rotas do comercial seguem pelo
+  resumo (cargo comercial), sem consulta nova. Web: `modules.mentoria` (do vínculo) decide menu, `/`, Mais, 404 e o aviso
+  de MFA (`precisaMfa`); quem tem as duas áreas navega como a Diretoria (menu do comercial + Acompanhamento) e cada tela de
+  entrada leva à área dela. No Admin da Diretoria (`components/areas-conta.tsx`): "Adicionar a outra área" (select com
+  os cargos da área que falta), numa conta com as duas um campo Cargo por área, o selo e "Tirar de uma área"; as
+  etiquetas mostram o cargo de cada área. e2e `apps/api/test/duas-areas.e2e.test.ts`, `e2e/duas-areas.spec.ts`.
+- **Fonte do cargo = `area_membros`** (NPAC-54, Fase 1, 0072; plano `docs/plans/acesso-por-area.md`, spec
+  `docs/superpowers/specs/2026-11-19-acesso-por-area-design.md`): uma linha por (pessoa, área `COMERCIAL`/`ACOMPANHAMENTO`,
+  cargo, `head`); a Diretoria é `user.mestre` (sem linha). Comercial: cargo SDR/CLOSER/HEAD, `head` = HEAD. Acompanhamento:
+  cargo = perfil (nulo = "falta perfil"), `head` = selo de Admin. **`user.role` é resumo** calculado por gatilho
+  (`area_sincronizar`: mestre → DIRETOR, senão o cargo comercial, senão ACOMPANHAMENTO; acerta as caixas de SDR, Closer e
+  Acompanhamento). `app_role()`, `mentoria_perfil()`, `mentoria_perfil_de()`, `mentoria_admin()`, destinatários do push e
+  aviso de formulário leem da fonte, com o mesmo resultado (`db/test/areas-equivalencia.test.ts`). Escrita só por
+  `area_definir_membro`, `area_remover_membro`, `area_definir_mestre` (`area_gerencia` responde "pode mexer na conta"),
+  com a regra única (item acima). Invariantes no commit: conta ativa que não é Diretoria tem
+  vínculo; sempre uma Diretoria ativa. **Compatibilidade até a Fase 5**: escrita em `user.role` (API de hoje, seeds,
+  testes) é traduzida para o vínculo (um cargo por pessoa, como antes); `mentoria_perfis` é visão (npac_app só lê; o dono
+  do banco grava por ela) e `mentoria_definir_perfil` chama `area_definir_membro`. Coluna `mestre` só pelas funções.
 - **Cargo em um passo** (11/11/2026, spec `docs/superpowers/specs/2026-11-11-cargos-design.md`): no
   Admin, um campo "Cargo" agrupado (Comercial: SDR, Closer, Head, Diretoria; Acompanhamento:
   Acompanhamento, Operação, Especialista, Mentor). Rótulos, dicas e o mapa cargo ↔ (`role`, perfil) em
@@ -182,9 +263,9 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   transação; sem perfil, 400. Sair do cargo apaga o perfil. "Atua como SDR/Closer" (`can_prospect`/
   `can_close`) só para Head/Diretoria (sem vir, mantêm o que tinham); SDR `t/f`, Closer `f/t`,
   Acompanhamento `f/f`, fixos pelo cargo (caixa contrária: 400) e por `CHECK user_cargo_caixas` (0049).
-  `GET /admin/users` traz `perfil`/`moduloAdmin` só para a Diretoria. A aba Perfis do módulo só troca
-  perfil (`PUT /mentoria/perfis` recusa `null`); "Peça ao Admin" fica para conta antiga sem perfil
-  (selo "falta perfil" no Admin). O selo aparece como "Admin do Acompanhamento".
+  `GET /admin/users` traz `perfil`/`moduloAdmin` para a Diretoria e o Admin do Acompanhamento. A aba Perfis do módulo
+  troca perfil (`PUT /mentoria/perfis` recusa `null`) e, desde a Fase 3 do NPAC-54, convida, aprova e desativa; "Peça ao
+  Admin" fica para conta antiga sem perfil (selo "falta perfil"). O selo aparece como "Admin do Acompanhamento".
 - Liderança vê tudo; SDR, os próprios leads; CLOSER, leads com reunião não cancelada dele ou
   que o SDR lhe passou em Agendou Pagamento (`leads.closer_id`).
   Invisível e inexistente → **404**, nunca 403. `canProspect`/`canClose` são dados; nada depende de nomes.
@@ -209,11 +290,12 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   `/is-username-available` desligados. Senha mínima 3 (provisório, decisão de 29/10/2026: no dev
   todas são `123`; as regras voltam no fim).
 - **Pedido de acesso** (29/10/2026): `/login/solicitar` grava em `access_requests`, fora de `user`
-  (pendente não loga). Head/Diretoria aprovam no Admin escolhendo o cargo (`guardLeadership`);
+  (pendente não loga). Quem aprova escolhe o cargo (regra única: a Diretoria vê todos e aprova em qualquer área; o
+  Head de cada área vê e aprova só os da área dele, com cargo dessa área, M9);
   recusar apaga; expira em 7 dias; 3/hora por IP; resposta igual exista ou não o usuário (hash
   sempre, para o tempo não revelar). Guarda a **área** da tela (`access_requests.area`, 0068: `COMERCIAL` por
   `/login/solicitar`, `ACOMPANHAMENTO` por `/login/acompanhamento/solicitar`; `ACCESS_AREAS` em `sh/enums.ts`) e o
-  Admin mostra a etiqueta; quem aprova é o mesmo (a fila da Head do Acompanhamento é a Fase 5). A liderança segue redefinindo a senha no Admin;
+  Admin mostra a etiqueta (os do Acompanhamento aparecem também na aba Perfis do módulo, NPAC-54 Fase 3). A liderança segue redefinindo a senha no Admin;
   Diretoria trancada: `reset-password-cli.js <usuário> [--mfa]` no shell da api (`db/src/reset-password.ts`).
 - **Esqueci minha senha por e-mail** (NPAC-50, 18/11/2026, plano `docs/plans/pedidos-18-11.md`, Fase 2):
   `/login/esqueci` (usuário ou e-mail) → `POST /api/auth/forgot-password` → e-mail "Crie a sua senha nova"
@@ -250,7 +332,7 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   (`mentoria_perfis`: Acompanhamento, Operação, Especialista, Mentor) e o selo de Admin decidem o resto, por RLS
   (`mentoria_ve`, `mentoria_edita`; Diretoria é Admin sem linha). Cargo sem perfil vê "Peça ao Admin" e Mentor vê
   "Seu painel chega em breve", sem menu (`components/acompanhamento/sem-acesso.tsx`, no layout de `(app)`); API 404 em tudo menos
-  `mentoria/eu`. MFA obrigatório nas rotas `mentoria/*` para Diretoria e Acompanhamento, 404 para os demais. O cargo não vê nada do comercial
+  `mentoria/eu`. MFA obrigatório nas rotas `mentoria/*` para quem usa o módulo (Diretoria ou vínculo no Acompanhamento), 404 para os demais. O cargo não vê nada do comercial
   (05/11/2026): `PermissionsGuard` dá 404 em toda rota sem `@AllRoles()` (`api/auth/all-roles.decorator.ts`;
   hoje `me`, `events`, `push` e o módulo), e o web mostra só as abas do módulo (`hasCommercialAccess`,
   sidebar/Ctrl+K/Mais/rodapé). Telas comerciais ficam em `web/app/(app)/(comercial)/`, cujo layout
@@ -608,19 +690,24 @@ protótipo no canvas "Meu perfil". Gabriel aprovou com "1A, 2A, 3A".
 - **Política de leitura sem função por linha** (desempenho, Fase 1, 0060–0061): no `USING` de
   SELECT/ALL (e de `leads_update`), toda função vai dentro de `(select f())`, calculada uma vez por
   consulta; o que depende da linha compara com uma lista: `id = any ((select closer_lead_ids())::uuid[])`
-  (comercial), `(select mentoria_ve_todas()) or inscricao_id = any ((select mentoria_ids_especialista())::uuid[])`
+  (comercial), `(select mentoria_ve_todas()) or inscricao_id = any ((select mentoria_ids_visiveis())::uuid[])`
   (Acompanhamento). Nunca `closer_has_lead(id)`/`mentoria_ve(inscricao_id)` direto: com 20 mil leads o
   Dashboard do SDR levava 20 s. O teste-guarda de `db/test/rls-por-consulta.test.ts` varre `pg_policies`
   (única exceção: `mentoria_midia_leitura`). INSERT/UPDATE com `mentoria_edita*` seguem por linha.
   Tabela nova do módulo: política de leitura nesse formato e caso no teste de equivalência.
-- Valor novo de enum não vale na mesma transação da migration (compare como texto).
+- Valor novo de enum não vale na mesma transação da migration (compare como texto). Num banco novo
+  todas as migrations rodam numa transação só: em função `LANGUAGE sql` (o corpo é conferido ao criar),
+  nada de `'ACOMPANHAMENTO'::role` ou `'DIRETOR'::role`; leia o valor como texto e converta na execução.
+- **Cargo** (0072): função ou política nova lê o cargo por `app_role()`, `mentoria_perfil*()`, `mentoria_admin()`,
+  `area_mestre()`, `area_head_areas()` ou `area_membros`, nunca `user.role` nem `mentoria_perfis` (teste-guarda em
+  `db/test/areas-compat.test.ts`). Gatilhos de `area_membros`/`user` usam `npac.area_sync` para não traduzir de volta.
 - **JIT desligado nas funções da Fila e do push** (`SET jit = off` em `mentoria_fila`, `mentoria_avisos_candidatos` e
   `mentoria_semaforo_lote_calc`, 0070): em banco pequeno, a tabela de uma linha `mentoria_semaforo_inicio` sem `analyze`
   fazia o planejador estimar milhões de linhas e compilar a consulta (~700 ms por Fila; o e2e do CI estourou os 15 min).
   Função SQL grande nova do módulo: mesma linha, e tabela de uma linha lida como valor único (`(select … )`).
 - Aplicar no dev: `pnpm --filter @npac/db build && pnpm --filter @npac/db migrate`.
   psql: `docker exec npac-corporation-postgres-1 psql -U npac_owner -d npac`.
-- Apagar lead/usuário à mão (a foto `user_photos` sai em cascata): FKs em `form_responses`, `sdr_sale_marks`, `chat_reads`, `chat_*`, `payments`, `deals`, `lead_notes`,
+- Apagar lead/usuário à mão (a foto `user_photos` e os vínculos `area_membros` saem em cascata): FKs em `form_responses`, `sdr_sale_marks`, `chat_reads`, `chat_*`, `payments`, `deals`, `lead_notes`,
   `lead_tasks`, `notifications`, `lead_timeline`, `meetings` (`meeting_confirmations` e
   `meeting_reminders_sent` em cascata), `lgpd_requests` (usuário: também `session`, `account`,
   `push_subscriptions`). `truncate` de `meetings` nos testes lista as duas tabelas de lembretes.
@@ -659,6 +746,17 @@ VARREDURA_URL=http://localhost:3150 VARREDURA_SENHA=senha-do-e2e-123 VARREDURA_O
   libere 3000/4000; depois, `rm -rf apps/web/.next` e `preview_start`. e2e usa API 4100, web 3100
   (`E2E_WEB_PORT=3200` se outro projeto ocupar) e banco `npac_e2e`.
 - Testes só recriam `npac_test*`/`npac_e2e*`; nunca aponte para outro banco. `npac_test_api` é um só para todas as worktrees: duas suítes da API ao mesmo tempo dão 401 falso; com outra worktree rodando, `API_TEST_DB=npac_test_api_<nome> pnpm --filter @npac/api test`. O e2e isola com `E2E_DB`, `E2E_API_PORT` e `E2E_WEB_PORT`.
+- **CI em partes** (NPAC-45, 19/11/2026, `.github/workflows/ci.yml`): `static` (lint, typecheck, shared,
+  audit), `db`, `api (1/3…)` e `e2e (1/6…)` em paralelo, cada parte com Postgres, API e web próprios
+  (`vitest --shard`, `playwright --shard`); `ci` é o resumo (verde só com tudo verde). Uma parte passou
+  de ~3 min: some um número à lista `shard` do job. No e2e do CI o turbo compila API e web ao mesmo
+  tempo antes do Playwright e `E2E_PREBUILT=1` faz o `playwright.config.ts` só subir os servidores
+  (local, sem a variável, cada execução compila de novo). O build do e2e não checa tipos
+  (`NEXT_SKIP_TYPECHECK=1` → `typescript.ignoreBuildErrors` no `next.config.ts`; quem checa é o
+  `pnpm typecheck` e o job `static`; produção nunca define). Por isso **arquivo de teste não depende de outro**:
+  cada um cria o que usa a partir do seed e roda sozinho (`--shard` muda quem roda antes). Commit novo
+  cancela a execução anterior do PR; PR só de `docs/**` e `*.md` não roda os testes; falhou uma parte,
+  "Re-run failed jobs" roda só ela.
 - API e e2e compartilham usuários: teste que mexe em MFA/senha/papel restaura no fim; `truncate leads`
   inclui as tabelas com FK.
 - e2e loga com `email.split('@')[0]`. Seeds: diretor (DIRETOR), ana/ronaldo (HEAD), ale/murilo/igor

@@ -22,6 +22,10 @@
       "types": "./dist/cargos.d.ts",
       "default": "./dist/cargos.js"
     },
+    "./alcance": {
+      "types": "./dist/alcance.d.ts",
+      "default": "./dist/alcance.js"
+    },
     "./mentoria": {
       "types": "./dist/mentoria/index.d.ts",
       "default": "./dist/mentoria/index.js"
@@ -45,6 +49,14 @@
     "./profile": {
       "types": "./dist/profile.d.ts",
       "default": "./dist/profile.js"
+    },
+    "./areas": {
+      "types": "./dist/areas.d.ts",
+      "default": "./dist/areas.js"
+    },
+    "./acessos": {
+      "types": "./dist/acessos.d.ts",
+      "default": "./dist/acessos.js"
     }
   },
   "scripts": {

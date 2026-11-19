@@ -39,10 +39,13 @@ function valorEmCentavos(t: string): number | undefined {
 export function NovaInscricao({
   responsaveis,
   responsavelPadrao,
+  responsavelFixo = false,
 }: {
   /** Só quem pode ser escolhido (perfil Acompanhamento, conta ativa). */
   responsaveis: { id: string; nome: string }[];
   responsavelPadrao: string;
+  /** "Só a carteira" (Fase 3B, 2A): a responsável é quem cadastra, sem trocar. */
+  responsavelFixo?: boolean;
 }) {
   const router = useRouter();
   const [tipo, setTipo] = useState<TipoInscricao>('INDIVIDUAL');
@@ -260,9 +263,10 @@ export function NovaInscricao({
               <select
                 className={control}
                 value={compra.responsavelId}
+                disabled={responsavelFixo}
                 onChange={(e) => setCompra({ ...compra, responsavelId: e.target.value })}
               >
-                <option value="">Sem responsável</option>
+                {!responsavelFixo && <option value="">Sem responsável</option>}
                 {responsaveis.map((r) => (
                   <option key={r.id} value={r.id}>
                     {r.nome}
