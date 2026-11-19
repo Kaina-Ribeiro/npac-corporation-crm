@@ -9,7 +9,7 @@ const owner = ownerSql(DB);
 let client: DbClient;
 
 const limpar = () =>
-  owner`truncate mentoria_inscricoes, mentoria_perfis, meetings, leads, pipeline_stages, audit_log, "user" restart identity cascade`;
+  owner`truncate mentoria_inscricoes, area_membros, meetings, leads, pipeline_stages, audit_log, "user" restart identity cascade`;
 
 beforeAll(async () => {
   const url = new URL(process.env.TEST_DATABASE_URL ?? '');

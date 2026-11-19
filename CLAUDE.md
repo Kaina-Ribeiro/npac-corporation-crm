@@ -174,6 +174,18 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
 - **DIRETOR** ("Diretoria") > **HEAD** > SDR / CLOSER. `isLeader(role)` (`LEADER_ROLES` = DIRETOR+HEAD), nunca `role === 'HEAD'`.
 - Só a Diretoria dá/tira liderança e administra contas de Head/Diretoria (`guardLeadership` em
   `admin/users.ts`); Head gerencia SDR/closer. Na RLS, `app_role()` devolve `'HEAD'` para DIRETOR (0021).
+- **Fonte do cargo = `area_membros`** (NPAC-54, Fase 1, 0072; plano `docs/plans/acesso-por-area.md`, spec
+  `docs/superpowers/specs/2026-11-19-acesso-por-area-design.md`): uma linha por (pessoa, área `COMERCIAL`/`ACOMPANHAMENTO`,
+  cargo, `head`); a Diretoria é `user.mestre` (sem linha). Comercial: cargo SDR/CLOSER/HEAD, `head` = HEAD. Acompanhamento:
+  cargo = perfil (nulo = "falta perfil"), `head` = selo de Admin. **`user.role` é resumo** calculado por gatilho
+  (`area_sincronizar`: mestre → DIRETOR, senão o cargo comercial, senão ACOMPANHAMENTO; acerta as caixas de SDR, Closer e
+  Acompanhamento). `app_role()`, `mentoria_perfil()`, `mentoria_perfil_de()`, `mentoria_admin()`, destinatários do push e
+  aviso de formulário leem da fonte, com o mesmo resultado (`db/test/areas-equivalencia.test.ts`). Escrita só por
+  `area_definir_membro`, `area_remover_membro`, `area_definir_mestre` (`area_gerencia` responde "pode mexer na conta"),
+  ainda com a regra de hoje; a regra única por área é da Fase 2. Invariantes no commit: conta ativa que não é Diretoria tem
+  vínculo; sempre uma Diretoria ativa. **Compatibilidade até a Fase 5**: escrita em `user.role` (API de hoje, seeds,
+  testes) é traduzida para o vínculo (um cargo por pessoa, como antes); `mentoria_perfis` é visão (npac_app só lê; o dono
+  do banco grava por ela) e `mentoria_definir_perfil` chama `area_definir_membro`. Coluna `mestre` só pelas funções.
 - **Cargo em um passo** (11/11/2026, spec `docs/superpowers/specs/2026-11-11-cargos-design.md`): no
   Admin, um campo "Cargo" agrupado (Comercial: SDR, Closer, Head, Diretoria; Acompanhamento:
   Acompanhamento, Operação, Especialista, Mentor). Rótulos, dicas e o mapa cargo ↔ (`role`, perfil) em
@@ -614,14 +626,19 @@ protótipo no canvas "Meu perfil". Gabriel aprovou com "1A, 2A, 3A".
   Dashboard do SDR levava 20 s. O teste-guarda de `db/test/rls-por-consulta.test.ts` varre `pg_policies`
   (única exceção: `mentoria_midia_leitura`). INSERT/UPDATE com `mentoria_edita*` seguem por linha.
   Tabela nova do módulo: política de leitura nesse formato e caso no teste de equivalência.
-- Valor novo de enum não vale na mesma transação da migration (compare como texto).
+- Valor novo de enum não vale na mesma transação da migration (compare como texto). Num banco novo
+  todas as migrations rodam numa transação só: em função `LANGUAGE sql` (o corpo é conferido ao criar),
+  nada de `'ACOMPANHAMENTO'::role` ou `'DIRETOR'::role`; leia o valor como texto e converta na execução.
+- **Cargo** (0072): função ou política nova lê o cargo por `app_role()`, `mentoria_perfil*()`, `mentoria_admin()`,
+  `area_mestre()`, `area_head_areas()` ou `area_membros`, nunca `user.role` nem `mentoria_perfis` (teste-guarda em
+  `db/test/areas-compat.test.ts`). Gatilhos de `area_membros`/`user` usam `npac.area_sync` para não traduzir de volta.
 - **JIT desligado nas funções da Fila e do push** (`SET jit = off` em `mentoria_fila`, `mentoria_avisos_candidatos` e
   `mentoria_semaforo_lote_calc`, 0070): em banco pequeno, a tabela de uma linha `mentoria_semaforo_inicio` sem `analyze`
   fazia o planejador estimar milhões de linhas e compilar a consulta (~700 ms por Fila; o e2e do CI estourou os 15 min).
   Função SQL grande nova do módulo: mesma linha, e tabela de uma linha lida como valor único (`(select … )`).
 - Aplicar no dev: `pnpm --filter @npac/db build && pnpm --filter @npac/db migrate`.
   psql: `docker exec npac-corporation-postgres-1 psql -U npac_owner -d npac`.
-- Apagar lead/usuário à mão (a foto `user_photos` sai em cascata): FKs em `form_responses`, `sdr_sale_marks`, `chat_reads`, `chat_*`, `payments`, `deals`, `lead_notes`,
+- Apagar lead/usuário à mão (a foto `user_photos` e os vínculos `area_membros` saem em cascata): FKs em `form_responses`, `sdr_sale_marks`, `chat_reads`, `chat_*`, `payments`, `deals`, `lead_notes`,
   `lead_tasks`, `notifications`, `lead_timeline`, `meetings` (`meeting_confirmations` e
   `meeting_reminders_sent` em cascata), `lgpd_requests` (usuário: também `session`, `account`,
   `push_subscriptions`). `truncate` de `meetings` nos testes lista as duas tabelas de lembretes.

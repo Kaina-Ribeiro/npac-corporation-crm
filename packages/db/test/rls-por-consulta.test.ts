@@ -33,9 +33,16 @@ describe('teste-guarda', () => {
         and regexp_replace(
               coalesce(qual, '') || ' ' || coalesce(case when cmd = 'ALL' then with_check end, ''),
               '\\( SELECT [a-z_]+\\(\\) AS [a-z_]+\\)', '', 'g')
-            ~ '(closer_has_lead|mentoria_[a-z_]+|app_role|app_user_id)\\('
+            ~ '(closer_has_lead|mentoria_[a-z_]+|area_[a-z_]+|app_role|app_user_id)\\('
       order by 1, 2`;
     expect(rows).toEqual([]);
+  });
+
+  it('area_membros_leitura (0072) lê a lista de áreas uma vez por consulta', async () => {
+    const [p] = await owner<{ qual: string }[]>`
+      select qual from pg_policies where tablename = 'area_membros' and policyname = 'area_membros_leitura'`;
+    expect(p?.qual).toContain('( SELECT area_head_areas() AS area_head_areas)');
+    expect(p?.qual).toContain('( SELECT app_user_id() AS app_user_id)');
   });
 
   it('leads_update não chama closer_has_lead', async () => {
