@@ -419,6 +419,25 @@ controle. Três formas, conferidas no código (0061, 0069, `perfil.guard.ts`):
 dizer Admin do módulo, a Eduarda não pode dar. Em A, "full access" = alcance "todos os mentorados", que ela pode dar. Em
 A o nome de tela "Acompanhamento da carteira" (3A) vira o rótulo do alcance ("Só a carteira"), não de um cargo.
 
+**Escolhido: B** (Gabriel, 19/11, na sessão coordenadora: "Eu sou a duda e tenho ADM acompanhamento - posso dar a maria o
+Cargo de Acompanhamento - com alcance a carteira e envios por exemplo"; "eu ja to pensando com o sistema pronto").
+Leitura a confirmar com ele em uma linha antes de construir:
+
+- Por pessoa do Acompanhamento, três coisas: **cargo** (fixo, como hoje), **alcance** ("todos os mentorados" ou "só a
+  carteira") e **extras** (caixinhas de uma lista fechada no código). Quem liga: o Admin do Acompanhamento e a Diretoria,
+  pela regra única (é mexer no cargo de alguém da área; não dá nem tira Admin, D9).
+- Banco: `area_membros` ganha `alcance` (`TODOS` padrão, `CARTEIRA`; só no cargo `ACOMPANHAMENTO`, CHECK) e `extras text[]`
+  (CHECK contra a lista fechada, hoje vazia). Gravação só por `area_definir_membro` (assinatura nova com alcance e extras),
+  auditada (`area.membro.definido` com `alcance` e `extras`) e no registro de acessos.
+- A Fase 3B entrega o alcance e deixa dados, API e tela prontos para extras. **A caixinha "Envios" nasce com a tela Envios
+  físicos** (fase futura do Acompanhamento): hoje não abriria nada. Enquanto a lista estiver vazia, a linha de extras não
+  aparece na tela.
+- Desenho na aba Perfis (texto novo, precisa do sim): na linha da pessoa, ao lado do Cargo, "Vê: Todos os mentorados / Só
+  a carteira"; embaixo, "Extras: ☐ Envios" quando existir. No convite e na aprovação de pedido, o mesmo campo "Vê", com
+  "Todos os mentorados" já marcado.
+- Com o alcance, o rótulo de cargo "Acompanhamento da carteira" (3A) não vira cargo: a pessoa aparece como
+  "Acompanhamento · só a carteira".
+
 O resto desta seção descreve o comportamento "só a carteira", que vale igual em A, B ou no cargo fixo.
 
 ### O cargo (se ficar cargo fixo)
