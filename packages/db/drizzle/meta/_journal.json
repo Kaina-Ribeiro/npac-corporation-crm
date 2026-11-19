@@ -512,6 +512,13 @@
       "when": 1795091547629,
       "tag": "0072_area_membros",
       "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1795095243130,
+      "tag": "0073_area_regra",
+      "breakpoints": true
     }
   ]
 }
