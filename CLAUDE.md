@@ -660,6 +660,13 @@ VARREDURA_URL=http://localhost:3150 VARREDURA_SENHA=senha-do-e2e-123 VARREDURA_O
   libere 3000/4000; depois, `rm -rf apps/web/.next` e `preview_start`. e2e usa API 4100, web 3100
   (`E2E_WEB_PORT=3200` se outro projeto ocupar) e banco `npac_e2e`.
 - Testes só recriam `npac_test*`/`npac_e2e*`; nunca aponte para outro banco. `npac_test_api` é um só para todas as worktrees: duas suítes da API ao mesmo tempo dão 401 falso; com outra worktree rodando, `API_TEST_DB=npac_test_api_<nome> pnpm --filter @npac/api test`. O e2e isola com `E2E_DB`, `E2E_API_PORT` e `E2E_WEB_PORT`.
+- **CI em partes** (NPAC-45, 19/11/2026, `.github/workflows/ci.yml`): `static` (lint, typecheck, shared,
+  audit), `db`, `api (1/3…)` e `e2e (1/4…)` em paralelo, cada parte com Postgres, API e web próprios
+  (`vitest --shard`, `playwright --shard`); `ci` é o resumo (verde só com tudo verde). Uma parte passou
+  de ~3 min: some um número à lista `shard` do job. Por isso **arquivo de teste não depende de outro**:
+  cada um cria o que usa a partir do seed e roda sozinho (`--shard` muda quem roda antes). Commit novo
+  cancela a execução anterior do PR; PR só de `docs/**` e `*.md` não roda os testes; falhou uma parte,
+  "Re-run failed jobs" roda só ela.
 - API e e2e compartilham usuários: teste que mexe em MFA/senha/papel restaura no fim; `truncate leads`
   inclui as tabelas com FK.
 - e2e loga com `email.split('@')[0]`. Seeds: diretor (DIRETOR), ana/ronaldo (HEAD), ale/murilo/igor

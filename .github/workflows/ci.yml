@@ -3,6 +3,13 @@ on:
   push:
     branches: [main]
   pull_request:
+    # PR só de documentação não roda testes (lint, typecheck e convenções seguem no PR checks).
+    paths-ignore: ['docs/**', '**/*.md']
+
+# Commit novo no mesmo PR cancela a execução anterior.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
 
 # Valores descartáveis só para CI (base64 de 32 bytes).
 env:
@@ -15,11 +22,24 @@ env:
   API_PORT: 4000
   WEB_ORIGIN: http://localhost:3000
 
-# Dois jobs em paralelo: o tempo total é o do e2e, não a soma.
+# Tudo em paralelo: o tempo total é o do job mais lento, não a soma. Os testes da API e o e2e são
+# divididos em partes (matrix.shard), cada parte com o próprio Postgres, API e web: nada é
+# compartilhado entre elas. A suíte cresceu e uma parte passou de ~3 min? Some um número à lista
+# `shard` do job; nada mais muda. O job `ci` no fim resume tudo em um nome só.
 jobs:
-  verify:
+  static:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm turbo run lint typecheck
+      - run: pnpm turbo run test --filter=@npac/shared
+      - run: pnpm audit --audit-level high
+
+  db:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     services:
       postgres:
         image: postgres:16-alpine
@@ -38,25 +58,55 @@ jobs:
       TEST_DATABASE_URL: postgresql://npac_owner:ci_owner_password@localhost:5432/npac_test
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: pnpm
+      - uses: ./.github/actions/setup
+      - name: Build dos pacotes (db, shared)
+        run: pnpm turbo run build --filter="./packages/*"
       - name: Criar role npac_app e banco npac_test
-        run: sh infra/postgres/init/01-app-role.sh
+        run: node packages/db/dist/app-role-cli.js
+      - run: pnpm --filter @npac/db test
+
+  api:
+    name: api (${{ matrix.shard }}/${{ strategy.job-total }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      # Uma parte que falha não cancela as outras: dá para ver tudo e rodar de novo só a que falhou.
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    services:
+      postgres:
+        image: postgres:16-alpine
         env:
-          PGHOST: localhost
-          PGPASSWORD: ci_owner_password
           POSTGRES_USER: npac_owner
+          POSTGRES_PASSWORD: ci_owner_password
           POSTGRES_DB: npac
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm turbo run lint typecheck test
-      - run: pnpm audit --audit-level high
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U npac_owner -d npac"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://npac_owner:ci_owner_password@localhost:5432/npac
+      APP_DATABASE_URL: postgresql://npac_app:ci_app_password@localhost:5432/npac
+      TEST_DATABASE_URL: postgresql://npac_owner:ci_owner_password@localhost:5432/npac_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: Build dos pacotes (db, shared)
+        run: pnpm turbo run build --filter="./packages/*"
+      - name: Criar role npac_app e banco npac_test
+        run: node packages/db/dist/app-role-cli.js
+      - run: pnpm --filter @npac/api exec vitest run --shard=${{ matrix.shard }}/${{ strategy.job-total }}
 
   e2e:
+    name: e2e (${{ matrix.shard }}/${{ strategy.job-total }})
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     # Imagem oficial com Chromium e WebKit já instalados (sem o apt das libs do WebKit, que travava).
     # Manter a tag igual à versão do @playwright/test no pnpm-lock.yaml.
     container:
@@ -78,21 +128,28 @@ jobs:
       TEST_DATABASE_URL: postgresql://npac_owner:ci_owner_password@postgres:5432/npac_test
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - uses: ./.github/actions/setup
       - name: Build dos pacotes (db, shared) usados pelo e2e
         run: pnpm turbo run build --filter="./packages/*"
       # Sem psql no container: o mesmo SQL do 01-app-role.sh, por Node. Instalar psql por apt
       # dependia dos espelhos do Ubuntu, que às vezes não resolviam e derrubavam o CI (exit 100).
       - name: Criar role npac_app e banco npac_test
         run: node packages/db/dist/app-role-cli.js
-      - run: pnpm --filter @npac/web e2e
+      - run: pnpm --filter @npac/web e2e --shard=${{ matrix.shard }}/${{ strategy.job-total }}
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: playwright-failures
+          name: playwright-failures-${{ matrix.shard }}
           path: apps/web/test-results
+
+  # Um nome só para olhar (e para exigir no ruleset, se um dia quiser): verde só com tudo verde.
+  ci:
+    if: always()
+    needs: [static, db, api, e2e]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Resultado de todos os jobs
+        run: |
+          echo "static=${{ needs.static.result }} db=${{ needs.db.result }} api=${{ needs.api.result }} e2e=${{ needs.e2e.result }}"
+          test "${{ needs.static.result }}${{ needs.db.result }}${{ needs.api.result }}${{ needs.e2e.result }}" = "successsuccesssuccesssuccess"

@@ -1,0 +1,14 @@
+# Passos iguais em todos os jobs do CI: pnpm, Node e dependências (com o cache do pnpm).
+# Usar depois do actions/checkout.
+name: Setup
+description: pnpm, Node e dependências do monorepo
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/action-setup@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 24
+        cache: pnpm
+    - run: pnpm install --frozen-lockfile
+      shell: bash
