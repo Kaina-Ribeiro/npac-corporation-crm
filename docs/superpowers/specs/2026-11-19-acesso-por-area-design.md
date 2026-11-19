@@ -463,7 +463,7 @@ a carteira e envios por exemplo"; "eu ja to pensando com o sistema pronto".
   (pergunta c).
 - Testes: equivalência (alcance `TODOS` = hoje, conta por conta), `rls-por-consulta`, casos novos no arquivo da regra única.
 
-### Quando a inscrição sai da carteira (pergunta d)
+### Quando a inscrição sai da carteira (d, aprovado)
 
 Troca de responsável ou transferência pelo Admin: na hora, a inscrição some para ela (Fila, lista, ficha = 404), com
 tarefas, reuniões e metas juntas. O que ela registrou fica no histórico da inscrição, com o nome dela.
@@ -473,7 +473,7 @@ tarefas, reuniões e metas juntas. O que ela registrou fica no histórico da ins
 - (a) CSV de Mentorados para quem tem "só a carteira": ✅ **só da carteira**, sem contato, como o cargo Acompanhamento (Gabriel, 19/11, "A: só da carteira").
 - (b) Fila: ✅ **só "Minha fila"**, sem o botão "Equipe" (Gabriel, 19/11, "A: só Minha fila").
 - (c) Push da Fila: ✅ **só dos mentorados da carteira**; o push "a todos do perfil" de mentorado de outra pessoa não chega a ela (Gabriel, 19/11, "A: só os dela").
-- (d) Inscrição tirada da carteira some para ela na hora, como acima? Recomendo: sim.
+- (d) Inscrição tirada da carteira: ✅ **some na hora**, como acima (Gabriel, 19/11, "A: some na hora").
 - (e) Ela pode trocar o responsável de um mentorado da carteira (passar para outra pessoa)? Recomendo: não, só o Admin
   (senão ela tira o mentorado da própria vista por engano e não tem como desfazer).
 
