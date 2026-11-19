@@ -92,7 +92,7 @@ describe('fraseAcesso', () => {
         cargo: 'ACOMPANHAMENTO',
         alcance: 'CARTEIRA',
       },
-      'Ana trocou o cargo de Maria Souza · Acompanhamento, Acompanhamento · só a carteira',
+      'Ana trocou o cargo de Maria Souza · Acompanhamento, Acompanhamento',
     ],
     [
       { tipo: 'HEAD_DADO', ator: { id: EU, nome: 'Diretor' }, area: 'ACOMPANHAMENTO' },
@@ -129,7 +129,20 @@ describe('fraseAcesso', () => {
       antes: 'Ana redefiniu a senha de ',
       alvo: 'Maria Souza',
       depois: '',
+      tag: null,
     });
+  });
+
+  it('a tag de "Acessos" vem à parte, só nas frases com cargo (Fase 3B, desenho A)', () => {
+    const cargo = { area: 'ACOMPANHAMENTO', cargo: 'ACOMPANHAMENTO', head: false } as const;
+    expect(fraseAcesso(linha({ ...cargo, alcance: 'CARTEIRA' }), EU).tag).toBe('Carteira');
+    expect(fraseAcesso(linha({ ...cargo, tipo: 'CARGO_TROCADO', alcance: 'TODOS' }), EU).tag).toBe(
+      'Todos os mentorados',
+    );
+    expect(fraseAcesso(linha(cargo), EU).tag).toBeNull();
+    expect(
+      fraseAcesso(linha({ tipo: 'SENHA_REDEFINIDA', alcance: 'CARTEIRA' }), EU).tag,
+    ).toBeNull();
   });
 });
 

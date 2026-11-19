@@ -2,8 +2,8 @@ import { expect, test, type Browser, type Page } from '@playwright/test';
 import { closeTestConnections, ownerSql } from '@npac/db/testing';
 import { E2E_DB, E2E_PASSWORD } from './env.js';
 
-// NPAC-54, Fase 3B: alcance "Só a carteira" no cargo Acompanhamento. A Duda convida pela aba Perfis
-// com "Só a carteira"; a pessoa entra pelo caminho real e vê só os mentorados em que é a responsável:
+// NPAC-54, Fase 3B: "Acessos" com a tag "Carteira" no cargo Acompanhamento. A Duda convida pela aba
+// Perfis com "Carteira"; a pessoa entra pelo caminho real e vê só os mentorados em que é a responsável:
 // Fila sem "Equipe", Mentorados sem o filtro Responsável, ficha com o Responsável só para leitura,
 // a ficha de outro mentorado dá 404 e o cadastro já vem com ela de responsável.
 const owner = ownerSql(E2E_DB);
@@ -49,18 +49,18 @@ async function abrirPerfis(page: Page) {
 }
 
 /** Duda convida com o perfil Acompanhamento e o alcance escolhido; devolve a senha temporária. */
-async function convidar(page: Page, alcance: 'Todos os mentorados' | 'Só a carteira') {
+async function convidar(page: Page, alcance: 'Todos os mentorados' | 'Carteira') {
   await page.getByRole('button', { name: 'Convidar', exact: true }).click();
   const dlg = page.getByRole('dialog', { name: 'Convidar' });
   await dlg.getByLabel('Nome', { exact: true }).fill('Pessoa Carteira');
   await dlg.getByLabel('E-mail', { exact: true }).fill(`${USUARIO}@fase3b.test`);
   await dlg.getByLabel('Usuário', { exact: true }).fill(USUARIO);
   // Sem perfil escolhido não há o campo; em Operação também não.
-  await expect(dlg.getByRole('radiogroup', { name: 'Alcance' })).toHaveCount(0);
+  await expect(dlg.getByRole('radiogroup', { name: 'Acessos' })).toHaveCount(0);
   await dlg.getByLabel('Perfil', { exact: true }).selectOption('OPERACAO');
-  await expect(dlg.getByRole('radiogroup', { name: 'Alcance' })).toHaveCount(0);
+  await expect(dlg.getByRole('radiogroup', { name: 'Acessos' })).toHaveCount(0);
   await dlg.getByLabel('Perfil', { exact: true }).selectOption('ACOMPANHAMENTO');
-  const campo = dlg.getByRole('radiogroup', { name: 'Alcance' });
+  const campo = dlg.getByRole('radiogroup', { name: 'Acessos' });
   await expect(campo.getByRole('radio', { name: 'Todos os mentorados' })).toHaveAttribute(
     'aria-checked',
     'true',
@@ -95,15 +95,15 @@ async function inscricao(nome: string, responsavel: string) {
   return i!.id;
 }
 
-test('Duda dá "Só a carteira"; a pessoa entra e vê só os mentorados dela', async ({
+test('Duda dá a tag "Carteira"; a pessoa entra e vê só os mentorados dela', async ({
   page,
   browser,
 }) => {
   await abrirPerfis(page);
-  const senha = await convidar(page, 'Só a carteira');
+  const senha = await convidar(page, 'Carteira');
   const linha = page.locator('.pf').filter({ hasText: 'Pessoa Carteira' });
   await expect(
-    linha.getByRole('radio', { name: 'Só a carteira' }),
+    linha.getByRole('radio', { name: 'Carteira' }),
     'a linha mostra o alcance escolhido',
   ).toHaveAttribute('aria-checked', 'true');
   // A Duda tem o selo de Admin: a linha dela não tem alcance (só vale sem o selo).
@@ -148,11 +148,9 @@ test('Duda dá "Só a carteira"; a pessoa entra e vê só os mentorados dela', a
   await nova.ctx.close();
 });
 
-test('Duda troca o alcance de "Só a carteira" para "Todos os mentorados" na linha', async ({
-  page,
-}) => {
+test('Duda troca de "Carteira" para "Todos os mentorados" na linha', async ({ page }) => {
   await abrirPerfis(page);
-  await convidar(page, 'Só a carteira');
+  await convidar(page, 'Carteira');
   const linha = page.locator('.pf').filter({ hasText: 'Pessoa Carteira' });
   await linha.getByRole('radio', { name: 'Todos os mentorados' }).click();
   await expect(linha.getByRole('radio', { name: 'Todos os mentorados' })).toHaveAttribute(
@@ -169,6 +167,14 @@ test('Duda troca o alcance de "Só a carteira" para "Todos os mentorados" na lin
         )[0]?.alcance,
     )
     .toBe('TODOS');
+  // Teclado: a marcada recebe o foco e as setas trocam (escolha única).
+  await linha.getByRole('radio', { name: 'Todos os mentorados' }).focus();
+  await page.keyboard.press('ArrowLeft');
+  await expect(linha.getByRole('radio', { name: 'Carteira' })).toHaveAttribute(
+    'aria-checked',
+    'true',
+  );
+  await expect(linha.getByRole('radio', { name: 'Carteira' })).toBeFocused();
   // Em outro perfil o campo some.
   await page.getByLabel('Perfil de Pessoa Carteira').selectOption('OPERACAO');
   await expect(linha.getByRole('radiogroup')).toHaveCount(0);

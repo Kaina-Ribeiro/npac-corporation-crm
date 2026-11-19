@@ -1063,22 +1063,60 @@
     font-weight: 600;
     color: var(--ink2);
   }
-  .pf-alcance button {
+  /* "Acessos" (Fase 3B, desenho A): tags de escolha única. Marcada = seleção dourada com ✓; a outra,
+     só a borda. Desativada mantém o texto inteiro (sem cinza sobre cinza). */
+  .acessos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .acesso-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 28px;
+    padding: 0 11px;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--ink2) 32%, transparent);
+    background: transparent;
+    color: var(--ink2);
+    font-size: 12.5px;
+    font-weight: 600;
     white-space: nowrap;
+    cursor: pointer;
+    transition:
+      background-color 0.15s ease,
+      border-color 0.15s ease,
+      color 0.15s ease,
+      transform 0.1s ease;
   }
-  .pf-alcance button:disabled {
+  .acesso-tag svg {
+    width: 12px;
+    height: 12px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .acesso-tag[aria-checked='true'] {
+    background: var(--tag-gold-bg);
+    border-color: color-mix(in srgb, var(--gold-deep) 50%, transparent);
+    color: var(--tag-gold);
+  }
+  .acesso-tag:not(:disabled, [aria-checked='true']):hover {
+    background: rgba(120, 120, 128, 0.1);
+    color: var(--ink);
+  }
+  .acesso-tag:not(:disabled):active {
+    transform: scale(0.97);
+  }
+  .acesso-tag:focus-visible {
+    outline: 2px solid var(--gold-deep);
+    outline-offset: 2px;
+  }
+  .acesso-tag:disabled {
     cursor: default;
-  }
-  /* Celular: o rótulo em cima e os dois botões dividindo a largura. */
-  @media (max-width: 767.98px) {
-    .pf-alcance .seg {
-      display: flex;
-      flex: 1 1 100%;
-    }
-    .pf-alcance .seg button {
-      flex: 1;
-      padding: 0 8px;
-    }
   }
   .pf .pf-alcance {
     grid-row: 3;
@@ -1656,8 +1694,9 @@
       grid-row: 1;
       justify-content: flex-end;
     }
+    /* Alinhado à caixa do cargo, logo abaixo dela. */
     .pf .pf-alcance {
-      grid-column: 2 / 5;
+      grid-column: 3 / 5;
       grid-row: 2;
     }
     .pf:has(.pf-alcance) .pf-acoes {

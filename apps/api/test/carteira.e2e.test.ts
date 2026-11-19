@@ -278,16 +278,21 @@ describe('gravar o alcance', () => {
     expect(proprio.status).toBe(400);
   });
 
-  it('o registro de acessos da Diretoria mostra "só a carteira"', async () => {
-    const r = await h.get('/api/admin/acessos?page=1', diretor);
-    expect(r.status, r.text).toBe(200);
-    const itens = (
-      r.body as { items: { tipo: string; alcance?: string; alvo: { id: string } | null }[] }
-    ).items;
-    expect(
-      itens.some(
-        (i) => i.tipo === 'CARGO_TROCADO' && i.alcance === 'CARTEIRA' && i.alvo?.id === carlaId,
-      ),
-    ).toBe(true);
+  it('o registro de acessos da Diretoria leva a tag: "Carteira" ao entrar, "Todos" ao sair', async () => {
+    const tipos = async () => {
+      const r = await h.get('/api/admin/acessos?page=1', diretor);
+      expect(r.status, r.text).toBe(200);
+      return (
+        r.body as { items: { tipo: string; alcance?: string; alvo: { id: string } | null }[] }
+      ).items.filter((i) => i.tipo === 'CARGO_TROCADO' && i.alvo?.id === carlaId);
+    };
+    expect((await tipos()).map((i) => i.alcance)).toEqual(['CARTEIRA']);
+    const p = await h.put(
+      '/api/mentoria/perfis',
+      { userId: carlaId, perfil: 'ACOMPANHAMENTO', admin: false, alcance: 'TODOS' },
+      diretor,
+    );
+    expect(p.status, p.text).toBe(200);
+    expect((await tipos()).map((i) => i.alcance)).toEqual(['TODOS', 'CARTEIRA']);
   });
 });
