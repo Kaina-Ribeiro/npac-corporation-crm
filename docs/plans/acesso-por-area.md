@@ -14,7 +14,7 @@ Legenda: ⏳ a fazer · 🔧 em andamento · ✅ feito · ❌ travado (dizer por
 |---|---|---|---|
 | 1 | Banco: a tabela de membros vira a fonte do cargo, sem mudar nada na tela | 2–3 dias | ✅ (migration 0072; falta só o roteiro no ITODEV, ver notas) |
 | 2 | Regra única de quem gerencia quem, na API e no banco | 2 dias | ✅ (migration 0073; ver notas) |
-| 3 | Telas: equipe por área (Admin do CRM e aba Perfis do módulo) | 2–3 dias | ⏳ |
+| 3 | Telas: equipe por área (Admin do CRM e aba Perfis do módulo) | 2–3 dias | 🔧 (telas e testes prontos; falta o roteiro no ITODEV, ver notas) |
 | 3B | Cargo da carteira (2B), "Acompanhamento da carteira": faz o que o perfil Acompanhamento faz, só nas inscrições em que é responsável | a estimar | ⏳ (respostas da Eduarda em 19/11; ver "Fase 3B") |
 | 4 | Pessoa em duas áreas | 2 dias | ⏳ |
 | 5 | Limpeza da compatibilidade | 1 dia | ⏳ |
@@ -112,17 +112,32 @@ novos listados no fim da seção "Telas" (M3, M6) e mostrar 2–3 opções em im
 
 | # | Tarefa | Pronto quando | Status |
 |---|---|---|---|
-| 3.1 | Textos e desenho aprovados pelo Gabriel (aba Perfis e Admin → Usuários da Diretoria) | Resposta dele registrada na spec | ⏳ |
-| 3.2 | Módulo → Configurações → Perfis: Convidar, Pedidos de acesso, cargo, Redefinir senha, Desativar; sai a nota "Conta nova: a Diretoria cria…" | Playwright: `duda` convida uma Operação, que entra direto no módulo; `duda` aprova um pedido; `duda` não vê o interruptor de Admin | ⏳ |
-| 3.3 | Admin → Usuários: Head do Comercial só vê o Comercial; Diretoria com filtro por área, cargos por área e o cartão "Acessos" (spec, D10) | Playwright: `ana` não vê contas do Acompanhamento nem o cartão; `diretor` filtra por área e vê no cartão, com "novo", a conta que a `duda` criou; `e2e/admin.spec.ts` verde | ⏳ |
-| 3.4 | "Entrou há X" (spec, D12): `ultimoUso` guardado na conta (no máximo uma gravação a cada 15 min por pessoa) e devolvido em `GET admin/users`; texto ao lado de cada nome nas duas listas | e2e da API: `ultimoUso` dentro do último minuto depois de um pedido; dois pedidos seguidos gravam uma vez; Sair não apaga; teste das frases; Playwright: `diretor` vê "entrou há…" em quem acabou de logar e "nunca entrou" em conta nova | ⏳ |
-| 3.5 | Verificação visual e de peso | Capturas 375 / 768 / 1024 / 1440 das duas telas, sem rolagem lateral nem texto cortado; JS de `/leads` < 150 KB; cada tela que usa `cargo-field` reconferida | ⏳ |
-| 3.6 | Roteiro no ITODEV por cargo (login → onde cai → cliques no menu) + `CLAUDE.md` e status | Lista do que passou, com URL e login por cargo, entregue ao Gabriel | ⏳ |
+| 3.1 | Textos e desenho aprovados pelo Gabriel (aba Perfis e Admin → Usuários da Diretoria) | Resposta dele registrada na spec | ✅ "1A, 2A, 3A" (D13 na spec) |
+| 3.2 | Módulo → Configurações → Perfis: Convidar, Pedidos de acesso, cargo, Redefinir senha, Desativar; sai a nota "Conta nova: a Diretoria cria…" | Playwright: `duda` convida uma Operação, que entra direto no módulo; `duda` aprova um pedido; `duda` não vê o interruptor de Admin | ✅ |
+| 3.3 | Admin → Usuários: Head do Comercial só vê o Comercial; Diretoria com filtro por área, cargos por área e o cartão "Acessos" (spec, D10) | Playwright: `ana` não vê contas do Acompanhamento nem o cartão; `diretor` filtra por área e vê no cartão, com "novo", a conta que a `duda` criou; `e2e/admin.spec.ts` verde | ✅ |
+| 3.4 | "Entrou há X" (spec, D12): `ultimoUso` guardado na conta (no máximo uma gravação a cada 15 min por pessoa) e devolvido em `GET admin/users`; texto ao lado de cada nome nas duas listas | e2e da API: `ultimoUso` dentro do último minuto depois de um pedido; dois pedidos seguidos gravam uma vez; Sair não apaga; teste das frases; Playwright: `diretor` vê "entrou há…" em quem acabou de logar e "nunca entrou" em conta nova | ✅ (migration 0074) |
+| 3.5 | Verificação visual e de peso | Capturas 375 / 768 / 1024 / 1440 das duas telas, sem rolagem lateral nem texto cortado; JS de `/leads` < 150 KB; cada tela que usa `cargo-field` reconferida | ✅ |
+| 3.6 | Roteiro no ITODEV por cargo (login → onde cai → cliques no menu) + `CLAUDE.md` e status | Lista do que passou, com URL e login por cargo, entregue ao Gabriel | ⏳ depois do merge, no rc da release |
 
 **Pronto quando (fase):** a Eduarda consegue, no ITODEV, fazer sozinha as 3 contas que pediu.
 (19/11: com as respostas 1B e 2B da Eduarda, as 3 contas não existem mais como pedido. **Sugestão pendente**, sem o sim do
 Gabriel: "a Eduarda cria sozinha, no ITODEV, uma conta de cada cargo atual do Acompanhamento e aprova um pedido de
 acesso". A Fase 3 é conferida pelos dois critérios.)
+
+**Notas da Fase 3 (19/11/2026):**
+- Visual e textos aprovados: D13 na spec ("1A, 2A, 3A"), opções mostradas em imagem no visual real antes de codar.
+- Aba Perfis do módulo usa `GET admin/users` e `GET admin/access-requests` (o Admin do módulo é o Head da área); perfil e
+  selo continuam por `PUT mentoria/perfis`. O botão "Convidar" do topo da página abre a janelinha da lista por um evento da
+  janela (`npac:perfis-convidar`). `GET mentoria/perfis` ficou sem uso na tela (a API continua).
+- "Entrou há X": migration `0074_ultimo_uso` (`user.ultimo_uso`), `UltimoUso` na guarda de sessão. Testes: e2e da API
+  `test/ultimo-uso.e2e.test.ts` (4) e `shared/test/acessos.test.ts` (frases do "entrou há" e do registro).
+- `fraseAcesso` junta o selo ao cargo quando a conta nasce Admin do Acompanhamento ("· Acompanhamento, Acompanhamento e Admin
+  do Acompanhamento"); a Diretoria convidada sai "· Diretoria". Combinação dos textos aprovados, sem texto novo.
+- Teste antigo com expectativa trocada: `e2e/acompanhamento-v2-base.spec.ts` (a Duda não vê mais o interruptor de Admin, D9).
+- Pedido do Gabriel no meio da fase (19/11): o convite chegar por e-mail. Recomendação: e-mail com o usuário e um link
+  "Criar minha senha" (caminho do "Esqueci minha senha"), sem a senha no e-mail; PR à parte, aguardando o sim dele.
+- **Para a Fase 4:** "também no Comercial/Acompanhamento" e a frase de conta em duas áreas já aparecem quando a API manda
+  `outraArea`; "Adicionar a outra área" continua da Fase 4.
 
 ## Fase 3B — Cargo da carteira (2B)
 
