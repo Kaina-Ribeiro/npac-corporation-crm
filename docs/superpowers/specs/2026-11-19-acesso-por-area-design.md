@@ -57,6 +57,8 @@ Código conferido na `release/v0.19` (commit `763bb4f`, última migration `0071`
 | D8 | Execução: uma sessão Opus 5.5 high por fase do plano. | Gabriel, 19/11 |
 | D9 | Só a Diretoria dá e tira Head/Admin, também dentro da própria área (era a M1). | Gabriel, 19/11 ("A") |
 | D10 | A Diretoria tem um registro compacto e fácil de ver do que aconteceu de importante com contas e acessos (conta criada, cargo dado…). | Gabriel, 19/11 |
+| D11 | Cada linha do registro diz a área e o cargo: "Eduarda criou a conta de Maria · Acompanhamento, Operação". | Gabriel, 19/11 |
+| D12 | Na lista de pessoas, ao lado de cada nome, "entrou há 2 horas" / "não entra há 12 dias", para ver quem usa e quem sumiu. Entradas no sistema não viram linha do registro. | Gabriel, 19/11 ("gostei da ideia") |
 
 ### Decisões minhas, para o Gabriel conferir
 
@@ -74,7 +76,9 @@ Ele pediu para seguir sem mais perguntas. Cada uma tem o motivo e o que muda se 
 | M8 | **Sempre existe ao menos uma Diretoria ativa** (o banco recusa tirar ou desativar a última). | Evita trancar todo mundo para fora. | — |
 | M9 | **Pedido de acesso: o Head vê e aprova só os da área dele**, e só com cargo dessa área. A Diretoria vê todos e pode aprovar em qualquer área. | D3. A área do pedido já existe (NPAC-52). | — |
 | M10 | **O registro da D10 é um cartão "Acessos" no topo de Admin → Usuários, só para a Diretoria**, e não entra no sino. | O sino é dos avisos de lead (`notifications` aponta para a linha do tempo do lead); o cartão lê a auditoria que já existe. | Entrar no sino ou virar push é trabalho à parte (tabela de avisos nova). |
-| M11 | **"Acessos" = mudanças em quem tem acesso; logins não entram no cartão.** | Login acontece dezenas de vezes por dia e esconderia o que importa; continua na aba Auditoria. | Para ver logins de forma compacta, o caminho é uma coluna "último acesso" na lista de usuários. |
+| M11 | ✅ Confirmada pelo Gabriel, virou D12: entradas no sistema não entram no quadro "Acessos"; aparecem como "entrou há X" na lista de pessoas. | — | — |
+| M12 | **"Entrou há X" conta a última vez que a pessoa usou o sistema, não a última vez que digitou a senha.** | A sessão dura 30 dias (`expiresIn` em `api/auth/auth.ts`): quem usa todo dia sem sair apareceria como "não entra há 20 dias". | Contar só a digitação da senha é mais simples e engana. |
+| M13 | **Quem vê o "entrou há X": a Diretoria (todas as contas) e o Head (as da área dele)**, nas duas listas (Admin → Usuários e aba Perfis do módulo). | É a equipe de cada um; a Eduarda precisa disso tanto quanto a Diretoria. | Só a Diretoria: some da aba Perfis. |
 
 ## Correções ao arquivo de contexto (`docs/plans/acesso-por-area-contexto.md`)
 
@@ -257,13 +261,16 @@ novo: lê a auditoria que já existe (`audit_log`), filtrada e escrita em portug
 
 | Acontecimento | Linha na tela (exemplo) |
 |---|---|
-| Conta criada por convite | "Eduarda criou a conta de Maria Souza · Operação" |
-| Pedido de acesso aprovado ou recusado | "Eduarda aprovou o pedido de Manu Alves · Especialista" |
-| Cargo trocado | "Ana trocou o cargo de João Lima: Closer" |
+| Conta criada por convite | "Eduarda criou a conta de Maria Souza · Acompanhamento, Operação" |
+| Pedido de acesso aprovado ou recusado | "Eduarda aprovou o pedido de Manu Alves · Acompanhamento, Especialista" |
+| Cargo trocado | "Ana trocou o cargo de João Lima · Comercial, Closer" |
 | Head/Admin dado ou tirado; Diretoria dada ou tirada | "Você deu Admin do Acompanhamento a Eduarda" |
-| Pessoa posta em uma segunda área, ou tirada | "Você adicionou Sonia ao Acompanhamento · Especialista" |
+| Pessoa posta em uma segunda área, ou tirada | "Você adicionou Sonia a outra área · Acompanhamento, Especialista" |
 | Senha redefinida ou MFA zerado por outra pessoa | "Ana redefiniu a senha de Igor" |
 | Conta desativada ou reativada | "Ana desativou a conta de João Lima" |
+
+Toda linha que cria conta ou dá cargo termina com "· Área, Cargo" (D11), com os rótulos de
+`AREA_LABEL` e `CARGO_INFO` (`sh/cargos.ts`).
 
 **O que não entra:** logins, troca da própria senha, foto e nome do perfil, e tudo de lead, venda e
 mentorado. Isso continua na aba Auditoria (M11).
@@ -281,14 +288,35 @@ mentorado. Isso continua na aba Auditoria (M11).
 
 ```
 Acessos                                                   Ver tudo
-hoje 14:02   Eduarda criou a conta de Maria Souza · Operação      novo
-hoje 11:40   Eduarda aprovou o pedido de Manu Alves · Especialista novo
+hoje 14:02   Eduarda criou a conta de Maria Souza · Acompanhamento, Operação          novo
+hoje 11:40   Eduarda aprovou o pedido de Manu Alves · Acompanhamento, Especialista   novo
 ontem        Ana desativou a conta de João Lima
 17/11        Você deu Admin do Acompanhamento a Eduarda
 17/11        Ana redefiniu a senha de Igor
 ```
 
-Cinco linhas no cartão; "Ver tudo" abre a lista inteira, paginada.
+Cinco linhas no cartão; "Ver tudo" abre a lista inteira, paginada. ("Cartão" = um quadro com título
+na tela, como os do Dashboard.)
+
+### "Entrou há X" na lista de pessoas (D12)
+
+Ao lado de cada nome, nas duas listas de equipe, um texto pequeno com a última vez que a pessoa usou o
+sistema:
+
+```
+Maria Souza     [Operação ▾]      entrou há 2 horas
+Manu Alves      [Especialista ▾]  não entra há 12 dias
+Carla Dias      [Escolha o perfil ▾] · falta perfil      nunca entrou
+```
+
+- Conta o **uso** do sistema, não a digitação da senha (M12). Precisão de uns 15 minutos basta.
+- O dado fica guardado na conta e não some quando a pessoa sai (as linhas de `session` são apagadas no
+  Sair e ao desativar). Nada de gravar a cada pedido: no máximo uma gravação por pessoa a cada 15 minutos,
+  fora das tabelas que avisam o canal ao vivo (`app_revision`).
+- Textos: "entrou agora", "entrou há N minutos / horas", "entrou ontem", "entrou há N dias" até 6 dias,
+  "não entra há N dias" a partir de 7, "nunca entrou". Conta desativada não mostra.
+- Quem vê: Diretoria (todas) e Head (as da área dele) (M13). Vem em `GET admin/users` como
+  `ultimoUso` (data ou nulo) e a frase é montada no web.
 
 ## Telas
 
@@ -301,6 +329,7 @@ Nada de tela nova de navegação: os dois lugares que já existem ganham a mesma
   só com os cargos da área que falta.
 - O interruptor "Admin do Acompanhamento" e o cargo "Head" continuam aparecendo só para a Diretoria.
 - Diretoria: o cartão "Acessos" (D10) no topo da aba, acima da lista.
+- Em cada linha da lista, o "entrou há X" (D12), também na aba Perfis do módulo.
 
 **2. Acompanhamento → Configurações → Perfis (`components/acompanhamento/perfis-admin.tsx`)**
 
@@ -333,7 +362,7 @@ Equipe
 Textos novos de tela, todos a confirmar com o Gabriel antes da fase 3: "Adicionar a outra área",
 "também no Comercial" / "também no Acompanhamento", "Conta em mais de uma área: só a Diretoria redefine
 a senha ou desativa", "Só a Diretoria dá o selo de Admin do Acompanhamento", o título "Acessos", "Ver
-tudo", "novo" e as frases da tabela do registro de acessos.
+tudo", "novo", as frases da tabela do registro de acessos e os textos do "entrou há X".
 
 ## Segurança
 
@@ -365,6 +394,10 @@ tudo", "novo" e as frases da tabela do registro de acessos.
   a Diretoria põe a Sonia como Especialista e a Sonia vê os dois menus. Sempre pelo caminho real: login →
   onde cai → cliques no menu.
 - **Capturas** 375 / 768 / 1024 / 1440 de Admin → Usuários e da aba Perfis.
+- **"Entrou há X":** e2e da API: depois de um pedido autenticado, `ultimoUso` da pessoa em
+  `GET admin/users` fica dentro do último minuto; dois pedidos seguidos gravam uma vez só; Sair não
+  apaga; o Head só recebe o das contas da área dele. Teste de unidade das frases (agora, minutos, horas,
+  ontem, dias, "não entra há", "nunca entrou").
 - **Registro de acessos:** e2e da API: cada ação da tabela gera uma linha em `GET admin/acessos`, com
   tipo, área e cargo; login e ação de lead não aparecem; Head e demais cargos recebem 404; nenhum nome
   ou e-mail gravado em `audit_log`. Playwright: a `duda` cria uma conta e o `diretor` vê a linha com

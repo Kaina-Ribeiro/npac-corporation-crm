@@ -92,8 +92,9 @@ novos listados no fim da seção "Telas" (M3, M6) e mostrar 2–3 opções em im
 | 3.1 | Textos e desenho aprovados pelo Gabriel (aba Perfis e Admin → Usuários da Diretoria) | Resposta dele registrada na spec | ⏳ |
 | 3.2 | Módulo → Configurações → Perfis: Convidar, Pedidos de acesso, cargo, Redefinir senha, Desativar; sai a nota "Conta nova: a Diretoria cria…" | Playwright: `duda` convida uma Operação, que entra direto no módulo; `duda` aprova um pedido; `duda` não vê o interruptor de Admin | ⏳ |
 | 3.3 | Admin → Usuários: Head do Comercial só vê o Comercial; Diretoria com filtro por área, cargos por área e o cartão "Acessos" (spec, D10) | Playwright: `ana` não vê contas do Acompanhamento nem o cartão; `diretor` filtra por área e vê no cartão, com "novo", a conta que a `duda` criou; `e2e/admin.spec.ts` verde | ⏳ |
-| 3.4 | Verificação visual e de peso | Capturas 375 / 768 / 1024 / 1440 das duas telas, sem rolagem lateral nem texto cortado; JS de `/leads` < 150 KB; cada tela que usa `cargo-field` reconferida | ⏳ |
-| 3.5 | Roteiro no ITODEV por cargo (login → onde cai → cliques no menu) + `CLAUDE.md` e status | Lista do que passou, com URL e login por cargo, entregue ao Gabriel | ⏳ |
+| 3.4 | "Entrou há X" (spec, D12): `ultimoUso` guardado na conta (no máximo uma gravação a cada 15 min por pessoa) e devolvido em `GET admin/users`; texto ao lado de cada nome nas duas listas | e2e da API: `ultimoUso` dentro do último minuto depois de um pedido; dois pedidos seguidos gravam uma vez; Sair não apaga; teste das frases; Playwright: `diretor` vê "entrou há…" em quem acabou de logar e "nunca entrou" em conta nova | ⏳ |
+| 3.5 | Verificação visual e de peso | Capturas 375 / 768 / 1024 / 1440 das duas telas, sem rolagem lateral nem texto cortado; JS de `/leads` < 150 KB; cada tela que usa `cargo-field` reconferida | ⏳ |
+| 3.6 | Roteiro no ITODEV por cargo (login → onde cai → cliques no menu) + `CLAUDE.md` e status | Lista do que passou, com URL e login por cargo, entregue ao Gabriel | ⏳ |
 
 **Pronto quando (fase):** a Eduarda consegue, no ITODEV, fazer sozinha as 3 contas que pediu.
 
@@ -127,7 +128,7 @@ inteira sem rollback. Spec: "Compatibilidade".
 
 ## Pendências com o Gabriel (não travam as fases 1 e 2)
 
-- Conferir as decisões M2–M11 da spec (a M1 ele confirmou em 19/11: só a Diretoria dá e tira Admin).
+- Conferir as decisões M2–M10, M12 e M13 da spec (M1 e M11 ele confirmou em 19/11).
 - Textos novos de tela (antes da fase 3).
 - Religar MFA para Diretoria e Heads e ter duas contas de Diretoria (recomendação, fora deste plano).
 - Com a Eduarda: 1A/1B (Maria) e 2A/2B (segunda Maria); até a fase 3 chegar a prod, quem cria as contas
