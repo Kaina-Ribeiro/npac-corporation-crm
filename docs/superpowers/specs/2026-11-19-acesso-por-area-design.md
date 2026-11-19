@@ -31,7 +31,7 @@ Código conferido na `release/v0.19` (commit `763bb4f`, última migration `0071`
 - Criar cargo ou área pela tela. Cargos e áreas são fixos no código (`sh/cargos.ts`) e travados por teste.
 - Cargo "Envios" e cargo "só a própria carteira": ficam fora. A Eduarda respondeu em 19/11: **1B** (a Maria dos envios
   só entra com o cargo Envios, junto da tela Envios físicos, fase 4 do Acompanhamento) e **2B** (a segunda Maria vê só a
-  carteira dela; cargo novo "Acompanhamento da carteira", fase 3B do plano, entre a 3 e a 4, com as respostas dela lá). Com este desenho, cargo novo
+  carteira dela; vira o alcance "Só a carteira" no cargo Acompanhamento, fase 3B do plano, entre a 3 e a 4, com as respostas dela lá). Com este desenho, cargo novo
   = uma entrada em `sh/cargos.ts` + a regra de dados dele.
 - Religar MFA e o limite de tentativas de login (ver "Segurança", recomendação).
 - Mudar o que cada cargo vê nos dados. A RLS de leads e de mentorados não muda de resultado.
@@ -396,6 +396,89 @@ Opções mostradas em imagem, no visual real (3 por tela). Escolhidas:
   - "também no Comercial" / "também no Acompanhamento" e a frase "Conta em mais de uma área: só a
     Diretoria redefine a senha ou desativa" no lugar dos botões (só aparece com conta em duas áreas).
   - "Adicionar a outra área" fica para a Fase 4.
+
+## Fase 3B — Alcance "só a carteira"
+
+Pedido da Eduarda (19/11, "1A, 2A, 3A", plano, Fase 3B) e desenho do Gabriel (19/11, sessão coordenadora). Código conferido
+na `release/v0.19` (`3fa5b4f`, última migration `0074`). Status: aprovado (formulário, textos e respostas (a)–(e), Gabriel 19/11).
+
+**Carteira** = as inscrições em que a pessoa é a responsável (`mentoria_inscricoes.responsavel_id`).
+
+### O que é
+
+Palavras do Gabriel: "Eu sou a duda e tenho ADM acompanhamento - posso dar a maria o Cargo de Acompanhamento - com alcance
+a carteira e envios por exemplo"; "eu ja to pensando com o sistema pronto".
+
+- O cargo continua **Acompanhamento** (perfil `ACOMPANHAMENTO`, sem cargo novo; D5 vale). Cada pessoa com esse cargo ganha
+  um **alcance**: "Todos os mentorados" (padrão, igual a hoje) ou "Só a carteira".
+- Quem escolhe: a Diretoria e o Admin do Acompanhamento, pela regra única (mudar o alcance = trocar o cargo de alguém da
+  área: o Head não mexe em outro Head nem no próprio). Não dá nem tira Admin (D9).
+- **Volta a "Todos os mentorados"** quando o cargo deixa de ser Acompanhamento ou a pessoa ganha o selo de Admin, e não
+  volta sozinha a "Só a carteira" se o cargo voltar ou o selo sair: é a volta para o lado mais aberto, de propósito (o
+  alcance só existe no cargo Acompanhamento sem o selo). A linha da pessoa na aba Perfis mostra o alcance atual.
+- Com "Só a carteira" a pessoa faz tudo o que o cargo Acompanhamento faz (1A), só nos mentorados da carteira. Fora dela,
+  nada: mentorado de outra pessoa é **404**, como para a Especialista.
+- **Destino (não entra na 3B): extras por pessoa** (o "+ envios" do Gabriel), caixinhas de uma lista fechada no código. A
+  coluna, a API e a linha "Extras" na tela nascem com o primeiro extra real, porque o formato dele ainda não se sabe. **Envios:**
+  cargo próprio (D6, resposta 1B da Eduarda) ou caixinha é decisão da fase da tela Envios físicos (fase 4 do Acompanhamento):
+  quem só faz envios não cabe bem em "Acompanhamento + caixinha".
+- Caminhos considerados e descartados: cargo novo fixo `CARTEIRA` (repetiria nas guardas da API, na regra de responsável, na
+  transferência e no push tudo o que já vale para o Acompanhamento) e permissões livres por tela e por pessoa (2–3 semanas,
+  desfaz a D5, abre caminho de escalada e pesa na RLS com prod em uso).
+
+### Na tela (formulário e textos aprovados pelo Gabriel, 19/11: "Sim, pode ficar")
+
+- Aba Perfis do módulo, na linha da pessoa com cargo Acompanhamento: **"Alcance: Todos os mentorados / Só a carteira"** (Gabriel, 19/11: tira o "Vê"; "Alcance" escolhido entre "Alcance", "Permissões" e "Acessos": "Acessos" já é o quadro da Diretoria e "Permissões" fica para a futura linha de extras). O mesmo
+  campo no **Convidar** e ao **aprovar pedido de acesso** (com "Todos os mentorados" marcado). Outros cargos não mostram o campo.
+- Nas listas (aba Perfis e Admin → Usuários): **"Acompanhamento · só a carteira"**. O nome "Acompanhamento da carteira" (3A da
+  Eduarda) não vira cargo (pendência: avisar a Eduarda).
+- Registro de acessos: a troca de alcance entra na frase da troca de cargo de hoje, com o alcance no fim ("· Acompanhamento,
+  Acompanhamento · só a carteira"); sem frase nova.
+
+| Tela, para quem tem "Só a carteira" | O que muda |
+|---|---|
+| Fila | Só itens da carteira, só "Minha fila" (sem o botão "Equipe") |
+| Mentorados, Ficha, Plano, Reuniões, PMEs e ciclos | Só a carteira; o filtro "Responsável" não aparece |
+| Cadastro de mentorado (2A) | Responsável = ela, fixo (o campo mostra o nome dela, sem trocar) |
+| Configurações | O mesmo que o cargo Acompanhamento já vê |
+
+**Continua só do Admin:** excluir e anonimizar, transferir carteira, Perfis, Importação, catálogo de PMEs, CSV com contato.
+
+### Banco (como a regra entra)
+
+- `area_membros.alcance` text, `TODOS` por padrão; `CARTEIRA` só com área e cargo `ACOMPANHAMENTO` (CHECK). Trocar para outro
+  cargo volta a `TODOS`. Gravação só por `area_definir_membro` (ganha o parâmetro, com a versão antiga chamando a nova), com
+  a regra única e auditoria (`area.membro.definido` com `alcance`).
+- `mentoria_so_carteira()`: quem está logado tem alcance `CARTEIRA`. Visibilidade por RLS, nunca por filtro em JS:
+  - `mentoria_ve_todas()` deixa de valer para quem tem "só a carteira".
+  - A lista da 0061 (`mentoria_ids_especialista()`, ou uma `mentoria_ids_visiveis()` com nome honesto) passa a devolver a
+    carteira dela. **A dica do plano serve em parte:** cobre as 12 políticas de leitura que já usam essa lista sem reescrevê-las.
+    Reuniões, tarefas, metas e check-ins decidem pelo perfil e ganham `OR inscricao_id = any ((select …)::uuid[])`. Os
+    catálogos (Plano modelo, PMEs, mensagens) não mudam: o perfil continua `ACOMPANHAMENTO`.
+  - Funções por linha (`mentoria_ve`, `mentoria_edita`, `_reuniao`, `_acao`, `_tarefa`, `_meta`, `mentoria_midia_*`): no
+    `WHEN 'ACOMPANHAMENTO'`, "e (não é só a carteira ou a inscrição está na carteira)".
+  - Funções `SECURITY DEFINER` que devolvem dado de inscrição sem passar pela RLS (semáforo, `mentoria_semaforo_lote`, % do
+    PME, `mentoria_fila` e o que mais aparecer na varredura): conferir uma a uma e recortar.
+- Inserir inscrição com "só a carteira": só com `responsavel_id` = ela mesma (política de INSERT, não só a API).
+- Responsável, transferência de carteira e o casamento do item da Fila com o perfil não mudam (o perfil é `ACOMPANHAMENTO`).
+- Push da Fila endereçado "a todos do perfil" (sem responsável ativo): quem tem "só a carteira" só recebe o da carteira
+  (pergunta c).
+- Testes: equivalência (alcance `TODOS` = hoje, conta por conta), `rls-por-consulta`, casos novos no arquivo da regra única.
+
+### Quando a inscrição sai da carteira (d, aprovado)
+
+Troca de responsável ou transferência pelo Admin: na hora, a inscrição some para ela (Fila, lista, ficha = 404), com
+tarefas, reuniões e metas juntas. O que ela registrou fica no histórico da inscrição, com o nome dela.
+
+### Respostas do Gabriel (19/11)
+
+- (a) CSV de Mentorados para quem tem "só a carteira": ✅ **só da carteira**, sem contato, como o cargo Acompanhamento (Gabriel, 19/11, "A: só da carteira").
+- (b) Fila: ✅ **só "Minha fila"**, sem o botão "Equipe" (Gabriel, 19/11, "A: só Minha fila").
+- (c) Push da Fila: ✅ **só dos mentorados da carteira**; o push "a todos do perfil" de mentorado de outra pessoa não chega a ela (Gabriel, 19/11, "A: só os dela").
+- (d) Inscrição tirada da carteira: ✅ **some na hora**, como acima (Gabriel, 19/11, "A: some na hora").
+- (e) Trocar a responsável de um mentorado da carteira: ✅ **não**; o campo "Responsável" fica só para leitura para ela (no
+  banco: UPDATE de `responsavel_id` recusado para quem tem "só a carteira"). Trocam o Admin, quem tem "Todos os mentorados"
+  e a Operação, como hoje (Gabriel, 19/11, "A").
 
 ## Segurança
 

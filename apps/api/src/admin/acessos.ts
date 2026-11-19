@@ -36,7 +36,12 @@ const CAMPOS_DE_CARGO = ['role', 'perfil', 'moduloAdmin'];
 
 /** Tipo e detalhe de cada linha da auditoria (as que não são acesso nem chegam aqui). */
 function tipoDe(action: string, d: Record<string, unknown>) {
-  const detalhe = { area: texto(d.area), cargo: texto(d.cargo), head: bool(d.head) };
+  const detalhe = {
+    area: texto(d.area),
+    cargo: texto(d.cargo),
+    head: bool(d.head),
+    ...(d.alcance === 'CARTEIRA' ? { alcance: 'CARTEIRA' as const } : {}),
+  };
   const antes = (d.antes ?? null) as { head?: boolean } | null;
   switch (action) {
     case 'admin.user.invite':

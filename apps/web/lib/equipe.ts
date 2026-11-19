@@ -4,6 +4,7 @@
  */
 import type { Role } from '@npac/shared';
 import type { ContaAreas, Vinculo } from '@npac/shared/areas';
+import type { Alcance } from '@npac/shared/alcance';
 import type { Perfil } from '@npac/shared/mentoria';
 
 export type ContaEquipe = {
@@ -19,6 +20,8 @@ export type ContaEquipe = {
   /** Perfil do Acompanhamento (nulo fora dele ou "falta perfil"). */
   perfil: Perfil | null;
   moduloAdmin: boolean | null;
+  /** Fase 3B: "Todos os mentorados" ou "Só a carteira" (nulo fora do Acompanhamento). */
+  alcance: Alcance | null;
   active: boolean;
   twoFactorEnabled: boolean | null;
   mustChangePassword: boolean;

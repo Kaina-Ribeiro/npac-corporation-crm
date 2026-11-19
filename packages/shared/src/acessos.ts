@@ -3,6 +3,7 @@
  * acessos da Diretoria (D10, D11). Sem zod: lido no cliente
  * (`@npac/shared/acessos`).
  */
+import { ALCANCE_SUFIXO } from './alcance.js';
 import { AREA_LABEL, CARGO_INFO, MODULO_ADMIN_LABEL, type Area, type Cargo } from './cargos.js';
 
 const MIN = 60_000;
@@ -75,6 +76,8 @@ export type Acesso = {
   area: string | null;
   cargo: string | null;
   head: boolean | null;
+  /** Fase 3B: "só a carteira" no cargo Acompanhamento; ausente = todos os mentorados. */
+  alcance?: 'CARTEIRA' | null;
 };
 
 /** Frase de uma linha, em três pedaços: o nome do alvo fica em destaque na tela. */
@@ -84,11 +87,15 @@ const areaLabel = (a: string | null) => (a && a in AREA_LABEL ? AREA_LABEL[a as 
 const cargoLabel = (c: string | null) =>
   c && c in CARGO_INFO ? CARGO_INFO[c as Cargo].label : null;
 
-/** " · Área, Cargo" (D11); Admin do Acompanhamento junto do cargo; Diretoria sem área. */
+/**
+ * " · Área, Cargo" (D11); Admin do Acompanhamento junto do cargo; Diretoria sem área; "· só a carteira"
+ * no fim (Fase 3B).
+ */
 function sufixo(a: Acesso) {
   const area = areaLabel(a.area);
   let cargo = cargoLabel(a.cargo);
   if (cargo && a.area === 'ACOMPANHAMENTO' && a.head) cargo = `${cargo} e ${MODULO_ADMIN_LABEL}`;
+  if (cargo && a.alcance === 'CARTEIRA') cargo = `${cargo} · ${ALCANCE_SUFIXO}`;
   const partes = [area, cargo].filter(Boolean);
   return partes.length ? ` · ${partes.join(', ')}` : '';
 }

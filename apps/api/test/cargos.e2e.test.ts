@@ -127,6 +127,7 @@ describe('convite', () => {
     expect((await h.get('/api/mentoria/eu', cookie)).body).toEqual({
       perfil: 'OPERACAO',
       admin: false,
+      soCarteira: false,
     });
   });
 });

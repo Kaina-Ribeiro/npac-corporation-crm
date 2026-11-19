@@ -15,7 +15,7 @@ Legenda: ⏳ a fazer · 🔧 em andamento · ✅ feito · ❌ travado (dizer por
 | 1 | Banco: a tabela de membros vira a fonte do cargo, sem mudar nada na tela | 2–3 dias | ✅ (migration 0072; falta só o roteiro no ITODEV, ver notas) |
 | 2 | Regra única de quem gerencia quem, na API e no banco | 2 dias | ✅ (migration 0073; ver notas) |
 | 3 | Telas: equipe por área (Admin do CRM e aba Perfis do módulo) | 2–3 dias | ✅ (PRs #140 e #141; roteiro no ITODEV em 19/11, ver notas) |
-| 3B | Cargo da carteira (2B), "Acompanhamento da carteira": faz o que o perfil Acompanhamento faz, só nas inscrições em que é responsável | a estimar | ⏳ (respostas da Eduarda em 19/11; ver "Fase 3B") |
+| 3B | Alcance "só a carteira" no cargo Acompanhamento (2B): a pessoa faz o que o cargo faz, só nos mentorados em que é responsável; a Eduarda escolhe por pessoa | 3–4 dias | 🔧 (spec aprovada 19/11; construindo) |
 | 4 | Pessoa em duas áreas | 2 dias | ⏳ |
 | 5 | Limpeza da compatibilidade | 1 dia | ⏳ |
 
@@ -148,7 +148,7 @@ acesso". A Fase 3 é conferida pelos dois critérios.)
 - **Para a Fase 4:** "também no Comercial/Acompanhamento" e a frase de conta em duas áreas já aparecem quando a API manda
   `outraArea`; "Adicionar a outra área" continua da Fase 4.
 
-## Fase 3B — Cargo da carteira (2B)
+## Fase 3B — Alcance "só a carteira" (2B)
 
 Entre a 3 e a 4 (Gabriel, 19/11: "Sim, entre 3 e 4"). Sem tarefas ainda: a sessão da fase escreve a spec e confere com o
 Gabriel no começo.
@@ -157,16 +157,44 @@ Gabriel no começo.
 - 1A. Na carteira dela, a pessoa faz tudo o que o perfil Acompanhamento faz no dia a dia (reuniões, tarefas, metas, PME e
   onboarding), mas só nos mentorados em que é a responsável.
 - 2A. Cadastra mentorado novo, que já entra na carteira dela, com ela como responsável.
-- 3A. Nome do cargo na tela: **"Acompanhamento da carteira"**.
+- 3A. Nome do cargo na tela: **"Acompanhamento da carteira"**. (Com o desenho do Gabriel vira o alcance: "Acompanhamento · só a carteira".)
 
-**Leitura (a conferir com o Gabriel, ainda não é decisão):** vê só as inscrições em que é responsável (Fila, Mentorados,
-Ficha, Reuniões, Metas); edita as mesmas áreas do perfil Acompanhamento, só na carteira; pode ser responsável e receber
-carteira na transferência; o que é só do Admin continua só do Admin (excluir, anonimizar, transferir carteira, catálogo de
-PMEs, CSV com contato); quem cria o cargo: o Admin do Acompanhamento e a Diretoria.
+**Desenho (Gabriel, 19/11):** cargo Acompanhamento + alcance por pessoa ("Todos os mentorados" ou "Só a carteira"),
+escolhido pela Eduarda ou pela Diretoria. Sem cargo novo. O que é só do Admin continua só do Admin (excluir, anonimizar,
+transferir carteira, catálogo de PMEs, CSV com contato). Detalhe na spec.
 
-**Em aberto para o Gabriel no começo da fase:** (a) CSV do módulo para esse cargo: só da carteira ou nenhum? (b) A visão
+**Em aberto para o Gabriel no começo da fase:** (a) CSV do módulo para quem tem "só a carteira": só da carteira ou nenhum? (b) A visão
 "Equipe" da Fila some para ele? (c) O push da Fila que vai "a todos do perfil": só os da carteira? (d) Inscrição tirada da
-carteira deixa de ser vista (esperado).
+carteira deixa de ser vista (esperado). (e) Pode trocar o responsável de um mentorado da carteira? (acrescentada na fase)
+
+Branch `feat/NPAC-54-fase-3b-carteira`. Spec: "Fase 3B — Alcance 'só a carteira'". Desenho do Gabriel (19/11): cargo Acompanhamento
++ alcance "Todos os mentorados / Só a carteira" por pessoa; extras por pessoa são o destino e nascem com o primeiro extra real (não na 3B). Conferido no código: a dica da lista da Especialista serve para 12 políticas; reuniões, tarefas, metas e check-ins precisam do caso novo. **Antes do squash:** PR aberto com o CI verde → parar e avisar a sessão coordenadora, que lê a migration (primeira fase que muda visibilidade com prod em uso).
+
+| # | Tarefa | Pronto quando | Status |
+|---|---|---|---|
+| 3B.1 | Spec da fase (cargo Acompanhamento + alcance, Gabriel 19/11) + desenho do formulário, textos novos e respostas (a)–(e) | Respostas registradas na spec | ✅ (19/11: formulário "Alcance", textos, (a) CSV só da carteira, (b) só "Minha fila", (c) push só da carteira, (d) some na hora, (e) não troca a responsável) |
+| 3B.2 | Banco (migration 0075): `area_membros.alcance` (`TODOS` padrão, `CARTEIRA` só no cargo Acompanhamento), `area_definir_membro` com o alcance e a regra única, `mentoria_so_carteira()`, lista da 0061 com a carteira, políticas de reuniões, tarefas, metas e check-ins, funções por linha e `SECURITY DEFINER` que devolvem dado de inscrição, INSERT de inscrição só com ela de responsável, push "a todos do perfil" recortado | `db/test/carteira.test.ts`: com "só a carteira" vê e edita só a carteira; inscrição tirada some; não cria inscrição de outra; `TODOS` = hoje (equivalência); `rls-por-consulta`, `areas-equivalencia`, `fila-equivalencia`, `areas-regra` e `migrations` verdes | ⏳ |
+| 3B.3 | Shared + API: alcance em `sh/cargos.ts`, casos em `areas-casos.ts` (Head troca o alcance de quem não é Head; ninguém o próprio), `admin/users`, `access-requests` e `mentoria/perfis` recebem o alcance, `/api/me` e `GET admin/users` devolvem, cadastro com responsável fixo, CSV, Fila e push pelas respostas | e2e da API `carteira.e2e.test.ts`: cada rota do módulo com "só a carteira" (200 na carteira, 404 fora, 404 no que é só do Admin); `duda` convida e aprova com "só a carteira"; suítes `shared` e `api` verdes | ⏳ |
+| 3B.4 | Web: campo "Alcance" (Todos os mentorados / Só a carteira) na aba Perfis, no convite e na aprovação, só no cargo Acompanhamento; "Acompanhamento · só a carteira" nas listas; Fila, cadastro com responsável fixo, filtro "Responsável" escondido | Playwright por login real (entra → cai na Fila → Mentorados → Ficha → Reuniões) vendo só a carteira; capturas 375 / 768 / 1024 / 1440; JS de `/leads` < 150 KB | ⏳ |
+| 3B.5 | Roteiro no ITODEV (conta de teste com "só a carteira" criada pela conta de teste da Eduarda) + `CLAUDE.md` e status | Lista do que passou, com URL e login por cargo, entregue ao Gabriel | ⏳ |
+
+**Notas da Fase 3B (19/11/2026):**
+- Migration `0075_alcance_carteira`: coluna `area_membros.alcance` (CHECK + gatilho que volta a `TODOS` ao trocar de
+  cargo ou ganhar o selo), `area_definir_membro` de 5 argumentos (a de 4 mantém o alcance), `area_conta_json` com o
+  alcance, `mentoria_so_carteira()`, `mentoria_ids_carteira()`, `mentoria_carteira_ok()`, `mentoria_ids_visiveis()`
+  (as 13 políticas que liam a lista da Especialista passam a ela), `mentoria_ve_todas()` sem quem tem "só a carteira",
+  políticas de reuniões, tarefas, metas, check-ins e histórico do semáforo, funções por linha, semáforo, pausar, retomar,
+  excluir reunião, sequência de check-ins e push "a todos do perfil".
+- **A dica do plano serviu em parte**: a lista da Especialista cobriu 13 políticas sem reescrevê-las (troca de nome para
+  `mentoria_ids_visiveis`); reuniões, tarefas, metas, check-ins e o histórico do semáforo decidiam pelo perfil e ganharam
+  o caso. A regra de responsável não mudou: o perfil continua `ACOMPANHAMENTO`.
+- Testes antigos com expectativa trocada: `GET mentoria/eu` passou a trazer `soCarteira` (`mentoria-v2-base`, `cargos`,
+  `acesso-por-area` da API); `rls-por-consulta` ganhou a conta "só a carteira" e as expressões novas.
+- `mentoria_fila_feitos` (o "feito" da Fila): as políticas continuam pelo perfil, mas a única rota que grava
+  (`POST mentoria/fila/feito`) só aceita item que está na fila de quem pede, e essa fila vem da RLS: item de mentorado
+  de fora dá 404 (caso no `carteira.e2e.test.ts`, com semáforo vermelho real). Recortar a política no banco fica como
+  melhoria, se um dia outra rota gravar ali. Admin → Usuários
+  mostra "Acompanhamento · só a carteira", mas o alcance se troca pela aba Perfis do módulo (Diretoria e Admin).
 
 ## Fase 4 — Pessoa em duas áreas
 
@@ -207,9 +235,13 @@ inteira sem rollback. Spec: "Compatibilidade".
 - Religar MFA para Diretoria e Heads e ter duas contas de Diretoria (recomendação, fora deste plano).
 - Com a Eduarda (respondido em 19/11): **1B** — a Maria dos envios só ganha conta quando existir o cargo Envios, que vem
   com a tela Envios físicos (fase 4 do Acompanhamento; D6). **2B** — a segunda Maria deve ver só os mentorados da carteira
-  dela (inscrições em que é responsável); o cargo não existe e é a fase 3B da tabela de fases (Gabriel, 19/11: "Sim, entre 3 e 4").
+  dela (inscrições em que é responsável); vira o alcance "só a carteira", fase 3B da tabela de fases (Gabriel, 19/11: "Sim, entre 3 e 4").
   Até lá, nenhuma das duas tem conta. A Fase 3 não acrescenta cargo: a lista do Acompanhamento continua a de hoje.
-  Dica para o cargo da carteira (não conferida no código): a lista que hoje cobre só a Especialista
+  - **Avisar a Eduarda:** o nome pedido por ela ("Acompanhamento da carteira", 3A) vira "Acompanhamento · só a carteira" na
+    tela (alcance no cargo Acompanhamento, não cargo novo; Gabriel, 19/11).
+  - **Extras por pessoa** (ex.: "+ envios", Gabriel 19/11) são o destino; nascem com o primeiro extra real. Envios: cargo
+    próprio (D6, 1B) ou caixinha é decisão da fase da tela Envios físicos.
+  Dica para o cargo da carteira (conferida na Fase 3B: serve em parte, ver a fase): a lista que hoje cobre só a Especialista
   (`mentoria_ids_especialista`) pode ganhar o caso da carteira sem reescrever políticas; a regra de quem pode ser
   responsável (hoje só o perfil Acompanhamento) precisa aceitar o cargo novo.
 

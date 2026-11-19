@@ -92,14 +92,22 @@ describe('acesso por perfil', () => {
     const s = await duda();
     const r = await h.get('/api/mentoria/eu', s);
     expect(r.status).toBe(200);
-    expect(r.body).toEqual({ perfil: 'ACOMPANHAMENTO', admin: true });
+    expect(r.body).toEqual({ perfil: 'ACOMPANHAMENTO', admin: true, soCarteira: false });
     const d = await h.signIn('diretor@npac.com.br');
-    expect((await h.get('/api/mentoria/eu', d)).body).toEqual({ perfil: null, admin: true });
+    expect((await h.get('/api/mentoria/eu', d)).body).toEqual({
+      perfil: null,
+      admin: true,
+      soCarteira: false,
+    });
   });
 
   it('cargo sem perfil recebe 404 em tudo menos eu', async () => {
     const s = await comoPerfil(null);
-    expect((await h.get('/api/mentoria/eu', s)).body).toEqual({ perfil: null, admin: false });
+    expect((await h.get('/api/mentoria/eu', s)).body).toEqual({
+      perfil: null,
+      admin: false,
+      soCarteira: false,
+    });
     expect((await h.post('/api/mentoria/inscricoes/lista', {}, s)).status).toBe(404);
     expect((await h.post('/api/mentoria/busca', { termo: 'x' }, s)).status).toBe(404);
     expect((await h.get('/api/mentoria/condutores', s)).status).toBe(404);
@@ -110,7 +118,11 @@ describe('acesso por perfil', () => {
     const dd = await duda();
     const f = await criar(dd);
     const s = await comoPerfil('MENTOR');
-    expect((await h.get('/api/mentoria/eu', s)).body).toEqual({ perfil: 'MENTOR', admin: false });
+    expect((await h.get('/api/mentoria/eu', s)).body).toEqual({
+      perfil: 'MENTOR',
+      admin: false,
+      soCarteira: false,
+    });
     expect((await h.post('/api/mentoria/inscricoes/lista', {}, s)).status).toBe(404);
     expect((await h.get(`/api/mentoria/inscricoes/${f.id}`, s)).status).toBe(404);
   });

@@ -1,5 +1,5 @@
 // Permissão por consulta (plano docs/plans/desempenho.md, Fase 1): as políticas de leitura não
-// chamam função por linha; as listas (`closer_lead_ids`, `mentoria_ids_especialista`) são
+// chamam função por linha; as listas (`closer_lead_ids`, `mentoria_ids_visiveis`) são
 // calculadas uma vez por consulta e dão exatamente o mesmo resultado das funções antigas.
 import { sql } from 'drizzle-orm';
 import type { TransactionSql } from 'postgres';
@@ -67,11 +67,15 @@ describe('teste-guarda', () => {
         has_function_privilege('npac_app', p.oid, 'execute') as app
       from pg_proc p join pg_namespace n on n.oid = p.pronamespace
       where n.nspname = 'public'
-        and p.proname in ('closer_lead_ids', 'mentoria_ve_todas', 'mentoria_ids_especialista')
+        and p.proname in ('closer_lead_ids', 'mentoria_ve_todas', 'mentoria_ids_especialista',
+          'mentoria_ids_carteira', 'mentoria_ids_visiveis', 'mentoria_so_carteira')
       order by 1`;
     expect(rows.map((r) => r.proname)).toEqual([
       'closer_lead_ids',
+      'mentoria_ids_carteira',
       'mentoria_ids_especialista',
+      'mentoria_ids_visiveis',
+      'mentoria_so_carteira',
       'mentoria_ve_todas',
     ]);
     for (const r of rows) {
@@ -236,7 +240,8 @@ const MANU2 = 'p-manu2'; // Especialista sem reunião
 const LEO = 'p-leo'; // Mentor
 const CARLA = 'p-carla'; // Acompanhamento sem perfil
 const SDR2 = 'p-sdr2';
-const TODOS = [DIRETOR, DUDA, ACOMP, OPERACAO, MANU, MANU2, LEO, CARLA, SDR2];
+const CART = 'p-cart'; // Acompanhamento com alcance "só a carteira" (0075), responsável pela inscrição `a`
+const TODOS = [DIRETOR, DUDA, ACOMP, OPERACAO, MANU, MANU2, LEO, CARLA, SDR2, CART];
 
 describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => {
   let a = '';
@@ -257,13 +262,15 @@ describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => 
         (${MANU2}, 'Manu2 P', 'manu2@p.test', 'ACOMPANHAMENTO', false, false),
         (${LEO}, 'Leo P', 'leo@p.test', 'ACOMPANHAMENTO', false, false),
         (${CARLA}, 'Carla P', 'carla@p.test', 'ACOMPANHAMENTO', false, false),
-        (${SDR2}, 'Sdr2 P', 'sdr2@p.test', 'SDR', true, false)`;
+        (${SDR2}, 'Sdr2 P', 'sdr2@p.test', 'SDR', true, false),
+        (${CART}, 'Cart P', 'cart@p.test', 'ACOMPANHAMENTO', false, false)`;
     await owner`
       insert into mentoria_perfis (user_id, perfil, admin) values
         (${DUDA}, 'ACOMPANHAMENTO', true), (${ACOMP}, 'ACOMPANHAMENTO', false),
         (${OPERACAO}, 'OPERACAO', false), (${MANU}, 'ESPECIALISTA', false),
         (${MANU2}, 'ESPECIALISTA', false), (${LEO}, 'MENTOR', false),
-        (${SDR2}, 'ESPECIALISTA', false)`;
+        (${SDR2}, 'ESPECIALISTA', false), (${CART}, 'ACOMPANHAMENTO', false)`;
+    await owner`update area_membros set alcance = 'CARTEIRA' where user_id = ${CART}`;
 
     const inscricao = async (n: number) => {
       const [i] = await owner<{ id: string }[]>`
@@ -282,6 +289,7 @@ describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => 
     };
     a = await inscricao(1);
     b = await inscricao(2);
+    await owner`update mentoria_inscricoes set responsavel_id = ${CART} where id = ${a}`;
     reuniaoManu = await reuniao(a, MANU);
     const reuniaoDudaA = await reuniao(a, DUDA, 'ACOMP_2PME');
     const reuniaoDudaB = await reuniao(b, DUDA, 'ACOMP_2PME');
@@ -313,7 +321,7 @@ describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => 
         u,
         (s) => s<{ id: string; antes: boolean; depois: boolean }[]>`
           select i.id, mentoria_ve(i.id) as antes,
-            coalesce(mentoria_ve_todas() or i.id = any (mentoria_ids_especialista()), false) as depois
+            coalesce(mentoria_ve_todas() or i.id = any (mentoria_ids_visiveis()), false) as depois
           from mentoria_inscricoes i`,
       );
       expect(rows).toHaveLength(2);
@@ -329,7 +337,8 @@ describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => 
         (s) => s<{ antes: boolean; depois: boolean }[]>`
           select mentoria_ve_reuniao(r.conduzida_por, r.inscricao_id) as antes,
             coalesce(mentoria_ve_todas()
-              or (mentoria_perfil() = 'ESPECIALISTA' and r.conduzida_por = app_user_id()), false) as depois
+              or (mentoria_perfil() = 'ESPECIALISTA' and r.conduzida_por = app_user_id())
+              or r.inscricao_id = any (mentoria_ids_carteira()), false) as depois
           from mentoria_reunioes r`,
       );
       expect(reunioes).toHaveLength(4);
@@ -338,7 +347,8 @@ describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => 
       const metas = await comoOwner(
         u,
         (s) => s<{ antes: boolean; depois: boolean }[]>`
-          select mentoria_ve_meta(m.inscricao_id) as antes, coalesce(mentoria_ve_todas(), false) as depois
+          select mentoria_ve_meta(m.inscricao_id) as antes,
+            coalesce(mentoria_ve_todas() or m.inscricao_id = any (mentoria_ids_carteira()), false) as depois
           from mentoria_metas m`,
       );
       expect(metas).toHaveLength(2);
@@ -348,7 +358,8 @@ describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => 
       const checkins = await comoOwner(
         u,
         (s) => s<{ antes: boolean; depois: boolean }[]>`
-          select mentoria_ve_meta(c.inscricao_id) as antes, coalesce(mentoria_ve_todas(), false) as depois
+          select mentoria_ve_meta(c.inscricao_id) as antes,
+            coalesce(mentoria_ve_todas() or c.inscricao_id = any (mentoria_ids_carteira()), false) as depois
           from mentoria_checkins c`,
       );
       expect(checkins).toHaveLength(2);
@@ -435,6 +446,15 @@ describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => 
         mentoria_metas: 0,
         mentoria_checkins: 0,
         mentoria_semaforo_historico: 0,
+      },
+      // Só a carteira: a inscrição `a`, com as duas reuniões, as duas tarefas, a meta e o check-in dela.
+      [CART]: {
+        mentoria_inscricoes: 1,
+        mentoria_reunioes: 2,
+        mentoria_tarefas: 2,
+        mentoria_metas: 1,
+        mentoria_checkins: 1,
+        mentoria_semaforo_historico: 1,
       },
     };
     for (const [u, tabelas] of Object.entries(esperado)) {

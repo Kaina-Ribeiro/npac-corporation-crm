@@ -29,10 +29,15 @@ const PADRAO: readonly Perfil[] = ['ACOMPANHAMENTO', 'OPERACAO', 'ESPECIALISTA']
 
 export async function lerEu(db: Db, userId: string): Promise<EuMentoria> {
   return withUser(db, userId, async (tx) => {
-    const [r] = await tx.execute<{ perfil: Perfil | null; admin: boolean }>(
-      sql`select mentoria_perfil() as perfil, mentoria_admin() as admin`,
+    const [r] = await tx.execute<{ perfil: Perfil | null; admin: boolean; so_carteira: boolean }>(
+      sql`select mentoria_perfil() as perfil, mentoria_admin() as admin,
+        mentoria_so_carteira() as so_carteira`,
     );
-    return { perfil: r?.perfil ?? null, admin: r?.admin === true };
+    return {
+      perfil: r?.perfil ?? null,
+      admin: r?.admin === true,
+      soCarteira: r?.so_carteira === true,
+    };
   });
 }
 

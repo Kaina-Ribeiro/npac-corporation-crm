@@ -1050,6 +1050,42 @@
   .pf-acoes:empty {
     display: none;
   }
+  /* Alcance (Fase 3B): "Todos os mentorados / Só a carteira", numa linha própria abaixo do perfil. */
+  .pf-alcance {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+  }
+  .pf-alcance > span {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink2);
+  }
+  .pf-alcance button {
+    white-space: nowrap;
+  }
+  .pf-alcance button:disabled {
+    cursor: default;
+  }
+  /* Celular: o rótulo em cima e os dois botões dividindo a largura. */
+  @media (max-width: 767.98px) {
+    .pf-alcance .seg {
+      display: flex;
+      flex: 1 1 100%;
+    }
+    .pf-alcance .seg button {
+      flex: 1;
+      padding: 0 8px;
+    }
+  }
+  .pf .pf-alcance {
+    grid-row: 3;
+  }
+  .pf:has(.pf-alcance) .pf-acoes {
+    grid-row: 4;
+  }
   .pf-acoes small {
     font-size: 12px;
     line-height: 16px;
@@ -1619,6 +1655,13 @@
       grid-column: 4;
       grid-row: 1;
       justify-content: flex-end;
+    }
+    .pf .pf-alcance {
+      grid-column: 2 / 5;
+      grid-row: 2;
+    }
+    .pf:has(.pf-alcance) .pf-acoes {
+      grid-row: 1;
     }
     .pf-acoes:empty {
       display: block;

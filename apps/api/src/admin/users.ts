@@ -62,13 +62,21 @@ import {
 } from './areas.js';
 import {
   camposDoCargo,
+  alcanceOuRecusar,
   cargoAtual,
   cargoNaAuditoria,
   gravarCargoNovo,
   resolverOuRecusar,
 } from './cargo.js';
 
-const CAMPOS_DO_CARGO = ['role', 'perfil', 'moduloAdmin', 'canProspect', 'canClose'] as const;
+const CAMPOS_DO_CARGO = [
+  'role',
+  'perfil',
+  'moduloAdmin',
+  'canProspect',
+  'canClose',
+  'alcance',
+] as const;
 
 /** Senha temporária mostrada uma única vez a quem administra; o titular troca no primeiro acesso. */
 const temporaryPassword = () => randomBytes(12).toString('base64url');
@@ -143,6 +151,7 @@ export class AdminUsersService {
             photo: photoUrl(r.id, image),
             perfil: ac ? ((ac.cargo as Perfil | null) ?? null) : null,
             moduloAdmin: ac ? ac.head : null,
+            alcance: ac ? (ac.alcance ?? 'TODOS') : null,
             leads: byUser.get(r.id) ?? 0,
           },
         ];
@@ -195,7 +204,7 @@ export class AdminUsersService {
   }
 
   async invite(actor: AuthUser, input: UserInvite) {
-    const { perfil, moduloAdmin, canProspect, canClose, ...conta } = input;
+    const { perfil, moduloAdmin, canProspect, canClose, alcance, ...conta } = input;
     const pedido = vinculoDoCargo({
       role: input.role,
       perfil: perfil ?? null,
@@ -204,7 +213,7 @@ export class AdminUsersService {
     const password = temporaryPassword();
     const id = randomUUID();
     const passwordHash = await hash(password);
-    const cargo = await withUser(this.db, actor.id, async (tx) => {
+    const { cargo, alc } = await withUser(this.db, actor.id, async (tx) => {
       aplicar({
         ator: await this.eu(tx, actor),
         acao: 'CONVIDAR',
@@ -220,6 +229,7 @@ export class AdminUsersService {
         canProspect,
         canClose,
       });
+      const alc = alcanceOuRecusar(alcance, cargo);
       await tx.insert(user).values({
         id,
         ...conta,
@@ -229,7 +239,7 @@ export class AdminUsersService {
         displayUsername: input.username,
         mustChangePassword: true,
       });
-      await gravarCargoNovo(tx, this.audit, actor.id, id, cargo);
+      await gravarCargoNovo(tx, this.audit, actor.id, id, cargo, alc);
       await tx.insert(account).values({
         id: randomUUID(),
         accountId: id,
@@ -237,7 +247,7 @@ export class AdminUsersService {
         userId: id,
         password: passwordHash,
       });
-      return cargo;
+      return { cargo, alc };
     }).catch((e: { code?: string; cause?: { code?: string } }) => {
       if ((e.cause?.code ?? e.code) === '23505')
         throw new ConflictException('E-mail ou usuário já cadastrado');
@@ -245,7 +255,7 @@ export class AdminUsersService {
     });
     await this.record(actor, 'admin.user.invite', id, {
       fields: camposDoCargo(cargo),
-      ...cargoNaAuditoria(cargo),
+      ...cargoNaAuditoria(cargo, alc),
     });
     // Convite por e-mail (19/11, "1A"): usuário, senha temporária e a tela de entrada da área. A tela
     // de quem convida continua mostrando a senha. Sem envio configurado, nada sai.
@@ -269,7 +279,7 @@ export class AdminUsersService {
   async update(actor: AuthUser, id: string, input: UserChange) {
     if (id === actor.id && (input.active === false || (input.role && input.role !== actor.role)))
       throw new BadRequestException('Você não pode remover o próprio cargo');
-    const { perfil, moduloAdmin, canProspect, canClose, role, ...resto } = input;
+    const { perfil, moduloAdmin, canProspect, canClose, role, alcance, ...resto } = input;
     const mexeNoCargo = CAMPOS_DO_CARGO.some((k) => input[k] !== undefined);
     const fields: string[] = Object.keys(input);
     const r = { audit: this.audit, actorId: actor.id };
@@ -287,13 +297,20 @@ export class AdminUsersService {
           { role: role ?? antes.role, perfil, moduloAdmin, canProspect, canClose },
           antes,
         );
-        const novo = vinculoDoCargo(cargo);
+        const alc = alcanceOuRecusar(
+          alcance,
+          cargo,
+          alvo.areas.find((a) => a.area === 'ACOMPANHAMENTO')?.alcance,
+        );
+        const novo = vinculoDoCargo(cargo, cargo.role === 'ACOMPANHAMENTO' ? alc : undefined);
         if (novo.mestre !== alvo.mestre) {
           aplicar({ ...base, acao: 'MESTRE', mestre: novo.mestre });
           await definirMestre(tx, r, id, novo);
         } else if (!novo.mestre) {
           const atual = alvo.areas.find((a) => a.area === novo.area);
-          if (!atual || atual.cargo !== novo.cargo || atual.head !== novo.head) {
+          const alcanceMudou =
+            novo.area === 'ACOMPANHAMENTO' && (atual?.alcance ?? 'TODOS') !== alc;
+          if (!atual || atual.cargo !== novo.cargo || atual.head !== novo.head || alcanceMudou) {
             aplicar({ ...base, acao: 'CARGO', ...novo });
             await definirMembro(tx, r, id, atual, novo);
           }

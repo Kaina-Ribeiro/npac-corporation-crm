@@ -86,6 +86,15 @@ describe('fraseAcesso', () => {
     ],
     [{ tipo: 'CARGO_TROCADO' }, 'Ana trocou o cargo de Maria Souza'],
     [
+      {
+        tipo: 'CARGO_TROCADO',
+        area: 'ACOMPANHAMENTO',
+        cargo: 'ACOMPANHAMENTO',
+        alcance: 'CARTEIRA',
+      },
+      'Ana trocou o cargo de Maria Souza · Acompanhamento, Acompanhamento · só a carteira',
+    ],
+    [
       { tipo: 'HEAD_DADO', ator: { id: EU, nome: 'Diretor' }, area: 'ACOMPANHAMENTO' },
       'Você deu Admin do Acompanhamento a Maria Souza',
     ],

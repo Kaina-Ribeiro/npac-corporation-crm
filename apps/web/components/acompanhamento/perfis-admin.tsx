@@ -1,6 +1,7 @@
 'use client';
 import { entrouHa } from '@npac/shared/acessos';
 import { MOTIVO, podeGerenciar, type ContaAreas } from '@npac/shared/areas';
+import { ALCANCE_LABEL, ALCANCE_TITULO, ALCANCES, type Alcance } from '@npac/shared/alcance';
 import { CARGO_INFO, MODULO_ADMIN_LABEL, type Cargo } from '@npac/shared/cargos';
 import { PERFIL_LABEL, PERFIS, type Perfil } from '@npac/shared/mentoria';
 import { useEffect, useState } from 'react';
@@ -40,6 +41,53 @@ const temp = (r: unknown) =>
   `Senha temporária (mostrada uma única vez): ${(r as { temporaryPassword: string }).temporaryPassword}`;
 
 type Confirmar = { titulo: string; texto: string; rotulo: string; acao: () => Promise<unknown> };
+
+/** O alcance só vale no perfil Acompanhamento sem o selo (Fase 3B). */
+const temAlcance = (perfil: Perfil | '' | null, admin: boolean) =>
+  perfil === 'ACOMPANHAMENTO' && !admin;
+
+/**
+ * "Alcance: Todos os mentorados / Só a carteira" (Fase 3B, textos aprovados em 19/11). Dois botões
+ * de escolha única, no visual do `.seg` do módulo.
+ */
+function AlcanceCampo({
+  value,
+  onChange,
+  nome,
+  disabled,
+  title,
+}: {
+  value: Alcance;
+  onChange: (a: Alcance) => void;
+  nome?: string;
+  disabled?: boolean;
+  title?: string;
+}) {
+  return (
+    <div className="pf-alcance" title={title}>
+      <span aria-hidden="true">{ALCANCE_TITULO}</span>
+      <div
+        className="seg"
+        role="radiogroup"
+        aria-label={nome ? `${ALCANCE_TITULO} de ${nome}` : ALCANCE_TITULO}
+      >
+        {ALCANCES.map((a) => (
+          <button
+            key={a}
+            type="button"
+            role="radio"
+            aria-checked={value === a}
+            className={value === a ? 'on' : ''}
+            disabled={disabled}
+            onClick={() => value !== a && onChange(a)}
+          >
+            {ALCANCE_LABEL[a]}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 /**
  * Configurações > Perfis (NPAC-54, Fase 3; opção 1A aprovada em 19/11): a equipe do
@@ -100,8 +148,10 @@ export function PerfisAdmin({
     }
   }
 
-  async function definirPerfil(u: ContaEquipe, perfil: Perfil, admin: boolean) {
+  async function definirPerfil(u: ContaEquipe, perfil: Perfil, admin: boolean, alcance?: Alcance) {
     const antes = linhas;
+    // Fora do perfil Acompanhamento sem o selo, o alcance volta a todos (a API faz o mesmo).
+    const novo: Alcance = temAlcance(perfil, admin) ? (alcance ?? u.alcance ?? 'TODOS') : 'TODOS';
     setErro('');
     setLinhas((ls) =>
       ls.map((l) =>
@@ -110,15 +160,23 @@ export function PerfisAdmin({
               ...l,
               perfil,
               moduloAdmin: admin,
+              alcance: novo,
               areas: l.areas.map((a) =>
-                a.area === 'ACOMPANHAMENTO' ? { ...a, cargo: perfil, head: admin } : a,
+                a.area === 'ACOMPANHAMENTO'
+                  ? { ...a, cargo: perfil, head: admin, alcance: novo }
+                  : a,
               ),
             }
           : l,
       ),
     );
     try {
-      await clientApi('/api/mentoria/perfis', 'PUT', { userId: u.id, perfil, admin });
+      await clientApi('/api/mentoria/perfis', 'PUT', {
+        userId: u.id,
+        perfil,
+        admin,
+        ...(alcance ? { alcance } : {}),
+      });
       showToast();
     } catch (e) {
       setLinhas(antes);
@@ -148,13 +206,14 @@ export function PerfisAdmin({
               <Pedido
                 key={r.id}
                 pedido={r}
-                onAprovar={(perfil) =>
+                onAprovar={(perfil, alcance) =>
                   rodar(
                     () =>
                       clientApi(`/api/admin/access-requests/${r.id}/approve`, 'POST', {
                         role: 'ACOMPANHAMENTO',
                         perfil,
                         moduloAdmin: false,
+                        ...(temAlcance(perfil, false) ? { alcance } : {}),
                       }),
                     () => `${r.name} aprovado como ${CARGO_INFO[perfil as Cargo].label}.`,
                   )
@@ -235,6 +294,15 @@ export function PerfisAdmin({
                   </option>
                 ))}
               </select>
+              {temAlcance(u.perfil, !!u.moduloAdmin) && (
+                <AlcanceCampo
+                  value={u.alcance ?? 'TODOS'}
+                  nome={u.name}
+                  disabled={voce || !u.active || !cargo.ok}
+                  title={!voce && !cargo.ok ? cargo.motivo : undefined}
+                  onChange={(a) => u.perfil && void definirPerfil(u, u.perfil, false, a)}
+                />
+              )}
               <div className="pf-acoes">
                 {motivo ? (
                   <small>{motivo}</small>
@@ -361,10 +429,11 @@ function Pedido({
   onRecusar,
 }: {
   pedido: AccessRequest;
-  onAprovar: (perfil: Perfil) => void;
+  onAprovar: (perfil: Perfil, alcance: Alcance) => void;
   onRecusar: () => void;
 }) {
   const [perfil, setPerfil] = useState<Perfil | ''>('');
+  const [alcance, setAlcance] = useState<Alcance>('TODOS');
   return (
     <li className="pf-pedido">
       <Rostos pessoas={[{ nome: r.name, fotoMidiaId: null }]} />
@@ -394,7 +463,7 @@ function Pedido({
           type="button"
           className={button}
           disabled={!perfil}
-          onClick={() => perfil && onAprovar(perfil)}
+          onClick={() => perfil && onAprovar(perfil, alcance)}
         >
           Aprovar
         </button>
@@ -402,6 +471,9 @@ function Pedido({
           Recusar
         </button>
       </div>
+      {temAlcance(perfil, false) && (
+        <AlcanceCampo value={alcance} nome={r.name} onChange={setAlcance} />
+      )}
     </li>
   );
 }
@@ -418,6 +490,8 @@ function Convite({
 }) {
   const [f, setF] = useState({ name: '', email: '', username: '', perfil: '' as Perfil | '' });
   const [admin, setAdmin] = useState(false);
+  const [alcance, setAlcance] = useState<Alcance>('TODOS');
+  const comAlcance = temAlcance(f.perfil, diretoria && admin);
   return (
     <Dialogo
       titulo="Convidar"
@@ -431,6 +505,7 @@ function Convite({
           role: 'ACOMPANHAMENTO',
           perfil: f.perfil,
           moduloAdmin: diretoria && admin,
+          ...(comAlcance ? { alcance } : {}),
         })
       }
     >
@@ -499,6 +574,7 @@ function Convite({
             {MODULO_ADMIN_LABEL}
           </label>
         )}
+        {comAlcance && <AlcanceCampo value={alcance} onChange={setAlcance} />}
       </div>
     </Dialogo>
   );

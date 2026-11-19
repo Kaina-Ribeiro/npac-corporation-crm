@@ -204,6 +204,7 @@ function Inscricao({
       />
       <CampoPr
         {...base}
+        editavel={ed && ficha.pode.responsavel}
         rotulo="Responsável"
         campo="responsavelId"
         valor={ficha.responsavelId}

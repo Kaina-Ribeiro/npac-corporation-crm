@@ -2,7 +2,9 @@ import { BadRequestException } from '@nestjs/common';
 import { user, type Tx } from '@npac/db';
 import {
   CARGO_ERRO_MSG,
+  resolverAlcance,
   resolverCargo,
+  type Alcance,
   type CargoGravado,
   type CargoPedido,
   type ContaAreas,
@@ -23,16 +25,35 @@ export function resolverOuRecusar(pedido: CargoPedido, atual?: CargoGravado): Ca
   return r.valor;
 }
 
+/**
+ * Alcance a gravar (Fase 3B): "Só a carteira" só no cargo Acompanhamento sem o selo (400 como as
+ * outras opções que o cargo não aceita). Sem pedido: o atual, se o cargo continua aceitando.
+ */
+export function alcanceOuRecusar(
+  pedido: Alcance | undefined,
+  cargo: CargoGravado,
+  atual?: Alcance | null,
+): Alcance {
+  const a = resolverAlcance(pedido, cargo, atual);
+  if (!a) throw new BadRequestException(CARGO_ERRO_MSG.OPCAO_INVALIDA);
+  return a;
+}
+
 /** Nomes dos campos que o cargo grava, para a auditoria (nunca valores). */
 export const camposDoCargo = (v: CargoGravado) =>
   v.role === 'ACOMPANHAMENTO'
     ? ['role', 'canProspect', 'canClose', 'perfil', 'moduloAdmin']
     : ['role', 'canProspect', 'canClose'];
 
-/** Cargo, área e selo que vão para a auditoria (cargo não é dado pessoal). */
-export function cargoNaAuditoria(v: CargoGravado) {
+/** Cargo, área, selo e alcance que vão para a auditoria (cargo não é dado pessoal). */
+export function cargoNaAuditoria(v: CargoGravado, alcance?: Alcance) {
   const p = vinculoDoCargo(v);
-  return { area: p.mestre ? null : p.area, cargo: p.cargo, head: p.head };
+  return {
+    area: p.mestre ? null : p.area,
+    cargo: p.cargo,
+    head: p.head,
+    ...(alcance === 'CARTEIRA' ? { alcance } : {}),
+  };
 }
 
 /**
@@ -64,8 +85,9 @@ export async function gravarCargoNovo(
   actorId: string,
   alvo: string,
   cargo: CargoGravado,
+  alcance?: Alcance,
 ) {
-  const v = vinculoDoCargo(cargo);
+  const v = vinculoDoCargo(cargo, alcance);
   if (v.mestre) return;
   await definirMembro(tx, null, alvo, undefined, v);
   if (cargo.role === 'ACOMPANHAMENTO')

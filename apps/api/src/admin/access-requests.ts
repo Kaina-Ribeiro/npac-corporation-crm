@@ -28,7 +28,13 @@ import { accessRequestCutoff } from '../auth/request-access.js';
 import { DB } from '../common/db/db.module.js';
 import { validate } from '../common/validate.js';
 import { aplicar, Gerente, lerConta, vinculoDoCargo } from './areas.js';
-import { camposDoCargo, cargoNaAuditoria, gravarCargoNovo, resolverOuRecusar } from './cargo.js';
+import {
+  alcanceOuRecusar,
+  camposDoCargo,
+  cargoNaAuditoria,
+  gravarCargoNovo,
+  resolverOuRecusar,
+} from './cargo.js';
 
 /**
  * Pedidos de acesso feitos nas telas de login. A Diretoria vê todos e aprova em qualquer área; o Head
@@ -74,7 +80,7 @@ export class AccessRequestsService {
       moduloAdmin: !!input.moduloAdmin,
     });
     const userId = randomUUID();
-    const { cargo, area } = await withUser(this.db, actor.id, async (tx) => {
+    const { cargo, area, alc } = await withUser(this.db, actor.id, async (tx) => {
       // Apagar primeiro trava o pedido (aprovação dupla não cria duas contas); recusa da regra, cargo
       // inválido ou conta que não pode ser criada: o rollback devolve o pedido.
       const [req] = await tx
@@ -95,6 +101,7 @@ export class AccessRequestsService {
       });
       // Mesmo campo Cargo do convite: caixas pelo cargo e, no Acompanhamento, o perfil junto.
       const cargo = resolverOuRecusar(input);
+      const alc = alcanceOuRecusar(input.alcance, cargo);
       await tx.insert(user).values({
         id: userId,
         name: req.name,
@@ -106,7 +113,7 @@ export class AccessRequestsService {
         canClose: cargo.canClose,
         mustChangePassword: false,
       });
-      await gravarCargoNovo(tx, this.audit, actor.id, userId, cargo);
+      await gravarCargoNovo(tx, this.audit, actor.id, userId, cargo, alc);
       await tx.insert(account).values({
         id: randomUUID(),
         accountId: userId,
@@ -114,7 +121,7 @@ export class AccessRequestsService {
         userId,
         password: req.passwordHash,
       });
-      return { cargo, area: req.area };
+      return { cargo, area: req.area, alc };
     }).catch((e: { code?: string; cause?: { code?: string } }) => {
       if ((e.cause?.code ?? e.code) === '23505')
         throw new ConflictException('E-mail ou usuário já cadastrado');
@@ -123,7 +130,7 @@ export class AccessRequestsService {
     // A conta criada vai junto (o registro de acessos mostra o nome dela, lido na hora).
     await this.record(actor, 'admin.access_request.approve', id, {
       fields: camposDoCargo(cargo),
-      ...cargoNaAuditoria(cargo),
+      ...cargoNaAuditoria(cargo, alc),
       pedidoArea: area,
       userId,
     });

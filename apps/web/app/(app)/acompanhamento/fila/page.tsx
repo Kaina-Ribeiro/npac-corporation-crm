@@ -24,8 +24,10 @@ export default async function FilaPage({
   const [url, eu, jar] = await Promise.all([searchParams, lerEu(), cookies()]);
   const cookie = acCookie('fila', me.id);
   const salvo = readPrefs(jar.get(cookie)?.value, FILA_REGRAS);
-  // Sem perfil não há o botão Minha/Equipe: o lembrado não vale.
-  const ver = url.ver ?? (eu?.perfil ? salvo.ver : undefined);
+  // Sem perfil, ou com "só a carteira" (a API dá sempre a Minha fila), não há o botão Minha/Equipe:
+  // o lembrado não vale.
+  const comBotao = !!eu?.perfil && !eu.soCarteira;
+  const ver = comBotao ? (url.ver ?? salvo.ver) : undefined;
   const escopo = ver === 'equipe' ? 'EQUIPE' : ver === 'minha' ? 'MINHA' : undefined;
   const [dados, mensagens] = await Promise.all([
     apiPost<FilaDTO>('/api/mentoria/fila', escopo ? { escopo } : {}),
@@ -39,7 +41,7 @@ export default async function FilaPage({
         dados={dados}
         mensagens={mensagens}
         euId={me.id}
-        temPerfil={!!eu?.perfil}
+        temPerfil={comBotao}
         admin={!!eu?.admin}
         exportar={podeExportar(eu)}
         lembrar={{ cookie, valor: writePrefs(salvo, FILA_REGRAS) }}

@@ -14,6 +14,7 @@ import {
   gerenciaAlguma,
   hasCommercialAccess,
   podeGerenciar,
+  type Alcance,
   type Area,
   type CargoGravado,
   type ContaAreas,
@@ -55,7 +56,7 @@ export async function lerMinhaConta(tx: Tx, id: string): Promise<ContaAreas> {
     sql`select mestre from "user" where id = ${id}`,
   );
   const areas = await tx.execute<Vinculo>(
-    sql`select area, cargo, head from area_membros where user_id = ${id} order by area`,
+    sql`select area, cargo, head, alcance from area_membros where user_id = ${id} order by area`,
   );
   return { mestre: u?.mestre ?? false, areas: [...areas] };
 }
@@ -70,10 +71,22 @@ export function exigir(v: Veredito): void {
 
 export const aplicar = (p: PedidoRegra) => exigir(podeGerenciar(p));
 
-/** Cargo pedido (o do campo Cargo) no formato da regra e das funções do banco. */
-export type VinculoPedido = { mestre: boolean; area: Area; cargo: string | null; head: boolean };
+/**
+ * Cargo pedido (o do campo Cargo) no formato da regra e das funções do banco. `alcance` (Fase 3B):
+ * ausente = o banco mantém o que a pessoa tem (TODOS em vínculo novo).
+ */
+export type VinculoPedido = {
+  mestre: boolean;
+  area: Area;
+  cargo: string | null;
+  head: boolean;
+  alcance?: Alcance;
+};
 
-export function vinculoDoCargo(c: Pick<CargoGravado, 'role' | 'perfil' | 'moduloAdmin'>) {
+export function vinculoDoCargo(
+  c: Pick<CargoGravado, 'role' | 'perfil' | 'moduloAdmin'>,
+  alcance?: Alcance,
+): VinculoPedido {
   if (c.role === 'DIRETOR')
     return { mestre: true, area: 'COMERCIAL', cargo: 'DIRETOR', head: false } as VinculoPedido;
   if (c.role === 'ACOMPANHAMENTO')
@@ -82,6 +95,7 @@ export function vinculoDoCargo(c: Pick<CargoGravado, 'role' | 'perfil' | 'modulo
       area: 'ACOMPANHAMENTO',
       cargo: c.perfil ?? null,
       head: c.perfil ? c.moduloAdmin : false,
+      ...(alcance ? { alcance } : {}),
     } as VinculoPedido;
   return {
     mestre: false,
@@ -93,7 +107,7 @@ export function vinculoDoCargo(c: Pick<CargoGravado, 'role' | 'perfil' | 'modulo
 
 type Registro = { audit: AuditService; actorId: string };
 
-/** Cria ou troca o vínculo (a regra roda de novo no banco) e audita com área, cargo e Head. */
+/** Cria ou troca o vínculo (a regra roda de novo no banco) e audita com área, cargo, Head e alcance. */
 export async function definirMembro(
   tx: Tx,
   r: Registro | null,
@@ -101,7 +115,9 @@ export async function definirMembro(
   antes: Vinculo | undefined,
   v: VinculoPedido,
 ) {
-  await tx.execute(sql`select area_definir_membro(${alvo}, ${v.area}, ${v.cargo}, ${v.head})`);
+  await tx.execute(
+    sql`select area_definir_membro(${alvo}, ${v.area}, ${v.cargo}, ${v.head}, ${v.alcance ?? null}::text)`,
+  );
   if (r)
     await r.audit.record(
       {
@@ -113,7 +129,8 @@ export async function definirMembro(
           area: v.area,
           cargo: v.cargo,
           head: v.head,
-          antes: antes ? { cargo: antes.cargo, head: antes.head } : null,
+          ...(v.alcance ? { alcance: v.alcance } : {}),
+          antes: antes ? { cargo: antes.cargo, head: antes.head, alcance: antes.alcance } : null,
         },
       },
       tx,

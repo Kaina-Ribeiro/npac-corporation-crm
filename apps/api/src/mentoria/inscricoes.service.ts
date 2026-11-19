@@ -1,6 +1,7 @@
 import { hkdfSync, randomUUID } from 'node:crypto';
 import {
   BadRequestException,
+  ForbiddenException,
   ConflictException,
   Inject,
   Injectable,
@@ -147,6 +148,12 @@ export class InscricoesService {
     if (!q?.ok) throw new BadRequestException('O responsável precisa ter o perfil Acompanhamento');
   }
 
+  /** Alcance "só a carteira" de quem pede (Fase 3B); a RLS já recorta, aqui só o responsável. */
+  private async soCarteira(tx: Tx) {
+    const [r] = await tx.execute<{ ok: boolean }>(sql`select mentoria_so_carteira() as ok`);
+    return r?.ok === true;
+  }
+
   criar(u: AuthUser, b: InscricaoNova) {
     const esperadas = b.tipo === 'CASAL' ? 2 : 1;
     if (b.pessoas.length !== esperadas)
@@ -155,6 +162,8 @@ export class InscricoesService {
       );
     return withUser(this.db, u.id, async (tx) => {
       const { pessoas, ...campos } = b;
+      // "Só a carteira" (2A): o mentorado novo entra na carteira de quem cadastra.
+      if (await this.soCarteira(tx)) campos.responsavelId = u.id;
       await this.exigirResponsavel(tx, campos.responsavelId);
       const id = randomUUID();
       await tx.insert(mentoriaInscricoes).values({
@@ -295,8 +304,11 @@ export class InscricoesService {
         .for('update');
       if (!atual) throw new NotFoundException();
       // Só a troca é conferida: quem saiu continua na ficha até alguém mudar ou transferir.
-      if (campos.responsavelId !== undefined && campos.responsavelId !== atual.responsavel)
+      if (campos.responsavelId !== undefined && campos.responsavelId !== atual.responsavel) {
+        // "Só a carteira" (e): não passa o mentorado para outra pessoa (a RLS também recusa).
+        if (await this.soCarteira(tx)) throw new ForbiddenException();
         await this.exigirResponsavel(tx, campos.responsavelId);
+      }
       const mudaInicio =
         campos.inicioJornada !== undefined && campos.inicioJornada !== atual.inicio;
       const mudaMentoria = campos.mentoria !== undefined && campos.mentoria !== atual.mentoria;

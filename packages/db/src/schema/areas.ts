@@ -18,6 +18,9 @@ export const areaMembros = pgTable(
     cargo: text('cargo'),
     // Comercial: head = (cargo = HEAD). Acompanhamento: o selo "Admin do Acompanhamento".
     head: boolean('head').notNull().default(false),
+    // Alcance (NPAC-54, Fase 3B): TODOS = todos os mentorados; CARTEIRA = só as inscrições em que a
+    // pessoa é a responsável. CARTEIRA só no cargo Acompanhamento, sem o selo de Admin.
+    alcance: text('alcance').notNull().default('TODOS'),
     definidoPor: text('definido_por').references(() => user.id, { onDelete: 'set null' }),
     definidoEm: timestamp('definido_em', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -34,6 +37,11 @@ export const areaMembros = pgTable(
       sql`${t.area} <> 'ACOMPANHAMENTO' or (${t.cargo} is null and not ${t.head})
         or (${t.cargo} is not null
           and ${t.cargo} in ('ACOMPANHAMENTO', 'OPERACAO', 'ESPECIALISTA', 'MENTOR'))`,
+    ),
+    check(
+      'area_membros_alcance',
+      sql`${t.alcance} = 'TODOS' or (${t.alcance} = 'CARTEIRA' and ${t.area} = 'ACOMPANHAMENTO'
+        and ${t.cargo} = 'ACOMPANHAMENTO' and not ${t.head})`,
     ),
   ],
 );

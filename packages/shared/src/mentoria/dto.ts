@@ -1,3 +1,4 @@
+import type { Alcance } from '../alcance.js';
 import type {
   InscricaoStatus,
   Mentoria,
@@ -18,9 +19,16 @@ import type { CicloStatus, TarefaOrigem, TarefaStatus } from './pmes.js';
 import type { MetaStatus, SemaforoCor, SemaforoMotivo } from './semaforo.js';
 
 /** `GET mentoria/eu`: o perfil operacional e o selo de Admin de quem está logado. */
-export type EuMentoria = { perfil: Perfil | null; admin: boolean };
+/** `soCarteira` (Fase 3B): alcance "só a carteira"; a RLS já recorta, a tela esconde o que não serve. */
+export type EuMentoria = { perfil: Perfil | null; admin: boolean; soCarteira: boolean };
 
-export type PerfilLinha = { id: string; nome: string; perfil: Perfil | null; admin: boolean };
+export type PerfilLinha = {
+  id: string;
+  nome: string;
+  perfil: Perfil | null;
+  admin: boolean;
+  alcance: Alcance;
+};
 
 /**
  * Responsável pelo acompanhamento (`GET mentoria/responsaveis`). `elegivel`: pode ser escolhido
@@ -391,6 +399,8 @@ export type FichaDTO = {
     checkin: boolean;
     /** Dar segunda chance no PME aberto (Admin, Acompanhamento). */
     segundaChance: boolean;
+    /** Trocar o responsável: quem edita a inscrição, menos quem tem "só a carteira" (Fase 3B, e). */
+    responsavel: boolean;
     admin: boolean;
   };
 };
