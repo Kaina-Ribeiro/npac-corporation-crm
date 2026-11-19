@@ -400,8 +400,7 @@ Opções mostradas em imagem, no visual real (3 por tela). Escolhidas:
 ## Fase 3B — Alcance "só a carteira"
 
 Pedido da Eduarda (19/11, "1A, 2A, 3A", plano, Fase 3B) e desenho do Gabriel (19/11, sessão coordenadora). Código conferido
-na `release/v0.19` (`3fa5b4f`, última migration `0074`). Status: formulário e textos aprovados (19/11); **aguardando o Gabriel**
-nas perguntas (a)–(e).
+na `release/v0.19` (`3fa5b4f`, última migration `0074`). Status: aprovado (formulário, textos e respostas (a)–(e), Gabriel 19/11).
 
 **Carteira** = as inscrições em que a pessoa é a responsável (`mentoria_inscricoes.responsavel_id`).
 
@@ -468,14 +467,15 @@ a carteira e envios por exemplo"; "eu ja to pensando com o sistema pronto".
 Troca de responsável ou transferência pelo Admin: na hora, a inscrição some para ela (Fila, lista, ficha = 404), com
 tarefas, reuniões e metas juntas. O que ela registrou fica no histórico da inscrição, com o nome dela.
 
-### Perguntas ao Gabriel (respostas entram aqui)
+### Respostas do Gabriel (19/11)
 
 - (a) CSV de Mentorados para quem tem "só a carteira": ✅ **só da carteira**, sem contato, como o cargo Acompanhamento (Gabriel, 19/11, "A: só da carteira").
 - (b) Fila: ✅ **só "Minha fila"**, sem o botão "Equipe" (Gabriel, 19/11, "A: só Minha fila").
 - (c) Push da Fila: ✅ **só dos mentorados da carteira**; o push "a todos do perfil" de mentorado de outra pessoa não chega a ela (Gabriel, 19/11, "A: só os dela").
 - (d) Inscrição tirada da carteira: ✅ **some na hora**, como acima (Gabriel, 19/11, "A: some na hora").
-- (e) Ela pode trocar o responsável de um mentorado da carteira (passar para outra pessoa)? Recomendo: não, só o Admin
-  (senão ela tira o mentorado da própria vista por engano e não tem como desfazer).
+- (e) Trocar a responsável de um mentorado da carteira: ✅ **não**; o campo "Responsável" fica só para leitura para ela (no
+  banco: UPDATE de `responsavel_id` recusado para quem tem "só a carteira"). Trocam o Admin, quem tem "Todos os mentorados"
+  e a Operação, como hoje (Gabriel, 19/11, "A").
 
 ## Segurança
 
