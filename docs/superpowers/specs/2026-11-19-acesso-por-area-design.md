@@ -1,7 +1,8 @@
 # Spec: acesso por área (Head por área + conta Mestre)
 
-NPAC-54. Pedido do Gabriel, 19/11/2026. Status: ⏳ aguardando a leitura dele (as decisões marcadas
-"minha" abaixo são recomendações que ele pode trocar). Plano por fases: `docs/plans/acesso-por-area.md`.
+NPAC-54. Pedido do Gabriel, 19/11/2026. Status: fase 1 mesclada (migration `0072`); M1 confirmada por
+ele; as demais decisões marcadas "minha" são recomendações que ele pode trocar. Plano por fases:
+`docs/plans/acesso-por-area.md`.
 
 Código conferido na `release/v0.19` (commit `763bb4f`, última migration `0071`).
 
@@ -54,6 +55,8 @@ Código conferido na `release/v0.19` (commit `763bb4f`, última migration `0071`
 | D6 | Envios é cargo do Acompanhamento (não é área própria); fora desta spec. | Gabriel, 19/11 ("Cargo do Acompanhamento") |
 | D7 | A tabela única de membros entra **agora** (o "passo 2"), não depois. | Gabriel, 19/11 ("faz o passo 2 de uma vez") |
 | D8 | Execução: uma sessão Opus 5.5 high por fase do plano. | Gabriel, 19/11 |
+| D9 | Só a Diretoria dá e tira Head/Admin, também dentro da própria área (era a M1). | Gabriel, 19/11 ("A") |
+| D10 | A Diretoria tem um registro compacto e fácil de ver do que aconteceu de importante com contas e acessos (conta criada, cargo dado…). | Gabriel, 19/11 |
 
 ### Decisões minhas, para o Gabriel conferir
 
@@ -61,7 +64,7 @@ Ele pediu para seguir sem mais perguntas. Cada uma tem o motivo e o que muda se 
 
 | # | Decisão minha | Motivo | Se trocar |
 |---|---|---|---|
-| M1 | **Um Head não cria outro Head**, nem na própria área. | É a regra D2 ao pé da letra. | Nada no modelo; uma linha na regra. |
+| M1 | ✅ Confirmada pelo Gabriel, virou D9: um Head não cria outro Head, nem na própria área. | — | — |
 | M2 | **Head da área = quem já vê tudo nela.** No Comercial é o cargo Head (liderança). No Acompanhamento é o selo "Admin do Acompanhamento". Não nasce um terceiro tipo de poder. | Separar "gerencia pessoas" de "vê os dados" criaria 4 combinações por área. | Vira um selo novo por área e a regra dobra de tamanho. |
 | M3 | **Nomes na tela não mudam**: "Head" no Comercial, "Admin do Acompanhamento" no módulo, "Diretoria" para a Mestre. "Mestre" e "Head da área" são nomes internos. | "Admin" é a palavra do PDF da Eduarda (C5 da spec de cargos). | Troca de rótulo em `sh/cargos.ts` e nas telas do módulo. |
 | M4 | **Pôr uma pessoa em duas áreas é só da Diretoria.** O Head só enxerga contas da área dele. | Evita o Head precisar ver contas de outra área; caso raro. | O Head ganharia uma busca de "pessoas de outras áreas". |
@@ -70,6 +73,8 @@ Ele pediu para seguir sem mais perguntas. Cada uma tem o motivo e o que muda se 
 | M7 | **A coluna `user.role` continua existindo como resumo calculado**, sem ser a fonte. | 152 leituras em 45 arquivos e a sessão do Better Auth dependem dela; apagar não muda nada na tela. | Apagar de vez é uma fase extra (~3–4 dias). |
 | M8 | **Sempre existe ao menos uma Diretoria ativa** (o banco recusa tirar ou desativar a última). | Evita trancar todo mundo para fora. | — |
 | M9 | **Pedido de acesso: o Head vê e aprova só os da área dele**, e só com cargo dessa área. A Diretoria vê todos e pode aprovar em qualquer área. | D3. A área do pedido já existe (NPAC-52). | — |
+| M10 | **O registro da D10 é um cartão "Acessos" no topo de Admin → Usuários, só para a Diretoria**, e não entra no sino. | O sino é dos avisos de lead (`notifications` aponta para a linha do tempo do lead); o cartão lê a auditoria que já existe. | Entrar no sino ou virar push é trabalho à parte (tabela de avisos nova). |
+| M11 | **"Acessos" = mudanças em quem tem acesso; logins não entram no cartão.** | Login acontece dezenas de vezes por dia e esconderia o que importa; continua na aba Auditoria. | Para ver logins de forma compacta, o caminho é uma coluna "último acesso" na lista de usuários. |
 
 ## Correções ao arquivo de contexto (`docs/plans/acesso-por-area-contexto.md`)
 
@@ -239,7 +244,51 @@ no banco (`area_definir_membro`) e na API (`PUT /mentoria/perfis` recusa mudar `
 - **`push_purge_user`:** troca `app_role() = 'HEAD'` por `area_gerencia(alvo)`.
 - **Auditoria:** as ações de hoje (`admin.user.invite`, `.update`, `admin.access_request.approve`,
   `mentoria.perfil.definido`) continuam, com os nomes dos campos e a `area` (não é dado pessoal).
-  Novas: `area.membro.definido`, `area.membro.removido`, `area.mestre.definido`.
+  Novas: `area.membro.definido`, `area.membro.removido`, `area.mestre.definido`, com `area`, `cargo` e
+  `head` (cargo não é dado pessoal). A aprovação de pedido passa a gravar o id da conta criada.
+- **`GET admin/acessos`** (só Diretoria; os demais recebem 404): o registro da D10, descrito abaixo.
+
+## Registro de acessos da Diretoria (D10)
+
+Um cartão compacto para a Diretoria ver, sem procurar, o que mudou em contas e acessos. Não é um log
+novo: lê a auditoria que já existe (`audit_log`), filtrada e escrita em português.
+
+**O que entra** (uma linha por acontecimento, mais novo primeiro):
+
+| Acontecimento | Linha na tela (exemplo) |
+|---|---|
+| Conta criada por convite | "Eduarda criou a conta de Maria Souza · Operação" |
+| Pedido de acesso aprovado ou recusado | "Eduarda aprovou o pedido de Manu Alves · Especialista" |
+| Cargo trocado | "Ana trocou o cargo de João Lima: Closer" |
+| Head/Admin dado ou tirado; Diretoria dada ou tirada | "Você deu Admin do Acompanhamento a Eduarda" |
+| Pessoa posta em uma segunda área, ou tirada | "Você adicionou Sonia ao Acompanhamento · Especialista" |
+| Senha redefinida ou MFA zerado por outra pessoa | "Ana redefiniu a senha de Igor" |
+| Conta desativada ou reativada | "Ana desativou a conta de João Lima" |
+
+**O que não entra:** logins, troca da própria senha, foto e nome do perfil, e tudo de lead, venda e
+mentorado. Isso continua na aba Auditoria (M11).
+
+**Regras:**
+
+- Só a Diretoria vê. O Head não vê o cartão (pode entrar depois, só com a área dele).
+- A auditoria continua sem nome e sem e-mail gravados: o nome de quem fez e de quem sofreu a ação é
+  lido da conta na hora de mostrar. Acontecimentos antigos, gravados só com o nome dos campos, aparecem
+  sem o detalhe ("Ana trocou o cargo de João Lima").
+- A API devolve o tipo e os dados (`tipo`, quem, sobre quem, `area`, `cargo`, `head`, quando), 20 por
+  página; a frase é montada no web, como em `lib/activity-text.ts`.
+- "novo" marca o que aconteceu desde a última vez que a Diretoria abriu o cartão (cookie por pessoa,
+  só no caminho do Admin, no padrão de `lib/user-cookie.ts`).
+
+```
+Acessos                                                   Ver tudo
+hoje 14:02   Eduarda criou a conta de Maria Souza · Operação      novo
+hoje 11:40   Eduarda aprovou o pedido de Manu Alves · Especialista novo
+ontem        Ana desativou a conta de João Lima
+17/11        Você deu Admin do Acompanhamento a Eduarda
+17/11        Ana redefiniu a senha de Igor
+```
+
+Cinco linhas no cartão; "Ver tudo" abre a lista inteira, paginada.
 
 ## Telas
 
@@ -251,6 +300,7 @@ Nada de tela nova de navegação: os dois lugares que já existem ganham a mesma
   linha. Na conta, "Adicionar a outra área" (rótulo novo, a confirmar com o Gabriel) abre o campo Cargo
   só com os cargos da área que falta.
 - O interruptor "Admin do Acompanhamento" e o cargo "Head" continuam aparecendo só para a Diretoria.
+- Diretoria: o cartão "Acessos" (D10) no topo da aba, acima da lista.
 
 **2. Acompanhamento → Configurações → Perfis (`components/acompanhamento/perfis-admin.tsx`)**
 
@@ -282,7 +332,8 @@ Equipe
 
 Textos novos de tela, todos a confirmar com o Gabriel antes da fase 3: "Adicionar a outra área",
 "também no Comercial" / "também no Acompanhamento", "Conta em mais de uma área: só a Diretoria redefine
-a senha ou desativa", "Só a Diretoria dá o selo de Admin do Acompanhamento".
+a senha ou desativa", "Só a Diretoria dá o selo de Admin do Acompanhamento", o título "Acessos", "Ver
+tudo", "novo" e as frases da tabela do registro de acessos.
 
 ## Segurança
 
@@ -314,6 +365,10 @@ a senha ou desativa", "Só a Diretoria dá o selo de Admin do Acompanhamento".
   a Diretoria põe a Sonia como Especialista e a Sonia vê os dois menus. Sempre pelo caminho real: login →
   onde cai → cliques no menu.
 - **Capturas** 375 / 768 / 1024 / 1440 de Admin → Usuários e da aba Perfis.
+- **Registro de acessos:** e2e da API: cada ação da tabela gera uma linha em `GET admin/acessos`, com
+  tipo, área e cargo; login e ação de lead não aparecem; Head e demais cargos recebem 404; nenhum nome
+  ou e-mail gravado em `audit_log`. Playwright: a `duda` cria uma conta e o `diretor` vê a linha com
+  "novo" no cartão; ao reabrir, sem "novo".
 - **Desempenho:** `pnpm perf:seed` + `scripts/perf/medir.sh` em `/api/leads` e no Dashboard do SDR:
   mediana dentro de ±10% do número de `docs/plans/desempenho.md`.
 - **Antes de prod (cada fase):** roteiro completo no ITODEV, um login por cargo; contagem de contas por
