@@ -404,7 +404,24 @@ migration `0074`). Status: **proposta, aguardando o Gabriel** nas perguntas marc
 
 **Carteira** = as inscrições em que a pessoa é a responsável (`mentoria_inscricoes.responsavel_id`).
 
-### O cargo
+### Alternativas (ideia do Gabriel, 19/11, ainda não decidida)
+
+Gabriel: "Acompanhamento … com opções … por tag … ver a carteira e + 1 módulo … ou full access", com a Eduarda no
+controle. Três formas, conferidas no código (0061, 0069, `perfil.guard.ts`):
+
+| | O que é | Custo | Risco |
+|---|---|---|---|
+| **A** (recomendo) | O cargo continua "Acompanhamento". Cada pessoa ganha um **alcance**: "todos os mentorados" ou "só a carteira", ligado pela Eduarda na aba Perfis | 2–3 dias. Mais barato que o cargo novo: o perfil continua `ACOMPANHAMENTO`, então as guardas da API (`@Perfis`), a regra de responsável, a transferência, os catálogos e o push por perfil não mudam. Só a RLS ganha o recorte: `mentoria_ve_todas()` exclui quem tem alcance "carteira", a lista da 0061 devolve a carteira dela, e reuniões, tarefas, metas e check-ins ganham o caso | Baixo. Um interruptor por pessoa; teste de equivalência mostra que "todos" = hoje |
+| B | A + uma lista curta e fechada de permissões extras no código (as "tags"), ligadas por pessoa | A + ~0,5–1 dia por tag. Cada tag é um ramo a mais em `mentoria_edita`/`mentoria_ve`, na guarda da API e no menu, com testes. Precisa saber quais são: "+1 módulo" ainda não está definido | Médio. As combinações multiplicam os casos de teste |
+| C | Permissões livres por tela, por pessoa | 2–3 semanas. Troca `mentoria_edita`, as ~60 políticas do módulo e as 36 guardas `@Perfis`/`@SoAdmin` da API por consulta a uma tabela de permissões; a regra única (`podeGerenciar`/`area_regra`) ganha "quem dá qual permissão" | Alto. Bate na D5 ("cargos fixos no código, travados por teste"), abre caminho de escalada (anti-objetivo) e pesa na RLS (consulta por linha) com prod em uso |
+
+**Batem em decisões tomadas:** D5 (cargos fixos no código) vale para A e B; C a desfaz. D9: se "full access" quiser
+dizer Admin do módulo, a Eduarda não pode dar. Em A, "full access" = alcance "todos os mentorados", que ela pode dar. Em
+A o nome de tela "Acompanhamento da carteira" (3A) vira o rótulo do alcance ("Só a carteira"), não de um cargo.
+
+O resto desta seção descreve o comportamento "só a carteira", que vale igual em A, B ou no cargo fixo.
+
+### O cargo (se ficar cargo fixo)
 
 - Cargo novo do Acompanhamento, chave `CARTEIRA`, rótulo **"Acompanhamento da carteira"** (3A). Entra em `CARGOS`,
   `CARGO_INFO` e `PERFIS` (`sh/cargos.ts`, `sh/mentoria/enums.ts`) e no CHECK `area_membros_acompanhamento`. Não leva
