@@ -194,7 +194,8 @@ describe('troca de cargo', () => {
     expect(
       (await patch(ids.ale!, { role: 'ACOMPANHAMENTO', perfil: 'OPERACAO' }, head)).status,
     ).toBe(403);
-    expect((await patch(ids.carla!, { perfil: 'OPERACAO' }, head)).status).toBe(403);
+    // NPAC-54, Fase 2: conta do Acompanhamento não existe para o Head do Comercial (404).
+    expect((await patch(ids.carla!, { perfil: 'OPERACAO' }, head)).status).toBe(404);
   });
 
   it('audita os campos gravados', async () => {
@@ -206,7 +207,7 @@ describe('troca de cargo', () => {
 });
 
 describe('lista do Admin', () => {
-  it('Diretoria vê o perfil do Acompanhamento; Head não', async () => {
+  it('Diretoria vê o perfil do Acompanhamento; o Head do Comercial nem vê a conta', async () => {
     await owner`insert into mentoria_perfis (user_id, perfil, admin) values (${ids.carla!}, 'OPERACAO', true)`;
     const doDiretor = await h.get('/api/admin/users', diretor);
     expect(doDiretor.body.find((u: { id: string }) => u.id === ids.carla)).toMatchObject({
@@ -217,11 +218,9 @@ describe('lista do Admin', () => {
       perfil: null,
       moduloAdmin: null,
     });
+    // NPAC-54, Fase 2: o Head vê só as contas da área dele.
     const doHead = await h.get('/api/admin/users', head);
-    expect(doHead.body.find((u: { id: string }) => u.id === ids.carla)).toMatchObject({
-      perfil: null,
-      moduloAdmin: null,
-    });
+    expect(doHead.body.find((u: { id: string }) => u.id === ids.carla)).toBeUndefined();
   });
 });
 

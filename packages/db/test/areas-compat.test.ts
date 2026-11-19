@@ -1,6 +1,6 @@
 // Acesso por área, Fase 1 (NPAC-54): compatibilidade com a versão anterior do app e com os seeds e
-// testes que ainda gravam o cargo do jeito antigo, as funções novas (com a regra de hoje), o resumo
-// `user.role`, as invariantes e o teste-guarda "ninguém lê o cargo antigo". Banco próprio: a
+// testes que ainda gravam o cargo do jeito antigo, as funções novas (desde a Fase 2 com a regra
+// única, coberta em db/test/areas-regra.test.ts), o resumo `user.role`, as invariantes e o teste-guarda "ninguém lê o cargo antigo". Banco próprio: a
 // invariante "ao menos uma Diretoria ativa" precisa saber quantas Diretorias existem.
 import postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -223,7 +223,7 @@ describe('mentoria_perfis (visão só de leitura)', () => {
   });
 });
 
-describe('funções novas (regra de hoje) e o resumo user.role', () => {
+describe('funções novas (regra única da Fase 2) e o resumo user.role', () => {
   it('area_definir_membro recalcula o resumo e as caixas que o cargo fixa', async () => {
     await como('dir', (t) => t`select area_definir_membro('closer', 'COMERCIAL', 'SDR', null)`);
     expect(await conta('closer')).toMatchObject({ role: 'SDR', p: true, c: false });
@@ -332,7 +332,7 @@ describe('funções novas (regra de hoje) e o resumo user.role', () => {
     ).toBe('42501');
   });
 
-  it('area_gerencia: a Diretoria, todas; o Head do Comercial, só SDR e Closer', async () => {
+  it('area_gerencia: a Diretoria, todas; o Head, só contas da área dele que não são Head', async () => {
     const pode = async (ator: string, alvo: string) =>
       (await como(ator, (t) => t<{ ok: boolean }[]>`select area_gerencia(${alvo}) as ok`))[0]!.ok;
     expect(await pode('dir', 'head')).toBe(true);
@@ -341,7 +341,8 @@ describe('funções novas (regra de hoje) e o resumo user.role', () => {
     expect(await pode('head', 'head2')).toBe(false);
     expect(await pode('head', 'acomp')).toBe(false);
     expect(await pode('head', 'dir')).toBe(false);
-    expect(await pode('admin', 'acomp')).toBe(false);
+    // Fase 2: o Admin do módulo é o Head do Acompanhamento (M2) e gerencia as contas da área.
+    expect(await pode('admin', 'acomp')).toBe(true);
     expect(await pode('sdr', 'sdr2')).toBe(false);
   });
 });

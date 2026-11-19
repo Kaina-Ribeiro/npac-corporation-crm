@@ -45,6 +45,10 @@
     "./profile": {
       "types": "./dist/profile.d.ts",
       "default": "./dist/profile.js"
+    },
+    "./areas": {
+      "types": "./dist/areas.d.ts",
+      "default": "./dist/areas.js"
     }
   },
   "scripts": {

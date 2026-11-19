@@ -129,13 +129,28 @@ describe('acesso por perfil', () => {
     expect(lista.body).toContainEqual(
       expect.objectContaining({ id: carlaId, perfil: 'ACOMPANHAMENTO', admin: true }),
     );
-    const r = await put(
-      '/api/mentoria/perfis',
-      { userId: carlaId, perfil: 'OPERACAO', admin: true },
-      dd,
-    );
-    expect(r.status).toBe(200);
-    expect((await h.get('/api/mentoria/eu', dd)).body).toEqual({ perfil: 'OPERACAO', admin: true });
+    // NPAC-54, Fase 2: o Admin troca o perfil de outra pessoa da área (não o próprio: 400).
+    await owner`insert into "user" (id, name, email, role, can_prospect, can_close)
+      values ('perfil-tmp', 'Perfil Tmp', 'perfil-tmp@x.test', 'ACOMPANHAMENTO', false, false)`;
+    try {
+      const r = await put(
+        '/api/mentoria/perfis',
+        { userId: 'perfil-tmp', perfil: 'OPERACAO', admin: false },
+        dd,
+      );
+      expect(r.status).toBe(200);
+      const [p] = await owner<{ perfil: string; admin: boolean }[]>`
+        select perfil, admin from mentoria_perfis where user_id = 'perfil-tmp'`;
+      expect(p).toEqual({ perfil: 'OPERACAO', admin: false });
+      const proprio = await put(
+        '/api/mentoria/perfis',
+        { userId: carlaId, perfil: 'OPERACAO', admin: true },
+        dd,
+      );
+      expect(proprio.status).toBe(400);
+    } finally {
+      await owner`delete from "user" where id = 'perfil-tmp'`;
+    }
   });
 
   it('condutores lista usuários ativos, inclusive do comercial', async () => {
