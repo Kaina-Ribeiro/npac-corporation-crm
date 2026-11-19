@@ -31,7 +31,7 @@ Código conferido na `release/v0.19` (commit `763bb4f`, última migration `0071`
 - Criar cargo ou área pela tela. Cargos e áreas são fixos no código (`sh/cargos.ts`) e travados por teste.
 - Cargo "Envios" e cargo "só a própria carteira": ficam fora. A Eduarda respondeu em 19/11: **1B** (a Maria dos envios
   só entra com o cargo Envios, junto da tela Envios físicos, fase 4 do Acompanhamento) e **2B** (a segunda Maria vê só a
-  carteira dela; cargo novo "Acompanhamento da carteira", fase 3B do plano, entre a 3 e a 4, com as respostas dela lá). Com este desenho, cargo novo
+  carteira dela; vira o alcance "Só a carteira" no cargo Acompanhamento, fase 3B do plano, entre a 3 e a 4, com as respostas dela lá). Com este desenho, cargo novo
   = uma entrada em `sh/cargos.ts` + a regra de dados dele.
 - Religar MFA e o limite de tentativas de login (ver "Segurança", recomendação).
 - Mudar o que cada cargo vê nos dados. A RLS de leads e de mentorados não muda de resultado.
@@ -397,91 +397,71 @@ Opções mostradas em imagem, no visual real (3 por tela). Escolhidas:
     Diretoria redefine a senha ou desativa" no lugar dos botões (só aparece com conta em duas áreas).
   - "Adicionar a outra área" fica para a Fase 4.
 
-## Fase 3B — Cargo "Acompanhamento da carteira"
+## Fase 3B — Alcance "só a carteira"
 
-Pedido da Eduarda (19/11, "1A, 2A, 3A", plano, Fase 3B). Código conferido na `release/v0.19` (`3fa5b4f`, última
-migration `0074`). Status: **proposta, aguardando o Gabriel** nas perguntas marcadas (a)–(e).
+Pedido da Eduarda (19/11, "1A, 2A, 3A", plano, Fase 3B) e desenho do Gabriel (19/11, sessão coordenadora). Código conferido
+na `release/v0.19` (`3fa5b4f`, última migration `0074`). Status: **proposta, aguardando o Gabriel** no desenho do formulário,
+nos textos novos e nas perguntas (a)–(e).
 
 **Carteira** = as inscrições em que a pessoa é a responsável (`mentoria_inscricoes.responsavel_id`).
 
-### Alternativas (ideia do Gabriel, 19/11, ainda não decidida)
+### O que é
 
-Gabriel: "Acompanhamento … com opções … por tag … ver a carteira e + 1 módulo … ou full access", com a Eduarda no
-controle. Três formas, conferidas no código (0061, 0069, `perfil.guard.ts`):
+Palavras do Gabriel: "Eu sou a duda e tenho ADM acompanhamento - posso dar a maria o Cargo de Acompanhamento - com alcance
+a carteira e envios por exemplo"; "eu ja to pensando com o sistema pronto".
 
-| | O que é | Custo | Risco |
-|---|---|---|---|
-| **A** (recomendo) | O cargo continua "Acompanhamento". Cada pessoa ganha um **alcance**: "todos os mentorados" ou "só a carteira", ligado pela Eduarda na aba Perfis | 2–3 dias. Mais barato que o cargo novo: o perfil continua `ACOMPANHAMENTO`, então as guardas da API (`@Perfis`), a regra de responsável, a transferência, os catálogos e o push por perfil não mudam. Só a RLS ganha o recorte: `mentoria_ve_todas()` exclui quem tem alcance "carteira", a lista da 0061 devolve a carteira dela, e reuniões, tarefas, metas e check-ins ganham o caso | Baixo. Um interruptor por pessoa; teste de equivalência mostra que "todos" = hoje |
-| B | A + uma lista curta e fechada de permissões extras no código (as "tags"), ligadas por pessoa | A + ~0,5–1 dia por tag. Cada tag é um ramo a mais em `mentoria_edita`/`mentoria_ve`, na guarda da API e no menu, com testes. Precisa saber quais são: "+1 módulo" ainda não está definido | Médio. As combinações multiplicam os casos de teste |
-| C | Permissões livres por tela, por pessoa | 2–3 semanas. Troca `mentoria_edita`, as ~60 políticas do módulo e as 36 guardas `@Perfis`/`@SoAdmin` da API por consulta a uma tabela de permissões; a regra única (`podeGerenciar`/`area_regra`) ganha "quem dá qual permissão" | Alto. Bate na D5 ("cargos fixos no código, travados por teste"), abre caminho de escalada (anti-objetivo) e pesa na RLS (consulta por linha) com prod em uso |
+- O cargo continua **Acompanhamento** (perfil `ACOMPANHAMENTO`, sem cargo novo; D5 vale). Cada pessoa com esse cargo ganha
+  um **alcance**: "Todos os mentorados" (padrão, igual a hoje) ou "Só a carteira".
+- Quem escolhe: a Diretoria e o Admin do Acompanhamento, pela regra única (mudar o alcance = trocar o cargo de alguém da
+  área: o Head não mexe em outro Head nem no próprio). Não dá nem tira Admin (D9).
+- Com "Só a carteira" a pessoa faz tudo o que o cargo Acompanhamento faz (1A), só nos mentorados da carteira. Fora dela,
+  nada: mentorado de outra pessoa é **404**, como para a Especialista.
+- **Destino (não entra na 3B): extras por pessoa** (o "+ envios" do Gabriel), caixinhas de uma lista fechada no código. A
+  coluna, a API e a linha "Extras" na tela nascem com o primeiro extra real, porque o formato dele ainda não se sabe. **Envios:**
+  cargo próprio (D6, resposta 1B da Eduarda) ou caixinha é decisão da fase da tela Envios físicos (fase 4 do Acompanhamento):
+  quem só faz envios não cabe bem em "Acompanhamento + caixinha".
+- Caminhos considerados e descartados: cargo novo fixo `CARTEIRA` (repetiria nas guardas da API, na regra de responsável, na
+  transferência e no push tudo o que já vale para o Acompanhamento) e permissões livres por tela e por pessoa (2–3 semanas,
+  desfaz a D5, abre caminho de escalada e pesa na RLS com prod em uso).
 
-**Batem em decisões tomadas:** D5 (cargos fixos no código) vale para A e B; C a desfaz. D9: se "full access" quiser
-dizer Admin do módulo, a Eduarda não pode dar. Em A, "full access" = alcance "todos os mentorados", que ela pode dar. Em
-A o nome de tela "Acompanhamento da carteira" (3A) vira o rótulo do alcance ("Só a carteira"), não de um cargo.
+### Na tela (textos novos, precisam do sim do Gabriel)
 
-**Escolhido: B** (Gabriel, 19/11, na sessão coordenadora: "Eu sou a duda e tenho ADM acompanhamento - posso dar a maria o
-Cargo de Acompanhamento - com alcance a carteira e envios por exemplo"; "eu ja to pensando com o sistema pronto").
-Leitura a confirmar com ele em uma linha antes de construir:
+- Aba Perfis do módulo, na linha da pessoa com cargo Acompanhamento: **"Vê: Todos os mentorados / Só a carteira"**. O mesmo
+  campo no **Convidar** e ao **aprovar pedido de acesso** (com "Todos os mentorados" marcado). Outros cargos não mostram o campo.
+- Nas listas (aba Perfis e Admin → Usuários): **"Acompanhamento · só a carteira"**. O nome "Acompanhamento da carteira" (3A da
+  Eduarda) não vira cargo (pendência: avisar a Eduarda).
+- Registro de acessos: a troca de alcance entra na frase da troca de cargo de hoje, com o alcance no fim ("· Acompanhamento,
+  Acompanhamento · só a carteira"); sem frase nova.
 
-- Por pessoa do Acompanhamento, três coisas: **cargo** (fixo, como hoje), **alcance** ("todos os mentorados" ou "só a
-  carteira") e **extras** (caixinhas de uma lista fechada no código). Quem liga: o Admin do Acompanhamento e a Diretoria,
-  pela regra única (é mexer no cargo de alguém da área; não dá nem tira Admin, D9).
-- Banco: `area_membros` ganha `alcance` (`TODOS` padrão, `CARTEIRA`; só no cargo `ACOMPANHAMENTO`, CHECK) e `extras text[]`
-  (CHECK contra a lista fechada, hoje vazia). Gravação só por `area_definir_membro` (assinatura nova com alcance e extras),
-  auditada (`area.membro.definido` com `alcance` e `extras`) e no registro de acessos.
-- A Fase 3B entrega o alcance e deixa dados, API e tela prontos para extras. **A caixinha "Envios" nasce com a tela Envios
-  físicos** (fase futura do Acompanhamento): hoje não abriria nada. Enquanto a lista estiver vazia, a linha de extras não
-  aparece na tela.
-- Desenho na aba Perfis (texto novo, precisa do sim): na linha da pessoa, ao lado do Cargo, "Vê: Todos os mentorados / Só
-  a carteira"; embaixo, "Extras: ☐ Envios" quando existir. No convite e na aprovação de pedido, o mesmo campo "Vê", com
-  "Todos os mentorados" já marcado.
-- Com o alcance, o rótulo de cargo "Acompanhamento da carteira" (3A) não vira cargo: a pessoa aparece como
-  "Acompanhamento · só a carteira".
-
-O resto desta seção descreve o comportamento "só a carteira", que vale igual em A, B ou no cargo fixo.
-
-### O cargo (se ficar cargo fixo)
-
-- Cargo novo do Acompanhamento, chave `CARTEIRA`, rótulo **"Acompanhamento da carteira"** (3A). Entra em `CARGOS`,
-  `CARGO_INFO` e `PERFIS` (`sh/cargos.ts`, `sh/mentoria/enums.ts`) e no CHECK `area_membros_acompanhamento`. Não leva
-  selo de Admin junto (o selo continua só da Diretoria, D9).
-- Quem dá o cargo: a Diretoria e o Admin do Acompanhamento, pelos mesmos caminhos dos outros cargos da área (convite,
-  aprovação de pedido, troca de cargo, `area_definir_membro`). A regra única não muda: é só mais um cargo da área.
-- Dica no campo Cargo (texto novo, precisa do sim): "Cuida só dos mentorados em que é a responsável."
-
-### O que vê e o que edita (1A)
-
-Na carteira, o mesmo que o perfil Acompanhamento: ficha inteira, onboarding, Plano, reuniões (todas da inscrição,
-também as conduzidas por Especialista), contatos, anotações, PME e ciclos, tarefas, metas, check-in, semáforo e segunda
-chance. Fora da carteira, nada: inscrição de outra pessoa é **404**, como para a Especialista.
-
-| Tela | O que muda para o cargo |
+| Tela, para quem tem "Só a carteira" | O que muda |
 |---|---|
 | Fila | Só itens da carteira (pergunta b: só "Minha fila" ou também "Equipe") |
 | Mentorados, Ficha, Plano, Reuniões, PMEs e ciclos | Só a carteira; o filtro "Responsável" não aparece |
 | Cadastro de mentorado (2A) | Responsável = ela, fixo (o campo mostra o nome dela, sem trocar) |
-| Configurações | Nada além do que o perfil Acompanhamento já vê (Perfis, Importação e catálogo de PMEs seguem só do Admin) |
+| Configurações | O mesmo que o cargo Acompanhamento já vê |
 
-**Continua só do Admin:** excluir e anonimizar, transferir carteira, Perfis, Importação, catálogo de PMEs, CSV com
-contato.
+**Continua só do Admin:** excluir e anonimizar, transferir carteira, Perfis, Importação, catálogo de PMEs, CSV com contato.
 
 ### Banco (como a regra entra)
 
-- Visibilidade por RLS, nunca por filtro em JS. Função nova `mentoria_ids_carteira()` (lista calculada uma vez por
-  consulta, no formato da 0061): as inscrições em que quem está logado é responsável, só para o cargo `CARTEIRA`.
-- **A dica do plano serve em parte.** As 12 políticas de leitura que usam `id/inscricao_id = any (mentoria_ids_especialista())`
-  ganham o caso da carteira se essa lista também devolver a carteira (sem reescrever a política). Mas reuniões, tarefas,
-  metas, check-ins e os catálogos de leitura (Plano modelo, PMEs, mensagens, `fila_feitos`) decidem pelo perfil e
-  precisam de `OR inscricao_id = any ((select mentoria_ids_carteira())::uuid[])` ou de `CARTEIRA` na lista de perfis.
-  Escolha na construção: uma lista só (`mentoria_ids_visiveis`, nome honesto) ou as duas; o teste de equivalência decide.
-- Funções por linha (`mentoria_ve`, `mentoria_edita`, `_reuniao`, `_acao`, `_tarefa`, `_meta`, `mentoria_semaforo`,
-  `mentoria_midia_*`): `WHEN 'CARTEIRA'` = as áreas do `ACOMPANHAMENTO` **e** a inscrição na carteira.
-- Inserir inscrição: o cargo só grava com `responsavel_id` = ele mesmo (política de INSERT, não só a API).
-- Responsável e transferência: hoje só o perfil Acompanhamento pode ser responsável e receber carteira
-  (`inscricoes.service.ts`, `perfis.service.ts` `elegivel`, `mentoria_transferir_carteira`); passa a aceitar `CARTEIRA`.
-- Itens da Fila endereçados ao perfil Acompanhamento: numa inscrição da carteira, a responsável `CARTEIRA` conta como
-  Acompanhamento (`mentoria_perfil_de` / `mentoria_destinatarios` / `itemVisivel`), senão o item iria para a equipe toda e
-  ela não o veria como dela.
+- `area_membros.alcance` text, `TODOS` por padrão; `CARTEIRA` só com área e cargo `ACOMPANHAMENTO` (CHECK). Trocar para outro
+  cargo volta a `TODOS`. Gravação só por `area_definir_membro` (ganha o parâmetro, com a versão antiga chamando a nova), com
+  a regra única e auditoria (`area.membro.definido` com `alcance`).
+- `mentoria_so_carteira()`: quem está logado tem alcance `CARTEIRA`. Visibilidade por RLS, nunca por filtro em JS:
+  - `mentoria_ve_todas()` deixa de valer para quem tem "só a carteira".
+  - A lista da 0061 (`mentoria_ids_especialista()`, ou uma `mentoria_ids_visiveis()` com nome honesto) passa a devolver a
+    carteira dela. **A dica do plano serve em parte:** cobre as 12 políticas de leitura que já usam essa lista sem reescrevê-las.
+    Reuniões, tarefas, metas e check-ins decidem pelo perfil e ganham `OR inscricao_id = any ((select …)::uuid[])`. Os
+    catálogos (Plano modelo, PMEs, mensagens) não mudam: o perfil continua `ACOMPANHAMENTO`.
+  - Funções por linha (`mentoria_ve`, `mentoria_edita`, `_reuniao`, `_acao`, `_tarefa`, `_meta`, `mentoria_midia_*`): no
+    `WHEN 'ACOMPANHAMENTO'`, "e (não é só a carteira ou a inscrição está na carteira)".
+  - Funções `SECURITY DEFINER` que devolvem dado de inscrição sem passar pela RLS (semáforo, `mentoria_semaforo_lote`, % do
+    PME, `mentoria_fila` e o que mais aparecer na varredura): conferir uma a uma e recortar.
+- Inserir inscrição com "só a carteira": só com `responsavel_id` = ela mesma (política de INSERT, não só a API).
+- Responsável, transferência de carteira e o casamento do item da Fila com o perfil não mudam (o perfil é `ACOMPANHAMENTO`).
+- Push da Fila endereçado "a todos do perfil" (sem responsável ativo): quem tem "só a carteira" só recebe o da carteira
+  (pergunta c).
+- Testes: equivalência (alcance `TODOS` = hoje, conta por conta), `rls-por-consulta`, casos novos no arquivo da regra única.
 
 ### Quando a inscrição sai da carteira (pergunta d)
 
@@ -490,11 +470,10 @@ tarefas, reuniões e metas juntas. O que ela registrou fica no histórico da ins
 
 ### Perguntas ao Gabriel (respostas entram aqui)
 
-- (a) CSV de Mentorados para o cargo: só da carteira, sem contato, ou nenhum? Recomendo: só da carteira.
+- (a) CSV de Mentorados para quem tem "só a carteira": só da carteira, sem contato, ou nenhum? Recomendo: só da carteira.
 - (b) Fila: só "Minha fila" ou também a visão "Equipe" (itens da carteira de outros perfis, ex.: Operação)? Recomendo:
   só "Minha fila".
-- (c) Push da Fila: só dos itens da carteira dela, e os da carteira dela deixam de ir para a equipe do Acompanhamento
-  (como já é quando a responsável é do perfil Acompanhamento)? Recomendo: sim.
+- (c) Push da Fila: só dos itens da carteira dela? Recomendo: sim.
 - (d) Inscrição tirada da carteira some para ela na hora, como acima? Recomendo: sim.
 - (e) Ela pode trocar o responsável de um mentorado da carteira (passar para outra pessoa)? Recomendo: não, só o Admin
   (senão ela tira o mentorado da própria vista por engano e não tem como desfazer).
