@@ -397,6 +397,72 @@ Opções mostradas em imagem, no visual real (3 por tela). Escolhidas:
     Diretoria redefine a senha ou desativa" no lugar dos botões (só aparece com conta em duas áreas).
   - "Adicionar a outra área" fica para a Fase 4.
 
+## Fase 3B — Cargo "Acompanhamento da carteira"
+
+Pedido da Eduarda (19/11, "1A, 2A, 3A", plano, Fase 3B). Código conferido na `release/v0.19` (`3fa5b4f`, última
+migration `0074`). Status: **proposta, aguardando o Gabriel** nas perguntas marcadas (a)–(e).
+
+**Carteira** = as inscrições em que a pessoa é a responsável (`mentoria_inscricoes.responsavel_id`).
+
+### O cargo
+
+- Cargo novo do Acompanhamento, chave `CARTEIRA`, rótulo **"Acompanhamento da carteira"** (3A). Entra em `CARGOS`,
+  `CARGO_INFO` e `PERFIS` (`sh/cargos.ts`, `sh/mentoria/enums.ts`) e no CHECK `area_membros_acompanhamento`. Não leva
+  selo de Admin junto (o selo continua só da Diretoria, D9).
+- Quem dá o cargo: a Diretoria e o Admin do Acompanhamento, pelos mesmos caminhos dos outros cargos da área (convite,
+  aprovação de pedido, troca de cargo, `area_definir_membro`). A regra única não muda: é só mais um cargo da área.
+- Dica no campo Cargo (texto novo, precisa do sim): "Cuida só dos mentorados em que é a responsável."
+
+### O que vê e o que edita (1A)
+
+Na carteira, o mesmo que o perfil Acompanhamento: ficha inteira, onboarding, Plano, reuniões (todas da inscrição,
+também as conduzidas por Especialista), contatos, anotações, PME e ciclos, tarefas, metas, check-in, semáforo e segunda
+chance. Fora da carteira, nada: inscrição de outra pessoa é **404**, como para a Especialista.
+
+| Tela | O que muda para o cargo |
+|---|---|
+| Fila | Só itens da carteira (pergunta b: só "Minha fila" ou também "Equipe") |
+| Mentorados, Ficha, Plano, Reuniões, PMEs e ciclos | Só a carteira; o filtro "Responsável" não aparece |
+| Cadastro de mentorado (2A) | Responsável = ela, fixo (o campo mostra o nome dela, sem trocar) |
+| Configurações | Nada além do que o perfil Acompanhamento já vê (Perfis, Importação e catálogo de PMEs seguem só do Admin) |
+
+**Continua só do Admin:** excluir e anonimizar, transferir carteira, Perfis, Importação, catálogo de PMEs, CSV com
+contato.
+
+### Banco (como a regra entra)
+
+- Visibilidade por RLS, nunca por filtro em JS. Função nova `mentoria_ids_carteira()` (lista calculada uma vez por
+  consulta, no formato da 0061): as inscrições em que quem está logado é responsável, só para o cargo `CARTEIRA`.
+- **A dica do plano serve em parte.** As 12 políticas de leitura que usam `id/inscricao_id = any (mentoria_ids_especialista())`
+  ganham o caso da carteira se essa lista também devolver a carteira (sem reescrever a política). Mas reuniões, tarefas,
+  metas, check-ins e os catálogos de leitura (Plano modelo, PMEs, mensagens, `fila_feitos`) decidem pelo perfil e
+  precisam de `OR inscricao_id = any ((select mentoria_ids_carteira())::uuid[])` ou de `CARTEIRA` na lista de perfis.
+  Escolha na construção: uma lista só (`mentoria_ids_visiveis`, nome honesto) ou as duas; o teste de equivalência decide.
+- Funções por linha (`mentoria_ve`, `mentoria_edita`, `_reuniao`, `_acao`, `_tarefa`, `_meta`, `mentoria_semaforo`,
+  `mentoria_midia_*`): `WHEN 'CARTEIRA'` = as áreas do `ACOMPANHAMENTO` **e** a inscrição na carteira.
+- Inserir inscrição: o cargo só grava com `responsavel_id` = ele mesmo (política de INSERT, não só a API).
+- Responsável e transferência: hoje só o perfil Acompanhamento pode ser responsável e receber carteira
+  (`inscricoes.service.ts`, `perfis.service.ts` `elegivel`, `mentoria_transferir_carteira`); passa a aceitar `CARTEIRA`.
+- Itens da Fila endereçados ao perfil Acompanhamento: numa inscrição da carteira, a responsável `CARTEIRA` conta como
+  Acompanhamento (`mentoria_perfil_de` / `mentoria_destinatarios` / `itemVisivel`), senão o item iria para a equipe toda e
+  ela não o veria como dela.
+
+### Quando a inscrição sai da carteira (pergunta d)
+
+Troca de responsável ou transferência pelo Admin: na hora, a inscrição some para ela (Fila, lista, ficha = 404), com
+tarefas, reuniões e metas juntas. O que ela registrou fica no histórico da inscrição, com o nome dela.
+
+### Perguntas ao Gabriel (respostas entram aqui)
+
+- (a) CSV de Mentorados para o cargo: só da carteira, sem contato, ou nenhum? Recomendo: só da carteira.
+- (b) Fila: só "Minha fila" ou também a visão "Equipe" (itens da carteira de outros perfis, ex.: Operação)? Recomendo:
+  só "Minha fila".
+- (c) Push da Fila: só dos itens da carteira dela, e os da carteira dela deixam de ir para a equipe do Acompanhamento
+  (como já é quando a responsável é do perfil Acompanhamento)? Recomendo: sim.
+- (d) Inscrição tirada da carteira some para ela na hora, como acima? Recomendo: sim.
+- (e) Ela pode trocar o responsável de um mentorado da carteira (passar para outra pessoa)? Recomendo: não, só o Admin
+  (senão ela tira o mentorado da própria vista por engano e não tem como desfazer).
+
 ## Segurança
 
 - Invisível e inexistente → 404; a regra roda no servidor e de novo no banco.

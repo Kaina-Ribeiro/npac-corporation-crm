@@ -15,7 +15,7 @@ Legenda: ⏳ a fazer · 🔧 em andamento · ✅ feito · ❌ travado (dizer por
 | 1 | Banco: a tabela de membros vira a fonte do cargo, sem mudar nada na tela | 2–3 dias | ✅ (migration 0072; falta só o roteiro no ITODEV, ver notas) |
 | 2 | Regra única de quem gerencia quem, na API e no banco | 2 dias | ✅ (migration 0073; ver notas) |
 | 3 | Telas: equipe por área (Admin do CRM e aba Perfis do módulo) | 2–3 dias | ✅ (PRs #140 e #141; roteiro no ITODEV em 19/11, ver notas) |
-| 3B | Cargo da carteira (2B), "Acompanhamento da carteira": faz o que o perfil Acompanhamento faz, só nas inscrições em que é responsável | a estimar | ⏳ (respostas da Eduarda em 19/11; ver "Fase 3B") |
+| 3B | Cargo da carteira (2B), "Acompanhamento da carteira": faz o que o perfil Acompanhamento faz, só nas inscrições em que é responsável | 3–4 dias | 🔧 (spec escrita; aguardando as respostas (a)–(e) do Gabriel) |
 | 4 | Pessoa em duas áreas | 2 dias | ⏳ |
 | 5 | Limpeza da compatibilidade | 1 dia | ⏳ |
 
@@ -166,7 +166,18 @@ PMEs, CSV com contato); quem cria o cargo: o Admin do Acompanhamento e a Diretor
 
 **Em aberto para o Gabriel no começo da fase:** (a) CSV do módulo para esse cargo: só da carteira ou nenhum? (b) A visão
 "Equipe" da Fila some para ele? (c) O push da Fila que vai "a todos do perfil": só os da carteira? (d) Inscrição tirada da
-carteira deixa de ser vista (esperado).
+carteira deixa de ser vista (esperado). (e) Pode trocar o responsável de um mentorado da carteira? (acrescentada na fase)
+
+Branch `feat/NPAC-54-fase-3b-carteira`. Spec: "Fase 3B — Cargo 'Acompanhamento da carteira'". Conferido no código: a dica
+da lista da Especialista serve para 12 políticas; reuniões, tarefas, metas, check-ins e catálogos precisam do caso novo.
+
+| # | Tarefa | Pronto quando | Status |
+|---|---|---|---|
+| 3B.1 | Spec da fase + respostas do Gabriel (a)–(e) e a dica do campo Cargo | Respostas registradas na spec | 🔧 |
+| 3B.2 | Banco (migration 0075): cargo `CARTEIRA` no CHECK, `mentoria_ids_carteira()`, políticas de leitura, funções por linha, INSERT de inscrição só com ela de responsável, responsável e transferência aceitam o cargo, Fila e push tratam a responsável como Acompanhamento | `db/test/carteira.test.ts`: vê e edita só a carteira; inscrição tirada some; não cria inscrição de outra; `rls-por-consulta`, `areas-equivalencia`, `fila-equivalencia`, `areas-regra` e `migrations` verdes | ⏳ |
+| 3B.3 | Shared + API: cargo em `sh/cargos.ts`/`PERFIS`, casos em `areas-casos.ts`, `PerfilGuard` (o cargo passa onde passa o Acompanhamento), cadastro com responsável fixo, CSV, Fila e push pelas respostas | e2e da API `carteira.e2e.test.ts`: cada rota do módulo com o cargo (200 na carteira, 404 fora, 404 no que é só do Admin); `duda` convida e aprova o cargo; suítes `shared` e `api` verdes | ⏳ |
+| 3B.4 | Web: opção no campo Cargo e na aba Perfis, Fila, cadastro com responsável fixo, filtro "Responsável" escondido | Playwright por login real (entra → cai na Fila → Mentorados → Ficha → Reuniões) vendo só a carteira; capturas 375 / 768 / 1024 / 1440; JS de `/leads` < 150 KB | ⏳ |
+| 3B.5 | Roteiro no ITODEV (conta de teste do cargo criada pela conta de teste da Eduarda) + `CLAUDE.md` e status | Lista do que passou, com URL e login por cargo, entregue ao Gabriel | ⏳ |
 
 ## Fase 4 — Pessoa em duas áreas
 
