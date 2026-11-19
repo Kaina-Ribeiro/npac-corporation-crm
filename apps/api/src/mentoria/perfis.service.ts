@@ -1,6 +1,13 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { withUser, type Db } from '@npac/db';
-import type { AuthUser, PerfilLinha, Responsavel } from '@npac/shared';
+import {
+  CARGO_ERRO_MSG,
+  resolverAlcance,
+  type Alcance,
+  type AuthUser,
+  type PerfilLinha,
+  type Responsavel,
+} from '@npac/shared';
 import { sql } from 'drizzle-orm';
 import { aplicar, lerConta, lerMinhaConta } from '../admin/areas.js';
 import { AuditService } from '../audit/audit.service.js';
@@ -21,7 +28,7 @@ export class PerfisService {
   listar(u: AuthUser): Promise<PerfilLinha[]> {
     return withUser(this.db, u.id, async (tx) => {
       const rows = await tx.execute<PerfilLinha>(sql`
-        select u.id, u.name as nome, m.cargo as perfil, m.head as admin
+        select u.id, u.name as nome, m.cargo as perfil, m.head as admin, m.alcance
         from "user" u join area_membros m on m.user_id = u.id and m.area = 'ACOMPANHAMENTO'
         where u.active
         order by u.name`);
@@ -32,8 +39,9 @@ export class PerfisService {
   /**
    * Troca o perfil pela regra única (NPAC-54, Fase 2): o Admin do módulo troca o perfil de quem é da
    * área e não é Admin; dar ou tirar o selo é só da Diretoria (403); ninguém troca o próprio (400).
+   * `alcance` (Fase 3B): "Só a carteira" só no perfil Acompanhamento sem o selo; sem ele, mantém.
    */
-  definir(u: AuthUser, alvo: string, perfil: string | null, admin: boolean) {
+  definir(u: AuthUser, alvo: string, perfil: string | null, admin: boolean, alcance?: Alcance) {
     return withUser(this.db, u.id, async (tx) => {
       const conta = await lerConta(tx, alvo);
       if (!conta) throw new NotFoundException();
@@ -47,8 +55,19 @@ export class PerfisService {
         cargo: perfil,
         head: admin,
       });
-      await tx.execute(sql`select mentoria_definir_perfil(${alvo}, ${perfil}, ${admin})`);
       const head = perfil !== null && admin;
+      const alc = resolverAlcance(
+        alcance,
+        { perfil: perfil as PerfilLinha['perfil'], moduloAdmin: head },
+        antes?.alcance,
+      );
+      if (!alc) throw new BadRequestException(CARGO_ERRO_MSG.OPCAO_INVALIDA);
+      // As conferências de sempre (mentoria_definir_perfil); o alcance, só se mudou.
+      await tx.execute(sql`select mentoria_definir_perfil(${alvo}, ${perfil}, ${admin})`);
+      if (perfil !== null && alc !== (antes?.alcance ?? 'TODOS'))
+        await tx.execute(
+          sql`select area_definir_membro(${alvo}, 'ACOMPANHAMENTO', ${perfil}, ${admin}, ${alc})`,
+        );
       for (const [action, data] of [
         ['mentoria.perfil.definido', { perfil, admin, registro: 2 }],
         [
@@ -57,7 +76,8 @@ export class PerfisService {
             area: 'ACOMPANHAMENTO',
             cargo: perfil,
             head,
-            antes: antes ? { cargo: antes.cargo, head: antes.head } : null,
+            ...(perfil === 'ACOMPANHAMENTO' ? { alcance: alc } : {}),
+            antes: antes ? { cargo: antes.cargo, head: antes.head, alcance: antes.alcance } : null,
           },
         ],
       ] as const)
@@ -65,7 +85,7 @@ export class PerfisService {
           { actorId: u.id, action, entityType: 'user', entityId: alvo, data },
           tx,
         );
-      return { perfil, admin };
+      return { perfil, admin, alcance: alc };
     }).catch((e) => erroDoBanco(e));
   }
 

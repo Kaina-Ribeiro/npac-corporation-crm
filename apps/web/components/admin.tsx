@@ -411,6 +411,7 @@ export function Admin({
                           role={u.role}
                           perfil={u.perfil}
                           moduloAdmin={u.moduloAdmin}
+                          alcance={u.alcance}
                           faltaPerfil={diretor && u.role === 'ACOMPANHAMENTO' && !u.perfil}
                         />
                         {!u.active && <span className="text-xs text-danger">inativo</span>}

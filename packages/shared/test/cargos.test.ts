@@ -8,6 +8,7 @@ import {
   resolverCargo,
   temCaixas,
 } from '../src/cargos.js';
+import { resolverAlcance } from '../src/alcance.js';
 import { accessApprovalSchema, userChangeSchema, userInviteSchema } from '../src/index.js';
 
 describe('mapa cargo ↔ (role, perfil)', () => {
@@ -170,5 +171,26 @@ describe('schemas de cargo', () => {
     expect(accessApprovalSchema.safeParse({ role: 'HEAD', canClose: true }).success).toBe(true);
     expect(userChangeSchema.safeParse({ moduloAdmin: true }).success).toBe(true);
     expect(userChangeSchema.safeParse({}).success).toBe(false);
+  });
+});
+
+describe('resolverAlcance (Fase 3B)', () => {
+  const acomp = { perfil: 'ACOMPANHAMENTO' as const, moduloAdmin: false };
+  it('"só a carteira" só no cargo Acompanhamento, sem o selo', () => {
+    expect(resolverAlcance('CARTEIRA', acomp)).toBe('CARTEIRA');
+    expect(resolverAlcance('CARTEIRA', { perfil: 'OPERACAO', moduloAdmin: false })).toBeNull();
+    expect(resolverAlcance('CARTEIRA', { perfil: 'ACOMPANHAMENTO', moduloAdmin: true })).toBeNull();
+    expect(resolverAlcance('CARTEIRA', { perfil: null, moduloAdmin: false })).toBeNull();
+    expect(resolverAlcance('TODOS', { perfil: 'OPERACAO', moduloAdmin: false })).toBe('TODOS');
+  });
+  it('sem pedido: mantém o atual se o cargo aceita, senão volta a todos', () => {
+    expect(resolverAlcance(undefined, acomp)).toBe('TODOS');
+    expect(resolverAlcance(undefined, acomp, 'CARTEIRA')).toBe('CARTEIRA');
+    expect(resolverAlcance(undefined, { perfil: 'OPERACAO', moduloAdmin: false }, 'CARTEIRA')).toBe(
+      'TODOS',
+    );
+    expect(
+      resolverAlcance(undefined, { perfil: 'ACOMPANHAMENTO', moduloAdmin: true }, 'CARTEIRA'),
+    ).toBe('TODOS');
   });
 });

@@ -87,11 +87,17 @@ export class FilaService {
     return new Date(this.clock.now());
   }
 
-  private async eu(tx: Tx, id: string): Promise<FilaEu> {
-    const [r] = await tx.execute<{ perfil: Perfil | null; admin: boolean }>(
-      sql`select mentoria_perfil() as perfil, mentoria_admin() as admin`,
+  private async eu(tx: Tx, id: string): Promise<FilaEu & { soCarteira: boolean }> {
+    const [r] = await tx.execute<{ perfil: Perfil | null; admin: boolean; so_carteira: boolean }>(
+      sql`select mentoria_perfil() as perfil, mentoria_admin() as admin,
+        mentoria_so_carteira() as so_carteira`,
     );
-    return { id, perfil: r?.perfil ?? null, admin: r?.admin === true };
+    return {
+      id,
+      perfil: r?.perfil ?? null,
+      admin: r?.admin === true,
+      soCarteira: r?.so_carteira === true,
+    };
   }
 
   /** Os itens do banco, já com o escopo de quem pede. */
@@ -117,7 +123,8 @@ export class FilaService {
     const agora = this.agora();
     return withUser(this.db, u.id, async (tx) => {
       const eu = await this.eu(tx, u.id);
-      const escopo = filtro.escopo ?? escopoPadrao(eu);
+      // "Só a carteira" (Fase 3B, b): só a Minha fila.
+      const escopo = eu.soCarteira ? 'MINHA' : (filtro.escopo ?? escopoPadrao(eu));
       const base = (await this.itens(tx, eu, agora, escopo)).filter(
         (i) => !filtro.tipos || filtro.tipos.includes(i.tipo),
       );

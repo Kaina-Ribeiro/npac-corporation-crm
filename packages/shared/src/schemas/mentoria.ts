@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ALCANCES } from '../alcance.js';
 import { AVISO_DATA, dataCalendarioValida } from '../mentoria/datas.js';
 import {
   INSCRICAO_STATUS,
@@ -400,6 +401,8 @@ export const perfilPutSchema = z
     // Sem null: a aba Perfis só troca o perfil (C7); quem sai é pelo cargo, no Admin do CRM.
     perfil: z.enum(PERFIS),
     admin: z.boolean(),
+    // Fase 3B: sem ele, o alcance fica como está (volta a TODOS se o cargo deixa de aceitar).
+    alcance: z.enum(ALCANCES).optional(),
   })
   .strict();
 

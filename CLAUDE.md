@@ -206,6 +206,25 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   `SessionGuard` via `UltimoUso` (`api/auth/ultimo-uso.ts`: no máximo 1 gravação a cada 15 min por pessoa e instância, e o
   UPDATE confere a data no banco); `user` fica fora do canal ao vivo; o Sair não apaga. Vem em `GET admin/users` como
   `ultimoUso`; frase `entrouHa` (`sh/acessos.ts`, dias de calendário de Brasília). e2e `e2e/acesso-por-area.spec.ts`.
+- **Alcance "Só a carteira"** (NPAC-54, Fase 3B, 19/11/2026, 0075; Gabriel aprovou formulário, textos e (a)–(e)): no
+  cargo Acompanhamento sem o selo, `area_membros.alcance` = `TODOS` (padrão, igual a antes) ou `CARTEIRA` (só as
+  inscrições em que a pessoa é `responsavel_id`). Não é cargo novo: o perfil continua `ACOMPANHAMENTO` (guardas `@Perfis`,
+  responsável, transferência e catálogos iguais). Grava pela regra única como troca de cargo: `area_definir_membro(…,
+  alcance)` (5 argumentos; a de 4 mantém o alcance), por convite, aprovação, `PATCH admin/users` e `PUT mentoria/perfis`
+  (campo `alcance`; "Só a carteira" em outro cargo = 400); trocar o cargo ou dar o selo volta a `TODOS` (gatilho
+  `area_membros_alcance` + CHECK). Recorte só no banco: `mentoria_so_carteira()`, `mentoria_ids_carteira()`,
+  `mentoria_carteira_ok(inscricao)`; `mentoria_ve_todas()` exclui quem tem "só a carteira"; as políticas que liam
+  `mentoria_ids_especialista()` leem `mentoria_ids_visiveis()` (Especialista + carteira); reuniões, tarefas, metas,
+  check-ins e histórico do semáforo ganham `OR inscricao_id = any (carteira)`; funções por linha, semáforo, pausar,
+  retomar, excluir reunião e sequência de check-ins recortam. Ela cria inscrição só com ela de responsável e não troca o
+  responsável (política da inscrição; API força no cadastro e dá 403 na troca; ficha `pode.responsavel`). Fila só "Minha"
+  (API força `escopo`), CSV só da carteira (RLS), push "a todos do perfil" sem ela (`mentoria_destinatarios`,
+  `mentoria_avisos_candidatos.acomp_todos`), inscrição tirada da carteira some na hora. `GET mentoria/eu` traz
+  `soCarteira`; `admin/users` e `/api/me` trazem `alcance`. Tela: "Alcance: Todos os mentorados / Só a carteira" na aba
+  Perfis (linha, Convidar, pedido), "Acompanhamento · só a carteira" no Admin e no quadro "Acessos". Extras por pessoa
+  (ex.: Envios) ficam para quando houver o primeiro extra real. Rótulos e regra pura em `sh/alcance.ts`
+  (`@npac/shared/alcance`, fora de `cargos.ts` pelo peso de `/leads`). Testes: `db/test/carteira.test.ts`,
+  `api/test/carteira.e2e.test.ts`, `e2e/acompanhamento-carteira.spec.ts`.
 - **Fonte do cargo = `area_membros`** (NPAC-54, Fase 1, 0072; plano `docs/plans/acesso-por-area.md`, spec
   `docs/superpowers/specs/2026-11-19-acesso-por-area-design.md`): uma linha por (pessoa, área `COMERCIAL`/`ACOMPANHAMENTO`,
   cargo, `head`); a Diretoria é `user.mestre` (sem linha). Comercial: cargo SDR/CLOSER/HEAD, `head` = HEAD. Acompanhamento:
@@ -654,7 +673,7 @@ protótipo no canvas "Meu perfil". Gabriel aprovou com "1A, 2A, 3A".
 - **Política de leitura sem função por linha** (desempenho, Fase 1, 0060–0061): no `USING` de
   SELECT/ALL (e de `leads_update`), toda função vai dentro de `(select f())`, calculada uma vez por
   consulta; o que depende da linha compara com uma lista: `id = any ((select closer_lead_ids())::uuid[])`
-  (comercial), `(select mentoria_ve_todas()) or inscricao_id = any ((select mentoria_ids_especialista())::uuid[])`
+  (comercial), `(select mentoria_ve_todas()) or inscricao_id = any ((select mentoria_ids_visiveis())::uuid[])`
   (Acompanhamento). Nunca `closer_has_lead(id)`/`mentoria_ve(inscricao_id)` direto: com 20 mil leads o
   Dashboard do SDR levava 20 s. O teste-guarda de `db/test/rls-por-consulta.test.ts` varre `pg_policies`
   (única exceção: `mentoria_midia_leitura`). INSERT/UPDATE com `mentoria_edita*` seguem por linha.

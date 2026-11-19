@@ -10,10 +10,14 @@
  * (D9), nunca mexe em outro Head e, em conta com outra área, só troca o cargo da área dele (M5).
  * Pôr ou tirar alguém de uma área e dar ou tirar Diretoria: só a Mestre (M4).
  */
+import type { Alcance } from './alcance.js';
 import { AREAS, type Area } from './cargos.js';
 
-/** Vínculo de uma conta numa área (`area_membros`). Cargo nulo = Acompanhamento "falta perfil". */
-export type Vinculo = { area: Area; cargo: string | null; head: boolean };
+/**
+ * Vínculo de uma conta numa área (`area_membros`). Cargo nulo = Acompanhamento "falta perfil".
+ * `alcance` (Fase 3B) não entra na regra: mudar o alcance é trocar o cargo na área (ação `CARGO`).
+ */
+export type Vinculo = { area: Area; cargo: string | null; head: boolean; alcance?: Alcance };
 /** O que a regra precisa saber de uma conta. */
 export type ContaAreas = { mestre: boolean; areas: Vinculo[] };
 

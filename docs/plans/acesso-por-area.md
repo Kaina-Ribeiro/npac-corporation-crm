@@ -178,6 +178,22 @@ Branch `feat/NPAC-54-fase-3b-carteira`. Spec: "Fase 3B — Alcance 'só a cartei
 | 3B.4 | Web: campo "Alcance" (Todos os mentorados / Só a carteira) na aba Perfis, no convite e na aprovação, só no cargo Acompanhamento; "Acompanhamento · só a carteira" nas listas; Fila, cadastro com responsável fixo, filtro "Responsável" escondido | Playwright por login real (entra → cai na Fila → Mentorados → Ficha → Reuniões) vendo só a carteira; capturas 375 / 768 / 1024 / 1440; JS de `/leads` < 150 KB | ⏳ |
 | 3B.5 | Roteiro no ITODEV (conta de teste com "só a carteira" criada pela conta de teste da Eduarda) + `CLAUDE.md` e status | Lista do que passou, com URL e login por cargo, entregue ao Gabriel | ⏳ |
 
+**Notas da Fase 3B (19/11/2026):**
+- Migration `0075_alcance_carteira`: coluna `area_membros.alcance` (CHECK + gatilho que volta a `TODOS` ao trocar de
+  cargo ou ganhar o selo), `area_definir_membro` de 5 argumentos (a de 4 mantém o alcance), `area_conta_json` com o
+  alcance, `mentoria_so_carteira()`, `mentoria_ids_carteira()`, `mentoria_carteira_ok()`, `mentoria_ids_visiveis()`
+  (as 13 políticas que liam a lista da Especialista passam a ela), `mentoria_ve_todas()` sem quem tem "só a carteira",
+  políticas de reuniões, tarefas, metas, check-ins e histórico do semáforo, funções por linha, semáforo, pausar, retomar,
+  excluir reunião, sequência de check-ins e push "a todos do perfil".
+- **A dica do plano serviu em parte**: a lista da Especialista cobriu 13 políticas sem reescrevê-las (troca de nome para
+  `mentoria_ids_visiveis`); reuniões, tarefas, metas, check-ins e o histórico do semáforo decidiam pelo perfil e ganharam
+  o caso. A regra de responsável não mudou: o perfil continua `ACOMPANHAMENTO`.
+- Testes antigos com expectativa trocada: `GET mentoria/eu` passou a trazer `soCarteira` (`mentoria-v2-base`, `cargos`,
+  `acesso-por-area` da API); `rls-por-consulta` ganhou a conta "só a carteira" e as expressões novas.
+- Fora da 3B, sem risco de dado pessoal: `mentoria_fila_feitos` (o "feito" da Fila) continua lido e gravado pelo perfil;
+  quem tem "só a carteira" poderia marcar como feito um item fora da carteira se soubesse a chave (ids). Admin → Usuários
+  mostra "Acompanhamento · só a carteira", mas o alcance se troca pela aba Perfis do módulo (Diretoria e Admin).
+
 ## Fase 4 — Pessoa em duas áreas
 
 Branch `feat/NPAC-54-fase-4-duas-areas`. Spec: "API" (rotas por área), "Telas" item 3.

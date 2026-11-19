@@ -165,19 +165,22 @@ function CamposFiltro({
           </option>
         ))}
       </select>
-      <select
-        className={`${control} todo`}
-        aria-label="Responsável"
-        value={f.responsavelId ?? ''}
-        onChange={(e) => mudar({ ...f, responsavelId: e.target.value || undefined })}
-      >
-        <option value="">Todos os responsáveis</option>
-        {responsaveis.map((r) => (
-          <option key={r.id} value={r.id}>
-            {r.nome}
-          </option>
-        ))}
-      </select>
+      {/* Sem lista ("só a carteira", Fase 3B): todos são de quem vê, sem o filtro. */}
+      {responsaveis.length > 0 && (
+        <select
+          className={`${control} todo`}
+          aria-label="Responsável"
+          value={f.responsavelId ?? ''}
+          onChange={(e) => mudar({ ...f, responsavelId: e.target.value || undefined })}
+        >
+          <option value="">Todos os responsáveis</option>
+          {responsaveis.map((r) => (
+            <option key={r.id} value={r.id}>
+              {r.nome}
+            </option>
+          ))}
+        </select>
+      )}
     </>
   );
 }

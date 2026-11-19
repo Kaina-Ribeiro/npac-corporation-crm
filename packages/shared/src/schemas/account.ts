@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ALCANCES } from '../alcance.js';
 import { ACCESS_AREAS, ROLES } from '../enums.js';
 import { PERFIS } from '../mentoria/enums.js';
 
@@ -32,6 +33,8 @@ const cargoCampos = {
   moduloAdmin: z.boolean().optional(),
   canProspect: z.boolean().optional(),
   canClose: z.boolean().optional(),
+  // Fase 3B: "Todos os mentorados" ou "Só a carteira" (só no cargo Acompanhamento, sem o selo).
+  alcance: z.enum(ALCANCES).optional(),
 };
 
 /** Convite feito no Admin: a conta nasce com senha temporária e troca obrigatória. */

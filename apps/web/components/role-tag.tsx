@@ -1,3 +1,4 @@
+import { ALCANCE_SUFIXO, type Alcance } from '@npac/shared/alcance';
 import { cargoDe, CARGO_INFO, MODULO_ADMIN_LABEL } from '@npac/shared/cargos';
 import type { Role } from '@npac/shared';
 import type { Perfil } from '@npac/shared/mentoria';
@@ -38,11 +39,14 @@ export function CargoTag({
   role,
   perfil,
   moduloAdmin,
+  alcance,
   faltaPerfil = false,
 }: {
   role: Role;
   perfil?: Perfil | null;
   moduloAdmin?: boolean | null;
+  /** Fase 3B: "Acompanhamento · só a carteira". */
+  alcance?: Alcance | null;
   /** Só quem lê os perfis (Diretoria) sabe que falta: para o Head a etiqueta fica "Acompanhamento". */
   faltaPerfil?: boolean;
 }) {
@@ -51,6 +55,7 @@ export function CargoTag({
     <>
       <span className={`role role-${role}`}>
         {cargo ? CARGO_INFO[cargo].label : ROLE_LABEL[role]}
+        {alcance === 'CARTEIRA' && ` · ${ALCANCE_SUFIXO}`}
       </span>
       {moduloAdmin && <span className="role role-ACOMPANHAMENTO">{MODULO_ADMIN_LABEL}</span>}
       {faltaPerfil && <span className="role role-FALTA">falta perfil</span>}
