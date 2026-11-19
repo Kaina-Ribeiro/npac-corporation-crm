@@ -104,10 +104,22 @@ test('Duda importa o gerenciador e a planilha pela prévia, sem duplicar', async
   await expect(page.getByRole('button', { name: /^Importar 0/ })).toBeDisabled();
 });
 
+test('Duda acha o Importar no topo de Mentorados', async ({ page }) => {
+  await entrar(page, 'duda');
+  await page.waitForURL(/\/acompanhamento\/fila/);
+  await lateral(page).getByRole('link', { name: 'Mentorados', exact: true }).click();
+  await page.waitForURL(/\/acompanhamento\/mentorados$/);
+  await page.getByRole('link', { name: 'Importar', exact: true }).click();
+  await page.waitForURL(/\/acompanhamento\/configuracoes\?aba=importacao/);
+  await expect(page.getByRole('heading', { name: 'Arquivos' })).toBeVisible();
+});
+
 test('Operação não vê a importação', async ({ page }) => {
   await entrar(page, 'operacao');
   await page.waitForURL(/\/acompanhamento\/fila/);
   await page.goto('/acompanhamento/mentorados');
+  await expect(page.getByRole('heading', { name: 'Mentorados' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Importar', exact: true })).toHaveCount(0);
   const res = await page.goto('/acompanhamento/configuracoes?aba=importacao');
   expect(res?.status()).toBe(404);
 });

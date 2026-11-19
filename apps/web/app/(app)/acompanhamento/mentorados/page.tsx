@@ -32,6 +32,7 @@ export default async function MentoradosPage() {
       responsaveis={responsaveis.map((r) => ({ id: r.id, nome: rotuloResponsavel(r) }))}
       podeCriar={podeCadastrar(eu)}
       exportar={podeExportar(eu)}
+      importar={!!eu?.admin}
       inicial={inicial}
       lembrar={{ cookie, valor: writePrefs(salvo, regras) }}
     />
