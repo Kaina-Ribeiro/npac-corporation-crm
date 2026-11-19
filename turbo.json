@@ -17,6 +17,7 @@
     "WEB_ORIGIN",
     "EXTRA_TRUSTED_ORIGINS",
     "API_INTERNAL_URL",
+    "NEXT_SKIP_TYPECHECK",
     "TRUST_PROXY"
   ],
   "tasks": {

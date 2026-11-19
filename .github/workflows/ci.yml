@@ -106,7 +106,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: [1, 2, 3, 4, 5, 6]
     # Imagem oficial com Chromium e WebKit já instalados (sem o apt das libs do WebKit, que travava).
     # Manter a tag igual à versão do @playwright/test no pnpm-lock.yaml.
     container:
@@ -129,13 +129,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
-      - name: Build dos pacotes (db, shared) usados pelo e2e
-        run: pnpm turbo run build --filter="./packages/*"
+      # Tudo compilado aqui pelo turbo: pacotes, depois API e web ao mesmo tempo (dentro do Playwright
+      # era um depois do outro). E2E_PREBUILT avisa o playwright.config de que é só subir os servidores.
+      # API_INTERNAL_URL fica gravada no build do web: a porta é a da API do e2e (apps/web/e2e/env.ts).
+      # Sem checagem de tipos no build: o job `static` já roda o typecheck.
+      - name: Build (pacotes, depois API e web em paralelo)
+        run: pnpm turbo run build
+        env:
+          API_INTERNAL_URL: http://localhost:4100
+          NEXT_SKIP_TYPECHECK: '1'
       # Sem psql no container: o mesmo SQL do 01-app-role.sh, por Node. Instalar psql por apt
       # dependia dos espelhos do Ubuntu, que às vezes não resolviam e derrubavam o CI (exit 100).
       - name: Criar role npac_app e banco npac_test
         run: node packages/db/dist/app-role-cli.js
       - run: pnpm --filter @npac/web e2e --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+        env:
+          E2E_PREBUILT: '1'
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
