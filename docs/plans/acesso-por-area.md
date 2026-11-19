@@ -16,7 +16,7 @@ Legenda: ⏳ a fazer · 🔧 em andamento · ✅ feito · ❌ travado (dizer por
 | 2 | Regra única de quem gerencia quem, na API e no banco | 2 dias | ✅ (migration 0073; ver notas) |
 | 3 | Telas: equipe por área (Admin do CRM e aba Perfis do módulo) | 2–3 dias | ✅ (PRs #140 e #141; roteiro no ITODEV em 19/11, ver notas) |
 | 3B | Alcance "só a carteira" no cargo Acompanhamento (2B): a pessoa faz o que o cargo faz, só nos mentorados em que é responsável; a Eduarda escolhe por pessoa | 3–4 dias | ✅ (PR #144, migration 0075; roteiro no ITODEV v0.19.12-rc em 19/11, ver notas) |
-| 4 | Pessoa em duas áreas | 2 dias | 🔧 (PR aberto, parado para a leitura; ver notas) |
+| 4 | Pessoa em duas áreas | 2 dias | ✅ (PR #147; roteiro e varredura no ITODEV v0.19.15-rc em 19/11, ver notas) |
 | 5 | Limpeza da compatibilidade | 1 dia | ⏳ |
 
 Estimativas são minhas (sem medição): 9–11 dias de sessão no total.
@@ -219,7 +219,7 @@ Branch `feat/NPAC-54-fase-4-duas-areas`. Spec: "API" (rotas por área), "Telas" 
 | 4.2 | Guardas: `MentoriaGuard` pelo vínculo; `PerfilGuard` com `membro`; MFA do módulo pelo vínculo | e2e novo `duas-areas`: a `sonia` usa as rotas do comercial como Closer e as do módulo como Especialista (só as reuniões que conduz); `acompanhamento-sem-comercial` verde | ✅ |
 | 4.3 | Web: menu, `/`, `not-found`, Mais e `modules.mentoria` pelo vínculo; "Adicionar a outra área" no Admin da Diretoria | Playwright: `sonia` entra por `/login` e vê os dois menus; entra por `/login/acompanhamento` e cai no módulo | ✅ (textos aprovados: "1A, 2A, 3A") |
 | 4.4 | Head de cada área vê a pessoa com `outraArea`; senha e desativar bloqueados com a frase da spec | Playwright + capturas 375 / 768 / 1024 / 1440 | ✅ |
-| 4.5 | Roteiro no ITODEV + `CLAUDE.md` e status | Lista do que passou entregue ao Gabriel | ⏳ |
+| 4.5 | Roteiro no ITODEV + `CLAUDE.md` e status | Lista do que passou entregue ao Gabriel | ✅ ITODEV v0.19.15-rc, 19/11 |
 
 **Pronto quando (fase):** uma conta com as duas áreas trabalha nas duas com um login, e nenhum Head
 alcança a outra área por ela.
@@ -245,6 +245,24 @@ alcança a outra área por ela.
   a mostra como quem saiu, para o Admin transferir a carteira; a tela não avisa. **Recomendação:** na confirmação de
   "Tirar de uma área", contar e dizer o que fica no nome da pessoa (leads como SDR e como closer; inscrições como
   responsável) e apontar "Passar leads para…" / transferir carteira, com texto aprovado pelo Gabriel.
+- **`PUT` por área usa a ação `REMOVER_AREA` da regra:** pôr e tirar de uma área são a mesma ação "só a Diretoria" (M4) e a
+  regra não tem ação de pôr (`CARGO` deixaria o Head mexer na área dele). Comentário de uma linha em `exigirDiretoria`; o
+  banco confere de novo.
+- **Roteiro no ITODEV** (v0.19.15-rc, 19/11, script Playwright por login real; o web fala com a API do ITODEV: a rota nova
+  responde 401 sem login, a produção não a tem). Contas de teste novas, criadas pelo convite da conta `diretor`, senha 1234:
+  `f4.duas` (Closer, e Especialista pela tela), `f4.headcom` (Head do Comercial), `f4.adminac` (Admin do Acompanhamento) e,
+  para a varredura, `f4.sdr`, `f4.closer`, `f4.acomp` (Todos os mentorados), `f4.cart` (Carteira), `f4.oper`, `f4.espec`,
+  `f4.mentor`. Nenhuma conta antiga mudou. 23 de 23 passos ✅: Diretoria → Admin → "Adicionar a outra área" → Especialista
+  (confirmação e aviso aprovados, um campo Cargo por área); `f4.duas` por `/login` cai no Dashboard com o menu do comercial e
+  a entrada do Acompanhamento (Fila e Mentorados abrem), por `/login/acompanhamento` no celular cai na Fila, e o Mais do
+  celular mostra o Acompanhamento; Head do Comercial e Admin do Acompanhamento veem "também no Acompanhamento/Comercial" e a
+  frase das duas áreas, sem Nova senha nem Desativar, e a API dá 403 (pôr, tirar, senha) e 404 (conta só do Comercial para
+  o Admin do Acompanhamento); "Tirar de uma área" → Acompanhamento (confirmação e aviso) tira o módulo da conta (a Fila dá
+  404); a Diretoria põe de novo pelo celular. `f4.duas` ficou com as duas áreas.
+- **Varredura por cargo** (`varredura-por-cargo.mjs`, só lê, 1440/1024/768/375): 11 contas (Diretoria, Head do Comercial,
+  SDR, Closer, Admin do Acompanhamento, Acompanhamento Todos, Carteira, Operação, Especialista, Mentor e a de duas áreas),
+  126 telas, nenhum erro na tela, no console ou 4xx/5xx da API, nenhuma rolagem lateral. Mentor cai em "Seu painel chega em
+  breve", sem menu (como deve). Não conferido: a chegada dos e-mails de convite (endereços `.invalid`).
 - **Fica de fora:** foto de quem tem as duas áreas para quem só é do Acompanhamento (`conta/foto.controller.ts` decide pelo
   resumo `role`; aparece a inicial). Precisa ler o vínculo de outra conta fora da RLS (função nova); anotar para a Fase 5.
 
