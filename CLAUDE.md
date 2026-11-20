@@ -138,6 +138,10 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
 - **Docs:** `docs/spec.md`; deploy `docs/deploy.md` (Oracle), `docs/deploy-cubeship.md` (o `web` do
   ITODEV só fala com a API dele pela build arg `API_INTERNAL_URL`; sem ela cai na API de produção:
   conferir com o `curl` da seção 4 antes de testar); planos `docs/superpowers/plans/`; releases `RELEASING.md`
+- **Próximo no Acompanhamento** (Gabriel, 19/11/2026): a gestão vem antes da área do mentorado, que fica por último.
+  Bloco 1 (NPAC-56, venda vira mentorado + cargo Envios e aba Envios físicos): spec
+  `docs/superpowers/specs/2026-11-19-acompanhamento-gestao-bloco-1-design.md`, plano `docs/plans/acompanhamento-gestao-bloco-1.md`.
+  A regra "CRM intocado" da Fase 1 acabou: o Acompanhamento mexe no comercial quando precisar.
 
 **Navegação e carregamento** (desempenho, Fase 2, 12/11/2026): o menu usa o `prefetch` padrão do Next
 (rota dinâmica sem `loading.tsx` não pré-carrega a página); `semPrefetch` (Ficha e itens "Em breve")
