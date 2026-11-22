@@ -533,6 +533,13 @@
       "when": 1795105150761,
       "tag": "0075_alcance_carteira",
       "breakpoints": true
+    },
+    {
+      "idx": 76,
+      "version": "7",
+      "when": 1795309419495,
+      "tag": "0076_acompanhamento_evolucao",
+      "breakpoints": true
     }
   ]
 }

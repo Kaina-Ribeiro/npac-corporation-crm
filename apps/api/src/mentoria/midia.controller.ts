@@ -14,6 +14,8 @@ import {
 } from '@nestjs/common';
 import {
   mentoriaAcoes,
+  mentoriaConquistas,
+  mentoriaEvolucao,
   mentoriaInscricoes,
   mentoriaMidia,
   mentoriaPessoas,
@@ -30,6 +32,7 @@ import { CurrentUser, type SessionUser } from '../auth/current-user.decorator.js
 import { DB } from '../common/db/db.module.js';
 import { entityId } from '../common/validate.js';
 import { erroDoBanco } from './erros.js';
+import { registrarHistorico } from './historico.js';
 import { farejar, semMetadados } from './media-sniff.js';
 import { MEDIA_STORE, type MediaStore } from './media-store.js';
 import { MentoriaController } from './mentoria.guard.js';
@@ -44,6 +47,10 @@ const DONOS = {
   'foto-familia': { tipo: 'FOTO_FAMILIA', tabela: mentoriaInscricoes },
   'acao-evidencia': { tipo: 'ACAO_EVIDENCIA', tabela: mentoriaAcoes },
   'tarefa-comprovante': { tipo: 'TAREFA_COMPROVANTE', tabela: mentoriaTarefas },
+  // Aba Evolução (NPAC-57): as fotos dos dois momentos (dono = inscrição) e a mídia da conquista.
+  'evolucao-inicial': { tipo: 'EVOLUCAO_INICIAL', tabela: mentoriaInscricoes },
+  'evolucao-atual': { tipo: 'EVOLUCAO_ATUAL', tabela: mentoriaInscricoes },
+  conquista: { tipo: 'CONQUISTA', tabela: mentoriaConquistas },
 } as const;
 type DonoUrl = keyof typeof DONOS;
 
@@ -66,6 +73,14 @@ export class MidiaController {
   ) {}
 
   private async donoExiste(u: AuthUser, d: DonoUrl, id: string) {
+    // Fotos da evolução: a inscrição precisa existir e a evolução dela estar à vista (a Especialista não vê).
+    if (d === 'evolucao-inicial' || d === 'evolucao-atual') {
+      const [r] = await withUser(this.db, u.id, (tx) =>
+        tx.execute<{ ve: boolean }>(sql`select mentoria_ve_evolucao(${id}::uuid) as ve`),
+      );
+      if (!r?.ve) throw new NotFoundException();
+      return;
+    }
     const { tabela } = DONOS[d];
     const achou = await withUser(this.db, u.id, (tx) =>
       tx.select({ id: tabela.id }).from(tabela).where(eq(tabela.id, id)),
@@ -75,6 +90,20 @@ export class MidiaController {
 
   /** A foto nova passa a ser a do dono; a anterior vai para a fila de exclusão. */
   private async apontarFoto(tx: Tx, d: DonoUrl, donoId: string, midiaId: string) {
+    if (d === 'evolucao-inicial' || d === 'evolucao-atual') {
+      await this.apontarFotoEvolucao(tx, d, donoId, midiaId);
+      return;
+    }
+    if (d === 'conquista') {
+      const [c] = await tx
+        .select({ midia: mentoriaConquistas.midiaId })
+        .from(mentoriaConquistas)
+        .where(eq(mentoriaConquistas.id, donoId))
+        .for('update');
+      if (c?.midia) await tx.execute(sql`select mentoria_excluir_midia(${c.midia})`);
+      await tx.update(mentoriaConquistas).set({ midiaId }).where(eq(mentoriaConquistas.id, donoId));
+      return;
+    }
     if (d === 'tarefa-comprovante') {
       const [t] = await tx
         .select({ midia: mentoriaTarefas.comprovanteMidiaId })
@@ -132,6 +161,40 @@ export class MidiaController {
       .where(eq(mentoriaInscricoes.id, donoId));
   }
 
+  /**
+   * Foto de um dos momentos: cria a linha da evolução se ainda não existe; a anterior vai para a fila. A foto atual
+   * também muda o rodapé "Atualizado em … por …" (gatilho do banco). Histórico só com o nome do campo.
+   */
+  private async apontarFotoEvolucao(
+    tx: Tx,
+    d: 'evolucao-inicial' | 'evolucao-atual',
+    inscricaoId: string,
+    midiaId: string,
+  ) {
+    const coluna =
+      d === 'evolucao-inicial'
+        ? mentoriaEvolucao.fotoInicialMidiaId
+        : mentoriaEvolucao.fotoAtualMidiaId;
+    const [e] = await tx
+      .select({ foto: coluna })
+      .from(mentoriaEvolucao)
+      .where(eq(mentoriaEvolucao.inscricaoId, inscricaoId))
+      .for('update');
+    if (e?.foto) await tx.execute(sql`select mentoria_excluir_midia(${e.foto})`);
+    const foto =
+      d === 'evolucao-inicial' ? { fotoInicialMidiaId: midiaId } : { fotoAtualMidiaId: midiaId };
+    await tx
+      .insert(mentoriaEvolucao)
+      .values({ inscricaoId, ...foto })
+      .onConflictDoUpdate({
+        target: mentoriaEvolucao.inscricaoId,
+        set: { ...foto, version: sql`${mentoriaEvolucao.version} + 1`, atualizadoEm: sql`now()` },
+      });
+    await registrarHistorico(tx, inscricaoId, 'evolucao.foto', [
+      d === 'evolucao-inicial' ? 'fotoInicial' : 'fotoAtual',
+    ]);
+  }
+
   @Post(':dono/:donoId/midia')
   @HttpCode(201)
   async enviar(
@@ -158,6 +221,9 @@ export class MidiaController {
     // Comprovante de tarefa (Fase 2): foto, vídeo ou PDF. Os demais donos, só foto.
     if (d === 'tarefa-comprovante') {
       if (!f) throw new BadRequestException('Envie uma foto, um vídeo ou um PDF');
+    } else if (d === 'conquista') {
+      // Conquista (NPAC-57): foto ou vídeo.
+      if (!f || f.tipo === 'PDF') throw new BadRequestException('Envie uma foto ou um vídeo');
     } else if (!f || f.tipo !== 'FOTO')
       throw new BadRequestException('Envie uma foto (JPEG, PNG ou WEBP)');
     const limpo = semMetadados(dados, f.mime);

@@ -27,6 +27,7 @@ export * from './mentoria/importacao.js';
 export * from './mentoria/plano.js';
 export * from './mentoria/pmes.js';
 export * from './mentoria/metas.js';
+export * from './mentoria/evolucao.js';
 export * from './mentoria/semaforo.js';
 export * from './mentoria/reunioes.js';
 export * from './mentoria/fila.js';
