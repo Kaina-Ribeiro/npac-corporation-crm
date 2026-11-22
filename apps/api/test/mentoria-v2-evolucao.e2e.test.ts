@@ -2,6 +2,8 @@ import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import type { ConquistaDTO, EvolucaoDTO, FichaDTO } from '@npac/shared';
 import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { EvolucaoLegado } from '../src/mentoria/evolucao-legado.js';
+import { aad, MentoriaCrypto } from '../src/mentoria/mentoria-crypto.js';
 import { api, closeTestApp, createTestApp, ORIGIN, owner, resetAuthState } from './helpers.js';
 
 // NPAC-57: aba Evolução (spec 2026-11-21, §6). Leem Admin, Acompanhamento (com "só a carteira") e Operação;
@@ -447,5 +449,115 @@ describe('conquistas e fotos', () => {
     expect(e.conquistas).toHaveLength(1);
     expect(e.conquistas[0]).toMatchObject({ descricao: null, midia: null });
     expect(await owner`select 1 from mentoria_midia_exclusao`).toHaveLength(2);
+  });
+});
+
+describe('cópia do legado', () => {
+  const LEGADO = {
+    antesDepois: {
+      RESERVA_FINANCEIRA: { antes: 'Nenhuma', depois: 'R$ 30 mil' },
+      EVOLUCAO_RENDA: { antes: 'x', depois: 'Dobrou' },
+      EVOLUCAO_SAUDE: { depois: 'Perdeu 10 kg' },
+      INVESTIMENTOS_MENTORIA: { depois: 'Tesouro Direto' },
+      AREA_ATUACAO: { depois: 'Abriu a loja' },
+      FE: { antes: 'Afastados' },
+      DINHEIRO: { antes: 'Dívidas' },
+    },
+    notasMomentoInicial: 'Chegaram cansados 😮‍💨',
+    notasMomentoAtual: 'Dívidas quitadas\r\nViajaram juntos',
+    conquistas: [
+      { data: '10/03/2026', descricao: 'Quitou o carro' },
+      { data: '03/2026', descricao: 'Primeira viagem' },
+    ],
+  };
+  const legado = () => app.get(EvolucaoLegado);
+  /** `texto` cru (sem `JSON.stringify`); `cifrar: false` grava sem cifra (ilegível). */
+  const comTexto = async (texto: string, cifrar = true) => {
+    const i = await inscricao();
+    const dados = cifrar
+      ? app.get(MentoriaCrypto).cifrarTexto(texto, aad('mentoria_legado', 'dados', i))
+      : texto;
+    await owner`insert into mentoria_legado (inscricao_id, dados) values (${i}, ${dados})`;
+    return i;
+  };
+  const comLegado = (dados: unknown) => comTexto(JSON.stringify(dados));
+
+  it('copia reserva, renda, saúde, investimentos, área, notas e conquistas de um legado importado', async () => {
+    const i = await comLegado(LEGADO);
+    expect(await legado().copiarPendentes()).toBe(1);
+    const e = await ler(await diretor(), i);
+    expect(e.campos).toEqual({
+      reservaAntes: 'Nenhuma',
+      reservaHoje: 'R$ 30 mil',
+      renda: 'Dobrou',
+      saude: 'Perdeu 10 kg',
+      investimentos: 'Tesouro Direto',
+      areaAtuacao: 'Abriu a loja',
+      inicialNotas: 'Chegaram cansados 😮‍💨\nFé: Afastados\nDinheiro: Dívidas',
+      atualNotas: 'Dívidas quitadas\r\nViajaram juntos',
+    });
+    expect(e.atualAtualizadoPor).toBeNull();
+    expect(e.conquistas.map((c) => [c.data, c.descricao])).toEqual([
+      ['2026-03-10', 'Quitou o carro'],
+      [null, 'Primeira viagem'],
+    ]);
+    // Sem histórico e sem autoria.
+    expect(await historico(i)).toEqual([]);
+    expect(
+      await owner`select 1 from mentoria_conquistas where inscricao_id = ${i} and criado_por is not null`,
+    ).toHaveLength(0);
+  });
+
+  it('segunda chamada devolve 0 e não duplica conquistas', async () => {
+    const i = await comLegado(LEGADO);
+    expect(await legado().copiarPendentes()).toBe(1);
+    expect(await legado().copiarPendentes()).toBe(0);
+    expect(await owner`select 1 from mentoria_conquistas where inscricao_id = ${i}`).toHaveLength(
+      2,
+    );
+  });
+
+  it('não sobrescreve campo que a equipe já escreveu antes da cópia', async () => {
+    const i = await comLegado(LEGADO);
+    const s = await acomp();
+    await salvarOk(s, i, { version: 0, renda: 'Escrito pela equipe', atualNotas: 'Nosso texto' });
+    const antes = await ler(s, i);
+    expect(await legado().copiarPendentes()).toBe(1);
+    const e = await ler(s, i);
+    expect(e.campos).toMatchObject({
+      renda: 'Escrito pela equipe',
+      atualNotas: 'Nosso texto',
+      reservaAntes: 'Nenhuma',
+      saude: 'Perdeu 10 kg',
+    });
+    // O rodapé continua o da pessoa que escreveu.
+    expect(e.atualAtualizadoPor).toBe('Carla');
+    expect(e.atualAtualizadoEm).toBe(antes.atualAtualizadoEm);
+    // A version subiu: a fila da tela recebe 409 e recarrega.
+    expect(e.version).toBeGreaterThan(antes.version);
+  });
+
+  it('duas chamadas em paralelo copiam uma vez só', async () => {
+    const i = await comLegado(LEGADO);
+    const [a, b] = await Promise.all([legado().copiarPendentes(), legado().copiarPendentes()]);
+    expect(a + b).toBe(1);
+    expect(await owner`select 1 from mentoria_conquistas where inscricao_id = ${i}`).toHaveLength(
+      2,
+    );
+  });
+
+  it('legado com JSON ilegível: pula, conta 0, não lança; o legível ao lado é copiado', async () => {
+    const ruim = await comTexto('não é um texto cifrado', false);
+    const quebrado = await comTexto('{ isto não é json');
+    expect(await legado().copiarPendentes()).toBe(0);
+    const bom = await comLegado(LEGADO);
+    expect(await legado().copiarPendentes()).toBe(1);
+    // Os ilegíveis continuam pendentes para a próxima subida.
+    expect(
+      await owner`select 1 from mentoria_evolucao where inscricao_id in (${ruim}, ${quebrado})`,
+    ).toHaveLength(0);
+    expect(
+      await owner`select 1 from mentoria_evolucao where inscricao_id = ${bom} and legado_copiado_em is not null`,
+    ).toHaveLength(1);
   });
 });

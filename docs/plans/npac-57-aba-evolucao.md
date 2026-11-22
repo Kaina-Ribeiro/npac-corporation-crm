@@ -26,7 +26,7 @@ Playwright.
 | 1 | Banco: tabelas, RLS, funções | ✅ 21/11 (`216cd36`) |
 | 2 | Shared: tipos, schemas, tópicos e mapeamento do legado | ✅ 21/11 (`FichaDTO.pode` foi para a Tarefa 3) |
 | 3 | API: leitura, salvar, conquistas e fotos | ✅ 21/11 |
-| 4 | API: cópia do legado ao subir | ⏳ |
+| 4 | API: cópia do legado ao subir | ✅ 21/11 |
 | 5 | Web: aba Evolução | ⏳ |
 | 6 | Web: PDF | ⏳ |
 | 7 | Fechamento: capturas, CLAUDE.md, PR e ITODEV | ⏳ |
