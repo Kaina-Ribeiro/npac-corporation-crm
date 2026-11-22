@@ -59,8 +59,8 @@ export function Icone({
   );
 }
 
-export type Aba = 'jornada' | 'inscricao' | 'pessoas' | 'momento' | 'historico';
-const ABAS: Aba[] = ['jornada', 'inscricao', 'pessoas', 'momento', 'historico'];
+export type Aba = 'jornada' | 'inscricao' | 'pessoas' | 'momento' | 'evolucao' | 'historico';
+const ABAS: Aba[] = ['jornada', 'inscricao', 'pessoas', 'momento', 'evolucao', 'historico'];
 /** Aba da ficha pedida na URL; fica aqui porque a página de servidor a lê. */
 export const abaValida = (a: string | undefined): Aba =>
   ABAS.includes(a as Aba) ? (a as Aba) : 'jornada';

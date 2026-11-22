@@ -4743,3 +4743,699 @@
     }
   }
 }
+
+/*
+ * Aba Evolução da ficha (NPAC-57), do protótipo aprovado (canvas "Aba Evolução", evolucao.css). Dourado só no que é
+ * progresso (spec §8): momento atual, seta da reserva, barras dos pilares, fio da linha do tempo e aro da foto atual.
+ */
+.ac .evs {
+  /* As grades seguem a largura da aba, não da tela: em 768 px a sidebar aberta deixa a aba estreita. */
+  container: ev / inline-size;
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+
+  .ev-h {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink2);
+  }
+  .ev-h h2 {
+    font-size: 17px;
+    line-height: 22px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin-top: 2px;
+  }
+  .ev-h p {
+    font-size: 13px;
+    color: var(--ink2);
+    margin-top: 2px;
+  }
+  .ev-acts {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .seg2 {
+    display: inline-flex;
+    padding: 3px;
+    border-radius: 12px;
+    background: rgba(120, 120, 128, 0.12);
+    gap: 2px;
+  }
+  .seg2 button {
+    border: 0;
+    background: transparent;
+    height: 30px;
+    padding: 0 12px;
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink2);
+    cursor: pointer;
+  }
+  .seg2 button.on {
+    background: var(--on);
+    color: var(--ink);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.6),
+      0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+  .sec-h {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+  .sec-t {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink);
+  }
+  .sec-h small {
+    font-size: 12px;
+    color: var(--ink2);
+  }
+
+  /* Cartões: o cartão inteiro é um botão de editar (teclado e leitor de tela). */
+  .evo {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+  .evo-c {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px 16px;
+    border-radius: 16px;
+    background: var(--fill);
+    box-shadow: inset 0 0 0 0.5px var(--line);
+    min-width: 0;
+    transition: box-shadow 0.16s;
+  }
+  .evo-c small {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ink2);
+    padding-right: 22px;
+  }
+  .evo-c .txt {
+    font-size: 14px;
+    line-height: 20px;
+    display: block;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+    min-width: 0;
+  }
+  .evo-c .txt.nao-inf {
+    color: var(--ink2);
+    font-style: italic;
+  }
+  .evo-c.editando {
+    box-shadow: inset 0 0 0 1px var(--gold-ring);
+  }
+  .cobre {
+    position: absolute;
+    inset: 0;
+    border: 0;
+    border-radius: 16px;
+    background: transparent;
+    cursor: text;
+    z-index: 1;
+  }
+  .cobre:hover,
+  .cobre:focus-visible {
+    box-shadow: inset 0 0 0 1px var(--gold-ring);
+  }
+  .cobre:focus-visible {
+    outline: 2px solid var(--gold-ring);
+    outline-offset: 2px;
+  }
+  .lapis {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 16px;
+    height: 16px;
+    color: var(--ink2);
+    opacity: 0;
+    transition: opacity 0.16s;
+    pointer-events: none;
+  }
+  .evo-c:hover .lapis,
+  .cobre:focus-visible ~ .lapis {
+    opacity: 1;
+  }
+  .cmp {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 10px;
+    align-items: start;
+  }
+  .cmp .lado {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ink2);
+    margin-bottom: 2px;
+    font-style: normal;
+  }
+  .cmp .seta {
+    color: var(--gold-deep);
+    margin-top: 18px;
+    display: flex;
+  }
+  .cmp .seta svg {
+    width: 16px;
+    height: 16px;
+  }
+  .cmp .depois {
+    font-weight: 600;
+  }
+  .cmp .depois .nao-inf {
+    font-weight: 400;
+  }
+
+  /* Os dois momentos. */
+  .mom {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .mc {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 16px;
+    border-radius: 18px;
+    background: var(--fill);
+    box-shadow: inset 0 0 0 0.5px var(--line);
+    min-width: 0;
+    position: relative;
+  }
+  .mc.atual {
+    box-shadow: inset 0 0 0 1px rgba(194, 146, 46, 0.55);
+    background: linear-gradient(180deg, rgba(246, 236, 212, 0.55), var(--fill) 60%);
+  }
+  .mc-h {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .mc-n {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    box-shadow: inset 0 0 0 1.5px rgba(120, 120, 128, 0.45);
+    color: var(--ink2);
+    flex: none;
+    background: var(--gl-solid);
+  }
+  .mc.atual .mc-n {
+    background: var(--gold-deep);
+    color: #fff;
+    box-shadow: 0 0 0 4px rgba(194, 146, 46, 0.18);
+  }
+  .mc-tit {
+    min-width: 0;
+  }
+  .mc-tit b {
+    font-size: 16px;
+    font-weight: 600;
+    display: block;
+    line-height: 20px;
+    letter-spacing: -0.015em;
+  }
+  .mc-tit span {
+    font-size: 12px;
+    color: var(--ink2);
+    display: block;
+    line-height: 16px;
+  }
+  .mc-h > .btn {
+    margin-left: auto;
+  }
+  .quem-foto {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .foto {
+    flex: none;
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    background: var(--gl-solid);
+    box-shadow: inset 0 0 0 1.5px var(--fill-line);
+    color: var(--ink2);
+    font-size: 11px;
+    overflow: hidden;
+  }
+  .foto svg {
+    width: 22px;
+    height: 22px;
+  }
+  .foto.cheia {
+    box-shadow:
+      0 0 0 3px var(--gl-solid),
+      0 0 0 4.5px var(--fill-line);
+    overflow: visible;
+  }
+  .foto.cheia.ouro {
+    box-shadow:
+      0 0 0 3px var(--gl-solid),
+      0 0 0 5px var(--gold-deep);
+  }
+  .foto.cheia img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+  .foto.cheia:focus-visible {
+    outline: 2px solid var(--gold-ring);
+    outline-offset: 6px;
+  }
+  .foto-info {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+  }
+  .foto-info .data {
+    font-size: 13px;
+    color: var(--ink2);
+  }
+  .foto-info .data b {
+    color: var(--ink);
+    font-weight: 600;
+  }
+  .foto-btn {
+    align-self: flex-start;
+    cursor: pointer;
+  }
+  .foto-btn:focus-within {
+    outline: 2px solid var(--gold-ring);
+    outline-offset: 2px;
+  }
+  .foto-btn.ocupado {
+    cursor: progress;
+    opacity: 0.7;
+  }
+  .bloco {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .bloco + .bloco {
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+  }
+  .bloco-h {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .bloco-h span {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink2);
+  }
+  .ver-aba {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--tag-info);
+    white-space: nowrap;
+    position: relative;
+  }
+  /* Área de toque de 44 px sem mudar o desenho. */
+  .ver-aba::after {
+    content: '';
+    position: absolute;
+    inset: -14px -10px;
+  }
+  .tp {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    font-size: 14px;
+    line-height: 20px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .tp li {
+    display: flex;
+    gap: 10px;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .tp li::before {
+    content: '';
+    flex: none;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--ink3);
+    margin-top: 7px;
+  }
+  .mc.atual .tp li::before {
+    background: var(--gold-deep);
+  }
+  .tp li b {
+    font-weight: 600;
+  }
+  .nada {
+    font-size: 14px;
+    color: var(--ink2);
+  }
+  .ta {
+    width: 100%;
+    min-height: 150px;
+    border: 0;
+    border-radius: 12px;
+    padding: 12px 14px;
+    font: inherit;
+    font-size: 16px;
+    line-height: 1.5;
+    background: rgba(255, 255, 255, 0.8);
+    box-shadow: inset 0 0 0 1px var(--gold-ring);
+    resize: vertical;
+    color: var(--ink);
+    outline: none;
+  }
+  .ta.curta {
+    min-height: 88px;
+    font-weight: 400;
+  }
+  .ta:focus-visible {
+    box-shadow: inset 0 0 0 2px var(--gold-ring);
+  }
+  .dica {
+    font-size: 12px;
+    color: var(--ink2);
+    line-height: 16px;
+  }
+  .rodape-mc {
+    font-size: 12px;
+    color: var(--ink2);
+    border-top: 1px solid var(--line);
+    padding-top: 10px;
+  }
+
+  /* Linha do tempo: os mesmos cartões, empilhados sobre um fio do cinza ao dourado. */
+  .mom.linha {
+    position: relative;
+    padding-left: 44px;
+    gap: 18px;
+  }
+  .mom.linha::before {
+    content: '';
+    position: absolute;
+    left: 14px;
+    top: 24px;
+    bottom: 24px;
+    width: 2px;
+    border-radius: 2px;
+    background: linear-gradient(180deg, rgba(120, 120, 128, 0.35), var(--gold-deep));
+  }
+  .mom.linha .mc-n {
+    position: absolute;
+    left: -44px;
+    top: 16px;
+  }
+
+  /* Pontos de partida. */
+  .partida {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 16px;
+    box-shadow: inset 0 0 0 0.5px var(--line);
+    background: rgba(255, 255, 255, 0.3);
+  }
+  .partida .kp {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin: 0;
+  }
+  .partida .pl b {
+    font-size: 16px;
+  }
+  .pil {
+    display: grid;
+    grid-template-columns: auto repeat(4, minmax(0, 1fr));
+    gap: 6px 12px;
+    align-items: center;
+    font-size: 13px;
+  }
+  .pil .hd {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ink2);
+    line-height: 13px;
+    min-width: 0;
+  }
+  .pil .nm {
+    font-weight: 600;
+  }
+  .nota {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+  .nota b {
+    font-size: 15px;
+    font-weight: 700;
+    min-width: 16px;
+  }
+  .nota i {
+    flex: 1;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(120, 120, 128, 0.18);
+    overflow: hidden;
+    position: relative;
+    max-width: 60px;
+  }
+  .nota i::after {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: var(--w);
+    background: var(--gold-deep);
+    border-radius: 2px;
+  }
+
+  /* Conquistas. */
+  .gal {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .cq {
+    display: flex;
+    flex-direction: column;
+    border-radius: 16px;
+    overflow: hidden;
+    background: var(--fill);
+    box-shadow: inset 0 0 0 0.5px var(--line);
+    min-width: 0;
+  }
+  .cq .img {
+    aspect-ratio: 4 / 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--gl-solid);
+    overflow: hidden;
+  }
+  .cq .img img,
+  .cq .img video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .cq .img video {
+    background: #000;
+    object-fit: contain;
+  }
+  .cq .img.vazia {
+    font-size: 12px;
+    color: var(--ink2);
+  }
+  .cq .tx2 {
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+  }
+  .cq time {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ink2);
+  }
+  .cq b {
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 17px;
+    overflow-wrap: anywhere;
+  }
+  /* Remover fica discreto: texto cinza, sem caixa (o protótipo não desenha o botão). */
+  .cq-rem {
+    align-self: flex-start;
+    margin: 4px 0 -4px -10px;
+    color: var(--ink2);
+    background: transparent;
+    box-shadow: none;
+    border: 0;
+  }
+  .cq-rem:hover {
+    color: var(--danger);
+    background: var(--fill);
+  }
+  .cq-add {
+    border-radius: 16px;
+    border: 1.5px dashed var(--fill-line);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 150px;
+    color: var(--ink2);
+    font-size: 13px;
+    font-weight: 600;
+    background: transparent;
+    cursor: pointer;
+  }
+  .cq-add:hover {
+    color: var(--ink);
+    border-color: var(--gold-ring);
+  }
+  .cq-add:focus-visible {
+    outline: 2px solid var(--gold-ring);
+    outline-offset: 2px;
+  }
+  .cq-add svg {
+    width: 20px;
+    height: 20px;
+  }
+  .gal-vazia {
+    grid-column: 1 / -1;
+    font-size: 14px;
+    color: var(--ink2);
+    padding: 6px 0;
+  }
+
+  @media (pointer: coarse) {
+    .lapis {
+      opacity: 0.7;
+    }
+  }
+  @media (min-width: 768px) {
+    padding: 22px 24px;
+    .ta {
+      font-size: 14px;
+    }
+  }
+  @container ev (min-width: 400px) {
+    .evo {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .evo-c.largo {
+      grid-column: span 2;
+    }
+    .gal {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+  @container ev (min-width: 600px) {
+    .mom.lado {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      align-items: stretch;
+    }
+    .partida {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      align-items: start;
+      gap: 20px;
+    }
+    .gal {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+  @container ev (min-width: 640px) {
+    .evo {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+  @container ev (max-width: 359.98px) {
+    .cmp {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 4px;
+    }
+    .cmp .seta {
+      margin-top: 0;
+      transform: rotate(90deg);
+      align-self: flex-start;
+    }
+  }
+  @media (max-width: 767.98px) {
+    .ev-acts {
+      width: 100%;
+    }
+    .ev-acts .seg2 {
+      display: none;
+    }
+    .ev-acts .btn {
+      min-height: 44px;
+      flex: 1;
+      justify-content: center;
+    }
+  }
+}
+.dark .ac .evs {
+  .mc.atual {
+    background: linear-gradient(180deg, rgba(226, 187, 102, 0.1), var(--fill) 60%);
+  }
+  .ta {
+    background: rgba(255, 255, 255, 0.06);
+  }
+  .partida {
+    background: rgba(255, 255, 255, 0.03);
+  }
+}
