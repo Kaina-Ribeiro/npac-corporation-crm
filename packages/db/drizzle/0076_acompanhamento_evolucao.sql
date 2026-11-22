@@ -298,22 +298,84 @@ CREATE TRIGGER mentoria_evolucao_guarda BEFORE INSERT OR UPDATE ON mentoria_evol
   FOR EACH ROW EXECUTE FUNCTION mentoria_evolucao_guarda();
 --> statement-breakpoint
 
--- ------------------------------------------------------------------ cópia do sistema antigo (ao subir a API)
--- Sem pessoa logada e sem abrir o legado por política: duas funções só para o npac_app. A API decifra o legado e
--- cifra cada campo com o AAD da tabela nova; o banco só grava. Lê em páginas pelo id (`depois`), para pular o que
--- ficou pendente por texto ilegível.
-CREATE FUNCTION mentoria_evolucao_legado_pendentes(limite int, depois uuid DEFAULT NULL)
-  RETURNS TABLE (inscricao_id uuid, dados text)
-  LANGUAGE sql STABLE SECURITY DEFINER
+-- ------------------------------------------------------------------ mídia conferida pelo dono
+-- Foto inicial → mídia EVOLUCAO_INICIAL da própria inscrição; foto atual → EVOLUCAO_ATUAL da própria inscrição;
+-- conquista → mídia CONQUISTA da própria conquista. Nulo vale. Confere só quando o apontamento muda, para todo mundo
+-- (inclusive o dono do banco). SECURITY DEFINER: a mídia é lida sem depender da RLS de quem grava.
+CREATE FUNCTION mentoria_midia_do_dono(p_midia uuid, p_dono_tipo text, p_dono uuid) RETURNS void
+  LANGUAGE plpgsql STABLE SECURITY DEFINER
   SET search_path = public, pg_temp
 AS $$
+BEGIN
+  IF p_midia IS NOT NULL AND NOT EXISTS (
+    SELECT 1 FROM mentoria_midia m WHERE m.id = p_midia AND m.dono_tipo = p_dono_tipo AND m.dono_id = p_dono) THEN
+    RAISE EXCEPTION 'Mídia de outro registro' USING ERRCODE = '22023';
+  END IF;
+END $$;
+--> statement-breakpoint
+CREATE FUNCTION mentoria_evolucao_midia_guarda() RETURNS trigger
+  LANGUAGE plpgsql SECURITY DEFINER
+  SET search_path = public, pg_temp
+AS $$
+BEGIN
+  IF TG_OP = 'INSERT' OR NEW.foto_inicial_midia_id IS DISTINCT FROM OLD.foto_inicial_midia_id THEN
+    PERFORM mentoria_midia_do_dono(NEW.foto_inicial_midia_id, 'EVOLUCAO_INICIAL', NEW.inscricao_id);
+  END IF;
+  IF TG_OP = 'INSERT' OR NEW.foto_atual_midia_id IS DISTINCT FROM OLD.foto_atual_midia_id THEN
+    PERFORM mentoria_midia_do_dono(NEW.foto_atual_midia_id, 'EVOLUCAO_ATUAL', NEW.inscricao_id);
+  END IF;
+  RETURN NEW;
+END $$;
+--> statement-breakpoint
+CREATE TRIGGER mentoria_evolucao_midia_guarda BEFORE INSERT OR UPDATE ON mentoria_evolucao
+  FOR EACH ROW EXECUTE FUNCTION mentoria_evolucao_midia_guarda();
+--> statement-breakpoint
+CREATE FUNCTION mentoria_conquista_midia_guarda() RETURNS trigger
+  LANGUAGE plpgsql SECURITY DEFINER
+  SET search_path = public, pg_temp
+AS $$
+BEGIN
+  IF TG_OP = 'INSERT' OR NEW.midia_id IS DISTINCT FROM OLD.midia_id THEN
+    PERFORM mentoria_midia_do_dono(NEW.midia_id, 'CONQUISTA', NEW.id);
+  END IF;
+  RETURN NEW;
+END $$;
+--> statement-breakpoint
+CREATE TRIGGER mentoria_conquista_midia_guarda BEFORE INSERT OR UPDATE ON mentoria_conquistas
+  FOR EACH ROW EXECUTE FUNCTION mentoria_conquista_midia_guarda();
+--> statement-breakpoint
+
+-- ------------------------------------------------------------------ cópia do sistema antigo (ao subir a API)
+-- Sem pessoa logada e sem abrir o legado por política: duas funções só para o npac_app, e só fora de sessão (sem
+-- `app.user_id` na transação, como a cópia ao subir a API): um pedido logado, de qualquer perfil, recebe 42501 e não
+-- lê o legado (que é só do Admin) nem grava em inscrição alheia. A API decifra o legado e cifra cada campo com o AAD
+-- da tabela nova; o banco só grava. Lê em páginas pelo id (`depois`), para pular o que ficou pendente por texto
+-- ilegível.
+CREATE FUNCTION mentoria_evolucao_fora_de_sessao() RETURNS void
+  LANGUAGE plpgsql STABLE
+  SET search_path = public, pg_temp
+AS $$
+BEGIN
+  IF nullif(current_setting('app.user_id', true), '') IS NOT NULL THEN
+    RAISE EXCEPTION 'Acesso negado' USING ERRCODE = '42501';
+  END IF;
+END $$;
+--> statement-breakpoint
+CREATE FUNCTION mentoria_evolucao_legado_pendentes(limite int, depois uuid DEFAULT NULL)
+  RETURNS TABLE (inscricao_id uuid, dados text)
+  LANGUAGE plpgsql STABLE SECURITY DEFINER
+  SET search_path = public, pg_temp
+AS $$
+BEGIN
+  PERFORM mentoria_evolucao_fora_de_sessao();
+  RETURN QUERY
   SELECT l.inscricao_id, l.dados
   FROM mentoria_legado l
   LEFT JOIN mentoria_evolucao e ON e.inscricao_id = l.inscricao_id
   WHERE e.legado_copiado_em IS NULL AND (depois IS NULL OR l.inscricao_id > depois)
   ORDER BY l.inscricao_id
-  LIMIT greatest(limite, 0)
-$$;
+  LIMIT greatest(limite, 0);
+END $$;
 --> statement-breakpoint
 -- Uma vez por inscrição (trava a inscrição; já copiada = false). Completa só campo vazio (nunca sobrescreve o que a
 -- equipe escreveu) e insere as conquistas `[{id, data, descricao}]`, já cifradas. Sem histórico (a cópia não tem
@@ -325,6 +387,7 @@ CREATE FUNCTION mentoria_evolucao_legado_gravar(inscricao uuid, p_reserva_antes 
   SET search_path = public, pg_temp
 AS $$
 BEGIN
+  PERFORM mentoria_evolucao_fora_de_sessao();
   PERFORM 1 FROM mentoria_inscricoes i WHERE i.id = inscricao FOR UPDATE;
   IF NOT FOUND THEN RETURN false; END IF;
   IF EXISTS (SELECT 1 FROM mentoria_evolucao e
@@ -360,12 +423,21 @@ ALTER FUNCTION mentoria_conquista_excluir(uuid) OWNER TO npac_owner;
 --> statement-breakpoint
 ALTER FUNCTION mentoria_evolucao_guarda() OWNER TO npac_owner;
 --> statement-breakpoint
+ALTER FUNCTION mentoria_evolucao_fora_de_sessao() OWNER TO npac_owner;
+--> statement-breakpoint
+ALTER FUNCTION mentoria_midia_do_dono(uuid, text, uuid) OWNER TO npac_owner;
+--> statement-breakpoint
+ALTER FUNCTION mentoria_evolucao_midia_guarda() OWNER TO npac_owner;
+--> statement-breakpoint
+ALTER FUNCTION mentoria_conquista_midia_guarda() OWNER TO npac_owner;
+--> statement-breakpoint
 ALTER FUNCTION mentoria_evolucao_legado_pendentes(int, uuid) OWNER TO npac_owner;
 --> statement-breakpoint
 ALTER FUNCTION mentoria_evolucao_legado_gravar(uuid, text, text, text, text, text, text, text, text, jsonb)
   OWNER TO npac_owner;
 --> statement-breakpoint
 REVOKE ALL ON FUNCTION mentoria_ve_evolucao(uuid), mentoria_conquista_excluir(uuid),
+  mentoria_evolucao_fora_de_sessao(), mentoria_midia_do_dono(uuid, text, uuid),
   mentoria_evolucao_legado_pendentes(int, uuid),
   mentoria_evolucao_legado_gravar(uuid, text, text, text, text, text, text, text, text, jsonb) FROM PUBLIC;
 --> statement-breakpoint

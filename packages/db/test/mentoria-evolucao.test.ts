@@ -288,6 +288,69 @@ describe('leitura e escrita', () => {
   });
 });
 
+describe('mídia conferida pelo dono', () => {
+  it('foto e mídia da conquista só apontam para a mídia do próprio dono', async () => {
+    const c = await conquista(outra);
+    const c2 = await conquista(outra);
+    const iniOutra = await midia('EVOLUCAO_INICIAL', outra);
+    const atuOutra = await midia('EVOLUCAO_ATUAL', outra);
+    const iniMinha = await midia('EVOLUCAO_INICIAL', minha);
+    const daConquista = await midia('CONQUISTA', c);
+    const daOutraConquista = await midia('CONQUISTA', c2);
+    await q(ACOMP, sql`insert into mentoria_evolucao (inscricao_id) values (${outra})`);
+    const foto = (coluna: 'foto_inicial_midia_id' | 'foto_atual_midia_id', id: string) =>
+      q(
+        ACOMP,
+        sql`update mentoria_evolucao set ${sql.identifier(coluna)} = ${id}::uuid where inscricao_id = ${outra}`,
+      );
+    const recusa = async (p: Promise<unknown>) => expect((await pgError(p)).code).toBe('22023');
+
+    await recusa(foto('foto_inicial_midia_id', iniMinha.id)); // de outra inscrição
+    await recusa(foto('foto_inicial_midia_id', atuOutra.id)); // outro tipo de dono
+    await recusa(foto('foto_atual_midia_id', iniOutra.id));
+    await recusa(foto('foto_atual_midia_id', randomUUID())); // não existe
+    await recusa(
+      q(
+        ACOMP,
+        sql`insert into mentoria_evolucao (inscricao_id, foto_inicial_midia_id) values (${minha}, ${iniOutra.id})`,
+      ),
+    );
+    await recusa(
+      q(
+        ACOMP,
+        sql`update mentoria_conquistas set midia_id = ${daOutraConquista.id} where id = ${c}`,
+      ),
+    );
+    await recusa(
+      q(ACOMP, sql`update mentoria_conquistas set midia_id = ${iniOutra.id} where id = ${c}`),
+    );
+    await recusa(
+      q(
+        ACOMP,
+        sql`insert into mentoria_conquistas (inscricao_id, descricao, midia_id, criado_por)
+          values (${outra}, 'x', ${daConquista.id}, ${ACOMP})`,
+      ),
+    );
+    // Nem o dono do banco aponta errado.
+    await recusa(
+      owner`update mentoria_conquistas set midia_id = ${daOutraConquista.id} where id = ${c}`,
+    );
+
+    await foto('foto_inicial_midia_id', iniOutra.id);
+    await foto('foto_atual_midia_id', atuOutra.id);
+    await q(
+      ACOMP,
+      sql`update mentoria_conquistas set midia_id = ${daConquista.id} where id = ${c}`,
+    );
+    const [e] = await owner<{ i: string; a: string }[]>`
+      select foto_inicial_midia_id as i, foto_atual_midia_id as a from mentoria_evolucao where inscricao_id = ${outra}`;
+    expect(e).toEqual({ i: iniOutra.id, a: atuOutra.id });
+    // Nulo continua valendo, e mexer em outro campo não reconfere a foto.
+    await q(ACOMP, sql`update mentoria_evolucao set renda = 'y' where inscricao_id = ${outra}`);
+    await foto('foto_atual_midia_id', null as unknown as string);
+  });
+});
+
 describe('exclusão e LGPD', () => {
   it('conquista_excluir enfileira a mídia e apaga; Operação recebe P0002', async () => {
     const c = await conquista(outra);
@@ -437,7 +500,7 @@ describe('cópia do sistema antigo', () => {
 
   it('as funções da cópia não abrem o legado para quem está logado', async () => {
     await owner`insert into mentoria_legado (inscricao_id, dados) values (${outra}, 'cifrado-outra')`;
-    // npac_app pode chamar (é a API); PUBLIC não.
+    // npac_app pode chamar (é a API ao subir); PUBLIC não.
     const [g] = await owner<{ pub: boolean; app: boolean }[]>`
       select has_function_privilege('public', 'mentoria_evolucao_legado_pendentes(int, uuid)', 'execute') as pub,
         has_function_privilege('npac_app', 'mentoria_evolucao_legado_pendentes(int, uuid)', 'execute') as app`;
@@ -446,6 +509,32 @@ describe('cópia do sistema antigo', () => {
       select has_function_privilege('public',
         'mentoria_evolucao_legado_gravar(uuid, text, text, text, text, text, text, text, text, jsonb)', 'execute') as pub`;
     expect(h!.pub).toBe(false);
+
+    // Dentro de uma sessão (withUser), qualquer perfil, inclusive a Diretoria, é recusado nas duas.
+    for (const u of [ADMIN, DUDA, ACOMP, OPERACAO, MANU, 'ev-nao-existe']) {
+      expect(
+        (await pgError(q(u, sql`select * from mentoria_evolucao_legado_pendentes(10)`))).code,
+      ).toBe('42501');
+      expect(
+        (
+          await pgError(
+            q(
+              u,
+              sql`select mentoria_evolucao_legado_gravar(${outra}::uuid, 'x', null, null, null, null, null, null,
+                null, '[]'::jsonb)`,
+            ),
+          )
+        ).code,
+      ).toBe('42501');
+    }
+    expect(
+      (await owner`select 1 from mentoria_evolucao where inscricao_id = ${outra}`).length,
+    ).toBe(0);
+    // Fora de sessão (a cópia ao subir a API), funcionam.
+    expect(
+      await semUsuario(sql`select * from mentoria_evolucao_legado_pendentes(10)`),
+    ).toHaveLength(1);
+    expect(await gravar(outra, [])).toEqual([{ ok: true }]);
   });
 
   it('pendentes anda por páginas: depois do último id lido', async () => {
