@@ -25,6 +25,8 @@ import { CiclosController } from './ciclos.controller.js';
 import { CiclosService } from './ciclos.service.js';
 import { CheckinsController } from './checkins.controller.js';
 import { CheckinsService } from './checkins.service.js';
+import { EvolucaoController } from './evolucao.controller.js';
+import { EvolucaoService } from './evolucao.service.js';
 import { MetasController } from './metas.controller.js';
 import { MetasService } from './metas.service.js';
 import { ContatosController } from './contatos.controller.js';
@@ -60,6 +62,7 @@ import { ReunioesService } from './reunioes.service.js';
     PmesController,
     CiclosController,
     MetasController,
+    EvolucaoController,
     CheckinsController,
     PmesCiclosController,
   ],
@@ -84,6 +87,7 @@ import { ReunioesService } from './reunioes.service.js';
     PmesService,
     CiclosService,
     MetasService,
+    EvolucaoService,
     CheckinsService,
     { provide: MENTORIA_CLOCK, useValue: systemClock },
     {

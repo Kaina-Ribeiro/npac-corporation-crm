@@ -400,6 +400,10 @@ export type FichaDTO = {
     checkin: boolean;
     /** Dar segunda chance no PME aberto (Admin, Acompanhamento). */
     segundaChance: boolean;
+    /** Aba Evolução aparece (Admin, Acompanhamento com a carteira, Operação; NPAC-57). */
+    verEvolucao: boolean;
+    /** Edita a aba Evolução: cartões, momentos, fotos e conquistas (Admin, Acompanhamento). */
+    evolucao: boolean;
     /** Trocar o responsável: quem edita a inscrição, menos quem tem "só a carteira" (Fase 3B, e). */
     responsavel: boolean;
     admin: boolean;

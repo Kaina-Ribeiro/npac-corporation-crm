@@ -25,7 +25,7 @@ Playwright.
 | 0 | Release v0.20 e branch | ✅ 21/11 (release aberta pelo cut-release; worktree `.claude/worktrees/npac-57-aba-evolucao`) |
 | 1 | Banco: tabelas, RLS, funções | ✅ 21/11 (`216cd36`) |
 | 2 | Shared: tipos, schemas, tópicos e mapeamento do legado | ✅ 21/11 (`FichaDTO.pode` foi para a Tarefa 3) |
-| 3 | API: leitura, salvar, conquistas e fotos | ⏳ |
+| 3 | API: leitura, salvar, conquistas e fotos | ✅ 21/11 |
 | 4 | API: cópia do legado ao subir | ⏳ |
 | 5 | Web: aba Evolução | ⏳ |
 | 6 | Web: PDF | ⏳ |
