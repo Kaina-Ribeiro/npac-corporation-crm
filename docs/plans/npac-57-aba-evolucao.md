@@ -29,7 +29,7 @@ Playwright.
 | 4 | API: cópia do legado ao subir | ✅ 21/11 |
 | 5 | Web: aba Evolução | ✅ 22/11 (iPhone em `e2e/mobile-layout-evolucao.spec.ts`: o projeto `iphone` só roda `mobile-layout*`) |
 | 6 | Web: PDF | ✅ 22/11 (rota no grupo `app/(impressao)/`, fora da casca do app; capturas: `CAPTURAS=<pasta> … e2e/capturas-evolucao.spec.ts`) |
-| 7 | Fechamento: capturas, CLAUDE.md, PR e ITODEV | ⏳ |
+| 7 | Fechamento: capturas, CLAUDE.md, PR e ITODEV | ✅ 22/11 (CLAUDE.md e suítes neste PR; deploy e roteiro dos 4 perfis no ITODEV depois do merge) |
 
 Sessões: uma sessão nova por fase. Fase A = tarefas 0–2; Fase B = 3–4; Fase C = 5–6; Fase D = 7.
 
