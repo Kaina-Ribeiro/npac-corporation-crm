@@ -661,7 +661,7 @@ export const mentoriaMidia = pgTable(
   (t) => [
     check(
       'mentoria_midia_dono',
-      sql`${t.donoTipo} in ('PESSOA_FOTO', 'FOTO_FAMILIA', 'ACAO_EVIDENCIA', 'TAREFA_COMPROVANTE')`,
+      sql`${t.donoTipo} in ('PESSOA_FOTO', 'FOTO_FAMILIA', 'ACAO_EVIDENCIA', 'TAREFA_COMPROVANTE', 'EVOLUCAO_INICIAL', 'EVOLUCAO_ATUAL', 'CONQUISTA')`,
     ),
     check('mentoria_midia_tipo', sql`${t.tipo} in ('FOTO', 'VIDEO', 'PDF', 'LINK_VIDEO')`),
     check('mentoria_midia_link', sql`(${t.tipo} = 'LINK_VIDEO') = (${t.urlVideo} is not null)`),
@@ -985,4 +985,68 @@ export const mentoriaSemaforoInicio = pgTable(
     desde: date('desde').notNull(),
   },
   (t) => [check('mentoria_semaforo_inicio_uma', sql`${t.id}`)],
+);
+
+/**
+ * Aba Evolução (NPAC-57, 0076): uma linha por inscrição, criada no primeiro salvamento ou pela cópia do sistema antigo.
+ * Os oito textos chegam cifrados (AAD `mentoria_evolucao/<coluna>/<inscrição>`). Leem Admin, Acompanhamento (com o
+ * recorte "só a carteira") e Operação; escrevem Admin e Acompanhamento (área EVOLUCAO). `atual_atualizado_*` é do
+ * banco (gatilho: muda com `atual_notas` ou a foto atual). `legado_copiado_em` marca que a cópia já rodou.
+ */
+export const mentoriaEvolucao = pgTable(
+  'mentoria_evolucao',
+  {
+    inscricaoId: uuid('inscricao_id')
+      .primaryKey()
+      .references(() => mentoriaInscricoes.id, { onDelete: 'cascade' }),
+    reservaAntes: text('reserva_antes'),
+    reservaHoje: text('reserva_hoje'),
+    renda: text('renda'),
+    saude: text('saude'),
+    investimentos: text('investimentos'),
+    areaAtuacao: text('area_atuacao'),
+    inicialNotas: text('inicial_notas'),
+    atualNotas: text('atual_notas'),
+    fotoInicialMidiaId: uuid('foto_inicial_midia_id'),
+    fotoAtualMidiaId: uuid('foto_atual_midia_id'),
+    atualAtualizadoEm: timestamp('atual_atualizado_em', { withTimezone: true }),
+    atualAtualizadoPor: text('atual_atualizado_por').references(() => user.id),
+    legadoCopiadoEm: timestamp('legado_copiado_em', { withTimezone: true }),
+    version: integer('version').notNull().default(1),
+    ...autoria,
+  },
+  (t) => [
+    check('mentoria_evolucao_reserva_antes', cifradoCabe(t.reservaAntes)),
+    check('mentoria_evolucao_reserva_hoje', cifradoCabe(t.reservaHoje)),
+    check('mentoria_evolucao_renda', cifradoCabe(t.renda)),
+    check('mentoria_evolucao_saude', cifradoCabe(t.saude)),
+    check('mentoria_evolucao_investimentos', cifradoCabe(t.investimentos)),
+    check('mentoria_evolucao_area', cifradoCabe(t.areaAtuacao)),
+    check('mentoria_evolucao_inicial', cifradoCabe(t.inicialNotas)),
+    check('mentoria_evolucao_atual', cifradoCabe(t.atualNotas)),
+  ],
+);
+
+/**
+ * Conquistas da aba Evolução (NPAC-57): data, descrição cifrada (AAD `mentoria_conquistas/descricao/<id>`) e a mídia
+ * (foto ou vídeo, dono CONQUISTA). Texto e data não mudam depois de criada; só a mídia é apontada. Exclusão só por
+ * `mentoria_conquista_excluir`. `criado_por` nulo = veio do sistema antigo.
+ */
+export const mentoriaConquistas = pgTable(
+  'mentoria_conquistas',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    inscricaoId: uuid('inscricao_id')
+      .notNull()
+      .references(() => mentoriaInscricoes.id, { onDelete: 'cascade' }),
+    data: date('data'),
+    descricao: text('descricao'),
+    midiaId: uuid('midia_id'),
+    criadoPor: text('criado_por').references(() => user.id),
+    criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('mentoria_conquistas_inscricao').on(t.inscricaoId, t.data),
+    check('mentoria_conquistas_descricao', cifradoCabe(t.descricao)),
+  ],
 );
