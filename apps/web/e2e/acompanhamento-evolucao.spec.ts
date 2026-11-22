@@ -231,3 +231,97 @@ test('duas abas editando campos diferentes do mesmo mentorado não perdem nenhum
   await a.close();
   await b.close();
 });
+
+// ---- PDF (Tarefa 6, spec §5.7) ----
+
+const A4_PX = (297 / 25.4) * 96;
+
+async function conquistaComFoto(page: Page, descricao: string) {
+  const r = await page.request.post(`/api/mentoria/inscricoes/${inscricao}/conquistas`, {
+    data: { data: '2026-03-12', descricao },
+  });
+  expect(r.status()).toBe(201);
+  const { id } = (await r.json()) as { id: string };
+  const m = await page.request.post(`/api/mentoria/conquista/${id}/midia`, {
+    multipart: { arquivo: { name: 'c.png', mimeType: 'image/png', buffer: PNG } },
+  });
+  expect(m.ok()).toBe(true);
+}
+
+test('PDF: título "Evolução - <nome>", sem a casca do app e a impressão chamada ao abrir', async ({
+  page,
+}) => {
+  await entrar(page, 'duda');
+  await conquistaComFoto(page, 'Escritura do terreno');
+  await page.addInitScript(() => {
+    const w = window as unknown as { __impresso: number };
+    w.__impresso = 0;
+    window.print = () => {
+      w.__impresso += 1;
+    };
+  });
+  const r = await page.goto(`${ficha()}/evolucao/pdf`);
+  expect(r?.status()).toBe(200);
+  await expect(page).toHaveTitle(/^Evolução - Mentorada Fictícia 57/);
+  await expect
+    .poll(() => page.evaluate(() => (window as unknown as { __impresso: number }).__impresso))
+    .toBeGreaterThan(0);
+  await expect(page.getByRole('navigation')).toHaveCount(0);
+  await expect(page.getByRole('button')).toHaveCount(0);
+  await expect(page.getByRole('link')).toHaveCount(0);
+  await expect(page.getByText(/^Gerado pelo CRM NPAC em \d{2}\/\d{2}\/\d{4}$/)).toHaveCount(2);
+  await expect(page.getByText('Escritura do terreno')).toBeVisible();
+  // Cartão vazio não sai: a reserva ficou sem texto.
+  await expect(page.getByText('Reserva financeira')).toHaveCount(0);
+  await page.screenshot({ path: 'test-results/evolucao-pdf-tela.png', fullPage: true });
+});
+
+test('PDF na impressão: nada passa da largura A4, nenhuma folha é cortada e o arquivo sai', async ({
+  page,
+}) => {
+  await entrar(page, 'duda');
+  await page.addInitScript(() => {
+    window.print = () => undefined;
+  });
+  await page.goto(`${ficha()}/evolucao/pdf`);
+  await page.emulateMedia({ media: 'print' });
+  const medidas = await page.evaluate(() => {
+    const folhas = [...document.querySelectorAll<HTMLElement>('.folha')];
+    const fora: string[] = [];
+    for (const f of folhas) {
+      const fr = f.getBoundingClientRect();
+      for (const el of f.querySelectorAll<HTMLElement>('.ec, .mc, .cq, .par, .cab, .rod')) {
+        const r = el.getBoundingClientRect();
+        if (r.left < fr.left - 1 || r.right > fr.right + 1 || r.bottom > fr.bottom + 1)
+          fora.push(el.className);
+      }
+    }
+    return { alturas: folhas.map((f) => f.getBoundingClientRect().height), fora };
+  });
+  expect(medidas.fora).toEqual([]);
+  expect(medidas.alturas).toHaveLength(2);
+  // Cada folha cabe numa página A4: nenhum cartão fica entre duas folhas.
+  for (const h of medidas.alturas) expect(h).toBeLessThanOrEqual(A4_PX + 1);
+  const pdf = await page.pdf({ preferCSSPageSize: true, printBackground: true });
+  expect(pdf.subarray(0, 5).toString()).toBe('%PDF-');
+  const paginas = pdf.toString('latin1').match(/\/Type\s*\/Page[^s]/g) ?? [];
+  expect(paginas).toHaveLength(2);
+});
+
+test('PDF: sem foto no momento inicial não há círculo de foto nem "Sem foto"', async ({ page }) => {
+  await entrar(page, 'duda');
+  await page.addInitScript(() => {
+    window.print = () => undefined;
+  });
+  await page.goto(`${ficha()}/evolucao/pdf`);
+  await expect(page.locator('.mc:not(.at) .ft')).toHaveCount(0);
+  await expect(page.getByText('Sem foto')).toHaveCount(0);
+  // O momento atual tem foto (enviada no teste do momento atual): ela sai.
+  await expect(page.getByRole('img', { name: 'Foto do casal no momento atual' })).toBeVisible();
+});
+
+test('manu (Especialista) recebe 404 na rota do PDF', async ({ page }) => {
+  await entrar(page, 'manu');
+  const r = await page.goto(`${ficha()}/evolucao/pdf`);
+  expect(r?.status()).toBe(404);
+});
