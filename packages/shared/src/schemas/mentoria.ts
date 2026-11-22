@@ -1,6 +1,11 @@
 import { z } from 'zod';
 import { ALCANCES } from '../alcance.js';
-import { AVISO_DATA, dataCalendarioValida } from '../mentoria/datas.js';
+import { AVISO_DATA, DATA_MAX, DATA_MIN, dataCalendarioValida } from '../mentoria/datas.js';
+import {
+  CAMPOS_EVOLUCAO,
+  LIMITE_CAMPO_EVOLUCAO,
+  LIMITE_DESCRICAO_CONQUISTA,
+} from '../mentoria/evolucao.js';
 import {
   INSCRICAO_STATUS,
   MENTORIAS,
@@ -568,3 +573,31 @@ export const checkinPatchSchema = z
   .object({ version, enviadoEm: dataHora.optional(), ...camposCheckin })
   .strict();
 export type CheckinPatch = z.output<typeof checkinPatchSchema>;
+
+// Aba Evolução (NPAC-57): lista fechada de campos, cada um até 2.000 caracteres; vazio apaga. Primeira gravação manda
+// `version: 0` (cria a linha); as seguintes, a da resposta anterior.
+const textoEvolucao = opc(
+  z.string().trim().max(LIMITE_CAMPO_EVOLUCAO, 'Escreva até 2.000 caracteres por campo'),
+);
+export const evolucaoPutSchema = z
+  .object({
+    version: versionPut,
+    ...(Object.fromEntries(CAMPOS_EVOLUCAO.map((c) => [c, textoEvolucao])) as Record<
+      (typeof CAMPOS_EVOLUCAO)[number],
+      typeof textoEvolucao
+    >),
+  })
+  .strict()
+  .refine((b) => CAMPOS_EVOLUCAO.some((c) => b[c] !== undefined), 'Envie ao menos um campo');
+export type EvolucaoPut = z.output<typeof evolucaoPutSchema>;
+
+// Conquista nova: data na faixa do módulo (como os outros campos de data) e descrição até 500 caracteres.
+export const conquistaCriarSchema = z
+  .object({
+    data: opc(dataIso.refine((v) => v >= DATA_MIN && v <= DATA_MAX, AVISO_DATA)),
+    descricao: opc(
+      z.string().trim().max(LIMITE_DESCRICAO_CONQUISTA, 'Escreva até 500 caracteres na descrição'),
+    ),
+  })
+  .strict();
+export type ConquistaCriar = z.output<typeof conquistaCriarSchema>;

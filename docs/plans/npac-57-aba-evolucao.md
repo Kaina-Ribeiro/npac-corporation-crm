@@ -23,8 +23,8 @@ Playwright.
 | # | Tarefa | Status |
 |---|---|---|
 | 0 | Release v0.20 e branch | ✅ 21/11 (release aberta pelo cut-release; worktree `.claude/worktrees/npac-57-aba-evolucao`) |
-| 1 | Banco: tabelas, RLS, funções | ⏳ |
-| 2 | Shared: tipos, schemas, tópicos e mapeamento do legado | ⏳ |
+| 1 | Banco: tabelas, RLS, funções | ✅ 21/11 (`216cd36`) |
+| 2 | Shared: tipos, schemas, tópicos e mapeamento do legado | ✅ 21/11 (`FichaDTO.pode` foi para a Tarefa 3) |
 | 3 | API: leitura, salvar, conquistas e fotos | ⏳ |
 | 4 | API: cópia do legado ao subir | ⏳ |
 | 5 | Web: aba Evolução | ⏳ |
@@ -32,6 +32,20 @@ Playwright.
 | 7 | Fechamento: capturas, CLAUDE.md, PR e ITODEV | ⏳ |
 
 Sessões: uma sessão nova por fase. Fase A = tarefas 0–2; Fase B = 3–4; Fase C = 5–6; Fase D = 7.
+
+**Ajustes da Fase A (21/11), para a Fase B saber:**
+- `FichaDTO.pode.verEvolucao`/`pode.evolucao` não entraram no `shared`: o campo obrigatório quebraria o typecheck da API
+  (`ficha.service.ts` monta o `pode`) e a Fase A não mexe na API. Entram na Tarefa 3, junto com o cálculo.
+- `atual_atualizado_em/por` é do banco: o gatilho `mentoria_evolucao_guarda` grava quando mudam `atual_notas` ou
+  `foto_atual_midia_id`, com quem está logado (o valor mandado pela API é ignorado). A API só lê.
+- Conquista: texto e data não mudam, mas `midia_id` tem UPDATE (política `mentoria_conquistas_midia`, área EVOLUCAO)
+  para o `apontarFoto` da Tarefa 3. `mentoria_excluir_midia` solta o apontamento das fotos e da conquista.
+- `mentoria_evolucao_legado_pendentes(limite, depois uuid default null)`: página pelo id, para a Tarefa 4 pular as
+  inscrições com legado ilegível (que ficam pendentes) sem ler as mesmas de novo. Conquistas do jsonb:
+  `[{id, data, descricao}]` (`id` gerado na API para o AAD). Data da conquista antiga só vira data se for um dia
+  inteiro (DD/MM/AAAA); "MM/AAAA" vira nula (`legadoParaEvolucao`).
+- Texto antigo maior que 2.000 caracteres é copiado inteiro (o banco aceita); a tela da Tarefa 5 precisa lidar com
+  isso ao editar.
 
 ## Restrições globais (valem para toda tarefa)
 
