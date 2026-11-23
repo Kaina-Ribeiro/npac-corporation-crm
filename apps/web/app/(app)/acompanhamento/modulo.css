@@ -489,7 +489,9 @@
     background: var(--linha-ouro);
   }
   .rail .dot {
+    /* Acima do traço do mês seguinte (::before do próximo .m, que começa no centro desta bolinha). */
     position: relative;
+    z-index: 1;
     width: 18px;
     height: 18px;
     border-radius: 50%;
@@ -2449,6 +2451,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 8px;
+    margin-bottom: 12px;
   }
   .hh .hf {
     margin-bottom: 0;
