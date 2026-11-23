@@ -26,6 +26,7 @@ import { EVENTO_ULTIMA_FICHA } from '@/lib/ultima-ficha';
 import { CampoPr, DINHEIRO } from './campo';
 import { Dialogo } from './dialogo';
 import { OnboardingFicha } from './etapa-card';
+import { Evolucao } from './evolucao';
 import { FichaMomento } from './ficha-momento';
 import { FichaPessoas } from './ficha-pessoas';
 import { HistoricoLista } from './historico-lista';
@@ -560,13 +561,17 @@ export function Ficha({
   lembrar: { cookie: string; valor: string; abaDaUrl: boolean };
 }) {
   const router = useRouter();
-  const [aba, setAba] = useState<Aba>(abaInicial);
+  // A aba Evolução some para quem não a vê (Especialista): cai na padrão (spec §5.1).
+  const abaPermitida = (a: Aba): Aba =>
+    a === 'evolucao' && !ficha.pode.verEvolucao ? 'jornada' : a;
+  const [aba, setAba] = useState<Aba>(() => abaPermitida(abaInicial));
+  const fileira = useRef<HTMLDivElement>(null);
   const lembrarAba = (a: Aba) =>
     atualizarAc('ficha', lembrar.cookie, FICHA_REGRAS, { aba: a === 'jornada' ? undefined : a });
   const pedida = useRef(lembrar.abaDaUrl ? abaInicial : null);
   // Voltar do navegador traz a página de antes: sem aba no link, vale a mais nova do cookie.
   useLatestPrefs(lembrar.cookie, lembrar.valor, (valor) => {
-    if (!pedida.current) setAba(abaValida(readPrefs(valor, FICHA_REGRAS).aba));
+    if (!pedida.current) setAba(abaPermitida(abaValida(readPrefs(valor, FICHA_REGRAS).aba)));
   });
   // A aba pedida no link vira a lembrada (depois de `useLatestPrefs`, que semeia a memória).
   useEffect(() => {
@@ -595,6 +600,16 @@ export function Ficha({
     for (const a of ficha.acoes) registrarVersion(`acao:${ficha.id}:${a.id}`, a.version);
   }, [ficha]);
 
+  // No celular a fileira de abas rola até a aberta (a Evolução ficaria escondida à direita).
+  useEffect(() => {
+    const f = fileira.current;
+    const on = f?.querySelector<HTMLElement>('[aria-selected="true"]');
+    if (!f || !on || f.scrollWidth <= f.clientWidth) return;
+    const fora =
+      on.offsetLeft < f.scrollLeft || on.offsetLeft + on.offsetWidth > f.scrollLeft + f.clientWidth;
+    if (fora) f.scrollLeft = on.offsetLeft - (f.clientWidth - on.offsetWidth) / 2;
+  }, [aba]);
+
   function trocarAba(a: Aba) {
     setAba(a);
     window.history.replaceState(null, '', `?aba=${a}`);
@@ -617,6 +632,7 @@ export function Ficha({
     ['inscricao', 'Inscrição', 'so-lado'],
     ['pessoas', ficha.tipo === 'CASAL' ? 'Pessoas' : 'Pessoa', ''],
     ['momento', 'Momento inicial', ''],
+    ...(ficha.pode.verEvolucao ? [['evolucao', 'Evolução', ''] as [Aba, string, string]] : []),
     ['historico', 'Histórico', ''],
   ];
 
@@ -698,7 +714,7 @@ export function Ficha({
 
       <div className="fc-corpo">
         <div className="fc-main">
-          <div className="tabs" role="tablist">
+          <div className="tabs" role="tablist" ref={fileira}>
             {abas.map(([id, rotulo, classe]) => (
               <button
                 key={id}
@@ -725,6 +741,16 @@ export function Ficha({
           )}
           {aba === 'pessoas' && <FichaPessoas ficha={ficha} atualizar={atualizar} />}
           {aba === 'momento' && <FichaMomento ficha={ficha} atualizar={atualizar} />}
+          {aba === 'evolucao' && (
+            <Evolucao
+              ficha={ficha}
+              vistaInicial={
+                readPrefs(lembrar.valor, FICHA_REGRAS).vista === 'linha' ? 'linha' : 'lado'
+              }
+              memoria={lembrar.cookie}
+              irMomento={() => trocarAba('momento')}
+            />
+          )}
           {aba === 'historico' && <HistoricoLista ficha={ficha} lembrar={lembrar} />}
         </div>
         <Inscricao

@@ -3,6 +3,7 @@ import {
   ErroDeEnvio,
   FieldQueue,
   type AcaoDTO,
+  type EvolucaoDTO,
   type FichaDTO,
   type MetaDTO,
   type PlanoModeloLinha,
@@ -18,7 +19,8 @@ import { useEffect, useState } from 'react';
  * status do 409. Uma fila por aba; nada vai para storage. Chaves do registro:
  * `inscricao:<id>`, `pessoa:<inscricaoId>:<pessoaId>`, `etapa:<inscricaoId>:<etapaId>`,
  * `endereco:<id>`, `momento:<id>`, `acao:<inscricaoId>:<acaoId>`, `reuniao:<inscricaoId>:<id>`,
- * `modelo:<id>`, `pme:<id>`, `tarefa:<inscricaoId>:<id>`, `meta:<inscricaoId>:<id>` e
+ * `modelo:<id>`, `pme:<id>`, `tarefa:<inscricaoId>:<id>`, `meta:<inscricaoId>:<id>`,
+ * `evolucao:<inscricaoId>` (aba Evolução, NPAC-57) e
  * `avaliacao:<pessoaId>:<tipo>` (esta sem version: uma coluna por envio, não colide).
  */
 type Alvo = { url: string; method: 'PATCH' | 'PUT'; corpo: (v: number) => object };
@@ -36,6 +38,8 @@ function alvo(key: string): Alvo {
       return { url: `${base}/inscricoes/${a}/endereco`, method: 'PUT', corpo: comVersion };
     case 'momento':
       return { url: `${base}/inscricoes/${a}/momento`, method: 'PUT', corpo: comVersion };
+    case 'evolucao':
+      return { url: `${base}/inscricoes/${a}/evolucao`, method: 'PUT', corpo: comVersion };
     case 'etapa':
       return { url: `${base}/onboarding/${b}`, method: 'PATCH', corpo: comVersion };
     case 'avaliacao':
@@ -126,6 +130,12 @@ async function recarregar(key: string) {
     if (!res.ok) throw new ErroDeEnvio('Não foi possível recarregar', res.status);
     const x = (await res.json()) as ReuniaoDTO;
     return { version: x.version, valores: x as unknown as Record<string, unknown> };
+  }
+  if (tipo === 'evolucao') {
+    const res = await fetch(`/api/mentoria/inscricoes/${a}/evolucao`, { cache: 'no-store' });
+    if (!res.ok) throw new ErroDeEnvio('Não foi possível recarregar', res.status);
+    const x = (await res.json()) as EvolucaoDTO;
+    return { version: x.version, valores: x.campos as Record<string, unknown> };
   }
   if (tipo === 'acao') {
     const res = await fetch(`/api/mentoria/acoes/${b}`, { cache: 'no-store' });

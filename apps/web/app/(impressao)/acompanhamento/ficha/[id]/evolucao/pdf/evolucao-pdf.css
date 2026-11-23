@@ -1,0 +1,438 @@
+/*
+ * PDF da evolução (NPAC-57, spec §5.7), do protótipo aprovado ("PDF baixado", A4, 2 folhas). Cores fixas: a folha é
+ * sempre clara, também com o tema escuro. Margem zero na página (o navegador não imprime título nem endereço) e o
+ * respiro de 12 mm dentro da folha; texto de 10 pt, rótulos de 8 pt, cinzas com 4,5:1 sobre o branco.
+ */
+@page {
+  size: A4;
+  margin: 0;
+}
+
+html:has(.ev-pdf),
+html:has(.ev-pdf) body {
+  background: #d9d8dc;
+  color-scheme: light;
+}
+
+.ev-pdf {
+  --tinta: #232326;
+  --cinza: #5c5c61;
+  --linha: #dddbe0;
+  --ouro: #a87818;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  padding: 24px 0;
+  min-height: 100vh;
+  background: #d9d8dc;
+  color: var(--tinta);
+  font-family:
+    var(--font-geist),
+    -apple-system,
+    system-ui,
+    sans-serif;
+  font-variant-numeric: tabular-nums;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+
+  h1,
+  h2,
+  p,
+  ul {
+    margin: 0;
+    padding: 0;
+  }
+  ul {
+    list-style: none;
+  }
+
+  .folha {
+    width: 210mm;
+    min-height: 297mm;
+    box-sizing: border-box;
+    padding: 12mm 12.5mm 9mm;
+    background: #fff;
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.12);
+    display: flex;
+    flex-direction: column;
+    gap: 5.2mm;
+    font-size: 10pt;
+    line-height: 1.39;
+    /* Texto grande que passa da folha: o respiro se repete na folha seguinte. */
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+  }
+
+  .cab {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 14px;
+    border-bottom: 2px solid var(--ouro);
+  }
+  .cab.mini {
+    padding-bottom: 10px;
+  }
+  .marca {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: none;
+    white-space: nowrap;
+  }
+  .mk {
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+    background: #111;
+    color: #e2bb66;
+    font-family: var(--font-anton), Impact, sans-serif;
+    font-size: 19px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .marca b {
+    display: block;
+    font-size: 10.5pt;
+  }
+  .marca div span {
+    font-size: 8.6pt;
+    color: var(--cinza);
+  }
+  .cab > div:last-child {
+    text-align: right;
+    min-width: 0;
+  }
+  .cab .eb {
+    font-size: 8pt;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--cinza);
+    display: block;
+  }
+  .cab h1 {
+    font-size: 19.5pt;
+    line-height: 1.2;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .cab.mini h1 {
+    font-size: 12pt;
+  }
+  .cab p {
+    font-size: 9pt;
+    color: var(--cinza);
+  }
+
+  .st {
+    font-size: 8pt;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--tinta);
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .st small {
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--cinza);
+    font-size: 8pt;
+  }
+
+  .evo {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .ec {
+    border: 1px solid var(--linha);
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    break-inside: avoid;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .ec.l {
+    grid-column: span 2;
+  }
+  .ec small {
+    font-size: 8pt;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--cinza);
+  }
+  .ec p {
+    white-space: pre-line;
+  }
+  .cmp {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 10px;
+    align-items: start;
+  }
+  .cmp .ld {
+    font-size: 8pt;
+    font-weight: 600;
+    color: var(--cinza);
+    display: block;
+  }
+  .cmp .ar {
+    width: 14px;
+    height: 14px;
+    margin-top: 14px;
+    fill: none;
+    stroke: var(--ouro);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .cmp .dp {
+    font-weight: 600;
+  }
+
+  .mom {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .mc {
+    border: 1px solid var(--linha);
+    border-radius: 12px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+    break-inside: avoid;
+    overflow-wrap: anywhere;
+  }
+  .mc.at {
+    border-color: #d8bf86;
+    background: linear-gradient(180deg, #fbf6ea, #fff 55%);
+  }
+  .mh {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .ft {
+    flex: none;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--linha);
+  }
+  .mc.at .ft {
+    border-color: var(--ouro);
+  }
+  .mh b {
+    font-size: 12pt;
+    display: block;
+    line-height: 1.25;
+  }
+  .mh span {
+    font-size: 8.6pt;
+    color: var(--cinza);
+    display: block;
+  }
+  .mh i {
+    font-style: normal;
+    margin-left: auto;
+    flex: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 1.5px solid #77777d;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8.5pt;
+    font-weight: 700;
+    color: var(--cinza);
+  }
+  .mc.at .mh i {
+    background: var(--ouro);
+    border-color: var(--ouro);
+    color: #fff;
+  }
+  .tp {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .tp li {
+    display: flex;
+    gap: 8px;
+  }
+  .tp li::before {
+    content: '';
+    flex: none;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #9a9aa0;
+    margin-top: 7px;
+  }
+  .mc.at .tp li::before {
+    background: var(--ouro);
+  }
+
+  .par-b {
+    break-inside: avoid;
+  }
+  .par {
+    display: grid;
+    gap: 14px;
+    border: 1px solid var(--linha);
+    border-radius: 12px;
+    padding: 14px;
+  }
+  .kp {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .pl {
+    background: #f4f3f6;
+    border-radius: 8px;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+  }
+  .pl small {
+    font-size: 8pt;
+    color: var(--cinza);
+  }
+  .pl b {
+    font-size: 11pt;
+  }
+  .pil {
+    display: grid;
+    grid-template-columns: 90px repeat(4, minmax(0, 1fr));
+    gap: 6px 12px;
+    align-items: baseline;
+  }
+  .pil .hd {
+    font-size: 8pt;
+    font-weight: 600;
+    color: var(--cinza);
+  }
+  .pil .nota b {
+    font-size: 11pt;
+  }
+
+  .gal {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .cq {
+    border: 1px solid var(--linha);
+    border-radius: 10px;
+    overflow: hidden;
+    break-inside: avoid;
+    min-width: 0;
+  }
+  .cq .im {
+    display: block;
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+  }
+  .cq .im.video {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f4f3f6;
+  }
+  .cq .im.video svg {
+    width: 28px;
+    height: 28px;
+    fill: var(--cinza);
+  }
+  .cq .t {
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    overflow-wrap: anywhere;
+  }
+  .cq time {
+    font-size: 8pt;
+    font-weight: 600;
+    color: var(--cinza);
+  }
+  .cq b {
+    font-size: 9.75pt;
+    line-height: 1.3;
+  }
+
+  .rod {
+    margin-top: auto;
+    display: flex;
+    justify-content: space-between;
+    font-size: 8pt;
+    color: var(--cinza);
+    border-top: 1px solid var(--linha);
+    padding-top: 8px;
+  }
+}
+
+@media print {
+  html:has(.ev-pdf),
+  html:has(.ev-pdf) body {
+    background: #fff;
+  }
+  .ev-pdf {
+    display: block;
+    padding: 0;
+    min-height: 0;
+    background: #fff;
+
+    .folha {
+      box-shadow: none;
+      /* Um pouco menos que a folha: a altura exata empurra o rodapé para uma folha em branco. */
+      min-height: 296mm;
+      break-after: page;
+    }
+    .folha:last-child {
+      break-after: auto;
+    }
+  }
+}
+
+/* Na tela de celular a folha encolhe para caber (a impressão continua em A4). */
+@media screen and (max-width: 840px) {
+  .ev-pdf {
+    padding: 0;
+    gap: 8px;
+    .folha {
+      width: 100%;
+      min-height: 0;
+      padding: 16px;
+    }
+    .evo,
+    .mom,
+    .kp {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .ec.l {
+      grid-column: auto;
+    }
+    .gal {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+}

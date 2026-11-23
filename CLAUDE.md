@@ -127,7 +127,28 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   Parte 3 (0069): check-ins `checkins.*`, semáforo (`mentoria_semaforo`, histórico gravado pelo `avisos.scheduler.ts`), rótulos
   `sh/mentoria/semaforo.ts`, tela `components/acompanhamento/semaforo.tsx`, colunas e filtro em `mentorados-lista.tsx`;
   Parte 4 (0070): itens novos da Fila (`mentoria_fila`, `fila.service.ts`, degraus em `sh/mentoria/fila.ts`), contato do degrau
-  (`reunioes.service.ts`), aba 7 `pmes-ciclos.controller.ts` + `web/app/(app)/acompanhamento/pmes`, `components/acompanhamento/pmes-ciclos.tsx`
+  (`reunioes.service.ts`), aba 7 `pmes-ciclos.controller.ts` + `web/app/(app)/acompanhamento/pmes`, `components/acompanhamento/pmes-ciclos.tsx`;
+  **Evolução** (NPAC-57, 22/11/2026, spec `docs/superpowers/specs/2026-11-21-aba-evolucao-design.md`, plano
+  `docs/plans/npac-57-aba-evolucao.md`, opção A): aba da ficha com cartões antes → hoje, Momento inicial (da aba Momento
+  inicial) × Momento atual com foto e tópicos, Pontos de partida dos 4 pilares, Conquistas e "Baixar PDF". Banco 0076:
+  `mentoria_evolucao` (uma por inscrição, textos cifrados com AAD, `version`; `atual_atualizado_em/por` gravados pelo gatilho
+  `mentoria_evolucao_guarda`) e `mentoria_conquistas` (sem UPDATE; sai só por `mentoria_conquista_excluir`), área `EVOLUCAO`
+  em `mentoria_edita`. Veem e baixam o PDF Admin, Acompanhamento ("só a carteira": a carteira) e Operação
+  (`mentoria_ve_evolucao`; leitura por `mentoria_ids_carteira()`, nunca `_visiveis`); editam Admin e Acompanhamento; a
+  **Especialista recebe 404** (aba, rotas e PDF). API `evolucao.controller.ts` + `evolucao.service.ts` (`GET` e
+  `PUT inscricoes/:id/evolucao` com `version`, `POST inscricoes/:id/conquistas`, `DELETE conquistas/:id`; histórico só com nomes
+  de campo); fotos pelo `midia.controller.ts` com os donos `evolucao-inicial`, `evolucao-atual` (dono = inscrição, uma foto
+  por momento) e `conquista`, conferidos no banco por `mentoria_midia_do_dono` (mídia de outro registro, 22023). **Cópia do
+  legado ao subir e depois de cada importação** (`evolucao-legado.ts`, 2A; `ImportacaoService.importar` chama
+  `copiarDepoisDeImportar` após o commit, sem lançar, pois em prod a importação veio depois do deploy): uma instância por vez (advisory lock), percorre `mentoria_legado` pelas funções
+  SECURITY DEFINER `mentoria_evolucao_legado_pendentes`/`_gravar`, que só rodam sem sessão (`app_user_id() IS NULL`; pedido
+  logado recebe 42501); nunca sobrescreve campo escrito nem duplica conquista, marca `legado_copiado_em`, **não grava
+  histórico** e loga só "evolução: N inscrições copiadas do legado" (ilegível: só o id, fica pendente). Excluir e anonimizar
+  a inscrição levam evolução, conquistas e mídias; nada da evolução no CSV. Tela `components/acompanhamento/evolucao*.tsx`
+  (fila de salvamento `evolucao:<id>`; grades por container query `.evs`, não pela largura da tela); regras puras
+  `sh/mentoria/evolucao.ts`. **PDF pela impressão do navegador**: rota `app/(impressao)/acompanhamento/ficha/[id]/evolucao/pdf/`
+  (grupo fora da casca do app, CSS `evolucao-pdf.css`, A4 com `@page { margin: 0 }`, `imprimir-ao-abrir.tsx`). e2e
+  `acompanhamento-evolucao.spec.ts`, `mobile-layout-evolucao.spec.ts`; capturas `CAPTURAS=<pasta> … e2e/capturas-evolucao.spec.ts`
   · banco `db/src/schema/mentoria.ts`
   - 0044–0045 (`mentoria_perfil()`, `mentoria_admin()`, `mentoria_ve()`, `mentoria_edita()`, funções `mentoria_*`) ·
     seed `db/src/seed-mentoria.ts` · lógica pura `sh/mentoria/*` (cliente: `@npac/shared/mentoria`, sem zod) ·
@@ -214,7 +235,7 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   cargo Acompanhamento sem o selo, `area_membros.alcance` = `TODOS` (padrão, igual a antes) ou `CARTEIRA` (só as
   inscrições em que a pessoa é `responsavel_id`). Não é cargo novo: o perfil continua `ACOMPANHAMENTO` (guardas `@Perfis`,
   responsável, transferência e catálogos iguais). Grava pela regra única como troca de cargo: `area_definir_membro(…,
-  alcance)` (5 argumentos; a de 4 mantém o alcance), por convite, aprovação, `PATCH admin/users` e `PUT mentoria/perfis`
+alcance)` (5 argumentos; a de 4 mantém o alcance), por convite, aprovação, `PATCH admin/users` e `PUT mentoria/perfis`
   (campo `alcance`; "Só a carteira" em outro cargo = 400); trocar o cargo ou dar o selo volta a `TODOS` (gatilho
   `area_membros_alcance` + CHECK). Recorte só no banco: `mentoria_so_carteira()`, `mentoria_ids_carteira()`,
   `mentoria_carteira_ok(inscricao)`; `mentoria_ve_todas()` exclui quem tem "só a carteira"; as políticas que liam

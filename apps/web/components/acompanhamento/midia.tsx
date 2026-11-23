@@ -1,11 +1,18 @@
 'use client';
 
-export type DonoUrl = 'pessoa-foto' | 'foto-familia' | 'acao-evidencia' | 'tarefa-comprovante';
+export type DonoUrl =
+  | 'pessoa-foto'
+  | 'foto-familia'
+  | 'acao-evidencia'
+  | 'tarefa-comprovante'
+  | 'evolucao-inicial'
+  | 'evolucao-atual'
+  | 'conquista';
 
 const LIMITE = 20 * 1024 * 1024;
 
 /**
- * Envia uma foto (até 20 MB; no comprovante de tarefa, também vídeo ou PDF). O servidor confere o
+ * Envia uma foto (até 20 MB; no comprovante de tarefa, também vídeo ou PDF; na conquista, foto ou vídeo). O servidor confere o
  * tipo pela assinatura e troca o anterior.
  */
 export async function enviarFoto(dono: DonoUrl, donoId: string, arquivo: File): Promise<void> {

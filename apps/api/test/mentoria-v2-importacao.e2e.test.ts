@@ -501,4 +501,33 @@ describe('importar', () => {
     const [q] = await owner<{ n: number }[]>`select count(*)::int as n from mentoria_inscricoes`;
     expect(q!.n).toBe(0);
   });
+
+  // NPAC-57: a cópia para a aba Evolução rodava só ao subir a API; quem importava depois via a aba vazia.
+  it('a aba Evolução já traz os textos antigos logo depois de importar', async () => {
+    const s = await duda();
+    await importar(s, {
+      gerenciador: {
+        ...GERENCIADOR,
+        linhaDoTempo: [
+          {
+            nome: 'Fictício Eduardo',
+            pilares: { fe: '7' },
+            evolucao: 'Quitaram as dívidas',
+            evoCards: { evolucaoRenda: 'Dobrou' },
+            conquistasGallery: [{ date: '10/03/2026', caption: 'Quitou o carro' }],
+          },
+        ],
+      },
+    });
+    const [i] = await owner<{ id: string }[]>`select id from mentoria_inscricoes`;
+    const r = await h.get(`/api/mentoria/inscricoes/${i!.id}/evolucao`, s);
+    expect(r.status, r.text).toBe(200);
+    const e = r.body as {
+      campos: { renda: string | null; atualNotas: string | null };
+      conquistas: { descricao: string }[];
+    };
+    expect(e.campos.renda).toBe('Dobrou');
+    expect(e.campos.atualNotas).toBe('Quitaram as dívidas');
+    expect(e.conquistas.map((c) => c.descricao)).toEqual(['Quitou o carro']);
+  });
 });

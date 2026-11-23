@@ -307,6 +307,9 @@ describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => 
     await owner`insert into mentoria_checkins (inscricao_id, enviado_em) values (${a}, now()), (${b}, now())`;
     await owner`insert into mentoria_semaforo_historico (inscricao_id, semana, cor)
       values (${a}, '2026-11-16', 'VERDE')`;
+    // Evolução e conquistas (0076): quem vê a evolução, nunca a Especialista.
+    await owner`insert into mentoria_evolucao (inscricao_id, renda) values (${a}, 'cifrado'), (${b}, 'cifrado')`;
+    await owner`insert into mentoria_conquistas (inscricao_id, descricao) values (${a}, 'cifrado'), (${b}, 'cifrado')`;
   });
 
   afterAll(async () => {
@@ -364,6 +367,20 @@ describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => 
       );
       expect(checkins).toHaveLength(2);
       for (const r of checkins) expect({ u, v: r.depois }).toEqual({ u, v: r.antes });
+
+      // Evolução e conquistas (0076): mesma resposta de mentoria_ve_evolucao, sem função por linha.
+      for (const tabela of ['mentoria_evolucao', 'mentoria_conquistas']) {
+        const linhas = await comoOwner(
+          u,
+          (s) => s<{ antes: boolean; depois: boolean }[]>`
+            select mentoria_ve_evolucao(x.inscricao_id) as antes,
+              coalesce(mentoria_ve_todas() or x.inscricao_id = any (mentoria_ids_carteira()), false) as depois
+            from ${s(tabela)} x`,
+        );
+        expect(linhas).toHaveLength(2);
+        for (const r of linhas)
+          expect({ u, tabela, v: r.depois }).toEqual({ u, tabela, v: r.antes });
+      }
     }
   });
 
@@ -382,6 +399,8 @@ describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => 
         mentoria_metas: 2,
         mentoria_checkins: 2,
         mentoria_semaforo_historico: 1,
+        mentoria_evolucao: 2,
+        mentoria_conquistas: 2,
       },
       [DUDA]: {
         mentoria_inscricoes: 2,
@@ -390,6 +409,8 @@ describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => 
         mentoria_metas: 2,
         mentoria_checkins: 2,
         mentoria_semaforo_historico: 1,
+        mentoria_evolucao: 2,
+        mentoria_conquistas: 2,
       },
       [ACOMP]: {
         mentoria_inscricoes: 2,
@@ -398,6 +419,8 @@ describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => 
         mentoria_metas: 2,
         mentoria_checkins: 2,
         mentoria_semaforo_historico: 1,
+        mentoria_evolucao: 2,
+        mentoria_conquistas: 2,
       },
       [OPERACAO]: {
         mentoria_inscricoes: 2,
@@ -406,6 +429,8 @@ describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => 
         mentoria_metas: 2,
         mentoria_checkins: 2,
         mentoria_semaforo_historico: 1,
+        mentoria_evolucao: 2,
+        mentoria_conquistas: 2,
       },
       [MANU]: {
         mentoria_inscricoes: 1,
@@ -414,6 +439,8 @@ describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => 
         mentoria_metas: 0,
         mentoria_checkins: 0,
         mentoria_semaforo_historico: 0,
+        mentoria_evolucao: 0,
+        mentoria_conquistas: 0,
       },
       [MANU2]: {
         mentoria_inscricoes: 0,
@@ -422,6 +449,8 @@ describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => 
         mentoria_metas: 0,
         mentoria_checkins: 0,
         mentoria_semaforo_historico: 0,
+        mentoria_evolucao: 0,
+        mentoria_conquistas: 0,
       },
       [LEO]: {
         mentoria_inscricoes: 0,
@@ -430,6 +459,8 @@ describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => 
         mentoria_metas: 0,
         mentoria_checkins: 0,
         mentoria_semaforo_historico: 0,
+        mentoria_evolucao: 0,
+        mentoria_conquistas: 0,
       },
       [CARLA]: {
         mentoria_inscricoes: 0,
@@ -438,6 +469,8 @@ describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => 
         mentoria_metas: 0,
         mentoria_checkins: 0,
         mentoria_semaforo_historico: 0,
+        mentoria_evolucao: 0,
+        mentoria_conquistas: 0,
       },
       [SDR2]: {
         mentoria_inscricoes: 0,
@@ -446,6 +479,8 @@ describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => 
         mentoria_metas: 0,
         mentoria_checkins: 0,
         mentoria_semaforo_historico: 0,
+        mentoria_evolucao: 0,
+        mentoria_conquistas: 0,
       },
       // Só a carteira: a inscrição `a`, com as duas reuniões, as duas tarefas, a meta e o check-in dela.
       [CART]: {
@@ -455,6 +490,8 @@ describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => 
         mentoria_metas: 1,
         mentoria_checkins: 1,
         mentoria_semaforo_historico: 1,
+        mentoria_evolucao: 1,
+        mentoria_conquistas: 1,
       },
     };
     for (const [u, tabelas] of Object.entries(esperado)) {

@@ -77,8 +77,10 @@ export const prefsDoFiltro = (f: FiltroPmes) => ({
 
 /** Ficha: a aba (vale para qualquer mentorado) e o filtro do histórico ("Tudo" é o padrão). */
 export const FICHA_REGRAS: PrefRules = {
-  aba: oneOf(['inscricao', 'pessoas', 'momento', 'historico']),
+  aba: oneOf(['inscricao', 'pessoas', 'momento', 'evolucao', 'historico']),
   historico: oneOf(['REUNIOES', 'CONTATOS', 'ANOTACOES', 'ALTERACOES']),
+  /** Aba Evolução: "Linha do tempo" (sem a chave, "Lado a lado"). */
+  vista: oneOf(['linha']),
 };
 
 /** Mentorados: mês da jornada (o select vai de 1 a 12), status, responsável, semáforo e "completar". */

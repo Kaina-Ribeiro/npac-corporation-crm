@@ -72,6 +72,10 @@ const TITULOS: Record<string, string> = {
   'pme.segunda_chance': 'Segunda chance no PME',
   'checkin.lancado': 'Check-in lançado',
   'checkin.editado': 'Alteração no check-in',
+  'evolucao.editada': 'Alteração na evolução',
+  'evolucao.foto': 'Foto da evolução',
+  'conquista.adicionada': 'Conquista adicionada',
+  'conquista.removida': 'Conquista removida',
 };
 
 const CAMPOS: Record<string, string> = {
@@ -173,6 +177,17 @@ const CAMPOS: Record<string, string> = {
   tarefa_extra: 'Atividade extra',
   tarefa_encerramento: 'Encerramento',
   tarefa_pme: 'Tarefa do PME',
+  // Aba Evolução (NPAC-57): só os nomes dos campos, nunca o texto.
+  reservaAntes: 'Reserva financeira (antes)',
+  reservaHoje: 'Reserva financeira (hoje)',
+  renda: 'Evolução de renda',
+  saude: 'Evolução na saúde',
+  investimentos: 'Investimentos feitos na mentoria',
+  areaAtuacao: 'Área de atuação',
+  inicialNotas: 'Outras anotações do momento inicial',
+  atualNotas: 'Momento atual',
+  fotoInicial: 'Foto do momento inicial',
+  fotoAtual: 'Foto do momento atual',
 };
 
 /** `pme_3` e `pme_3_nao_concluido` (envio do PME) viram "3º PME" e "3º PME não concluído". */
