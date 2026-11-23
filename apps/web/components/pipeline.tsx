@@ -33,6 +33,7 @@ import { parseHidden, PIPE_COOKIE_PATH, serializeHidden } from '@/lib/pipeline-c
 import { stageNeedsFields, type StageFieldsBody } from '@/lib/stage-fields';
 import { keep, recall } from '@/lib/screen-memory';
 import { rememberPrefs } from '@/lib/screen-prefs';
+import { useTypedSearch } from '@/lib/typed-search';
 import { readPreference, savePreference } from '@/lib/user-cookie';
 import { control, FormError, quietButton, StageOptions } from './crm-ui';
 import { LeadFilters, readFilters } from './lead-filters';
@@ -221,9 +222,17 @@ export function Pipeline({
       setBusy(false);
     }
   }
-  /** Texto da busca no Enter (telefone e e-mail só são achados inteiros). */
+  /**
+   * Busca ao digitar (NPAC-63), com os filtros já aplicados; Enter busca na hora. Telefone e e-mail
+   * só são achados inteiros.
+   */
+  const typed = useTypedSearch((term) => {
+    if (term !== (filters.search ?? ''))
+      void run({ ...shownFilters, ...(term ? { search: term } : {}) });
+  });
   function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    typed.cancel();
     const f = new FormData(e.currentTarget);
     const selected = readFilters(f);
     if (selected.period === 'RANGE' && !(selected.from && selected.to)) return;
@@ -315,6 +324,7 @@ export function Pipeline({
           name="q"
           type="search"
           enterKeyHint="search"
+          onChange={(e) => typed.onChange(e.target.value)}
           className={control}
           aria-label="Buscar no Pipeline"
           placeholder="Nome, WhatsApp, @instagram ou e-mail"

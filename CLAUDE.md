@@ -507,7 +507,7 @@ DEFINER`, a Especialista vê o número inteiro): só tarefas FEITA ÷ total do c
   Relatórios, Admin (aba), Chat (conversa). **Busca por texto e página só na memória da aba**
   (`lib/screen-memory.ts`, por pessoa): voltam ao trocar de tela, somem no F5; nunca em cookie, URL ou
   storage. Seleção em massa não é lembrada. **Filtros aplicam ao mudar** (sem "Aplicar filtros",
-  "Filtrar Hoje", "Buscar" do Pipeline, "Atualizar relatório"); o texto da busca segue no Enter; "Limpar
+  "Filtrar Hoje", "Buscar" do Pipeline, "Atualizar relatório"); a busca de Leads e do Pipeline roda ao digitar (NPAC-63, Igor 23/11/2026: 300 ms depois da última tecla, campo vazio na hora, Enter na hora; `useTypedSearch` em `lib/typed-search.ts`); "Limpar
   filtros" aparece com filtro ativo. `CsvExport` de `/leads` vem sob demanda (`next/dynamic`) pelo limite
   de 150 KB.
   **Acompanhamento** (PR 2): mapa à parte `AC_PREFS` em `lib/acompanhamento-prefs.ts` (cookies `npac_f_ac_*`,
