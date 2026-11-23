@@ -335,8 +335,9 @@ export function LeadDetail({
           </div>
         </details>
       )}
+      {/* O "Marcar venda" de Agendou Pagamento (NPAC-68) fica ao lado do formulário, no mesmo cartão. */}
       <div className="glass-card flex flex-wrap items-end gap-3 p-4">
-        <form onSubmit={move} className="contents">
+        <form onSubmit={move} className="flex min-w-0 flex-1 flex-wrap items-end gap-3">
           <Field label="Mover para">
             <select
               id="move-stage"
