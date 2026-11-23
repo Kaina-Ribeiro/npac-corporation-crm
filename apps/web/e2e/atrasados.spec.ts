@@ -78,16 +78,23 @@ test('tarefa vencida aparece em Atrasados e sai ao concluir', async ({ page }) =
   await expect(row.getByText('Tarefa', { exact: true })).toBeVisible();
   await expect(section(page, /^Tarefas/).getByText('Tarefa Esquecida')).toHaveCount(0);
 
+  // Concluir pede o que aconteceu e o próximo passo (NPAC-67; e2e completo em concluir-tarefa.spec.ts).
   const concluir = row.getByRole('button', { name: 'Concluir Tarefa Esquecida' });
+  const janela = page.getByRole('dialog', { name: 'Concluir tarefa' });
   await expect(async () => {
-    // Clica de novo só se o botão segue ali e livre (o clique antes da hidratação se perde). O
-    // clique que funcionou tira a linha da lista; repetir o clique esperava por um botão que não
-    // existe mais e estourava o tempo do teste no CI lento.
-    if (await concluir.isEnabled({ timeout: 500 }).catch(() => false)) {
-      await concluir.click({ timeout: 1000 });
-    }
-    await expect(row).toHaveCount(0, { timeout: 3000 });
+    // Clica de novo só se a janelinha não abriu (o clique antes da hidratação se perde).
+    if (!(await janela.isVisible())) await concluir.click({ timeout: 1000 });
+    await expect(janela).toBeVisible({ timeout: 1000 });
   }).toPass();
+  await janela.getByLabel('O que aconteceu', { exact: true }).fill('Respondeu e pediu para depois');
+  await janela.locator('label', { hasText: 'Novo follow-up' }).click();
+  await janela
+    .getByLabel('Nova data de contato (Brasília)', { exact: true })
+    .fill(
+      `${new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(Date.now() + 86_400_000)}T10:00`,
+    );
+  await janela.getByRole('button', { name: 'Concluir', exact: true }).click();
+  await expect(row).toHaveCount(0);
 });
 
 test('reunião e tarefa que vencem com a página aberta vão para Atrasados pelo navegador', async ({

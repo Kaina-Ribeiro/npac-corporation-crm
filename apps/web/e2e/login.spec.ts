@@ -40,7 +40,17 @@ test('SDR cadastra lead, escreve nota e conclui tarefa na ficha', async ({ page 
   await expect(page.getByText('Retornar após a reunião', { exact: true })).toBeVisible();
   await page.getByLabel('Nova tarefa', { exact: true }).fill('Enviar apresentação');
   await page.getByRole('button', { name: 'Adicionar tarefa' }).click();
+  // Concluir pede o que aconteceu e o próximo passo (NPAC-67).
   await page.getByRole('button', { name: 'Concluir Enviar apresentação', exact: true }).click();
+  const janela = page.getByRole('dialog', { name: 'Concluir tarefa' });
+  await janela.getByLabel('O que aconteceu', { exact: true }).fill('Apresentação enviada');
+  await janela.locator('label', { hasText: 'Novo follow-up' }).click();
+  await janela
+    .getByLabel('Nova data de contato (Brasília)', { exact: true })
+    .fill(
+      `${new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(Date.now() + 86_400_000)}T10:00`,
+    );
+  await janela.getByRole('button', { name: 'Concluir', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Reabrir Enviar apresentação' })).toBeVisible();
   await page.screenshot({ path: 'test-results/ficha.png', fullPage: true });
   await page.goto('/pipeline');
