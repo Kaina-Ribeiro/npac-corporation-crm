@@ -777,14 +777,14 @@ function NovaInscricao({
             onChange={(e) => setResp(e.target.value)}
             required
           >
-            <option value="">Escolha quem acompanha</option>
+            <option value="">Escolha</option>
             {responsaveis.map((r) => (
               <option key={r.id} value={r.id}>
                 {r.nome}
               </option>
             ))}
           </select>
-          <button type="submit" className="btn btn-primary" disabled={!resp}>
+          <button type="submit" className="btn btn-primary">
             Definir
           </button>
         </div>

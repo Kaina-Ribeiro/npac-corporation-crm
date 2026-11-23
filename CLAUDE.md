@@ -162,7 +162,34 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
 - **Próximo no Acompanhamento** (Gabriel, 19/11/2026): a gestão vem antes da área do mentorado, que fica por último.
   Bloco 1 (NPAC-56, venda vira mentorado + cargo Envios e aba Envios físicos): spec
   `docs/superpowers/specs/2026-11-19-acompanhamento-gestao-bloco-1-design.md`, plano `docs/plans/acompanhamento-gestao-bloco-1.md`.
-  A regra "CRM intocado" da Fase 1 acabou: o Acompanhamento mexe no comercial quando precisar.
+  O Acompanhamento mexe no comercial quando precisar (G1, 19/11/2026). Parte 1 pronta (22/11/2026); falta a Parte 2
+  (cargo Envios da Maria e aba Envios físicos).
+- **Venda vira mentorado** (NPAC-56, Parte 1, 0077; Eduarda 1A–5A): `insertSale` (`api/finance/finance.service.ts`) recebe
+  `InscricaoDaVenda` (`api/mentoria/venda/inscricao-da-venda.ts`, exportado pelo `MentoriaModule` com o `AvisosScheduler`)
+  e, se o produto tem `products.mentoria` (`RDV`/`2M`/`6M`; Admin > Produtos "Vira mentorado", "Não" = nulo; a 0077
+  preencheu os de mentoria pelo código ou nome, como a 0066), cria a inscrição **na transação da venda** (G9): decifra o
+  contato do lead (chave do comercial), cifra com a do Acompanhamento (AAD da pessoa) e chama
+  `mentoria_inscricao_da_venda` (SECURITY DEFINER; só quem criou a venda, venda não estornada e sem inscrição): ONBOARDING,
+  INDIVIDUAL, sem responsável, `data_compra` = dia de Brasília do `closed_at`, valor = total, forma Cartão/Pix/Boleto/Parcial,
+  pessoa 1 com nome, WhatsApp, e-mail e Instagram, as 6 etapas, histórico `inscricao.criada_pela_venda` e auditoria
+  `mentoria.inscricao_da_venda` (sem nome nem e-mail). Falhou: 409 "Não foi possível criar o mentorado no Acompanhamento.
+  Tente de novo; se continuar, avise a liderança." e a venda inteira volta (o log leva só o código do erro). Vale para
+  `POST /finance/deals` e o cadastro em Venda Fechada com a venda; o mesmo `requestKey` não duplica; vendas de antes da 0077
+  não viram (M2); pessoa já mentorada ganha outra inscrição (M3). Depois do commit, `avisos.rearm()` (venda e estorno).
+  `mentoria_inscricoes.deal_id` **sem FK** (a FK travaria o `truncate deals` dos testes; venda não se apaga), único quando
+  não nulo; só o banco grava (gatilho `mentoria_inscricoes_venda_guarda`, que também recusa mudar `status_financeiro` de
+  inscrição com venda: 400 "A situação do pagamento vem das parcelas do comercial"). **Estorno** (gatilho
+  `deals_mentoria_estorno`): a inscrição vira CANCELADO (pausa aberta fecha no dia), nada é apagado, histórico
+  `inscricao.cancelada_pelo_estorno` e auditoria. **Situação do pagamento** `mentoria_status_financeiro(inscricao)`: sem venda
+  a coluna; com venda QUITADO (nada em aberto), EM_ATRASO (parcela sem baixa vencida) ou EM_DIA; nulo para quem não vê. Ficha
+  e CSV leem por ela; a ficha traz `dealId`, mostra o selo "Veio da venda de DD/MM" e o Financeiro só leitura. **Fila**:
+  `NOVA_INSCRICAO` (`nova-inscricao:<inscrição>`, inscrição com venda sem responsável e não cancelada; só de quem é Admin,
+  `SO_ADMIN` em `sh/mentoria/fila.ts`; o painel tem o seletor "Responsável" e "Já tem inscrição: <mentoria>, <status>"
+  pelo índice cego, `jaTem` no DTO) e `VENDA_ESTORNADA` (`venda-estornada:<inscrição>`, CANCELADO com o histórico do estorno;
+  da responsável ou do perfil; sai com "Visto", `FILA_FEITO_MANUAL`). Push: nova à Admin (selo; sem nenhuma, a Diretoria) e
+  estornada à responsável, uma vez cada (`mentoria_avisos_candidatos`). O closer só executa a função: não lê o módulo (404
+  na ficha). Testes: `db/test/mentoria-venda.test.ts`, `fila-equivalencia` (bloco NPAC-56), `api/test/mentoria-v2-venda.e2e.test.ts`,
+  `e2e/acompanhamento-venda.spec.ts`. Venda de RDV/2M/6M nos testes do comercial agora também cria inscrição.
 
 **Navegação e carregamento** (desempenho, Fase 2, 12/11/2026): o menu usa o `prefetch` padrão do Next
 (rota dinâmica sem `loading.tsx` não pré-carrega a página); `semPrefetch` (Ficha e itens "Em breve")
