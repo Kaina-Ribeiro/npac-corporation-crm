@@ -331,6 +331,7 @@ export function LeadDetail({
               products={products}
               openMeeting={openMeeting}
               saleHint={saleHint}
+              meetingDone={Boolean(lastDone)}
             />
           </div>
         </details>
@@ -366,7 +367,8 @@ export function LeadDetail({
                 stages={catalog.stages}
                 current={lead.stageKey}
                 incomeUnknown={lead.tier === 'DESCOBRINDO'}
-                meetingDone={Boolean(lastDone)}
+                // SDR e liderança lançam ali a reunião que já aconteceu (NPAC-65); o closer, não.
+                meetingDone={Boolean(lastDone) || me.role !== 'CLOSER'}
                 saleHint={saleHint}
               />
             </select>
@@ -383,6 +385,7 @@ export function LeadDetail({
                 products={products}
                 role={me.role}
                 lead={lead}
+                meetingDone={Boolean(lastDone)}
               />
               <div className="flex gap-2">
                 {!moveBlocked && (

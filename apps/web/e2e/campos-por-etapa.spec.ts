@@ -50,10 +50,10 @@ test('cadastro em Agendado Direto pede a reunião e a cria junto com o lead', as
   // No-Show: só muda o rótulo.
   await stage.selectOption('NO_SHOW');
   await expect(page.getByLabel('Tentar remarcar em (Brasília)', { exact: true })).toBeVisible();
-  // Agendou Pagamento só depois da reunião realizada (NPAC-59): o cadastro não oferece.
-  const payment = stage.locator('option[value="AGENDOU_PAGAMENTO"]');
-  await expect(payment).toBeDisabled();
-  await expect(payment).toHaveText('Agendou Pagamento 💳 (depois da reunião realizada)');
+  // Agendou Pagamento no cadastro pede a reunião que já aconteceu (NPAC-65).
+  await stage.selectOption('AGENDOU_PAGAMENTO');
+  await expect(page.getByLabel('Quando aconteceu (Brasília)', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Closer da reunião', { exact: true })).toBeVisible();
   // Sem Perfil: motivo, com a caixa de texto só no Outro.
   await stage.selectOption('PERDIDO');
   await expect(page.getByLabel('Motivo', { exact: true })).toBeVisible();
@@ -102,8 +102,8 @@ test('ficha: Sem Perfil + Outro exige o texto; Agendou Pagamento do SDR pede pro
   const id = await newLead(page, 'Lead sem perfil ficha', '@sem.perfil.ficha');
   await page.goto(`/leads/${id}`);
   const move = page.getByLabel('Mover para', { exact: true });
-  // Sem reunião realizada, a ficha não oferece Agendou Pagamento (NPAC-59).
-  await expect(move.locator('option[value="AGENDOU_PAGAMENTO"]')).toBeDisabled();
+  // Sem reunião realizada, Agendou Pagamento pede a que já aconteceu (NPAC-65).
+  await expect(move.locator('option[value="AGENDOU_PAGAMENTO"]')).toBeEnabled();
   await doneMeeting(id);
   await page.reload();
   await move.selectOption('AGENDOU_PAGAMENTO');

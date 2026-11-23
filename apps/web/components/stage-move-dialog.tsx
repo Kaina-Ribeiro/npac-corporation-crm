@@ -10,7 +10,8 @@ import { StageFields, type OpenMeeting, type StageFieldsLead } from './stage-fie
 /**
  * Janelinha com os campos da etapa (NPAC-38, 1A): Pipeline (arrastar e seletor), célula da lista e
  * ação em massa (só Sem Perfil, sem `lead`). Cancelar não muda nada: o card fica na etapa antiga.
- * Busca sozinha o que falta: produtos (Agendou Pagamento) e a reunião aberta (Agendados).
+ * Busca sozinha o que falta: produtos (Agendou Pagamento), a reunião aberta (Agendados) e se o lead
+ * já tem reunião realizada (sem ela, Agendou Pagamento pede a que já aconteceu: NPAC-65).
  */
 export function StageMoveDialog({
   title,
@@ -41,6 +42,11 @@ export function StageMoveDialog({
   const [meeting, setMeeting] = useState<OpenMeeting | null | undefined>(
     kind === 'MEETING' && lead ? undefined : null,
   );
+  // Reunião realizada do lead (NPAC-65): o SDR e a liderança lançam a que já aconteceu.
+  const asksMeeting = kind === 'PAYMENT' && Boolean(lead) && role !== 'CLOSER';
+  const [meetingDone, setMeetingDone] = useState<boolean | undefined>(
+    asksMeeting ? undefined : false,
+  );
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -52,6 +58,12 @@ export function StageMoveDialog({
     if (kind === 'PAYMENT' && !products)
       clientApi<ProductDTO[]>('/api/finance/products')
         .then((p) => alive && setProducts(p))
+        .catch((e: Error) => alive && setError(e.message));
+    if (asksMeeting && lead)
+      clientApi<MeetingDTO[]>(`/api/meetings?leadId=${lead.id}`)
+        .then(
+          (ms) => alive && setMeetingDone(ms.some((m) => !m.canceledAt && m.outcome === 'DONE')),
+        )
         .catch((e: Error) => alive && setError(e.message));
     if (kind === 'MEETING' && lead)
       clientApi<MeetingDTO[]>(`/api/meetings?leadId=${lead.id}`)
@@ -76,7 +88,8 @@ export function StageMoveDialog({
     // Só ao abrir: a janelinha é montada para uma mudança.
   }, []);
 
-  const loading = (kind === 'PAYMENT' && !products) || meeting === undefined;
+  const loading =
+    (kind === 'PAYMENT' && !products) || meeting === undefined || meetingDone === undefined;
   // Closer não agenda reunião (a API recusa): só segue se o lead já tem uma marcada.
   const blocked = kind === 'MEETING' && !meeting && role === 'CLOSER';
 
@@ -137,6 +150,7 @@ export function StageMoveDialog({
               products={products ?? []}
               role={role}
               lead={lead}
+              meetingDone={meetingDone}
             />
           </div>
         )}

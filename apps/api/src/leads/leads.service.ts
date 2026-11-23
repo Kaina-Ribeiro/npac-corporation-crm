@@ -38,7 +38,7 @@ import { DB } from '../common/db/db.module.js';
 import { insertSale, requestHash } from '../finance/finance.service.js';
 import { AvisosScheduler } from '../mentoria/avisos.scheduler.js';
 import { InscricaoDaVenda } from '../mentoria/venda/inscricao-da-venda.js';
-import { scheduleMeeting } from '../meetings/meetings.service.js';
+import { logDoneMeeting, scheduleMeeting } from '../meetings/meetings.service.js';
 import { ReminderScheduler } from '../push/reminders.js';
 import { recordActivity } from './activity.js';
 import { recordSaleMark } from './sale-mark.js';
@@ -225,6 +225,9 @@ export class LeadsService {
         await recordActivity(tx, u, created, 'payment.pending', [], undefined, meta);
       // Mesma transação: se a reunião falhar, o lead não fica criado.
       if (stage.meeting) await scheduleMeeting(tx, u, { leadId: created, ...stage.meeting });
+      // Cadastro direto em Agendou Pagamento (NPAC-65): a reunião que já aconteceu entra realizada.
+      if (stage.meetingDone)
+        await logDoneMeeting(tx, u, { id: created, sdrId, stageId }, stage.meetingDone);
       const mentorado = sold
         ? await this.registerSold(tx, u, { id: created, sdrId, stageId }, sold, input, hash)
         : false;

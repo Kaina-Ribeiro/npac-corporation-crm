@@ -602,7 +602,7 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
   Pagamento, o SDR do lead (ou a liderança) usa o "Marcar venda" **ao lado do "Mover para"** (não mais no card Reuniões),
   já com o produto do pagamento. Mesmo `POST /leads/:id/sale-mark`: nessa etapa o closer da venda é o do pagamento
   (`leads.closer_id`; sem ele, o da reunião) e o produto tem de ser dele (400); a reunião realizada continua obrigatória
-  (409 `MEETING_DONE_REQUIRED`) até a resposta do NPAC-65. O `sale.pending` só leva a reunião como entidade quando o
+  (409 `MEETING_DONE_REQUIRED`; NPAC-65, 4.4B: nada automático). O `sale.pending` só leva a reunião como entidade quando o
   closer dela é o da venda (senão o aviso iria ao closer da reunião). Sem reunião realizada, a ficha mostra "Para marcar
   a venda, marque antes a reunião como realizada." e o link "A reunião já aconteceu" (leva ao card Reuniões com a caixa
   marcada). Nos selects de etapa da ficha do SDR, a Venda diz "(use “Marcar venda”)" ou "(depois da reunião realizada)"
@@ -617,9 +617,18 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
   **Agendou Pagamento só depois da reunião realizada** (NPAC-59, Igor 23/11/2026, "A": cadastrou → reunião → realizada →
   Agendou Pagamento → pagou): entrar na etapa pede reunião com resultado DONE e não cancelada (409
   `MEETING_DONE_REQUIRED`, "marque antes a reunião como realizada"; futura, sem resultado ou no-show não contam), para
-  todos os cargos. O cadastro não entra mais na etapa (lead novo não tem reunião); quem já está nela fica (3A). Na tela,
-  `StageOptionsAfterMeeting` (`components/stage-options-after-meeting.tsx`, fora do `crm-ui` pelo limite de JS de
-  `/leads`) desativa a opção no cadastro e na ficha sem reunião realizada; Pipeline e lista mostram o 409 na janelinha.
+  todos os cargos; quem já está nela fica (3A). `StageOptionsAfterMeeting` (`components/stage-options-after-meeting.tsx`,
+  fora do `crm-ui` pelo limite de JS de `/leads`) desativa a opção só para o closer na ficha sem reunião realizada.
+  **Reunião que já aconteceu na entrada da etapa** (NPAC-65, Igor 23/11/2026, 15:12: "para a pessoa agendar pagamento
+  ela já realizou uma reunião"): sem reunião realizada, o SDR e a liderança informam ali mesmo a reunião passada
+  ("A reunião já aconteceu": "Quando aconteceu (Brasília)", "Closer da reunião", "Origem do agendamento";
+  `PastMeetingFields` em `stage-fields.tsx`), ao mover (ficha, Pipeline e lista; a janelinha busca `/api/meetings` para
+  saber se já há realizada) **e no cadastro direto na etapa** (desfaz o "cadastro não entra" do NPAC-59). PATCH e POST
+  `/leads` levam `meetingDone` (passado, até um ano; fora da entrada em Agendou Pagamento, 400; closer 403) e a reunião
+  entra realizada na mesma transação (`logDoneMeeting` em `meetings.service.ts`, o mesmo do `POST /meetings/done`).
+  Quem já está na etapa sem reunião não muda sozinho (4.4B): o SDR lança a reunião pela ficha. A pergunta "Teve reunião
+  ou foi venda direta?" saiu: venda direta (só à vista, cartão ou boleto, direto para Venda Fechada) espera a resposta
+  do Igor sobre quem põe o valor.
   **Reunião já realizada lançada depois** (NPAC-62, Igor 23/11/2026, "1A, 2A"): na ficha, a caixa "A reunião já aconteceu"
   (só o SDR dono do lead e a liderança; closer 403, quem não vê o lead 404) manda `POST /meetings/done` (`createDone` em
   `api/meetings/meetings.service.ts`): horário passado, até um ano atrás (400 fora disso), entra DONE com `outcome_at` =
