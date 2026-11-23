@@ -616,6 +616,19 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
   marcada). Nos selects de etapa da ficha do SDR, a Venda diz "(use “Marcar venda”)" ou "(depois da reunião realizada)"
   (`saleHint` em `stage-options-after-meeting.tsx`). A 0080 faz o closer do lead ver a venda a registrar (Venda sem venda
   ativa) mesmo sem reunião com o lead (`closer_has_lead`/`closer_lead_ids`). e2e `e2e/venda-agendou-pagamento.spec.ts`.
+  **Venda direta do SDR** (NPAC-65, Igor 23/11/2026, "4.1A, 4.3A, 2.1A"; tela aprovada pelo Gabriel): o SDR vendeu sem
+  reunião, só à vista, no cartão ou no boleto (sem entrada, sem pagamento agendado). Na ficha, sem reunião realizada e
+  fora de Agendou Pagamento, o SDR do lead ou a liderança usa **"Venda direta"** ao lado do "Mover para"
+  (`components/direct-sale.tsx`: "Closer" + "Produto vendido", sem R$; dica da Venda "(use “Venda direta”)"); no cadastro
+  em Venda Fechada, "Teve reunião ou foi venda direta?" ("Teve reunião" já marcado; `sold-fields.tsx`, campo
+  `sf_sold_direct`). API: `POST /leads/:id/sale-mark` com `directSale: { closerId }` e `POST /leads` com
+  `directSale: { closerId }` + `soldProductId` (sem `meeting`; os dois juntos, 400). O lead vai para Venda como venda a
+  registrar com o closer escolhido (produto dele, ativo, que fecha venda: 400), que recebe `sale.pending`; o SDR ganha a
+  renda extra e nada soma em reunião realizada. Com reunião realizada ou em Agendou Pagamento, 409 `NOT_DIRECT_SALE`.
+  0081: `sdr_sale_marks.meeting_id` aceita nulo (= venda direta), o gatilho `leads_guard_owner_columns` deixa o SDR pôr
+  no lead o closer da venda direta e `lead_direct_sale(lead)` (SECURITY DEFINER, só sim/não) faz o registro da venda
+  recusar "Parcial" (400 "Venda direta é à vista, no cartão ou no boleto, sem entrada."; o cadastro com a venda agora não
+  oferece Parcial). No relatório do SDR (`sdrSales`), a venda direta conta para o closer do lead. e2e `e2e/venda-direta.spec.ts`.
 - **Campos por etapa** (NPAC-38, 05/11/2026, "1A 2A 3A"): Agendados pedem `meeting` (criada na
   mesma transação, origem pela etapa, `rearm()` depois do commit; reunião futura aberta dispensa),
   Agendou Pagamento pede data (`next_contact_at`) + produto + valor, Sem Perfil pede `lost_reason`

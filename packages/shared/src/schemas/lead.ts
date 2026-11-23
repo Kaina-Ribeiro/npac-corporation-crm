@@ -151,6 +151,8 @@ export const leadCreateSchema = z
     ...stageFieldsShape,
     // Venda Fechada (NPAC-39): a reunião já aconteceu (a API confere o horário).
     meeting: z.object(meetingShape).strict().optional(),
+    // Venda direta do SDR (NPAC-65, "4.3A"): Venda Fechada sem reunião; o closer escolhido põe o valor.
+    directSale: z.object({ closerId: meetingShape.closerId }).strict().optional(),
     sale: leadSaleSchema.optional(),
     // Sem a venda agora: o produto vendido (obrigatório; do closer da reunião). NPAC-41.
     soldProductId: z.uuid().optional(),

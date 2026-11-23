@@ -56,9 +56,8 @@ export const sdrSaleMarks = pgTable(
     productId: uuid('product_id')
       .notNull()
       .references(() => products.id),
-    meetingId: uuid('meeting_id')
-      .notNull()
-      .references(() => meetings.id),
+    // Nulo = venda direta do SDR, sem reunião (NPAC-65, Igor 23/11/2026, "4.1A, 2.1A").
+    meetingId: uuid('meeting_id').references(() => meetings.id),
     bonusCents: integer('bonus_cents').notNull(),
     markedBy: text('marked_by')
       .notNull()

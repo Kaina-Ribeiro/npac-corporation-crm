@@ -30,6 +30,7 @@ import { button, control, Field, FormError, quietButton } from './crm-ui';
 import { StageOptionsAfterMeeting } from './stage-options-after-meeting';
 import { LeadForm } from './lead-form';
 import { PaymentComplete } from './payment-complete';
+import { DirectSale } from './direct-sale';
 import { SaleMark } from './sale-mark';
 import { StageFields } from './stage-fields';
 import { FinancePanel } from './finance-panel';
@@ -202,13 +203,18 @@ export function LeadDetail({
   const paidMark = canMark && lead.stageKey === 'AGENDOU_PAGAMENTO';
   const canMarkSale = Boolean(lastDone) && canMark && !paidMark;
   const saleCloserId = lead.closer?.id ?? lastDone?.closerId;
+  // Venda direta (NPAC-65, "4.1A, 2.1A"): sem reunião realizada, o SDR do lead ou a liderança marca a
+  // venda escolhendo o closer. Em Agendou Pagamento sempre houve reunião (4.4B: lança-se a reunião).
+  const directSale = canMark && !lastDone && lead.stageKey !== 'AGENDOU_PAGAMENTO';
   // O SDR não registra a venda: nos selects de etapa a dica da Venda aponta para o "Marcar venda".
   const saleHint =
     me.role !== 'SDR'
       ? undefined
       : lastDone
         ? '(use “Marcar venda”)'
-        : '(depois da reunião realizada)';
+        : directSale
+          ? '(use “Venda direta”)'
+          : '(depois da reunião realizada)';
   function move(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     let body;
@@ -468,6 +474,17 @@ export function LeadDetail({
               </a>
             </p>
           ))}
+        {directSale && !moveTo && (
+          <DirectSale
+            key={lead.version}
+            leadId={lead.id}
+            version={lead.version}
+            team={catalog.team}
+            products={products}
+            defaultCloserId={lead.closer?.id ?? ''}
+            onDone={() => router.refresh()}
+          />
+        )}
       </div>
       <div className="grid items-start gap-5 lg:grid-cols-2 3xl:grid-cols-3 4xl:grid-cols-4">
         <section className="glass-card flex flex-col gap-4 p-5">

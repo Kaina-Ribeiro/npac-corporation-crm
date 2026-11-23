@@ -14,6 +14,7 @@ import {
   meetings,
   pipelineStages,
   products,
+  user,
   withUser,
   type Db,
   type Tx,
@@ -304,11 +305,13 @@ export class LeadMutationsService {
    * recebe o pedido de registro; o SDR ganha a renda extra do produto na data de hoje (1A).
    * Vindo de Agendou Pagamento (NPAC-68, Igor 23/11/2026: o cliente pagou), o closer da venda é o
    * do pagamento (`leads.closer_id`), e o produto, um dele; a reunião realizada continua obrigatória.
+   * Venda direta (NPAC-65, Igor 23/11/2026, "4.1A, 2.1A"): sem reunião realizada e fora de Agendou
+   * Pagamento, o SDR escolhe o closer (`directSale.closerId`); a marcação fica sem reunião.
    */
   async markSale(
     u: AuthUser,
     id: string,
-    input: { version: number; productId: string },
+    input: { version: number; productId: string; directSale?: { closerId: string } },
     meta: RequestMeta,
   ) {
     return withUser(this.db, u.id, async (tx) => {
@@ -332,28 +335,42 @@ export class LeadMutationsService {
         )
         .orderBy(desc(meetings.scheduledAt), desc(meetings.id))
         .limit(1);
-      if (!meeting)
+      const leavingPayment = current!.key === 'AGENDOU_PAGAMENTO';
+      if (input.directSale && (meeting || leavingPayment))
+        throw new ConflictException({
+          code: 'NOT_DIRECT_SALE',
+          message: meeting
+            ? 'Este lead teve reunião realizada: marque a venda pela reunião.'
+            : 'Agendou Pagamento vem depois da reunião: lance a reunião que já aconteceu.',
+        });
+      if (!meeting && !input.directSale)
         throw new ConflictException({
           code: 'MEETING_DONE_REQUIRED',
           message: 'Marque a venda depois de uma reunião realizada.',
         });
-      const leavingPayment = current!.key === 'AGENDOU_PAGAMENTO';
-      const closerId = (leavingPayment && old.closerId) || meeting.closerId;
+      const closerId = input.directSale
+        ? input.directSale.closerId
+        : (leavingPayment && old.closerId) || meeting!.closerId;
       const [product] = await tx
         .select({ id: products.id })
         .from(products)
+        .innerJoin(user, eq(user.id, products.closerId))
         .where(
           and(
             eq(products.id, input.productId),
             eq(products.closerId, closerId),
             eq(products.active, true),
+            eq(user.active, true),
+            eq(user.canClose, true),
           ),
         );
       if (!product)
         throw new BadRequestException(
-          closerId === meeting.closerId
-            ? 'Produto inválido para o closer da reunião'
-            : 'Produto inválido para o closer do pagamento',
+          input.directSale
+            ? 'Produto inválido para o closer escolhido'
+            : closerId === meeting!.closerId
+              ? 'Produto inválido para o closer da reunião'
+              : 'Produto inválido para o closer do pagamento',
         );
       const venda = await this.repo.stageId(tx, 'VENDA');
       if (!venda) throw new BadRequestException('Etapa de venda não configurada');
@@ -383,7 +400,7 @@ export class LeadMutationsService {
         leadId: id,
         sdrId: old.sdrId,
         productId: product.id,
-        meetingId: meeting.id,
+        meetingId: meeting?.id ?? null,
       });
       const fields = ['stageKey'];
       if (closerId !== old.closerId) fields.push('closerId');
@@ -396,7 +413,7 @@ export class LeadMutationsService {
         id,
         'sale.pending',
         [],
-        closerId === meeting.closerId ? meeting.id : undefined,
+        meeting && closerId === meeting.closerId ? meeting.id : undefined,
         meta,
       );
       return { id, version: old.version + 1 };

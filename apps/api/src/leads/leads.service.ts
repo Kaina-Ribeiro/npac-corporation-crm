@@ -42,7 +42,7 @@ import { InscricaoDaVenda } from '../mentoria/venda/inscricao-da-venda.js';
 import { logDoneMeeting, scheduleMeeting } from '../meetings/meetings.service.js';
 import { ReminderScheduler } from '../push/reminders.js';
 import { recordActivity } from './activity.js';
-import { recordSaleMark } from './sale-mark.js';
+import { directSalePartial, recordSaleMark } from './sale-mark.js';
 import { assertIncomeStage, EMPTY_STAGE_STATE, resolveStageFields } from './stage-fields.js';
 import {
   LeadsRepository,
@@ -321,15 +321,32 @@ export class LeadsService {
   }
 
   /**
-   * Venda Fechada no cadastro (NPAC-39): a reunião é obrigatória e já aconteceu; a venda, só para
-   * quem registra venda, e só nesta etapa. Devolve a reunião, ou nada fora da Venda.
+   * Venda Fechada no cadastro (NPAC-39): a reunião é obrigatória e já aconteceu, ou é venda direta do
+   * SDR (NPAC-65, "4.3A": sem reunião, só à vista, no cartão ou no boleto, com o closer escolhido); a
+   * venda, só para quem registra venda, e só nesta etapa. Devolve o closer da venda e o horário da
+   * reunião (sem ele, venda direta), ou nada fora da Venda.
    */
-  private checkSoldLead(u: AuthUser, input: LeadCreateInput) {
+  private checkSoldLead(
+    u: AuthUser,
+    input: LeadCreateInput,
+  ): { closerId: string; scheduledAt?: Date } | undefined {
     if (input.sale && !can(u, 'sale:register'))
       throw new ForbiddenException('Só o closer e a liderança registram a venda.');
     if (input.stageKey !== 'VENDA') {
-      if (input.sale) throw new BadRequestException('A venda só vai junto da etapa Venda');
+      if (input.sale || input.directSale)
+        throw new BadRequestException('A venda só vai junto da etapa Venda');
       return undefined;
+    }
+    if (input.directSale) {
+      if (input.meeting)
+        throw new BadRequestException('Escolha se teve reunião ou se foi venda direta.');
+      if (input.sale?.method === 'PARTIAL') throw directSalePartial();
+      if (!input.sale && !input.soldProductId)
+        throw new ConflictException({
+          code: 'PRODUCT_REQUIRED',
+          message: 'Para cadastrar em Venda Fechada, escolha o produto vendido.',
+        });
+      return { closerId: input.directSale.closerId };
     }
     if (!input.meeting)
       throw new ConflictException({
@@ -356,36 +373,47 @@ export class LeadsService {
     tx: Tx,
     u: AuthUser,
     lead: { id: string; sdrId: string; stageId: string },
-    meeting: { scheduledAt: Date; closerId: string },
+    meeting: { scheduledAt?: Date; closerId: string },
     input: LeadCreateInput,
     hash: string,
   ) {
-    const m = await scheduleMeeting(tx, u, {
-      leadId: lead.id,
-      closerId: meeting.closerId,
-      scheduledAt: meeting.scheduledAt,
-      origin: 'DIRETO',
-      outcome: 'DONE',
-      outcomeAt: meeting.scheduledAt,
-    });
-    await recordActivity(tx, u, lead.id, 'meeting.outcome', ['outcome'], m.id);
-    const mark = { leadId: lead.id, sdrId: lead.sdrId, meetingId: m.id };
+    // Venda direta (NPAC-65): sem reunião; nada soma no valor por reunião realizada.
+    const m = meeting.scheduledAt
+      ? await scheduleMeeting(tx, u, {
+          leadId: lead.id,
+          closerId: meeting.closerId,
+          scheduledAt: meeting.scheduledAt,
+          origin: 'DIRETO',
+          outcome: 'DONE',
+          outcomeAt: meeting.scheduledAt,
+        })
+      : null;
+    if (m) await recordActivity(tx, u, lead.id, 'meeting.outcome', ['outcome'], m.id);
+    const mark = { leadId: lead.id, sdrId: lead.sdrId, meetingId: m?.id ?? null };
     if (!input.sale) {
-      // Produto vendido: ativo e do closer da reunião (o closer da venda).
+      // Produto vendido: ativo e do closer da venda (o da reunião ou o escolhido na venda direta).
       const [p] = await tx
         .select({ id: products.id })
         .from(products)
+        .innerJoin(user, eq(user.id, products.closerId))
         .where(
           and(
             eq(products.id, input.soldProductId!),
             eq(products.closerId, meeting.closerId),
             eq(products.active, true),
+            eq(user.active, true),
+            eq(user.canClose, true),
           ),
         );
-      if (!p) throw new BadRequestException('Produto inválido para o closer da reunião');
+      if (!p)
+        throw new BadRequestException(
+          m
+            ? 'Produto inválido para o closer da reunião'
+            : 'Produto inválido para o closer escolhido',
+        );
       // Cadastrar em Venda Fechada é o SDR marcando a venda (NPAC-48): conta a renda extra.
       await recordSaleMark(tx, u, { ...mark, productId: p.id });
-      await recordActivity(tx, u, lead.id, 'sale.pending', [], m.id);
+      await recordActivity(tx, u, lead.id, 'sale.pending', [], m?.id);
       return false;
     }
     const { closedOn, ...sale } = input.sale;
