@@ -300,6 +300,8 @@ export class LeadMutationsService {
    * liderança) informa só o produto, sem valor. O lead vai para Venda como "venda a registrar"
    * (mesmo estado do cadastro em Venda Fechada), o closer da reunião passa a ser o do lead e
    * recebe o pedido de registro; o SDR ganha a renda extra do produto na data de hoje (1A).
+   * Vindo de Agendou Pagamento (NPAC-68, Igor 23/11/2026: o cliente pagou), o closer da venda é o
+   * do pagamento (`leads.closer_id`), e o produto, um dele; a reunião realizada continua obrigatória.
    */
   async markSale(
     u: AuthUser,
@@ -333,17 +335,24 @@ export class LeadMutationsService {
           code: 'MEETING_DONE_REQUIRED',
           message: 'Marque a venda depois de uma reunião realizada.',
         });
+      const leavingPayment = current!.key === 'AGENDOU_PAGAMENTO';
+      const closerId = (leavingPayment && old.closerId) || meeting.closerId;
       const [product] = await tx
         .select({ id: products.id })
         .from(products)
         .where(
           and(
             eq(products.id, input.productId),
-            eq(products.closerId, meeting.closerId),
+            eq(products.closerId, closerId),
             eq(products.active, true),
           ),
         );
-      if (!product) throw new BadRequestException('Produto inválido para o closer da reunião');
+      if (!product)
+        throw new BadRequestException(
+          closerId === meeting.closerId
+            ? 'Produto inválido para o closer da reunião'
+            : 'Produto inválido para o closer do pagamento',
+        );
       const venda = await this.repo.stageId(tx, 'VENDA');
       if (!venda) throw new BadRequestException('Etapa de venda não configurada');
       // Saindo de Agendou Pagamento, o combinado deixa de valer (como no registro da venda).
@@ -355,7 +364,7 @@ export class LeadMutationsService {
         old: old as StageState,
         role: u.role,
         closerId: old.closerId,
-        leavingPayment: current!.key === 'AGENDOU_PAGAMENTO',
+        leavingPayment,
       });
       await tx
         .update(leads)
@@ -363,7 +372,7 @@ export class LeadMutationsService {
           ...stage.values,
           stageId: venda,
           soldProductId: product.id,
-          closerId: meeting.closerId,
+          closerId,
           version: old.version + 1,
           updatedAt: new Date(),
         })
@@ -375,10 +384,19 @@ export class LeadMutationsService {
         meetingId: meeting.id,
       });
       const fields = ['stageKey'];
-      if (meeting.closerId !== old.closerId) fields.push('closerId');
+      if (closerId !== old.closerId) fields.push('closerId');
       await recordActivity(tx, u, id, 'lead.moved', fields, undefined, meta);
-      // Entidade = a reunião: o aviso vai ao closer dela (e ao SDR, quando quem marca é a liderança).
-      await recordActivity(tx, u, id, 'sale.pending', [], meeting.id, meta);
+      // O aviso vai ao closer do lead (e ao SDR, quando quem marca é a liderança). Entidade = a reunião
+      // só quando o closer dela é o da venda: o closer de outra reunião não registra esta venda.
+      await recordActivity(
+        tx,
+        u,
+        id,
+        'sale.pending',
+        [],
+        closerId === meeting.closerId ? meeting.id : undefined,
+        meta,
+      );
       return { id, version: old.version + 1 };
     });
   }

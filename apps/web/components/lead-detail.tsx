@@ -192,11 +192,22 @@ export function LeadDetail({
   const lastDone = meetings
     .filter((m) => !m.canceledAt && m.outcome === 'DONE')
     .sort((a, b) => b.scheduledAt.localeCompare(a.scheduledAt))[0];
-  const canMarkSale =
-    Boolean(lastDone) &&
+  const canMark =
     lead.stageKey !== 'VENDA' &&
     lead.tier !== 'DESCOBRINDO' &&
     (isLeader(me.role) || (me.role === 'SDR' && lead.sdr.id === me.id));
+  // NPAC-68 (Igor, 23/11/2026): o cliente pagou. Em Agendou Pagamento a venda é marcada ao lado do
+  // "Mover para", com o closer e o produto do pagamento; nas outras etapas, na reunião realizada.
+  const paidMark = canMark && lead.stageKey === 'AGENDOU_PAGAMENTO';
+  const canMarkSale = Boolean(lastDone) && canMark && !paidMark;
+  const saleCloserId = lead.closer?.id ?? lastDone?.closerId;
+  // O SDR não registra a venda: nos selects de etapa a dica da Venda aponta para o "Marcar venda".
+  const saleHint =
+    me.role !== 'SDR'
+      ? undefined
+      : lastDone
+        ? '(use “Marcar venda”)'
+        : '(depois da reunião realizada)';
   function move(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     let body;
@@ -241,7 +252,12 @@ export function LeadDetail({
                   Registrar venda
                 </a>
               ) : (
-                <span className="text-xs text-ink2">O closer da reunião registra a venda.</span>
+                // Vinda de Agendou Pagamento (NPAC-68), o closer da venda pode ser outro que o da reunião.
+                <span className="text-xs text-ink2">
+                  {lead.closer && lead.closer.id !== lastDone?.closerId
+                    ? `${lead.closer.name} registra a venda.`
+                    : 'O closer da reunião registra a venda.'}
+                </span>
               )}
             </div>
           )}
@@ -314,113 +330,141 @@ export function LeadDetail({
               me={me}
               products={products}
               openMeeting={openMeeting}
+              saleHint={saleHint}
             />
           </div>
         </details>
       )}
-      <form onSubmit={move} className="glass-card flex flex-wrap items-end gap-3 p-4">
-        <Field label="Mover para">
-          <select
-            id="move-stage"
-            className={control}
-            value={moveTo || lead.stageKey}
-            onChange={(e) => {
-              const target = e.target.value;
-              setError('');
-              // Sair da Venda a registrar cancela a venda feita do SDR: pede confirmação (NPAC-51).
-              if (!confirmLeaveSale(lead, target)) return;
-              if (target === lead.stageKey) setMoveTo('');
-              else if (stageNeedsFields(target)) setMoveTo(target);
-              else {
-                setMoveTo('');
-                void mutate(
-                  `/api/leads/${lead.id}`,
-                  'PATCH',
-                  { version: lead.version, stageKey: target },
-                  afterMove,
-                );
-              }
-            }}
-            disabled={busy}
-          >
-            <StageOptionsAfterMeeting
-              stages={catalog.stages}
-              current={lead.stageKey}
-              incomeUnknown={lead.tier === 'DESCOBRINDO'}
-              meetingDone={Boolean(lastDone)}
-            />
-          </select>
-        </Field>
-        {moveTo ? (
-          // Campos da etapa numa grade própria, abaixo do "Mover para" (larguras iguais no celular).
-          <div className="grid w-full items-end gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <StageFields
-              key={moveTo}
-              stage={moveTo}
-              changed
-              openMeeting={openMeeting}
-              team={catalog.team}
-              products={products}
-              role={me.role}
-              lead={lead}
-            />
-            <div className="flex gap-2">
-              {!moveBlocked && (
-                <button className={button} disabled={busy}>
-                  {busy ? 'Salvando…' : 'Mover'}
-                </button>
-              )}
-              <button
-                type="button"
-                className={quietButton}
-                onClick={() => {
+      {/* O "Marcar venda" de Agendou Pagamento (NPAC-68) fica ao lado do formulário, no mesmo cartão. */}
+      <div className="glass-card flex flex-wrap items-end gap-3 p-4">
+        <form onSubmit={move} className="flex min-w-0 flex-1 flex-wrap items-end gap-3">
+          <Field label="Mover para">
+            <select
+              id="move-stage"
+              className={control}
+              value={moveTo || lead.stageKey}
+              onChange={(e) => {
+                const target = e.target.value;
+                setError('');
+                // Sair da Venda a registrar cancela a venda feita do SDR: pede confirmação (NPAC-51).
+                if (!confirmLeaveSale(lead, target)) return;
+                if (target === lead.stageKey) setMoveTo('');
+                else if (stageNeedsFields(target)) setMoveTo(target);
+                else {
                   setMoveTo('');
-                  setError('');
-                }}
-              >
-                Cancelar
-              </button>
+                  void mutate(
+                    `/api/leads/${lead.id}`,
+                    'PATCH',
+                    { version: lead.version, stageKey: target },
+                    afterMove,
+                  );
+                }
+              }}
+              disabled={busy}
+            >
+              <StageOptionsAfterMeeting
+                stages={catalog.stages}
+                current={lead.stageKey}
+                incomeUnknown={lead.tier === 'DESCOBRINDO'}
+                meetingDone={Boolean(lastDone)}
+                saleHint={saleHint}
+              />
+            </select>
+          </Field>
+          {moveTo ? (
+            // Campos da etapa numa grade própria, abaixo do "Mover para" (larguras iguais no celular).
+            <div className="grid w-full items-end gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <StageFields
+                key={moveTo}
+                stage={moveTo}
+                changed
+                openMeeting={openMeeting}
+                team={catalog.team}
+                products={products}
+                role={me.role}
+                lead={lead}
+              />
+              <div className="flex gap-2">
+                {!moveBlocked && (
+                  <button className={button} disabled={busy}>
+                    {busy ? 'Salvando…' : 'Mover'}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className={quietButton}
+                  onClick={() => {
+                    setMoveTo('');
+                    setError('');
+                  }}
+                >
+                  Cancelar
+                </button>
+              </div>
             </div>
-          </div>
-        ) : (
-          <span className="pb-3 text-xs text-ink2">
-            {lead.stageKey === 'PERDIDO' ? (
-              <>
-                Motivo:{' '}
-                {lead.lostReason === 'OUTRO' && lead.lostReasonOther
-                  ? lead.lostReasonOther
-                  : lead.lostReason
-                    ? LOST_REASON_LABELS[lead.lostReason]
-                    : 'não informado'}
-              </>
-            ) : lead.paymentToComplete ? (
-              <>
-                {canComplete
-                  ? 'Falta informar o valor e a data.'
-                  : 'Aguardando o closer informar o valor e a data.'}
-              </>
-            ) : lead.stageKey === 'AGENDOU_PAGAMENTO' && me.role === 'SDR' ? (
-              // SDR não vê R$ nem a data combinada (item 13).
-              <>
-                {payment ? `Produto: ${payment.name}` : 'Produto não informado'}
-                {lead.closer && ` · Closer: ${lead.closer.name}`}
-                {lead.paymentEntryPaid && ' · já pagou uma entrada'}
-              </>
-            ) : (
-              <>
-                {entry ? 'Restante combinado para' : nextContactLabel(lead.stageKey)}:{' '}
-                {lead.nextContactAt ? date(lead.nextContactAt) : 'sem data'}
-                {payment &&
-                  lead.paymentAmountCents &&
-                  ` · ${payment.name} · ${money(lead.paymentAmountCents)}`}
-                {entry &&
-                  lead.paymentAmountCents &&
-                  ` · entrada de ${money(entry)} paga, faltam ${money(lead.paymentAmountCents - entry)}`}
-              </>
-            )}
-          </span>
-        )}
-      </form>
+          ) : (
+            <span className="pb-3 text-xs text-ink2">
+              {lead.stageKey === 'PERDIDO' ? (
+                <>
+                  Motivo:{' '}
+                  {lead.lostReason === 'OUTRO' && lead.lostReasonOther
+                    ? lead.lostReasonOther
+                    : lead.lostReason
+                      ? LOST_REASON_LABELS[lead.lostReason]
+                      : 'não informado'}
+                </>
+              ) : lead.paymentToComplete ? (
+                <>
+                  {canComplete
+                    ? 'Falta informar o valor e a data.'
+                    : 'Aguardando o closer informar o valor e a data.'}
+                </>
+              ) : lead.stageKey === 'AGENDOU_PAGAMENTO' && me.role === 'SDR' ? (
+                // SDR não vê R$ nem a data combinada (item 13).
+                <>
+                  {payment ? `Produto: ${payment.name}` : 'Produto não informado'}
+                  {lead.closer && ` · Closer: ${lead.closer.name}`}
+                  {lead.paymentEntryPaid && ' · já pagou uma entrada'}
+                </>
+              ) : (
+                <>
+                  {entry ? 'Restante combinado para' : nextContactLabel(lead.stageKey)}:{' '}
+                  {lead.nextContactAt ? date(lead.nextContactAt) : 'sem data'}
+                  {payment &&
+                    lead.paymentAmountCents &&
+                    ` · ${payment.name} · ${money(lead.paymentAmountCents)}`}
+                  {entry &&
+                    lead.paymentAmountCents &&
+                    ` · entrada de ${money(entry)} paga, faltam ${money(lead.paymentAmountCents - entry)}`}
+                </>
+              )}
+            </span>
+          )}
+        </form>
+        {paidMark &&
+          !moveTo &&
+          (lastDone && saleCloserId ? (
+            <SaleMark
+              key={lead.version}
+              leadId={lead.id}
+              version={lead.version}
+              closerName={person(saleCloserId)}
+              products={products.filter((p) => p.closerId === saleCloserId)}
+              defaultProductId={lead.paymentProductId ?? ''}
+              inline
+              onDone={() => router.refresh()}
+            />
+          ) : (
+            // Lead que entrou em Agendou Pagamento antes da NPAC-59, sem reunião realizada: o caminho
+            // é lançar a reunião que já aconteceu (NPAC-62) e depois marcar a venda.
+            <p className="flex flex-wrap items-center gap-2 pb-1 text-xs text-ink2">
+              Para marcar a venda, marque antes a reunião como realizada.
+              <a className={quietButton} href="#reunioes" onClick={() => setAlreadyDone(true)}>
+                A reunião já aconteceu
+              </a>
+            </p>
+          ))}
+      </div>
       <div className="grid items-start gap-5 lg:grid-cols-2 3xl:grid-cols-3 4xl:grid-cols-4">
         <section className="glass-card flex flex-col gap-4 p-5">
           <h2 className="text-lg font-bold">Notas</h2>
@@ -502,7 +546,7 @@ export function LeadDetail({
             </button>
           </form>
         </section>
-        <section className="glass-card flex flex-col gap-4 p-5">
+        <section id="reunioes" className="glass-card flex scroll-mt-24 flex-col gap-4 p-5">
           <h2 className="text-lg font-bold">Reuniões</h2>
           {meetings.length === 0 && <p className="text-sm text-ink2">Nenhuma reunião agendada.</p>}
           {meetings.map((m) => (

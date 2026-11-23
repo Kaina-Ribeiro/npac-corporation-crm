@@ -339,7 +339,7 @@ alcance)` (5 argumentos; a de 4 mantém o alcance), por convite, aprovação, `P
   troca perfil (`PUT /mentoria/perfis` recusa `null`) e, desde a Fase 3 do NPAC-54, convida, aprova e desativa; "Peça ao
   Admin" fica para conta antiga sem perfil (selo "falta perfil"). O selo aparece como "Admin do Acompanhamento".
 - Liderança vê tudo; SDR, os próprios leads; CLOSER, leads com reunião não cancelada dele ou
-  que o SDR lhe passou em Agendou Pagamento (`leads.closer_id`).
+  que o SDR lhe passou em Agendou Pagamento (`leads.closer_id`; também depois, como venda a registrar, NPAC-68).
   Invisível e inexistente → **404**, nunca 403. `canProspect`/`canClose` são dados; nada depende de nomes.
 - **SDR não recebe R$ de venda** (pedido do cliente, 04/11/2026): `/reports/search`, `/reports/summary`
   e `/team` cortam no servidor (`dropSales`), o lead vem sem valor e entrada (`toDTO`) e
@@ -598,6 +598,16 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
   pagamento, reunião realizada mais recente, data e autor do registro. Sem reunião realizada ou com marcação ativa,
   nada. Registro direto de outra etapa segue sem renda (2B). A 0079 deu a marcação às vendas assim registradas
   desde 17/11 (produto da venda, porque o do pagamento some ao registrar; `db/test/renda-extra-agendou-pagamento.test.ts`).
+  **SDR marca a venda de quem pagou** (NPAC-68, Igor 23/11/2026: "sem depender que somente o Closer faça"): em Agendou
+  Pagamento, o SDR do lead (ou a liderança) usa o "Marcar venda" **ao lado do "Mover para"** (não mais no card Reuniões),
+  já com o produto do pagamento. Mesmo `POST /leads/:id/sale-mark`: nessa etapa o closer da venda é o do pagamento
+  (`leads.closer_id`; sem ele, o da reunião) e o produto tem de ser dele (400); a reunião realizada continua obrigatória
+  (409 `MEETING_DONE_REQUIRED`) até a resposta do NPAC-65. O `sale.pending` só leva a reunião como entidade quando o
+  closer dela é o da venda (senão o aviso iria ao closer da reunião). Sem reunião realizada, a ficha mostra "Para marcar
+  a venda, marque antes a reunião como realizada." e o link "A reunião já aconteceu" (leva ao card Reuniões com a caixa
+  marcada). Nos selects de etapa da ficha do SDR, a Venda diz "(use “Marcar venda”)" ou "(depois da reunião realizada)"
+  (`saleHint` em `stage-options-after-meeting.tsx`). A 0080 faz o closer do lead ver a venda a registrar (Venda sem venda
+  ativa) mesmo sem reunião com o lead (`closer_has_lead`/`closer_lead_ids`). e2e `e2e/venda-agendou-pagamento.spec.ts`.
 - **Campos por etapa** (NPAC-38, 05/11/2026, "1A 2A 3A"): Agendados pedem `meeting` (criada na
   mesma transação, origem pela etapa, `rearm()` depois do commit; reunião futura aberta dispensa),
   Agendou Pagamento pede data (`next_contact_at`) + produto + valor, Sem Perfil pede `lost_reason`

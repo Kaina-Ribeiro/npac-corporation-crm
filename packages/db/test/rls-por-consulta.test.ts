@@ -110,7 +110,7 @@ describe('comercial: closer_lead_ids', () => {
     const st = await owner<{ id: string; key: string }[]>`
       insert into pipeline_stages (key, label, position) values
         ('SONDAGEM', 'Sondagem', 1), ('AGENDOU_PAGAMENTO', 'Agendou pagamento', 2),
-        ('EM_FOLLOW', 'Em follow', 3) returning id, key`;
+        ('EM_FOLLOW', 'Em follow', 3), ('VENDA', 'Venda', 4) returning id, key`;
     const stage = (k: string) => st.find((s) => s.key === k)!.id;
     const [prod] = await owner<{ id: string }[]>`
       insert into products (code, name, closer_id, price_cents)
@@ -159,6 +159,10 @@ describe('comercial: closer_lead_ids', () => {
     await reuniao(L.carlos, CARLOS);
     L.ron = await lead('Reunião do Ron', 'SONDAGEM', null);
     await reuniao(L.ron, RON);
+    // NPAC-68: venda a registrar (Venda sem venda ativa) do closer do lead, sem reunião dele.
+    L.aRegistrar = await lead('Venda a registrar', 'VENDA', SONIA);
+    L.registradaOutro = await lead('Venda registrada por outro', 'VENDA', SONIA);
+    await venda(L.registradaOutro, CARLOS);
   });
 
   afterAll(async () => {
@@ -169,9 +173,9 @@ describe('comercial: closer_lead_ids', () => {
   const visiveis = async (u: string) =>
     (await q<{ name: string }>(u, sql`select name from leads order by name`)).map((r) => r.name);
 
-  it('closer vê pelos quatro caminhos e só por eles', async () => {
+  it('closer vê pelos cinco caminhos e só por eles', async () => {
     expect(await visiveis(SONIA)).toEqual(
-      ['Agendou pagamento', 'Reunião aberta', 'Venda ativa'].sort(),
+      ['Agendou pagamento', 'Reunião aberta', 'Venda a registrar', 'Venda ativa'].sort(),
     );
     expect(await visiveis(CARLOS)).toEqual(['Reunião do Carlos']);
   });
