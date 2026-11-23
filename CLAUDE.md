@@ -163,8 +163,7 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
 - **Próximo no Acompanhamento** (Gabriel, 19/11/2026): a gestão vem antes da área do mentorado, que fica por último.
   Bloco 1 (NPAC-56, venda vira mentorado + cargo Envios e aba Envios físicos): spec
   `docs/superpowers/specs/2026-11-19-acompanhamento-gestao-bloco-1-design.md`, plano `docs/plans/acompanhamento-gestao-bloco-1.md`.
-  O Acompanhamento mexe no comercial quando precisar (G1, 19/11/2026). Parte 1 pronta (22/11/2026); falta a Parte 2
-  (cargo Envios da Maria e aba Envios físicos).
+  O Acompanhamento mexe no comercial quando precisar (G1, 19/11/2026). Partes 1 e 2 prontas (22 e 23/11/2026).
 - **Venda vira mentorado** (NPAC-56, Parte 1, 0077; Eduarda 1A–5A): `insertSale` (`api/finance/finance.service.ts`) recebe
   `InscricaoDaVenda` (`api/mentoria/venda/inscricao-da-venda.ts`, exportado pelo `MentoriaModule` com o `AvisosScheduler`)
   e, se o produto tem `products.mentoria` (`RDV`/`2M`/`6M`; Admin > Produtos "Vira mentorado", "Não" = nulo; a 0077
@@ -191,6 +190,26 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   estornada à responsável, uma vez cada (`mentoria_avisos_candidatos`). O closer só executa a função: não lê o módulo (404
   na ficha). Testes: `db/test/mentoria-venda.test.ts`, `fila-equivalencia` (bloco NPAC-56), `api/test/mentoria-v2-venda.e2e.test.ts`,
   `e2e/acompanhamento-venda.spec.ts`. Venda de RDV/2M/6M nos testes do comercial agora também cria inscrição.
+
+- **Envios físicos** (NPAC-56, Parte 2, 0078; protótipo aprovado pelo Gabriel, "A", capturas em
+  `docs/acompanhamento/prototipo/envios/`): cargo **Envios** (perfil `ENVIOS` no Acompanhamento, a Maria; `sh/cargos.ts`,
+  convidado pela Admin do módulo na aba Perfis) que **não lê nada pela RLS**: tudo por funções SECURITY DEFINER. Lista
+  `mentoria_envios_lista(agora)` (nomes, endereço cifrado, CEP, foto só do presente ainda não entregue; a gestão vê só o que
+  a RLS dela deixa) e escrita `mentoria_envio_marcar(inscricao, tipo, envio, version, status, data, rastreio, agora)`
+  (advisory lock, 409 por versão, mensagens em português, histórico só com nomes de campo); as duas e o push leem a interna
+  `mentoria_envios_calc`. Entram sozinhos: a **Caixa** quando a etapa está pendente e o formulário do endereço foi marcado
+  (ou a Boas-vindas dispensada), o **presente da família** quando a foto da família chega; Caixa e presente sem linha vêm com
+  `id` nulo e versão 0 e ganham a linha na primeira marcação (ler não grava). Kit e certificado: "Novo envio" da gestão
+  (`POST mentoria/envios`, Admin, Acompanhamento e Operação). A Caixa entregue conclui a etapa CAIXA (gatilho
+  `mentoria_caixa_segue_envio`, também pelo `PUT …/caixa` do Onboarding). Entregues somem depois de 30 dias. API
+  `envios.controller.ts` (`GET mentoria/envios`, `POST mentoria/envios/marcar`); fora disso, de `mentoria/eu` e da foto do
+  presente (`mentoria_envio_foto_ve` na política de `mentoria_midia`), o cargo recebe 404 (o `PADRAO` do `PerfilGuard` não
+  inclui ENVIOS). Web: `/acompanhamento/envios` (`components/acompanhamento/envios.tsx`, `soEnvios`/`veEnvios` em
+  `lib/acompanhamento.ts`): o cargo entra direto nela (`/acompanhamento` redireciona), menu, barra do celular e Mais só com
+  ela, sem a busca do topo; a gestão vê "Abrir ficha" e "Novo envio". Fila: `ENVIAR_CAIXA` vai ao perfil Envios quando há
+  alguém ativo nele (`mentoria_tem_envios()`), senão à Operação; push "Tem envio para hoje" às 8h (`envios:<dia>`, a quem é
+  Envios, havendo algo a enviar; `ENVIOS_PAYLOAD` no `avisos.scheduler.ts`). Testes: `db/test/mentoria-envios.test.ts`,
+  `fila-equivalencia` (bloco Parte 2), `api/test/mentoria-v2-envios.e2e.test.ts`, `e2e/acompanhamento-envios.spec.ts`.
 
 **Navegação e carregamento** (desempenho, Fase 2, 12/11/2026): o menu usa o `prefetch` padrão do Next
 (rota dinâmica sem `loading.tsx` não pré-carrega a página); `semPrefetch` (Ficha e itens "Em breve")
@@ -309,7 +328,7 @@ alcance)` (5 argumentos; a de 4 mantém o alcance), por convite, aprovação, `P
   do banco grava por ela) e `mentoria_definir_perfil` chama `area_definir_membro`. Coluna `mestre` só pelas funções.
 - **Cargo em um passo** (11/11/2026, spec `docs/superpowers/specs/2026-11-11-cargos-design.md`): no
   Admin, um campo "Cargo" agrupado (Comercial: SDR, Closer, Head, Diretoria; Acompanhamento:
-  Acompanhamento, Operação, Especialista, Mentor). Rótulos, dicas e o mapa cargo ↔ (`role`, perfil) em
+  Acompanhamento, Operação, Especialista, Mentor, Envios). Rótulos, dicas e o mapa cargo ↔ (`role`, perfil) em
   `sh/cargos.ts` (`@npac/shared/cargos`, sem zod); regra pura `resolverCargo`, aplicada por
   `api/admin/cargo.ts` em convite, aprovação de pedido e PATCH (mesmo schema `sh/schemas/account.ts`).
   Cargo do Acompanhamento grava `role = ACOMPANHAMENTO` + perfil (`mentoria_definir_perfil`) na mesma
@@ -382,7 +401,7 @@ alcance)` (5 argumentos; a de 4 mantém o alcance), por convite, aprovação, `P
 - MFA (TOTP) **opcional** (28/10/2026, vale com `MFA_LIGADO`): cada um liga/desliga em `/conta/mfa`; quem ligou confirma o
   login, código enviado sozinho aos 6 dígitos (`lib/otp-input.ts`). Primeiro acesso só obriga trocar a senha.
 - **Acompanhamento** (`ACOMPANHAMENTO`, 04/11/2026): só o módulo de mentorados; dentro dele, o **perfil**
-  (`mentoria_perfis`: Acompanhamento, Operação, Especialista, Mentor) e o selo de Admin decidem o resto, por RLS
+  (`mentoria_perfis`: Acompanhamento, Operação, Especialista, Mentor, Envios) e o selo de Admin decidem o resto, por RLS
   (`mentoria_ve`, `mentoria_edita`; Diretoria é Admin sem linha). Cargo sem perfil vê "Peça ao Admin" e Mentor vê
   "Seu painel chega em breve", sem menu (`components/acompanhamento/sem-acesso.tsx`, no layout de `(app)`); API 404 em tudo menos
   `mentoria/eu`. MFA obrigatório nas rotas `mentoria/*` para quem usa o módulo (Diretoria ou vínculo no Acompanhamento), 404 para os demais. O cargo não vê nada do comercial
@@ -813,7 +832,7 @@ VARREDURA_URL=http://localhost:3150 VARREDURA_SENHA=senha-do-e2e-123 VARREDURA_O
 - API e e2e compartilham usuários: teste que mexe em MFA/senha/papel restaura no fim; `truncate leads`
   inclui as tabelas com FK.
 - e2e loga com `email.split('@')[0]`. Seeds: diretor (DIRETOR), ana/ronaldo (HEAD), ale/murilo/igor
-  (SDR), sonia (CLOSER), carla (Acompanhamento sem perfil), duda (Acompanhamento + Admin), operacao, manu, leo, `@npac.com.br`; teste que troca papel: `update "user" set role = …` e restaurar.
+  (SDR), sonia (CLOSER), carla (Acompanhamento sem perfil), duda (Acompanhamento + Admin), operacao, manu, leo, maria (Envios), `@npac.com.br`; teste que troca papel: `update "user" set role = …` e restaurar.
 - Playwright: `filter({ visible: true })`/`exact: true` (layout mobile oculto duplica controles);
   `role=alert` também pega o anunciador de rotas do Next; nada de `networkidle` (SSE).
 - JS de `/leads` < 150 KB gzip (teste; hoje ~149,7, com a release em 150,0 antes da Fase 2 do desempenho). Sem libs pesadas no cliente, nem zod; prefira server components.
