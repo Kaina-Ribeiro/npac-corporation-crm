@@ -24,6 +24,7 @@ export function Sidebar({
   commercial = true,
   mentoriaAdmin = false,
   mentoriaCiclos = false,
+  soEnvios = false,
   adminBadge = 0,
   ultimaFicha = null,
   footer,
@@ -37,6 +38,8 @@ export function Sidebar({
   mentoriaAdmin?: boolean;
   /** Admin, Acompanhamento e Operação: a aba "PMEs e ciclos". */
   mentoriaCiclos?: boolean;
+  /** Cargo Envios: só a aba Envios físicos. */
+  soEnvios?: boolean;
   /** Pedidos de acesso esperando a liderança. */
   adminBadge?: number;
   /** Nome da última ficha aberta: o item "Ficha do mentorado" diz para onde leva. */
@@ -68,7 +71,7 @@ export function Sidebar({
       <div className="side-scroll -mx-2.5 -my-1 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-2.5 py-1">
         <nav aria-label="Navegação lateral" className="side-nav flex flex-none flex-col gap-px">
           {commercial && <InboxLink />}
-          {navItems({ head, mentoria, commercial, mentoriaAdmin, mentoriaCiclos }).map(
+          {navItems({ head, mentoria, commercial, mentoriaAdmin, mentoriaCiclos, soEnvios }).map(
             (item, i, all) =>
               item.children ? (
                 <NavGroup

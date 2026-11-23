@@ -9,11 +9,13 @@ const ABAS = [
   { href: '/acompanhamento/reunioes', label: 'Reuniões', icone: ICONES.reunioes },
   { href: '/acompanhamento/mais', label: 'Mais', icone: 'M5 12h.01M12 12h.01M19 12h.01' },
 ];
+const ENVIOS = { href: '/acompanhamento/envios', label: 'Envios', icone: ICONES.envios };
 
 /** Qual aba do rodapé fica marcada: a ficha é da lista; o resto do módulo vive no Mais. */
 function abaAtual(path: string): string | null {
   if (!path.startsWith('/acompanhamento')) return null;
   if (path.startsWith('/acompanhamento/fila')) return 'Fila';
+  if (path.startsWith('/acompanhamento/envios')) return 'Envios';
   if (path.startsWith('/acompanhamento/reunioes')) return 'Reuniões';
   if (path.startsWith('/acompanhamento/mentorados') || path.startsWith('/acompanhamento/ficha'))
     return 'Mentorados';
@@ -30,12 +32,19 @@ const SEM_RODAPE = ['/acompanhamento/mentorados/nova', '/acompanhamento/reunioes
  * Celular (abaixo de 768 px): Fila · Mentorados · + · Reuniões · Mais. O "+" abre a Nova inscrição
  * e não aparece para quem não cadastra; os formulários de `SEM_RODAPE` escondem o rodapé.
  */
-export function AbasMobile({ podeCriar = false }: { podeCriar?: boolean }) {
+export function AbasMobile({
+  podeCriar = false,
+  soEnvios = false,
+}: {
+  podeCriar?: boolean;
+  /** Cargo Envios (NPAC-56): Envios · Mais. */
+  soEnvios?: boolean;
+}) {
   const path = usePathname();
   if (SEM_RODAPE.includes(path)) return null;
   const aba = abaAtual(path);
 
-  const item = (a: (typeof ABAS)[number]) => {
+  const item = (a: { href: string; label: string; icone: string }) => {
     const on = a.label === aba;
     return (
       <Link
@@ -53,6 +62,17 @@ export function AbasMobile({ podeCriar = false }: { podeCriar?: boolean }) {
       </Link>
     );
   };
+
+  if (soEnvios)
+    return (
+      <nav
+        aria-label="Abas do acompanhamento"
+        className="barra-celular glass fixed right-3.5 bottom-[max(16px,env(safe-area-inset-bottom))] left-3.5 z-20 grid h-[68px] grid-cols-2 rounded-[34px] p-1.5 md:hidden"
+      >
+        {item(ENVIOS)}
+        {item(ABAS[3]!)}
+      </nav>
+    );
 
   return (
     <nav

@@ -15,7 +15,7 @@ const item = (href: string, label: string, d: string, section?: NavItem['section
   ...(section === 'Em breve' ? { semPrefetch: true } : {}),
 });
 
-/** As 11 abas do módulo (D8). */
+/** As 11 abas do módulo (D8). Envios físicos saiu do "Em breve" no NPAC-56. */
 const ACOMPANHAMENTO_ABAS: NavItem[] = [
   item('fila', 'Fila do dia', 'M4 6h16M4 12h16M4 18h10'),
   item(
@@ -28,16 +28,11 @@ const ACOMPANHAMENTO_ABAS: NavItem[] = [
   item('plano', 'Plano dos 12 meses', 'M4 6h16v15H4zM4 10h16M9 3v4M15 3v4'),
   item('reunioes', 'Reuniões', 'M3 7h13v10H3zM16 11l5-3v8l-5-3'),
   item('pmes', 'PMEs e ciclos', 'M12 3a9 9 0 1 0 9 9M12 7v5l3 2'),
+  item('envios', 'Envios físicos', 'M3 8l9-5 9 5v8l-9 5-9-5zM3 8l9 5 9-5M12 13v8'),
   item(
     'em-breve/linha-do-tempo',
     'Linha do tempo e conquistas',
     'M4 6h16M4 12h10M4 18h7',
-    'Em breve',
-  ),
-  item(
-    'em-breve/envios',
-    'Envios físicos',
-    'M3 8l9-5 9 5v8l-9 5-9-5zM3 8l9 5 9-5M12 13v8',
     'Em breve',
   ),
   item('em-breve/eventos', 'Eventos e agenda', 'M5 4h14v17H5zM5 9h14', 'Em breve'),
@@ -50,6 +45,9 @@ const ACOMPANHAMENTO_ABAS: NavItem[] = [
 ];
 
 const PMES_HREF = '/acompanhamento/pmes';
+const ENVIOS_HREF = '/acompanhamento/envios';
+/** Abas da gestão (Admin, Acompanhamento e Operação): a 7 (E22) e Envios físicos (NPAC-56). */
+const SO_GESTAO = [PMES_HREF, ENVIOS_HREF];
 
 const CONFIGURACOES = item(
   'configuracoes',
@@ -64,8 +62,10 @@ type Opcoes = {
   commercial?: boolean;
   /** Selo de Admin no módulo: mostra Configurações. */
   mentoriaAdmin?: boolean;
-  /** Admin, Acompanhamento e Operação: a aba 7 "PMEs e ciclos" (E22). */
+  /** Admin, Acompanhamento e Operação: a aba 7 "PMEs e ciclos" (E22) e Envios físicos. */
   mentoriaCiclos?: boolean;
+  /** Cargo Envios (NPAC-56): só a aba Envios físicos. */
+  soEnvios?: boolean;
 };
 
 /**
@@ -74,10 +74,12 @@ type Opcoes = {
  * sub-itens.
  */
 export function navItems(opts: Opcoes): NavItem[] {
-  const abas = [
-    ...ACOMPANHAMENTO_ABAS.filter((a) => opts.mentoriaCiclos || a.href !== PMES_HREF),
-    ...(opts.mentoriaAdmin ? [CONFIGURACOES] : []),
-  ];
+  const abas = opts.soEnvios
+    ? ACOMPANHAMENTO_ABAS.filter((a) => a.href === ENVIOS_HREF)
+    : [
+        ...ACOMPANHAMENTO_ABAS.filter((a) => opts.mentoriaCiclos || !SO_GESTAO.includes(a.href)),
+        ...(opts.mentoriaAdmin ? [CONFIGURACOES] : []),
+      ];
   if (opts.commercial === false) return opts.mentoria ? abas : [];
   return [
     ...SIDEBAR_ITEMS,

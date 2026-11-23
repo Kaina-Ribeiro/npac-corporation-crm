@@ -34,8 +34,8 @@ const MODULOS = [
   'Plano dos 12 meses',
   'Reuniões',
   'PMEs e ciclos',
-  'Linha do tempo e conquistas',
   'Envios físicos',
+  'Linha do tempo e conquistas',
   'Eventos e agenda',
   'Renovações e gestão',
   'Configurações',
@@ -99,7 +99,7 @@ test('Diretoria convida e muda alguém para o cargo Acompanhamento pela tela', a
   // Cargo em um passo: o grupo Acompanhamento já traz os perfis do módulo.
   await expect(
     page.getByLabel('Cargo', { exact: true }).locator('optgroup[label="Acompanhamento"] option'),
-  ).toHaveText(['Acompanhamento', 'Operação', 'Especialista', 'Mentor']);
+  ).toHaveText(['Acompanhamento', 'Operação', 'Especialista', 'Mentor', 'Envios']);
   await expect(
     page.getByLabel('Cargo de Ale', { exact: false }).first().locator('option', {
       hasText: 'Acompanhamento',

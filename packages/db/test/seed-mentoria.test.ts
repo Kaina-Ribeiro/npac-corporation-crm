@@ -51,6 +51,7 @@ describe('seedMentoria', () => {
       { username: 'duda', perfil: 'ACOMPANHAMENTO', admin: true },
       { username: 'leo', perfil: 'MENTOR', admin: false },
       { username: 'manu', perfil: 'ESPECIALISTA', admin: false },
+      { username: 'maria', perfil: 'ENVIOS', admin: false },
       { username: 'operacao', perfil: 'OPERACAO', admin: false },
     ]);
   });
