@@ -31,6 +31,9 @@ export function SoldFields({
   canRegister: boolean;
 }) {
   const [closerId, setCloserId] = useState('');
+  // Venda direta (NPAC-65, "4.3A"): no cadastro, sem reunião; o closer escolhido põe o valor.
+  const [direct, setDirect] = useState(false);
+  const chip = `${quietButton} min-h-11 hover:bg-black/5 dark:hover:bg-white/10 aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-[var(--bg)]`;
   const [register, setRegister] = useState(false);
   const [productId, setProductId] = useState('');
   const [total, setTotal] = useState('');
@@ -51,10 +54,45 @@ export function SoldFields({
 
   return (
     <>
-      <Field label="Data e hora da reunião (Brasília)">
-        <input name={SOLD.meetingAt} type="datetime-local" className={control} max={now} required />
-      </Field>
-      <Field label="Closer da reunião">
+      <div className="col-span-full flex flex-col gap-2">
+        <span id="sold-origin" className="text-sm font-semibold text-ink2">
+          Teve reunião ou foi venda direta?
+        </span>
+        <div className="flex flex-wrap gap-2" role="group" aria-labelledby="sold-origin">
+          <button
+            type="button"
+            className={chip}
+            aria-pressed={!direct}
+            onClick={() => setDirect(false)}
+          >
+            Teve reunião
+          </button>
+          <button
+            type="button"
+            className={chip}
+            aria-pressed={direct}
+            onClick={() => {
+              setDirect(true);
+              if (method === 'PARTIAL') setMethod('PIX');
+            }}
+          >
+            Venda direta
+          </button>
+        </div>
+        {direct && <input type="hidden" name={SOLD.direct} value="on" />}
+      </div>
+      {!direct && (
+        <Field label="Data e hora da reunião (Brasília)">
+          <input
+            name={SOLD.meetingAt}
+            type="datetime-local"
+            className={control}
+            max={now}
+            required
+          />
+        </Field>
+      )}
+      <Field label={direct ? 'Closer' : 'Closer da reunião'}>
         <select
           name={SOLD.meetingCloser}
           className={control}
@@ -93,7 +131,9 @@ export function SoldFields({
         >
           <option value="" disabled>
             {!closerId
-              ? 'Escolha antes o closer da reunião'
+              ? direct
+                ? 'Escolha antes o closer'
+                : 'Escolha antes o closer da reunião'
               : closerProducts.length
                 ? 'Escolha o produto'
                 : 'Este closer não tem produtos ativos'}
@@ -107,10 +147,14 @@ export function SoldFields({
         </select>
       </Field>
       <p className="col-span-full -mt-1 text-xs text-ink2">
-        A reunião entra como realizada e conta para o SDR no dia dela.
+        {direct
+          ? 'Venda sem reunião, à vista, no cartão ou no boleto.'
+          : 'A reunião entra como realizada e conta para o SDR no dia dela.'}
         {canRegister
           ? ''
-          : ' O closer da reunião recebe o aviso e põe os valores ao registrar a venda.'}
+          : direct
+            ? ' O closer recebe o aviso e põe o valor ao registrar a venda.'
+            : ' O closer da reunião recebe o aviso e põe os valores ao registrar a venda.'}
       </p>
       {canRegister && (
         <fieldset className="sold-sale col-span-full flex flex-col gap-4 rounded-2xl border border-line p-4">
@@ -167,11 +211,14 @@ export function SoldFields({
                   value={method}
                   onChange={(e) => setMethod(e.target.value)}
                 >
-                  {SALE_METHODS.map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
+                  {/* Venda direta (NPAC-65): à vista, no cartão ou no boleto, sem entrada. */}
+                  {SALE_METHODS.filter(([value]) => !direct || value !== 'PARTIAL').map(
+                    ([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ),
+                  )}
                 </select>
               </Field>
               {method === 'PARTIAL' && (

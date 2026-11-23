@@ -9,6 +9,7 @@ import { brasiliaInput } from './client-api';
 export const SOLD = {
   meetingAt: 'sf_sold_meeting_at',
   meetingCloser: 'sf_sold_meeting_closer',
+  direct: 'sf_sold_direct',
   register: 'sf_sold_register',
   closedOn: 'sf_sold_closed_on',
   product: 'sf_sold_product',
@@ -33,7 +34,9 @@ export const spToday = () =>
   new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
 
 export type SoldBody = {
-  meeting: { scheduledAt: string; closerId: string };
+  meeting?: { scheduledAt: string; closerId: string };
+  /** Venda direta do SDR (NPAC-65): sem reunião, com o closer que põe o valor. */
+  directSale?: { closerId: string };
   /** Sem a venda agora (NPAC-41): o produto vendido; o closer põe os valores depois. */
   soldProductId?: string;
   sale?: {
@@ -47,24 +50,33 @@ export type SoldBody = {
   };
 };
 
-/** Lê reunião e venda do formulário. Lança `Error` com a mensagem para o usuário. */
+/** Lê reunião (ou venda direta) e venda do formulário. Lança `Error` com a mensagem para o usuário. */
 export function readSoldFields(form: FormData, requestKey: string): SoldBody {
   const get = (name: string) => String(form.get(name) ?? '').trim();
-  const at = get(SOLD.meetingAt);
+  const direct = form.get(SOLD.direct) === 'on';
   const closerId = get(SOLD.meetingCloser);
-  if (!at || !closerId) throw new Error('Informe a data, a hora e o closer da reunião.');
-  const scheduledAt = brasiliaInput(at)!;
-  if (new Date(scheduledAt).getTime() > Date.now())
-    throw new Error('A reunião ainda não aconteceu: informe um horário passado.');
+  let body: SoldBody;
+  if (direct) {
+    if (!closerId) throw new Error('Escolha o closer e o produto vendido.');
+    body = { directSale: { closerId } };
+  } else {
+    const at = get(SOLD.meetingAt);
+    if (!at || !closerId) throw new Error('Informe a data, a hora e o closer da reunião.');
+    const scheduledAt = brasiliaInput(at)!;
+    if (new Date(scheduledAt).getTime() > Date.now())
+      throw new Error('A reunião ainda não aconteceu: informe um horário passado.');
+    body = { meeting: { scheduledAt, closerId } };
+  }
   const productId = get(SOLD.product);
   if (!productId) throw new Error('Escolha o produto vendido.');
-  const body: SoldBody = { meeting: { scheduledAt, closerId } };
   if (form.get(SOLD.register) !== 'on') return { ...body, soldProductId: productId };
 
   const closedOn = get(SOLD.closedOn);
   if (!closedOn) throw new Error('Informe a data da venda.');
   if (closedOn > spToday()) throw new Error('A data da venda não pode ser futura.');
   const method = get(SOLD.method) as SaleMethod;
+  if (direct && method === 'PARTIAL')
+    throw new Error('Venda direta é à vista, no cartão ou no boleto, sem entrada.');
   const totalCents = parseCents(get(SOLD.total));
   const deferred = deferredMethod(method);
   const entryCents = method === 'PARTIAL' ? parseCents(get(SOLD.entry)) : 0;

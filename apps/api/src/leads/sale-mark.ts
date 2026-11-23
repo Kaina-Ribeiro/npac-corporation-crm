@@ -1,6 +1,21 @@
+import { BadRequestException } from '@nestjs/common';
 import { deals, meetings, pipelineStages, products, sdrSaleMarks, type Tx } from '@npac/db';
 import type { AuthUser } from '@npac/shared';
-import { and, desc, eq, gte, isNull } from 'drizzle-orm';
+import { and, desc, eq, gte, isNull, sql } from 'drizzle-orm';
+
+/** Venda direta do SDR (NPAC-65, Igor 23/11/2026): só à vista, no cartão ou no boleto, sem entrada. */
+export const directSalePartial = () =>
+  new BadRequestException('Venda direta é à vista, no cartão ou no boleto, sem entrada.');
+
+/** A venda a registrar de uma venda direta (marcação ativa sem reunião) não aceita entrada. */
+export async function assertDirectSaleMethod(tx: Tx, leadId: string, method: string) {
+  if (method !== 'PARTIAL') return;
+  // O closer não lê as marcações do SDR (RLS): a função do banco responde só sim/não (0081).
+  const [row] = await tx.execute<{ direct: boolean }>(
+    sql`select lead_direct_sale(${leadId}) as direct`,
+  );
+  if (row?.direct) throw directSalePartial();
+}
 
 /**
  * Venda marcada pelo SDR (NPAC-48): grava a renda extra do SDR do lead com o valor do catálogo de
@@ -11,7 +26,14 @@ import { and, desc, eq, gte, isNull } from 'drizzle-orm';
 export async function recordSaleMark(
   tx: Tx,
   u: AuthUser,
-  mark: { leadId: string; sdrId: string; productId: string; meetingId: string; markedAt?: Date },
+  mark: {
+    leadId: string;
+    sdrId: string;
+    productId: string;
+    /** Nulo = venda direta, sem reunião (NPAC-65). */
+    meetingId: string | null;
+    markedAt?: Date;
+  },
 ) {
   const [p] = await tx
     .select({ bonusCents: products.sdrBonusCents })

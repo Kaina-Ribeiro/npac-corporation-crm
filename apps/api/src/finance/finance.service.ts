@@ -23,7 +23,7 @@ import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { DB } from '../common/db/db.module.js';
 import { recordActivity } from '../leads/activity.js';
 import { lockLead } from '../leads/lead-mutations.service.js';
-import { recordPaymentSaleMark } from '../leads/sale-mark.js';
+import { assertDirectSaleMethod, recordPaymentSaleMark } from '../leads/sale-mark.js';
 import { assertIncomeKnown } from '../leads/stage-fields.js';
 import { AvisosScheduler } from '../mentoria/avisos.scheduler.js';
 import { InscricaoDaVenda } from '../mentoria/venda/inscricao-da-venda.js';
@@ -205,6 +205,8 @@ export class FinanceService {
         return { id: retry.id, inscricaoId: null };
       }
       const lead = await lockLead(tx, input.leadId, input.version);
+      // Venda direta do SDR (NPAC-65): o closer registra à vista, no cartão ou no boleto.
+      await assertDirectSaleMethod(tx, lead.id, input.method);
       const d = await insertSale(tx, u, lead, input, hash, undefined, this.inscricao);
       // Vinda de Agendou Pagamento com o produto do SDR: a renda extra dele (NPAC-59).
       await recordPaymentSaleMark(tx, u, lead);

@@ -568,6 +568,13 @@
       "when": 1795427576024,
       "tag": "0080_closer_da_venda_a_registrar",
       "breakpoints": true
+    },
+    {
+      "idx": 81,
+      "version": "7",
+      "when": 1795461773191,
+      "tag": "0081_venda_direta",
+      "breakpoints": true
     }
   ]
 }
