@@ -24,6 +24,7 @@ import {
   readStageFields,
   stageFieldsKind,
   stageNeedsFields,
+  toBrasiliaInput,
 } from '@/lib/stage-fields';
 import { button, control, Field, FormError, quietButton } from './crm-ui';
 import { StageOptionsAfterMeeting } from './stage-options-after-meeting';
@@ -162,6 +163,10 @@ export function LeadDetail({
   const stage = catalog.stages.find((s) => s.key === lead.stageKey)?.label;
   // "Mover para" uma etapa que pede dados (NPAC-38) mostra os campos antes de salvar.
   const [moveTo, setMoveTo] = useState('');
+  // Reunião que já aconteceu (NPAC-62, Igor 23/11/2026, "1A"): o SDR dono do lead ou a liderança
+  // lança com o horário passado e ela entra realizada.
+  const [alreadyDone, setAlreadyDone] = useState(false);
+  const canLogDone = isLeader(me.role) || lead.sdr.id === me.id;
   const open = meetings.find(
     (m) => !m.canceledAt && !m.outcome && new Date(m.scheduledAt).getTime() > Date.now(),
   );
@@ -651,7 +656,8 @@ export function LeadDetail({
               onSubmit={(e) => {
                 e.preventDefault();
                 const f = new FormData(e.currentTarget);
-                void mutate('/api/meetings', 'POST', {
+                const done = canLogDone && alreadyDone;
+                void mutate(done ? '/api/meetings/done' : '/api/meetings', 'POST', {
                   leadId: lead.id,
                   closerId: f.get('closerId'),
                   scheduledAt: brasiliaInput(String(f.get('scheduledAt') ?? '')),
@@ -678,8 +684,35 @@ export function LeadDetail({
                     ))}
                 </select>
               </Field>
-              <Field label="Horário da reunião (Brasília)">
-                <input name="scheduledAt" type="datetime-local" className={control} required />
+              {canLogDone && (
+                <label className="toque flex items-center gap-2 text-sm font-semibold text-ink2">
+                  <input
+                    type="checkbox"
+                    checked={alreadyDone}
+                    onChange={(e) => setAlreadyDone(e.target.checked)}
+                  />
+                  A reunião já aconteceu
+                </label>
+              )}
+              <Field
+                label={
+                  canLogDone && alreadyDone
+                    ? 'Quando aconteceu (Brasília)'
+                    : 'Horário da reunião (Brasília)'
+                }
+              >
+                <input
+                  key={alreadyDone ? 'passado' : 'futuro'}
+                  name="scheduledAt"
+                  type="datetime-local"
+                  className={control}
+                  max={
+                    canLogDone && alreadyDone
+                      ? toBrasiliaInput(new Date().toISOString())
+                      : undefined
+                  }
+                  required
+                />
               </Field>
               <Field label="Origem do agendamento">
                 <select name="origin" className={control}>
@@ -688,7 +721,7 @@ export function LeadDetail({
                 </select>
               </Field>
               <button disabled={busy} className={`${button} self-start`}>
-                Agendar reunião
+                {canLogDone && alreadyDone ? 'Lançar como realizada' : 'Agendar reunião'}
               </button>
             </form>
           )}

@@ -610,6 +610,12 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
   todos os cargos. O cadastro não entra mais na etapa (lead novo não tem reunião); quem já está nela fica (3A). Na tela,
   `StageOptionsAfterMeeting` (`components/stage-options-after-meeting.tsx`, fora do `crm-ui` pelo limite de JS de
   `/leads`) desativa a opção no cadastro e na ficha sem reunião realizada; Pipeline e lista mostram o 409 na janelinha.
+  **Reunião já realizada lançada depois** (NPAC-62, Igor 23/11/2026, "1A, 2A"): na ficha, a caixa "A reunião já aconteceu"
+  (só o SDR dono do lead e a liderança; closer 403, quem não vê o lead 404) manda `POST /meetings/done` (`createDone` em
+  `api/meetings/meetings.service.ts`): horário passado, até um ano atrás (400 fora disso), entra DONE com `outcome_at` =
+  o horário, então o valor por reunião realizada conta no dia em que ela aconteceu (2A). Lead já em Venda com venda ativa
+  vinda de Agendou Pagamento, fechada depois da reunião e desde 17/11, sem marcação: a renda extra entra agora
+  (`recordLoggedMeetingSaleMark` em `api/leads/sale-mark.ts`, produto da venda, data da venda). e2e `e2e/reuniao-ja-realizada.spec.ts`.
   **Pagamento parcial** (NPAC-41, "1A"): caixa "Já pagou uma entrada" → `payment_entry_cents`
   (0 < entrada < valor, CHECK + 400); a data vira a do restante. Não cria venda nem entra nos
   relatórios até o closer registrar; o registro abre em Parcial com entrada + restante na data.
