@@ -45,12 +45,14 @@ const productFields = {
   priceCents: cents,
   // Renda extra do SDR por venda do produto (NPAC-48); zero = sem renda extra.
   sdrBonusCents: z.number().int().min(0).max(100_000_000),
+  // Mentoria que a venda cria no Acompanhamento (NPAC-56, M1); nulo = "Não".
+  mentoria: z.enum(['RDV', '2M', '6M']).nullable(),
   active: z.boolean(),
 };
 const productCreate = z
   .object(productFields)
   .omit({ active: true })
-  .partial({ sdrBonusCents: true })
+  .partial({ sdrBonusCents: true, mentoria: true })
   .strict();
 const productUpdate = z
   .object(productFields)
@@ -88,6 +90,7 @@ export class AdminCatalogService {
           closerName: user.name,
           priceCents: products.priceCents,
           sdrBonusCents: products.sdrBonusCents,
+          mentoria: products.mentoria,
           active: products.active,
         })
         .from(products)

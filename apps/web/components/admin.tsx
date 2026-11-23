@@ -53,6 +53,8 @@ type Product = {
   priceCents: number;
   /** Renda extra do SDR por venda deste produto (NPAC-48). */
   sdrBonusCents: number;
+  /** Mentoria que a venda cria no Acompanhamento (NPAC-56); nulo = não vira mentorado. */
+  mentoria: 'RDV' | '2M' | '6M' | null;
   active: boolean;
 };
 type Stage = { id: string; key: string; label: string; position: number };
@@ -127,6 +129,20 @@ function Card({
 }
 
 /** Mensagem de sucesso das caixas: "Ana agora atua como SDR", "…não é mais Admin do Acompanhamento". */
+/** "Vira mentorado" (NPAC-56): a venda do produto cria a inscrição no Acompanhamento. */
+function ViraMentoradoOptions() {
+  return (
+    <>
+      <option value="">Não</option>
+      <option value="RDV">RDV</option>
+      <option value="2M">2M</option>
+      <option value="6M">6M</option>
+    </>
+  );
+}
+const viraMentorado = (f: FormData) =>
+  (String(f.get('mentoria') ?? '') || null) as Product['mentoria'];
+
 function avisoDaCaixa(nome: string, campo: keyof Extras, on: boolean) {
   if (campo === 'moduloAdmin')
     return `${nome} ${on ? 'agora é' : 'não é mais'} ${MODULO_ADMIN_LABEL}`;
@@ -692,6 +708,7 @@ export function Admin({
                             name: String(f.get('name')),
                             priceCents: parseCents(String(f.get('price'))),
                             sdrBonusCents: parseCents(String(f.get('bonus') || '0')),
+                            mentoria: viraMentorado(f),
                             closerId: String(f.get('closerId')),
                           }),
                         `${p.name} atualizado`,
@@ -718,6 +735,11 @@ export function Admin({
                         defaultValue={(p.sdrBonusCents / 100).toFixed(2).replace('.', ',')}
                       />
                     </Field>
+                    <Field label="Vira mentorado">
+                      <select name="mentoria" className={control} defaultValue={p.mentoria ?? ''}>
+                        <ViraMentoradoOptions />
+                      </select>
+                    </Field>
                     <Field label="Closer">
                       <select name="closerId" className={control} defaultValue={p.closerId}>
                         {closers.map((c) => (
@@ -741,6 +763,7 @@ export function Admin({
                     </button>
                     <span className="pb-2 text-xs text-ink2">
                       {p.code} · {money(p.priceCents)} · renda extra do SDR {money(p.sdrBonusCents)}
+                      {p.mentoria && ` · vira mentorado ${p.mentoria}`}
                       {!p.active && ' · inativo'}
                     </span>
                   </form>
@@ -762,6 +785,7 @@ export function Admin({
                     name: String(f.get('name')),
                     priceCents: parseCents(String(f.get('price'))),
                     sdrBonusCents: parseCents(String(f.get('bonus') || '0')),
+                    mentoria: viraMentorado(f),
                     closerId: String(f.get('closerId')),
                   });
                   form.reset();
@@ -779,6 +803,11 @@ export function Admin({
               </Field>
               <Field label="Renda extra do SDR (R$)">
                 <input name="bonus" className={control} inputMode="decimal" placeholder="0,00" />
+              </Field>
+              <Field label="Vira mentorado">
+                <select name="mentoria" className={control} defaultValue="">
+                  <ViraMentoradoOptions />
+                </select>
               </Field>
               <Field label="Closer">
                 <select name="closerId" className={control}>
