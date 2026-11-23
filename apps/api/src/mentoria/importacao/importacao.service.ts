@@ -27,6 +27,7 @@ import {
 import { sql } from 'drizzle-orm';
 import { DB } from '../../common/db/db.module.js';
 import { erroDoBanco } from '../erros.js';
+import { EvolucaoLegado } from '../evolucao-legado.js';
 import { registrarHistorico } from '../historico.js';
 import { aad, MentoriaCrypto } from '../mentoria-crypto.js';
 import { criarEtapas } from '../onboarding.service.js';
@@ -48,6 +49,7 @@ export class ImportacaoService {
     @Inject(DB) private readonly db: Db,
     private readonly crypto: MentoriaCrypto,
     private readonly plano: PlanoService,
+    private readonly evolucaoLegado: EvolucaoLegado,
   ) {}
 
   /** A planilha é lida fora da transação: quem espera é a tela, não o banco. */
@@ -201,7 +203,7 @@ export class ImportacaoService {
   /** Tudo ou nada, numa transação; o lock serializa duas importações ao mesmo tempo. */
   async importar(u: AuthUser, b: ImportarCarteira): Promise<ResultadoImportacao> {
     const fontes = await this.fontes(b);
-    return withUser(this.db, u.id, async (tx) => {
+    const r = await withUser(this.db, u.id, async (tx) => {
       await tx.execute(sql`select pg_advisory_xact_lock(hashtext('mentoria_importacao'))`);
       const c = this.montar(fontes, await this.jaCadastrados(tx));
       if (c.rotulosSemMentoria.length)
@@ -213,5 +215,9 @@ export class ImportacaoService {
       for (const n of c.novos) await this.gravar(tx, u, n);
       return { importados: c.novos.length, ignorados: c.ignorados.length };
     }).catch((e) => erroDoBanco(e));
+    // Textos antigos para a aba Evolução (NPAC-57): depois do commit e fora da sessão, que as funções da cópia
+    // exigem. Falha na cópia não desfaz a importação; o que ficar pendente sai na próxima subida da API.
+    if (r.importados > 0) await this.evolucaoLegado.copiarDepoisDeImportar();
+    return r;
   }
 }
