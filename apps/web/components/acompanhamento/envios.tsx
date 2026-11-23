@@ -39,7 +39,13 @@ const TIPO_ICONE: Record<EnvioTipo, string> = {
 };
 
 /** Caixa e presente sem linha no banco ainda (id nulo) são um por inscrição. */
-const chave = (e: EnvioDTO) => e.id ?? `${e.inscricaoId}:${e.tipo}`;
+// Caixa e presente são um por inscrição (índices únicos): a chave não muda quando a linha ganha o
+// `id` no primeiro "Marcar enviado"; se mudasse, o recarregamento remontaria a linha e fecharia o
+// "Marcar entregue" que a pessoa acabou de abrir.
+const chave = (e: EnvioDTO) =>
+  e.tipo === 'CAIXA' || e.tipo === 'PRESENTE_FAMILIA'
+    ? `${e.inscricaoId}:${e.tipo}`
+    : (e.id ?? `${e.inscricaoId}:${e.tipo}`);
 const juntarNomes = (n: string[]) => n.join(' e ');
 const cepBR = (c: string | null) => (c && /^\d{8}$/.test(c) ? `${c.slice(0, 5)}-${c.slice(5)}` : c);
 

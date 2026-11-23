@@ -215,3 +215,33 @@ test('endereço solto responde 404 com a navegação do cargo (sem a página "Em
     await ctx.close();
   }
 });
+
+test('404 de dentro do app (ficha que não existe ou fora do acesso) mostra uma barra lateral só', async ({
+  browser,
+}) => {
+  const casos = [
+    {
+      email: 'ale@npac.com.br',
+      texto: 'Página não encontrada.',
+      rotas: ['/admin', '/acompanhamento/mentorados'],
+    },
+    {
+      email: 'duda@npac.com.br',
+      texto: 'Esta tela não faz parte do seu acesso.',
+      rotas: ['/acompanhamento/ficha/00000000-0000-4000-8000-000000000000'],
+    },
+  ];
+  for (const c of casos) {
+    const ctx = await browser.newContext();
+    const page = await ctx.newPage();
+    await login(page, c.email);
+    for (const rota of c.rotas) {
+      const res = await page.goto(rota);
+      expect(res?.status(), `${c.email} ${rota}`).toBe(404);
+      await expect(page.getByRole('heading', { name: c.texto })).toBeVisible();
+      await expect(page.locator('#app-sidebar'), `${c.email} ${rota}`).toHaveCount(1);
+      await expect(page.getByRole('main'), `${c.email} ${rota}`).toHaveCount(1);
+    }
+    await ctx.close();
+  }
+});

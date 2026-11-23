@@ -808,7 +808,9 @@ VARREDURA_URL=http://localhost:3150 VARREDURA_SENHA=senha-do-e2e-123 VARREDURA_O
 ```
 
 - Endereço que não existe é 404 com a navegação do cargo (`app/not-found.tsx`); não há mais a página
-  "Em breve" do comercial (`[secao]`). Os "Em breve" do Acompanhamento ficam (D4).
+  "Em breve" do comercial (`[secao]`). Os "Em breve" do Acompanhamento ficam (D4). `notFound()` numa tela
+  ou layout de `(app)` cai em `app/(app)/not-found.tsx`, só o aviso (`components/shell/aviso-404.tsx`), porque a
+  casca já tem a barra lateral (NPAC-58: o da raiz ali mostrava duas; e2e em `e2e/sidebar.spec.ts`).
 
 - **Medição** só no `npac_e2e_perf` (nunca no dev `npac`); senha de todos `senha-do-e2e-123`. Plano,
   metas e números de antes/depois em `docs/plans/desempenho.md`.
