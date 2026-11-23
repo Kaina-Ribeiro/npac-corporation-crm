@@ -71,7 +71,8 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   admin `admin.tsx`, `access-requests.tsx`, quadro "Acessos" `acessos-card.tsx`, linha da equipe `lib/equipe.ts` · Ctrl+K `shell/command-palette.tsx` · avisos `inbox.tsx` ·
   textos de atividade `lib/activity-text.ts` · campos por etapa `stage-fields.tsx` (+ `lib/stage-fields.ts`,
   `lib/stage-kind.ts`) e janelinha `stage-move-dialog.tsx` (Pipeline, lista, massa) · editor de colunas `pipeline-columns-editor.tsx` · ação
-  rápida do Hoje `today-quick-action.tsx` · closer completa o pagamento `payment-complete.tsx` · SDR marca a
+  rápida do Hoje `today-quick-action.tsx` · concluir tarefa com o próximo passo `task-complete-dialog.tsx`
+  (+ `task-complete-button.tsx` na ficha) · closer completa o pagamento `payment-complete.tsx` · SDR marca a
   venda `sale-mark.tsx` · menu de CSV `csv-export.tsx` (API: `api/common/csv.ts`) ·
   avisos compartilhados (selo do chat, `(N)` na aba, lembretes) `lib/alerts.ts`, `meeting-reminder.tsx` ·
   push no aparelho `lib/push.ts`, `public/sw.js`, `/conta/avisos`, convite `components/push-invite.tsx`
@@ -690,6 +691,20 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
   vencidas (`overdueTasks`, que saem do painel Tarefas); reunião de hoje vencida segue também na
   agenda; cobranças têm bloco próprio. `moveDue` passa o que vence no navegador (sem polling, que
   gravaria auditoria). Ação rápida `POST /leads/:id/quick-action` (Chamado/Remarcado/Próxima ação).
+- **Concluir tarefa pede o próximo passo** (NPAC-67, Igor 23/11/2026, "2.1B, 2.2A, 2.3A, 2.4B"; desenho A do
+  Gabriel, capturas em `docs/prototipos/npac-67/`): o círculo do Hoje (Atrasados e Tarefas) e o "Concluir" das
+  Tarefas da ficha abrem a janelinha "Concluir tarefa" (`components/task-complete-dialog.tsx`, por `next/dynamic`):
+  "O que aconteceu" (obrigatório, vira nota da ficha) e "Próximo passo": **Agendou reunião** (data e hora + closer),
+  **Novo follow-up** (nova data de contato) ou **Ligar para a pessoa** (data e hora da ligação; os dois últimos viram
+  o próximo contato do lead). `POST /leads/:leadId/tasks/:id/complete` `{ version, note, next, at, closerId? }`
+  (`api/leads/task-complete.service.ts`, `@Can('lead:update')`): conclui a tarefa, grava a nota e aplica o passo
+  numa transação, com `task.updated`/`note.created`/`lead.contact_rescheduled` ou `lead.moved` + `meeting.scheduled`
+  na timeline; versão da tarefa (409 `VERSION_CONFLICT`; já concluída, 409 `TASK_DONE`); data no passado 400; SDR em
+  Agendou Pagamento não muda o contato (403, como a ação rápida). "Agendou reunião" usa `scheduleMeeting` e
+  `rearm()` depois do commit e leva o lead para Agendado como o Pipeline: Criando Relacionamento → Agendado direto,
+  Em follow-up e No-show → Agendado follow-up; nas outras etapas o lead fica e a reunião entra como follow-up.
+  O closer e a tarefa pessoal concluem direto, como antes. Testes: `api/test/concluir-tarefa.e2e.test.ts`,
+  `e2e/concluir-tarefa.spec.ts`.
 - Desativar usuário derruba sessões; leads dele vão por `POST /admin/users/:id/transfer-leads`.
   Login de conta desativada: 401 com o mesmo corpo da senha errada (gancho `session.create.before` em
   `api/auth/auth.ts` lança o erro do plugin `username`; `return false` ali vira 500).
