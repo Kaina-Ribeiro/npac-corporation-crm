@@ -6,7 +6,8 @@ import { E2E_DB, E2E_PASSWORD } from './env.js';
  * NPAC-68 (Igor, 23/11/2026): o cliente pagou e o lead está em Agendou Pagamento. O SDR marca a venda
  * na ficha, ao lado do "Mover para", sem depender do closer: o lead vira venda a registrar com o
  * closer e o produto do pagamento, e o closer vê o pedido no Hoje dele. Sem reunião realizada, a
- * ficha leva a lançar a reunião que já aconteceu (NPAC-62).
+ * ficha leva a lançar a reunião que já aconteceu (NPAC-62). NPAC-65: Agendou Pagamento sempre teve
+ * reunião; sem a realizada, ao mover ou no cadastro, a que já aconteceu entra ali mesmo.
  */
 const owner = ownerSql(E2E_DB);
 const WIDTHS = [375, 1440] as const;
@@ -181,4 +182,93 @@ test('a closer do pagamento não marca a venda pelo SDR', async ({ page }) => {
   await expect(page.getByText('Pagamento a completar', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Marcar venda' })).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'A reunião já aconteceu' })).toHaveCount(0);
+});
+
+/** `datetime-local` de Brasília, ontem às 15:00. */
+const yesterday = () =>
+  `${new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(
+    new Date(Date.now() - 86_400_000),
+  )}T15:00`;
+
+test('Pipeline: mover para Agendou Pagamento sem reunião pede a que já aconteceu (NPAC-65)', async ({
+  page,
+}) => {
+  await login(page, 'ale@npac.com.br');
+  const name = `Lead reunião passada ${Date.now().toString(36)}`;
+  const res = await page.request.post('/api/leads', {
+    data: {
+      name,
+      instagram: `@passada.${Date.now()}.${Math.floor(Math.random() * 1e6)}`,
+      incomeBand: 'R8_15K',
+      source: 'BIO',
+      stageKey: 'EM_FOLLOW',
+    },
+  });
+  expect(res.ok(), await res.text()).toBe(true);
+  const id = ((await res.json()) as { id: string }).id;
+  created.push(id);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.getByRole('link', { name: 'Pipeline', exact: true }).filter({ visible: true }).click();
+  await page.waitForURL(/\/pipeline/);
+  const search = page.getByLabel('Buscar no Pipeline', { exact: true });
+  await search.fill(name);
+  await search.press('Enter');
+  await page
+    .getByRole('combobox', { name: `Mover ${name} para`, exact: true })
+    .selectOption('AGENDOU_PAGAMENTO');
+  const dialog = page.getByRole('dialog', { name: `Mover ${name} para Agendou Pagamento 💳` });
+  await expect(dialog.getByText('A reunião já aconteceu', { exact: true })).toBeVisible();
+  await dialog.getByLabel('Quando aconteceu (Brasília)', { exact: true }).fill(yesterday());
+  await dialog.getByLabel('Closer da reunião', { exact: true }).selectOption({ label: 'Sônia' });
+  await dialog.getByLabel('Produto', { exact: true }).selectOption({ index: 1 });
+  await shots(page, 'reuniao-passada-janelinha');
+  await dialog.getByRole('button', { name: 'Mover', exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  const paymentColumn = page.getByRole('region', { name: 'Agendou Pagamento 💳' });
+  await expect(paymentColumn.getByText(name, { exact: true })).toBeVisible();
+  const [m] = await owner<{ outcome: string; same: boolean }[]>`
+    select outcome, outcome_at = scheduled_at as same from meetings where lead_id = ${id}`;
+  expect(m).toEqual({ outcome: 'DONE', same: true });
+});
+
+test('cadastro direto em Agendou Pagamento com a reunião que já aconteceu (NPAC-65)', async ({
+  page,
+}) => {
+  await login(page, 'ale@npac.com.br');
+  const name = `Lead cadastro pagamento ${Date.now().toString(36)}`;
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/leads/new');
+  await page.getByLabel('Nome', { exact: true }).fill(name);
+  await page
+    .getByLabel('Instagram', { exact: true })
+    .fill(`@cad.pag.${Date.now()}.${Math.floor(Math.random() * 1e6)}`);
+  await page.getByLabel('Faixa de renda', { exact: true }).selectOption('R8_15K');
+  await page.getByLabel('Origem', { exact: true }).selectOption('BIO');
+  await page.getByLabel('Etapa', { exact: true }).selectOption('AGENDOU_PAGAMENTO');
+  await expect(page.getByText('A reunião já aconteceu', { exact: true })).toBeVisible();
+  await page.getByLabel('Quando aconteceu (Brasília)', { exact: true }).fill(yesterday());
+  await page.getByLabel('Closer da reunião', { exact: true }).selectOption({ label: 'Sônia' });
+  const product = page.getByLabel('Produto', { exact: true });
+  const padrao = (await product.locator('option').allTextContents()).find((t) =>
+    t.includes('Nação Padrão'),
+  )!;
+  await product.selectOption({ label: padrao.trim() });
+  await page.getByLabel('Já pagou uma entrada').check();
+  await shots(page, 'reuniao-passada-cadastro');
+  await page.getByRole('button', { name: 'Cadastrar lead', exact: true }).click();
+  await page.waitForURL(/\/leads\/[0-9a-f-]{36}$/);
+  const id = page.url().split('/').pop()!;
+  created.push(id);
+  await expect(page.getByRole('heading', { level: 1, name })).toBeVisible();
+  await expect(page.getByText('Pagamento a completar', { exact: true })).toBeVisible();
+  const reunioes = page.locator('section', {
+    has: page.getByRole('heading', { name: 'Reuniões' }),
+  });
+  await expect(reunioes.getByText('Realizada', { exact: true })).toBeVisible();
+  // Com a reunião realizada, o SDR já pode marcar a venda quando o cliente pagar (NPAC-68).
+  await expect(page.getByRole('button', { name: 'Marcar venda', exact: true })).toBeVisible();
+  const [m] = await owner<
+    { outcome: string }[]
+  >`select outcome from meetings where lead_id = ${id}`;
+  expect(m?.outcome).toBe('DONE');
 });

@@ -24,6 +24,8 @@ export type StageFieldsBody = {
   /** `null` = campo mostrado e vazio (no PATCH, apaga). Ausente = a etapa não usa o campo. */
   nextContactAt?: string | null;
   meeting?: { scheduledAt: string; closerId: string };
+  /** Agendou Pagamento sem reunião realizada (NPAC-65): a que já aconteceu entra junto. */
+  meetingDone?: { scheduledAt: string; closerId: string; origin: 'DIRETO' | 'FOLLOW' };
   paymentProductId?: string;
   paymentAmountCents?: number;
   /** Pagamento parcial (NPAC-41): entrada já paga; `null` = não é parcial (no PATCH, apaga). */
@@ -47,7 +49,26 @@ export const SF = {
   entry: 'sf_entry',
   reason: 'sf_reason',
   reasonOther: 'sf_reason_other',
+  doneAt: 'sf_done_at',
+  doneCloser: 'sf_done_closer',
+  doneOrigin: 'sf_done_origin',
 } as const;
+
+/**
+ * Reunião que já aconteceu (NPAC-65): os campos só aparecem em Agendou Pagamento sem reunião
+ * realizada; sem eles no formulário, nada a enviar.
+ */
+function readPastMeeting(form: FormData, get: (name: string) => string): StageFieldsBody {
+  if (!form.has(SF.doneAt)) return {};
+  const at = get(SF.doneAt);
+  const closerId = get(SF.doneCloser);
+  if (!at || !closerId) throw new Error('Informe quando a reunião aconteceu e o closer.');
+  const scheduledAt = brasiliaInput(at)!;
+  if (new Date(scheduledAt).getTime() > Date.now())
+    throw new Error('Escolha um horário que já passou.');
+  const origin = get(SF.doneOrigin) === 'FOLLOW' ? 'FOLLOW' : 'DIRETO';
+  return { meetingDone: { scheduledAt, closerId, origin } };
+}
 
 /**
  * Lê os campos da etapa do formulário. `changed`: a etapa vai mudar (ou é o cadastro); só então os
@@ -72,6 +93,8 @@ export function readStageFields(
       throw new Error('Escolha um horário futuro para a reunião.');
     return { meeting: { scheduledAt, closerId } };
   }
+  // Entrando em Agendou Pagamento sem reunião realizada, a que já aconteceu (NPAC-65).
+  const origin = kind === 'PAYMENT' && changed ? readPastMeeting(form, get) : {};
   if (kind === 'PAYMENT' && role === 'SDR') {
     const product = get(SF.product);
     const closer = get(SF.closer);
@@ -79,6 +102,7 @@ export function readStageFields(
     if (!changed && !product && !closer) return {};
     if (!product || !closer) throw new Error('Informe o produto e o closer.');
     return {
+      ...origin,
       paymentProductId: product,
       paymentCloserId: closer,
       paymentEntryPaid: form.get(SF.partial) === 'on',
@@ -91,7 +115,7 @@ export function readStageFields(
     if (changed && (!next || !product || !amount))
       throw new Error('Informe a data combinada, o produto e o valor.');
     if (amount && !product) throw new Error('Informe o produto e o valor combinados.');
-    const body: StageFieldsBody = { nextContactAt: brasiliaInput(next) ?? null };
+    const body: StageFieldsBody = { ...origin, nextContactAt: brasiliaInput(next) ?? null };
     if (product) body.paymentProductId = product;
     // Sem valor é o pagamento a completar do SDR: quem edita outro campo não apaga a marca dele.
     if (amount) {

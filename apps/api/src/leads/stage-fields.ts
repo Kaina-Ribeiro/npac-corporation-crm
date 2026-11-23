@@ -55,6 +55,8 @@ export async function assertIncomeKnown(tx: Tx, leadId: string, action: string) 
 /** O que o pedido traz para a etapa (cadastro ou PATCH). */
 export interface StageFieldsInput {
   meeting?: { scheduledAt: Date; closerId: string };
+  /** NPAC-65: Agendou Pagamento sem reunião realizada traz a que já aconteceu (como o NPAC-62). */
+  meetingDone?: { scheduledAt: Date; closerId: string; origin: 'DIRETO' | 'FOLLOW' };
   paymentProductId?: string;
   paymentAmountCents?: number;
   paymentEntryCents?: number | null;
@@ -121,6 +123,8 @@ export interface ResolvedStageFields {
   values: StageState;
   /** Reunião a criar depois de gravar o lead (mesma transação). */
   meeting?: { scheduledAt: Date; closerId: string; origin: 'DIRETO' | 'FOLLOW' };
+  /** Reunião que já aconteceu, a lançar realizada na mesma transação (NPAC-65). */
+  meetingDone?: StageFieldsInput['meetingDone'];
   /** Closer escolhido pelo SDR (vai em `leads.closer_id`). */
   closerId?: string;
   /** O SDR entregou o pagamento a um closer: registrar `payment.pending` depois de gravar. */
@@ -172,14 +176,22 @@ export async function resolveStageFields(
     else if (!opts.leadId || !(await hasOpenMeeting(tx, opts.leadId))) throw meetingRequired();
   }
 
-  // A sequência do lead (NPAC-59): cadastro → reunião → realizada → Agendou Pagamento. O cadastro
-  // não tem reunião, então não entra direto na etapa; lead que já está nela fica como está (3A).
+  // A sequência do lead (NPAC-59): reunião → realizada → Agendou Pagamento. Agendou Pagamento sempre
+  // teve reunião (NPAC-65, Igor 23/11/2026): sem reunião realizada, no cadastro ou ao mover, a que já
+  // aconteceu vem junto em `meetingDone` (SDR do lead ou liderança; o closer recebe 403 antes, por ser
+  // campo fora da etapa). Lead que já está na etapa fica como está (3A, 4.4B).
+  if (input.meetingDone && (target !== 'AGENDOU_PAGAMENTO' || !changed))
+    throw new BadRequestException(
+      'A reunião que já aconteceu só vai junto da entrada em Agendou pagamento.',
+    );
   if (
     target === 'AGENDOU_PAGAMENTO' &&
     changed &&
+    !input.meetingDone &&
     (!opts.leadId || !(await hasDoneMeeting(tx, opts.leadId)))
   )
     throw meetingDoneRequired();
+  const meetingDone = target === 'AGENDOU_PAGAMENTO' && changed ? input.meetingDone : undefined;
 
   if (target === 'AGENDOU_PAGAMENTO' && sdr) {
     Object.assign(values, sdrPaymentValues(input, old, changed));
@@ -245,7 +257,7 @@ export async function resolveStageFields(
     if (changed) values.nextContactAt = null;
   }
 
-  return { values, meeting, closerId, notifyCloser };
+  return { values, meeting, meetingDone, closerId, notifyCloser };
 }
 
 /**

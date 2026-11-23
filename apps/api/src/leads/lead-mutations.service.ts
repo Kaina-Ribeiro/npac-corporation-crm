@@ -28,7 +28,7 @@ import {
 import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 import { DB } from '../common/db/db.module.js';
 import { FieldCrypto } from '../common/crypto/field-crypto.js';
-import { scheduleMeeting } from '../meetings/meetings.service.js';
+import { logDoneMeeting, scheduleMeeting } from '../meetings/meetings.service.js';
 import { ReminderScheduler } from '../push/reminders.js';
 import { recordActivity } from './activity.js';
 import { LeadsRepository } from './leads.repository.js';
@@ -91,7 +91,7 @@ export class LeadMutationsService {
     const fields = [
       ...new Set(
         keys
-          .filter((k) => k !== 'meeting')
+          .filter((k) => k !== 'meeting' && k !== 'meetingDone')
           .map((k) => (k === 'sourceOther' ? 'source' : timelineField(k))),
       ),
     ];
@@ -230,6 +230,8 @@ export class LeadMutationsService {
       // Closer sem reunião perde o lead ao tirá-lo de Agendou Pagamento, e a timeline só aceita
       // lead visível: ele registra antes. Os demais depois, para o aviso ir ao dono novo.
       if (u.role === 'CLOSER') await recordActivity(tx, u, id, kind, fields, undefined, meta);
+      // Agendou Pagamento sem reunião realizada (NPAC-65): a que já aconteceu entra antes da troca.
+      if (stage.meetingDone) await logDoneMeeting(tx, u, old, stage.meetingDone);
       await tx.update(leads).set(patch).where(eq(leads.id, id));
       if (u.role !== 'CLOSER') await recordActivity(tx, u, id, kind, fields, undefined, meta);
       if (stage.notifyCloser)

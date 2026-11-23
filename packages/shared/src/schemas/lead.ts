@@ -4,6 +4,7 @@ import {
   LEAD_SOURCE_OPTIONS,
   LOST_REASON_OTHER_MAX,
   LOST_REASONS,
+  MEETING_ORIGINS,
   SOURCE_OTHER_MAX,
   STAGE_KEY_PATTERN,
 } from '../enums.js';
@@ -48,6 +49,21 @@ export const stageMeetingSchema = z
   })
   .strict();
 
+/**
+ * Reunião que já aconteceu, lançada junto da entrada em Agendou Pagamento sem reunião realizada
+ * (NPAC-65, cadastro ou troca): mesmas regras do POST /meetings/done (NPAC-62), até um ano atrás.
+ */
+const YEAR_MS = 365 * 86_400_000;
+export const stageMeetingDoneSchema = z
+  .object({
+    scheduledAt: meetingShape.scheduledAt
+      .refine((d) => d.getTime() <= Date.now(), 'Escolha um horário que já passou')
+      .refine((d) => d.getTime() >= Date.now() - YEAR_MS, 'Escolha uma data de até um ano atrás'),
+    closerId: meetingShape.closerId,
+    origin: z.enum(MEETING_ORIGINS),
+  })
+  .strict();
+
 const cents = z.number().int().positive().max(2_000_000_000);
 
 /**
@@ -84,6 +100,8 @@ export type LeadSaleInput = z.output<typeof leadSaleSchema>;
  */
 export const stageFieldsShape = {
   meeting: stageMeetingSchema.optional(),
+  /** Agendou Pagamento sem reunião realizada: a que já aconteceu (NPAC-65). */
+  meetingDone: stageMeetingDoneSchema.optional(),
   /** Agendou Pagamento: produto e valor combinados (centavos); a data vai em `nextContactAt`. */
   paymentProductId: z.uuid().optional(),
   paymentAmountCents: z.number().int().positive().optional(),
