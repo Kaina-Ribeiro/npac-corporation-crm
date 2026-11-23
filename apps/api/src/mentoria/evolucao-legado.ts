@@ -33,10 +33,24 @@ export class EvolucaoLegado implements OnApplicationBootstrap {
   onApplicationBootstrap() {
     // Nos testes roda sob demanda (`copiarPendentes`), como o worker da mídia.
     if (this.env.NODE_ENV === 'test') return;
-    void this.copiarPendentes().catch((e: unknown) => {
+    void this.copiarSemLancar();
+  }
+
+  /**
+   * Depois de cada importação (a importação grava `mentoria_legado`): sem isso os textos só entravam na aba na
+   * próxima subida da API. Nunca lança; se outra cópia estiver rodando, esta sai e o resto fica para a próxima.
+   */
+  copiarDepoisDeImportar(): Promise<void> {
+    return this.copiarSemLancar();
+  }
+
+  private async copiarSemLancar(): Promise<void> {
+    try {
+      await this.copiarPendentes();
+    } catch (e: unknown) {
       const codigo = (e as { code?: string })?.code ?? 'erro';
       this.log.error(`evolução: cópia do legado interrompida (${codigo})`);
-    });
+    }
   }
 
   /** Copia o que falta e devolve quantas inscrições foram copiadas agora. */

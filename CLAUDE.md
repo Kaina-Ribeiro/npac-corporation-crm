@@ -139,7 +139,8 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   `PUT inscricoes/:id/evolucao` com `version`, `POST inscricoes/:id/conquistas`, `DELETE conquistas/:id`; histórico só com nomes
   de campo); fotos pelo `midia.controller.ts` com os donos `evolucao-inicial`, `evolucao-atual` (dono = inscrição, uma foto
   por momento) e `conquista`, conferidos no banco por `mentoria_midia_do_dono` (mídia de outro registro, 22023). **Cópia do
-  legado ao subir** (`evolucao-legado.ts`, 2A): uma instância por vez (advisory lock), percorre `mentoria_legado` pelas funções
+  legado ao subir e depois de cada importação** (`evolucao-legado.ts`, 2A; `ImportacaoService.importar` chama
+  `copiarDepoisDeImportar` após o commit, sem lançar, pois em prod a importação veio depois do deploy): uma instância por vez (advisory lock), percorre `mentoria_legado` pelas funções
   SECURITY DEFINER `mentoria_evolucao_legado_pendentes`/`_gravar`, que só rodam sem sessão (`app_user_id() IS NULL`; pedido
   logado recebe 42501); nunca sobrescreve campo escrito nem duplica conquista, marca `legado_copiado_em`, **não grava
   histórico** e loga só "evolução: N inscrições copiadas do legado" (ilegível: só o id, fica pendente). Excluir e anonimizar
@@ -230,7 +231,7 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   cargo Acompanhamento sem o selo, `area_membros.alcance` = `TODOS` (padrão, igual a antes) ou `CARTEIRA` (só as
   inscrições em que a pessoa é `responsavel_id`). Não é cargo novo: o perfil continua `ACOMPANHAMENTO` (guardas `@Perfis`,
   responsável, transferência e catálogos iguais). Grava pela regra única como troca de cargo: `area_definir_membro(…,
-  alcance)` (5 argumentos; a de 4 mantém o alcance), por convite, aprovação, `PATCH admin/users` e `PUT mentoria/perfis`
+alcance)` (5 argumentos; a de 4 mantém o alcance), por convite, aprovação, `PATCH admin/users` e `PUT mentoria/perfis`
   (campo `alcance`; "Só a carteira" em outro cargo = 400); trocar o cargo ou dar o selo volta a `TODOS` (gatilho
   `area_membros_alcance` + CHECK). Recorte só no banco: `mentoria_so_carteira()`, `mentoria_ids_carteira()`,
   `mentoria_carteira_ok(inscricao)`; `mentoria_ve_todas()` exclui quem tem "só a carteira"; as políticas que liam
