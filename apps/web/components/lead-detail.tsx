@@ -25,7 +25,8 @@ import {
   stageFieldsKind,
   stageNeedsFields,
 } from '@/lib/stage-fields';
-import { button, control, Field, FormError, quietButton, StageOptions } from './crm-ui';
+import { button, control, Field, FormError, quietButton } from './crm-ui';
+import { StageOptionsAfterMeeting } from './stage-options-after-meeting';
 import { LeadForm } from './lead-form';
 import { PaymentComplete } from './payment-complete';
 import { SaleMark } from './sale-mark';
@@ -337,11 +338,11 @@ export function LeadDetail({
             }}
             disabled={busy}
           >
-            <StageOptions
+            <StageOptionsAfterMeeting
               stages={catalog.stages}
               current={lead.stageKey}
               incomeUnknown={lead.tier === 'DESCOBRINDO'}
-              paymentNeedsMeeting={!lastDone}
+              meetingDone={Boolean(lastDone)}
             />
           </select>
         </Field>

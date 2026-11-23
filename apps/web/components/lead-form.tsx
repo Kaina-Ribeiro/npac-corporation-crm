@@ -25,7 +25,8 @@ import { useState, type FormEvent } from 'react';
 import { clientApi } from '@/lib/client-api';
 import { readSoldFields } from '@/lib/sold-fields';
 import { readStageFields } from '@/lib/stage-fields';
-import { button, control, Field, FormError, StageOptions } from './crm-ui';
+import { button, control, Field, FormError } from './crm-ui';
+import { StageOptionsAfterMeeting } from './stage-options-after-meeting';
 import { SoldFields } from './sold-fields';
 import { StageFields, type OpenMeeting } from './stage-fields';
 import { startNavProgress } from '@/components/shell/nav-progress';
@@ -264,12 +265,12 @@ export function LeadForm({
             value={stage}
             onChange={(e) => setStage(e.target.value)}
           >
-            <StageOptions
+            <StageOptionsAfterMeeting
               stages={catalog.stages}
               current={lead?.stageKey ?? 'SONDAGEM'}
               allowSale={!lead}
               incomeUnknown={band === 'DESCOBRINDO'}
-              paymentNeedsMeeting={!lead}
+              meetingDone={Boolean(lead)}
             />
           </select>
         </Field>

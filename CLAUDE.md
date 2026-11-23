@@ -608,8 +608,8 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
   Agendou Pagamento → pagou): entrar na etapa pede reunião com resultado DONE e não cancelada (409
   `MEETING_DONE_REQUIRED`, "marque antes a reunião como realizada"; futura, sem resultado ou no-show não contam), para
   todos os cargos. O cadastro não entra mais na etapa (lead novo não tem reunião); quem já está nela fica (3A). Na tela,
-  `StageOptions paymentNeedsMeeting` desativa a opção no cadastro e na ficha sem reunião realizada; Pipeline e lista
-  mostram o 409 na janelinha.
+  `StageOptionsAfterMeeting` (`components/stage-options-after-meeting.tsx`, fora do `crm-ui` pelo limite de JS de
+  `/leads`) desativa a opção no cadastro e na ficha sem reunião realizada; Pipeline e lista mostram o 409 na janelinha.
   **Pagamento parcial** (NPAC-41, "1A"): caixa "Já pagou uma entrada" → `payment_entry_cents`
   (0 < entrada < valor, CHECK + 400); a data vira a do restante. Não cria venda nem entra nos
   relatórios até o closer registrar; o registro abre em Parcial com entrada + restante na data.
