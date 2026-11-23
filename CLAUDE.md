@@ -495,7 +495,7 @@ DEFINER`, a Especialista vê o número inteiro): só tarefas FEITA ÷ total do c
   Nas telas vale o texto literal do PDF, exceto IDR: "Introdução da Riqueza" (o PDF diz "à"; corrigido).
 - Cookies em vez de localStorage: último usuário `npac_last_user` (`Path=/login`, vale nas duas telas de entrada); ordem dos cards
   `npac_dash_<hash do id>` (`Path=/dashboard`, só IDs, o servidor já renderiza na ordem); colunas
-  ocultas `npac_pipe_<hash>` (`Path=/pipeline`) e filtro do Hoje `npac_hoje_<hash>` (`Path=/hoje`),
+  ocultas `npac_pipe_<hash>` (`Path=/pipeline`; com texto buscado, a coluna oculta que tem resultado aparece marcada "Oculta" e, no celular, abre se a aberta ficou vazia, NPAC-64) e filtro do Hoje `npac_hoje_<hash>` (`Path=/hoje`),
   helpers em `lib/user-cookie.ts`.
 - **Filtros lembrados** (NPAC-46, 11/11/2026, Gabriel "A, no aparelho"): cada tela grava filtro, aba e
   período em `npac_f_<tela>_<hash>` só no `Path` da tela (`PREFS` em `lib/screen-prefs.ts`; `rememberPrefs`
