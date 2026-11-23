@@ -269,6 +269,7 @@ export function LeadForm({
               current={lead?.stageKey ?? 'SONDAGEM'}
               allowSale={!lead}
               incomeUnknown={band === 'DESCOBRINDO'}
+              paymentNeedsMeeting={!lead}
             />
           </select>
         </Field>

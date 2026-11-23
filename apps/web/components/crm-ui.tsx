@@ -37,6 +37,7 @@ export function StageOptions({
   current,
   allowSale = false,
   incomeUnknown = false,
+  paymentNeedsMeeting = false,
 }: {
   stages: { key: StageKey; label: string }[];
   current: StageKey;
@@ -44,17 +45,23 @@ export function StageOptions({
   allowSale?: boolean;
   /** "Descobrindo renda" (Igor, 10/11/2026): só Criando Relacionamento até informar a faixa. */
   incomeUnknown?: boolean;
+  /** Sem reunião realizada (NPAC-59): Agendou Pagamento só vem depois dela; o cadastro nunca tem. */
+  paymentNeedsMeeting?: boolean;
 }) {
   return stages.map((s) => {
     const sale = s.key === 'VENDA' && current !== 'VENDA' && !allowSale;
     const income = incomeUnknown && s.key !== INCOME_DISCOVERY_STAGE;
+    const payment =
+      paymentNeedsMeeting && s.key === 'AGENDOU_PAGAMENTO' && current !== 'AGENDOU_PAGAMENTO';
     return (
-      <option key={s.key} value={s.key} disabled={sale || income}>
+      <option key={s.key} value={s.key} disabled={sale || income || payment}>
         {income
           ? `${s.label} (informe a renda)`
           : sale
             ? `${s.label} (registre na ficha)`
-            : s.label}
+            : payment
+              ? `${s.label} (depois da reunião realizada)`
+              : s.label}
       </option>
     );
   });

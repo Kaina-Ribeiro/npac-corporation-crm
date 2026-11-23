@@ -341,6 +341,7 @@ export function LeadDetail({
               stages={catalog.stages}
               current={lead.stageKey}
               incomeUnknown={lead.tier === 'DESCOBRINDO'}
+              paymentNeedsMeeting={!lastDone}
             />
           </select>
         </Field>
