@@ -35,6 +35,7 @@ import { AuditService } from '../audit/audit.service.js';
 import { toCsv } from '../common/csv.js';
 import { FieldCrypto } from '../common/crypto/field-crypto.js';
 import { DB } from '../common/db/db.module.js';
+import { sdrDoFiltro } from '../common/sdr-filtro.js';
 import { insertSale, requestHash } from '../finance/finance.service.js';
 import { AvisosScheduler } from '../mentoria/avisos.scheduler.js';
 import { InscricaoDaVenda } from '../mentoria/venda/inscricao-da-venda.js';
@@ -89,9 +90,8 @@ export class LeadsService {
   ) {}
 
   async catalog(u: AuthUser) {
-    return withUser(this.db, u.id, async (tx) => ({
-      stages: await tx.select().from(pipelineStages).orderBy(asc(pipelineStages.position)),
-      team: await tx
+    return withUser(this.db, u.id, async (tx) => {
+      const team = await tx
         .select({
           id: user.id,
           name: user.name,
@@ -100,8 +100,15 @@ export class LeadsService {
           canClose: user.canClose,
         })
         .from(user)
-        .where(eq(user.active, true)),
-    }));
+        .where(eq(user.active, true));
+      // Filtro de SDR fixo no próprio SDR (NPAC-66): as telas mostram só o nome dele.
+      const sdrFixo = u.role === 'SDR' ? team.find((m) => m.id === u.id)?.name : undefined;
+      return {
+        stages: await tx.select().from(pipelineStages).orderBy(asc(pipelineStages.position)),
+        team,
+        ...(sdrFixo ? { sdrFixo } : {}),
+      };
+    });
   }
 
   async pipeline(u: AuthUser, q: LeadListQuery, meta: RequestMeta) {
@@ -244,7 +251,8 @@ export class LeadsService {
   async list(u: AuthUser, q: LeadListQuery, meta: RequestMeta): Promise<Page<LeadDTO>> {
     if (q.period === 'RANGE' && (!q.from || !q.to || q.from > q.to))
       throw new BadRequestException('Intervalo inválido');
-    const { search, page, pageSize, ...filters } = q;
+    const { search, page, pageSize, ...rest } = q;
+    const filters = { ...rest, sdrId: sdrDoFiltro(u, rest.sdrId) };
     const { rows, total } = await withUser(this.db, u.id, (tx) =>
       this.repo.list(tx, { ...filters, search: this.parseSearch(search) }, page, pageSize),
     );
@@ -260,7 +268,8 @@ export class LeadsService {
 
   /** CSV com contato (só liderança, pela rota): período, filtros atuais ou todos. */
   async csv(u: AuthUser, q: LeadExportQuery, meta: RequestMeta): Promise<string> {
-    const { search, createdFrom, createdTo, ...filters } = q;
+    const { search, createdFrom, createdTo, ...rest } = q;
+    const filters = { ...rest, sdrId: sdrDoFiltro(u, rest.sdrId) };
     if (!createdFrom !== !createdTo || (createdFrom && createdTo && createdFrom > createdTo))
       throw new BadRequestException('Intervalo inválido');
     const created =

@@ -81,6 +81,15 @@ describe('screen-prefs', () => {
     expect(readPrefs('productId=p1&period=TODAY', r)).toEqual({ productId: 'p1', period: 'TODAY' });
   });
 
+  it('SDR não guarda filtro de SDR: cookie com outro SDR cai no vazio (NPAC-66)', () => {
+    const sdr = { ...(catalog as object), sdrFixo: 'Igor' } as never;
+    expect(readLeadFilters('sdrId=u1&stage=SONDAGEM', sdr)).toEqual({ stage: 'SONDAGEM' });
+    expect(readPipelinePrefs('sdrId=u1&col=SONDAGEM', sdr)).toEqual({ col: 'SONDAGEM' });
+    expect(readPrefs('sdrId=u1&closerId=c1', reportRules(sdr, []))).toEqual({ closerId: 'c1' });
+    // A liderança continua lembrando o SDR escolhido.
+    expect(readLeadFilters('sdrId=u1', catalog)).toEqual({ sdrId: 'u1' });
+  });
+
   it('dashboard: só a liderança lembra o SDR', () => {
     expect(readPrefs('preset=WEEK&sdrId=u1', dashboardRules(catalog, true))).toEqual({
       preset: 'WEEK',

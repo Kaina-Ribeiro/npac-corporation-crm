@@ -219,8 +219,8 @@ test('pipeline e lista: mudar para etapa com dados abre a janelinha; cancelar de
     .filter({ visible: true })
     .check();
   const bulk = page.getByRole('combobox', { name: 'Mover para etapa', exact: true });
-  // A barra da ação em massa aparece depois da seleção: espera antes de ler as opções.
-  await expect(bulk.locator('option[value="PERDIDO"]')).toHaveCount(1);
+  // A barra de ações em massa é baixada ao marcar o primeiro lead (NPAC-63): esperar ela chegar.
+  await expect(bulk).toBeVisible();
   const options = await bulk.locator('option').allTextContents();
   expect(options).not.toContain('Agendado Direto');
   expect(options).not.toContain('Agendado do Follow');

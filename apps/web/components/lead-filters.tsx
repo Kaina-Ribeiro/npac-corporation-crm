@@ -64,14 +64,16 @@ export function LeadFilters({
         </Field>
         <Field label="Responsável SDR">
           <select name="sdrId" form={form} defaultValue={values.sdrId ?? ''} className={control}>
-            <option value="">Todos</option>
-            {catalog.team
-              .filter((u) => u.canProspect)
-              .map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name}
-                </option>
-              ))}
+            {/* SDR vê só ele (NPAC-66): o vazio é o escopo dele, a API já fica nele. */}
+            <option value="">{catalog.sdrFixo ?? 'Todos'}</option>
+            {!catalog.sdrFixo &&
+              catalog.team
+                .filter((u) => u.canProspect)
+                .map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name}
+                  </option>
+                ))}
           </select>
         </Field>
         <Field label="Closer">
