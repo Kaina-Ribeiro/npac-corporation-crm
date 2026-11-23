@@ -42,6 +42,7 @@ import { ExportacaoController, ExportacaoService } from './exportacao.controller
 import { MENTORIA_CLOCK, systemClock } from './relogio.js';
 import { ReunioesController } from './reunioes.controller.js';
 import { ReunioesService } from './reunioes.service.js';
+import { InscricaoDaVenda } from './venda/inscricao-da-venda.js';
 
 /** Acompanhamento de mentorados: base à parte do comercial, só Diretoria e Acompanhamento. */
 @Module({
@@ -91,6 +92,7 @@ import { ReunioesService } from './reunioes.service.js';
     EvolucaoService,
     EvolucaoLegado,
     CheckinsService,
+    InscricaoDaVenda,
     { provide: MENTORIA_CLOCK, useValue: systemClock },
     {
       provide: MentoriaCrypto,
@@ -105,6 +107,8 @@ import { ReunioesService } from './reunioes.service.js';
         new VolumeMediaStore(env.MEDIA_DIR ?? join(process.cwd(), '.media')),
     },
   ],
+  // O comercial cria a inscrição pela venda e rearma os avisos depois do commit (NPAC-56).
+  exports: [InscricaoDaVenda, AvisosScheduler],
 })
 export class MentoriaModule implements OnModuleInit, OnModuleDestroy {
   private timer?: NodeJS.Timeout;

@@ -24,6 +24,8 @@ import { DB } from '../common/db/db.module.js';
 import { recordActivity } from '../leads/activity.js';
 import { lockLead } from '../leads/lead-mutations.service.js';
 import { assertIncomeKnown } from '../leads/stage-fields.js';
+import { AvisosScheduler } from '../mentoria/avisos.scheduler.js';
+import { InscricaoDaVenda } from '../mentoria/venda/inscricao-da-venda.js';
 import type { SaleInput } from './schemas.js';
 
 /** O que o registro de venda pede (ficha e cadastro em Venda Fechada). */
@@ -35,7 +37,9 @@ export type SaleCore = Pick<
 /**
  * Grava venda, entrada e parcelas na transação de quem chama (que já travou o lead e conferiu a
  * idempotência). `closedAt`: dia da venda informado no cadastro (NPAC-39); a entrada é recebida
- * nesse instante. Não mexe no lead: devolve a etapa Venda para quem chama.
+ * nesse instante. Não mexe no lead: devolve a etapa Venda para quem chama. Com `inscricao`, a venda de
+ * RDV, 2M ou 6M cria o mentorado no Acompanhamento na mesma transação (NPAC-56, G9): falhou, a venda
+ * inteira volta. `inscricaoId`: a inscrição criada, para quem chama rearmar os avisos depois do commit.
  */
 export async function insertSale(
   tx: Tx,
@@ -44,6 +48,7 @@ export async function insertSale(
   input: SaleCore,
   hash: string,
   closedAt?: Date,
+  inscricao?: InscricaoDaVenda,
 ) {
   if (u.role === 'CLOSER' && input.closerId !== u.id) throw new ForbiddenException();
   await assertIncomeKnown(tx, lead.id, 'registrar a venda');
@@ -129,7 +134,8 @@ export async function insertSale(
         dueAt: p.dueAt,
       })),
     );
-  return { id: d!.id, stageId: venda.id };
+  const inscricaoId = inscricao ? await inscricao.criar(tx, d!.id, lead.id) : null;
+  return { id: d!.id, stageId: venda.id, inscricaoId };
 }
 
 /** Hash do pedido para a idempotência por `requestKey`. */
@@ -138,7 +144,11 @@ export const requestHash = (input: unknown) =>
 
 @Injectable()
 export class FinanceService {
-  constructor(@Inject(DB) private readonly db: Db) {}
+  constructor(
+    @Inject(DB) private readonly db: Db,
+    private readonly inscricao: InscricaoDaVenda,
+    private readonly avisos: AvisosScheduler,
+  ) {}
   /** SDR não vê R$ de venda (item 13): sem o preço e sem a ordem por preço. */
   async catalog(u: AuthUser) {
     const sdr = u.role === 'SDR';
@@ -182,7 +192,7 @@ export class FinanceService {
     });
   }
   async register(u: AuthUser, input: SaleInput) {
-    return withUser(this.db, u.id, async (tx) => {
+    const r = await withUser(this.db, u.id, async (tx) => {
       await tx.execute(
         sql`select pg_advisory_xact_lock(hashtextextended(${`sale:${input.requestKey}`},0))`,
       );
@@ -191,10 +201,10 @@ export class FinanceService {
       if (retry) {
         if (retry.requestHash !== hash)
           throw new ConflictException('Chave já usada em outra requisição');
-        return { id: retry.id };
+        return { id: retry.id, inscricaoId: null };
       }
       const lead = await lockLead(tx, input.leadId, input.version);
-      const d = await insertSale(tx, u, lead, input, hash);
+      const d = await insertSale(tx, u, lead, input, hash, undefined, this.inscricao);
       // Saiu de Agendou Pagamento (NPAC-38): o combinado vira a venda e deixa de ser estado do lead.
       await tx
         .update(leads)
@@ -215,8 +225,11 @@ export class FinanceService {
         })
         .where(eq(leads.id, lead.id));
       await recordActivity(tx, u, lead.id, 'sale.registered', [], d.id);
-      return { id: d.id };
+      return { id: d.id, inscricaoId: d.inscricaoId };
     });
+    // Mentorado novo: "Nova inscrição" na Fila e o push da Admin (NPAC-56).
+    if (r.inscricaoId) void this.avisos.rearm();
+    return { id: r.id };
   }
   receive(u: AuthUser, id: string, input: { version: number; requestKey: string }) {
     return withUser(this.db, u.id, async (tx) => {
@@ -256,8 +269,8 @@ export class FinanceService {
       return { id };
     });
   }
-  reverse(u: AuthUser, id: string, version: number) {
-    return withUser(this.db, u.id, async (tx) => {
+  async reverse(u: AuthUser, id: string, version: number) {
+    const r = await withUser(this.db, u.id, async (tx) => {
       const [initial] = await tx.select().from(deals).where(eq(deals.id, id));
       if (!initial) throw new NotFoundException();
       await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`deal:${id}`},0))`);
@@ -287,5 +300,8 @@ export class FinanceService {
       await recordActivity(tx, u, d.leadId, 'sale.reversed', [], id);
       return { id };
     });
+    // O gatilho cancelou a inscrição da venda (se havia): "Venda estornada" na Fila (NPAC-56, M7).
+    void this.avisos.rearm();
+    return r;
   }
 }

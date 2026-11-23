@@ -120,6 +120,7 @@ export class FichaService {
       admin: boolean;
       travado_por: string | null;
       pausa_dias: number | null;
+      financeiro: string | null;
     }>(sql`
       select mentoria_mes_jornada(${id}::uuid, (now() at time zone 'America/Sao_Paulo')::date) as mes,
         mentoria_edita('INSCRICAO', ${id}::uuid) as inscricao,
@@ -138,6 +139,7 @@ export class FichaService {
         mentoria_edita('EVOLUCAO', ${id}::uuid) as evolucao,
         mentoria_admin() as admin,
         mentoria_so_carteira() as so_carteira,
+        mentoria_status_financeiro(${id}::uuid) as financeiro,
         (select name from "user" where id = ${momento?.travadoPor ?? null}) as travado_por,
         (select (now() at time zone 'America/Sao_Paulo')::date - p.inicio
          from mentoria_pausas p where p.inscricao_id = ${id}::uuid and p.fim is null) as pausa_dias`);
@@ -224,7 +226,9 @@ export class FichaService {
       mesJornada: extra?.mes ?? null,
       valorCentavos: i.valorCentavos,
       formaPagamento: i.formaPagamento,
-      statusFinanceiro: i.statusFinanceiro as FichaDTO['statusFinanceiro'],
+      // Com venda, das parcelas do comercial (NPAC-56, G6/M8); sem venda, a coluna.
+      statusFinanceiro: (extra?.financeiro ?? null) as FichaDTO['statusFinanceiro'],
+      dealId: i.dealId,
       status: i.status as FichaDTO['status'],
       responsavelId: i.responsavelId,
       origem: i.origem as FichaDTO['origem'],
