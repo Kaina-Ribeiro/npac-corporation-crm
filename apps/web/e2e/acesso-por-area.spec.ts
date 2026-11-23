@@ -83,7 +83,7 @@ test('Duda convida uma Operação, que entra direto no módulo, e não vê o int
   const dlg = page.getByRole('dialog', { name: 'Convidar' });
   await expect(
     dlg.getByLabel('Perfil', { exact: true }).locator('option:not([disabled])'),
-  ).toHaveText(['Acompanhamento', 'Operação', 'Especialista', 'Mentor']);
+  ).toHaveText(['Acompanhamento', 'Operação', 'Especialista', 'Mentor', 'Envios']);
   await expect(dlg.getByRole('switch')).toHaveCount(0);
   await dlg.getByRole('button', { name: 'Cancelar' }).click();
   await expect(dlg).toBeHidden();

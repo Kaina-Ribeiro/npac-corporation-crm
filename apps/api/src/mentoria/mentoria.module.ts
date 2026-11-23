@@ -25,10 +25,14 @@ import { CiclosController } from './ciclos.controller.js';
 import { CiclosService } from './ciclos.service.js';
 import { CheckinsController } from './checkins.controller.js';
 import { CheckinsService } from './checkins.service.js';
+import { EvolucaoController } from './evolucao.controller.js';
+import { EvolucaoLegado } from './evolucao-legado.js';
+import { EvolucaoService } from './evolucao.service.js';
 import { MetasController } from './metas.controller.js';
 import { MetasService } from './metas.service.js';
 import { ContatosController } from './contatos.controller.js';
 import { PmesController, PmesService } from './pmes.controller.js';
+import { EnviosController, EnviosService } from './envios.controller.js';
 import { PmesCiclosController, PmesCiclosService } from './pmes-ciclos.controller.js';
 import { FilaController, Pme1Controller } from './fila.controller.js';
 import { FilaService } from './fila.service.js';
@@ -39,6 +43,7 @@ import { ExportacaoController, ExportacaoService } from './exportacao.controller
 import { MENTORIA_CLOCK, systemClock } from './relogio.js';
 import { ReunioesController } from './reunioes.controller.js';
 import { ReunioesService } from './reunioes.service.js';
+import { InscricaoDaVenda } from './venda/inscricao-da-venda.js';
 
 /** Acompanhamento de mentorados: base à parte do comercial, só Diretoria e Acompanhamento. */
 @Module({
@@ -60,8 +65,10 @@ import { ReunioesService } from './reunioes.service.js';
     PmesController,
     CiclosController,
     MetasController,
+    EvolucaoController,
     CheckinsController,
     PmesCiclosController,
+    EnviosController,
   ],
   providers: [
     MentoriaGuard,
@@ -84,7 +91,11 @@ import { ReunioesService } from './reunioes.service.js';
     PmesService,
     CiclosService,
     MetasService,
+    EvolucaoService,
+    EvolucaoLegado,
     CheckinsService,
+    InscricaoDaVenda,
+    EnviosService,
     { provide: MENTORIA_CLOCK, useValue: systemClock },
     {
       provide: MentoriaCrypto,
@@ -99,6 +110,8 @@ import { ReunioesService } from './reunioes.service.js';
         new VolumeMediaStore(env.MEDIA_DIR ?? join(process.cwd(), '.media')),
     },
   ],
+  // O comercial cria a inscrição pela venda e rearma os avisos depois do commit (NPAC-56).
+  exports: [InscricaoDaVenda, AvisosScheduler],
 })
 export class MentoriaModule implements OnModuleInit, OnModuleDestroy {
   private timer?: NodeJS.Timeout;

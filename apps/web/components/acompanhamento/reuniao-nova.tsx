@@ -16,13 +16,13 @@ import { button, control, FormError, quietButton } from '@/components/crm-ui';
 import { clientApi } from '@/lib/client-api';
 import { ICONES, Icone, Rostos } from './ui';
 
-type Escolhido = { id: string; nome: string; pessoas: InscricaoItem['pessoas'] };
+export type Escolhido = { id: string; nome: string; pessoas: InscricaoItem['pessoas'] };
 
 /**
  * Escolha de um mentorado pela busca do módulo (nome, ou fone/e-mail completos). Os resultados
  * ficam na própria página, logo abaixo do campo: nada por cima do formulário.
  */
-function EscolherMentorado({
+export function EscolherMentorado({
   rotulo,
   valor,
   aoEscolher,

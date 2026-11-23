@@ -18,7 +18,7 @@ import { Avatar, AVATAR_EU } from '@/components/avatar';
 import { RoleTag } from '@/components/role-tag';
 import { pendingAccessRequests } from '@/lib/access-requests';
 import { getSession, pendingStep } from '@/lib/session';
-import { lerEu, podeCadastrar, precisaMfa, ultimaFicha } from '@/lib/acompanhamento';
+import { lerEu, podeCadastrar, precisaMfa, soEnvios, ultimaFicha } from '@/lib/acompanhamento';
 import { SemAcesso } from '@/components/acompanhamento/sem-acesso';
 import { SIDEBAR_COOKIE } from '@/lib/sidebar';
 
@@ -37,7 +37,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const [requests, ultima] = await Promise.all([
     pendingAccessRequests(me.role),
     // Só quem tem o módulo; o cookie só vem nas telas do módulo (Path=/acompanhamento).
-    eu ? ultimaFicha() : null,
+    eu && !soEnvios(eu) ? ultimaFicha() : null,
   ]);
 
   // Rodapé (NPAC-53): foto (ou inicial), nome e cargo levam ao Meu perfil, no lugar do "Trocar senha".
@@ -68,6 +68,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           commercial,
           mentoriaAdmin: eu?.admin,
           mentoriaCiclos: podeCadastrar(eu),
+          soEnvios: soEnvios(eu),
         })}
         commercial={commercial}
       />
@@ -77,6 +78,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         commercial={commercial}
         mentoriaAdmin={eu?.admin}
         mentoriaCiclos={podeCadastrar(eu)}
+        soEnvios={soEnvios(eu)}
         adminBadge={requests}
         ultimaFicha={ultima?.nome ?? null}
         footer={

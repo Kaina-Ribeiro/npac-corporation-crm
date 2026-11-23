@@ -15,6 +15,7 @@ import {
   type FilaItemBase,
   type FilaItemDTO,
   type FilaTipo,
+  type InscricaoStatus,
   type Mentoria,
   type Perfil,
   type ReuniaoStatus,
@@ -152,6 +153,7 @@ export class FilaService {
     const tarefas = ids((i) => i.referenciaId, ['COBRANCA']);
     const ciclos = ids((i) => i.referenciaId, ['ENVIAR_PME', 'PME_ATRASADO']);
     const semaforos = ids((i) => i.inscricaoId, ['SEMAFORO']);
+    const novas = ids((i) => i.inscricaoId, ['NOVA_INSCRICAO']);
     const hoje = this.ciclos.hoje();
 
     const mentorados = new Map<string, FilaItemDTO['mentorado']>();
@@ -291,6 +293,28 @@ export class FilaService {
       for (const l of linhas) porSemaforo.set(l.inscricao_id, { cor: l.cor, motivos: l.motivos });
     }
 
+    // Pessoa que já é mentorada (NPAC-56, M3): mesmo WhatsApp ou e-mail (índice cego) em outra
+    // inscrição que quem pede vê; a mais recente. Só o rótulo: a Admin decide se junta.
+    const jaTem = new Map<string, NonNullable<FilaItemDTO['jaTem']>>();
+    if (novas.length) {
+      const linhas = await tx.execute<{
+        nova: string;
+        id: string;
+        mentoria: Mentoria;
+        status: InscricaoStatus;
+      }>(sql`
+        select distinct on (n.inscricao_id) n.inscricao_id as nova, o.id, o.mentoria, o.status
+        from mentoria_pessoas n
+        join mentoria_pessoas op on op.inscricao_id <> n.inscricao_id
+          and ((n.whatsapp_idx is not null and op.whatsapp_idx = n.whatsapp_idx)
+            or (n.email_idx is not null and op.email_idx = n.email_idx))
+        join mentoria_inscricoes o on o.id = op.inscricao_id
+        where n.inscricao_id = any(${sql.param(novas)}::uuid[])
+        order by n.inscricao_id, o.criado_em desc`);
+      for (const l of linhas)
+        jaTem.set(l.nova, { inscricaoId: l.id, mentoria: l.mentoria, status: l.status });
+    }
+
     const pessoasIds = ids((i) => i.responsavelId);
     const nomes = new Map<string, string>();
     if (pessoasIds.length) {
@@ -312,6 +336,8 @@ export class FilaService {
       semaforo:
         i.tipo === 'SEMAFORO' && i.inscricaoId ? (porSemaforo.get(i.inscricaoId) ?? null) : null,
       ciclo: cicloDoItem(i, porCiclo),
+      jaTem:
+        i.tipo === 'NOVA_INSCRICAO' && i.inscricaoId ? (jaTem.get(i.inscricaoId) ?? null) : null,
     }));
   }
 

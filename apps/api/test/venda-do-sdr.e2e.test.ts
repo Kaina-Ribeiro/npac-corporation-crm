@@ -546,3 +546,200 @@ describe('Hoje de quem registra a venda lista as vendas a registrar', () => {
     expect(await hoje(sonia)).toEqual([]);
   });
 });
+
+// NPAC-59 (Igor, 23/11/2026, "A"): o SDR que pôs o lead em Agendou Pagamento com o produto já fez a
+// venda dele. Quando o closer (ou a liderança) registra a venda, o SDR ganha a renda extra do produto
+// que ele informou, ligada à reunião realizada mais recente, sem precisar de "Marcar venda".
+describe('venda que vem do Agendou Pagamento dá a renda extra ao SDR', () => {
+  /** SDR põe o lead (com reunião realizada) em Agendou Pagamento, com produto e entrada paga. */
+  const schedulePayment = async (id: string, productId = padrao) => {
+    const res = await h.patch(
+      `/api/leads/${id}`,
+      {
+        version: await version(id),
+        stageKey: 'AGENDOU_PAGAMENTO',
+        paymentProductId: productId,
+        paymentCloserId: ids.sonia,
+        paymentEntryPaid: true,
+      },
+      ale,
+    );
+    expect(res.status, res.text).toBe(200);
+  };
+
+  it('closer registra: renda do produto do SDR, na data do registro', async () => {
+    const id = await leadWithMeeting();
+    await schedulePayment(id);
+    expect((await register(id)).status).toBe(201);
+    expect(await marks(id)).toMatchObject([
+      {
+        sdr_id: ids.ale,
+        product_id: padrao,
+        bonus_cents: 1000,
+        marked_by: ids.sonia,
+        canceled_at: null,
+      },
+    ]);
+    const sdr = (await dashboard()).body;
+    expect(sdr.saleBonus).toMatchObject({ count: 1, cents: 1000 });
+    expect(sdr.metrics.sales).toBe(1);
+  });
+
+  it('liderança registra (caso do Igor com o acesso do Ronaldo): o SDR ganha igual', async () => {
+    const id = await leadWithMeeting();
+    await schedulePayment(id);
+    expect((await register(id, padrao, ronaldo)).status).toBe(201);
+    expect(await marks(id)).toMatchObject([
+      { sdr_id: ids.ale, product_id: padrao, bonus_cents: 1000, marked_by: ids.ronaldo },
+    ]);
+  });
+
+  it('closer registra outro produto: a renda segue o produto que o SDR informou', async () => {
+    const id = await leadWithMeeting();
+    await schedulePayment(id, promo);
+    expect((await register(id, padrao)).status).toBe(201);
+    expect(await marks(id)).toMatchObject([{ product_id: promo, bonus_cents: 500 }]);
+  });
+
+  it('estorno tira a renda', async () => {
+    const id = await leadWithMeeting();
+    await schedulePayment(id);
+    const sale = await register(id);
+    expect(sale.status).toBe(201);
+    const [d] = await owner<
+      { version: number }[]
+    >`select version from deals where id = ${sale.body.id}`;
+    const rev = await h.post(
+      `/api/finance/deals/${sale.body.id}/reverse`,
+      { version: d!.version },
+      ronaldo,
+    );
+    expect(rev.status, rev.text).toBeLessThan(300);
+    const after = await marks(id);
+    expect(after).toHaveLength(1);
+    expect(after[0]!.canceled_at).not.toBeNull();
+    expect((await dashboard()).body.saleBonus.count).toBe(0);
+  });
+
+  it('registro direto, sem Agendou Pagamento, continua sem renda (2B de 17/11)', async () => {
+    const id = await leadWithMeeting();
+    expect((await register(id)).status).toBe(201);
+    expect(await marks(id)).toEqual([]);
+  });
+});
+
+describe('reunião já realizada lançada depois (NPAC-62, "1A, 2A")', () => {
+  /** Lead do Ale em Em follow, sem reunião (como a lead do Igor, de antes do CRM). */
+  const leadWithoutMeeting = async () => {
+    const res = await h.post(
+      '/api/leads',
+      {
+        name: `Lead Reunião Antiga ${++seq}`,
+        instagram: `@reuniao.antiga.${seq}`,
+        incomeBand: 'R8_15K',
+        source: 'BIO',
+        stageKey: 'EM_FOLLOW',
+      },
+      ale,
+    );
+    expect(res.status, res.text).toBe(201);
+    return res.body.id as string;
+  };
+  const daysAgo = (n: number) => new Date(Date.now() - n * DAY).toISOString();
+  const logDone = (leadId: string, scheduledAt: string, cookie: Cookie = ale) =>
+    h.post(
+      '/api/meetings/done',
+      { leadId, closerId: ids.sonia, scheduledAt, origin: 'DIRETO' },
+      cookie,
+    );
+  const day = (iso: string) => spDay(new Date(iso));
+  const dashboardOn = (d: string, cookie: Cookie = ale) =>
+    h.post('/api/reports/search', { period: 'RANGE', from: d, to: d }, cookie);
+
+  it('o SDR lança: entra realizada e conta o valor da reunião no dia em que aconteceu (2A)', async () => {
+    const id = await leadWithoutMeeting();
+    const when = daysAgo(3);
+    const res = await logDone(id, when);
+    expect(res.status, res.text).toBe(201);
+    const [m] = await owner<{ outcome: string; outcome_at: Date; scheduled_at: Date }[]>`
+      select outcome, outcome_at, scheduled_at from meetings where lead_id = ${id}`;
+    expect(m!.outcome).toBe('DONE');
+    expect(m!.outcome_at.getTime()).toBe(new Date(when).getTime());
+    const then = (await dashboardOn(day(when))).body.metrics;
+    expect(then).toMatchObject({ done: 1, meetingValueCents: 700 });
+    expect((await dashboard()).body.metrics.done).toBe(0);
+    const kinds = await owner<{ kind: string }[]>`
+      select kind from lead_timeline where lead_id = ${id} order by kind`;
+    expect(kinds.map((k) => k.kind)).toEqual(
+      expect.arrayContaining(['meeting.scheduled', 'meeting.outcome']),
+    );
+  });
+
+  it('a liderança lança no lead de um SDR (1A)', async () => {
+    const id = await leadWithoutMeeting();
+    expect((await logDone(id, daysAgo(1), ronaldo)).status).toBe(201);
+  });
+
+  it('closer não lança (403) e outro SDR não vê o lead (404)', async () => {
+    const id = await leadWithoutMeeting();
+    expect((await logDone(id, daysAgo(1), sonia)).status).toBe(403);
+    expect((await logDone(id, daysAgo(1), murilo)).status).toBe(404);
+    expect(await owner`select 1 from meetings where lead_id = ${id}`).toHaveLength(0);
+  });
+
+  it('horário futuro ou de mais de um ano atrás: 400', async () => {
+    const id = await leadWithoutMeeting();
+    const future = new Date(Date.now() + DAY).toISOString();
+    expect((await logDone(id, future)).status).toBe(400);
+    expect((await logDone(id, daysAgo(400))).status).toBe(400);
+  });
+
+  it('venda registrada de Agendou Pagamento sem reunião (caso do Igor): a reunião lançada dá a renda', async () => {
+    const id = await leadWithoutMeeting();
+    // Lead que entrou em Agendou Pagamento antes da regra da reunião realizada (NPAC-59).
+    await owner`update leads set stage_id = (select id from pipeline_stages where key = 'AGENDOU_PAGAMENTO'),
+      payment_product_id = ${promo}, closer_id = ${ids.sonia} where id = ${id}`;
+    const sale = await register(id, padrao, ronaldo);
+    expect(sale.status, sale.text).toBe(201);
+    expect(await marks(id)).toEqual([]);
+    const res = await logDone(id, daysAgo(5));
+    expect(res.status, res.text).toBe(201);
+    // A renda segue o produto da venda, na data da venda, e quem lançou fica como autor.
+    expect(await marks(id)).toMatchObject([
+      {
+        sdr_id: ids.ale,
+        product_id: padrao,
+        bonus_cents: 1000,
+        marked_by: ids.ale,
+        canceled_at: null,
+      },
+    ]);
+    expect((await dashboard()).body.saleBonus).toMatchObject({ count: 1, cents: 1000 });
+    // Lançar outra não duplica.
+    expect((await logDone(id, daysAgo(4))).status).toBe(201);
+    expect(await marks(id)).toHaveLength(1);
+  });
+
+  it('venda registrada direto, sem Agendou Pagamento, continua sem renda (2B de 17/11)', async () => {
+    const id = await leadWithoutMeeting();
+    expect((await register(id, padrao, ronaldo)).status).toBe(201);
+    expect((await logDone(id, daysAgo(2))).status).toBe(201);
+    expect(await marks(id)).toEqual([]);
+  });
+
+  it('depois da reunião lançada, o lead pode ir para Agendou Pagamento', async () => {
+    const id = await leadWithoutMeeting();
+    expect((await logDone(id, daysAgo(2))).status).toBe(201);
+    const res = await h.patch(
+      `/api/leads/${id}`,
+      {
+        version: await version(id),
+        stageKey: 'AGENDOU_PAGAMENTO',
+        paymentProductId: padrao,
+        paymentCloserId: ids.sonia,
+      },
+      ale,
+    );
+    expect(res.status, res.text).toBe(200);
+  });
+});

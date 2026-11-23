@@ -1,6 +1,11 @@
 import { z } from 'zod';
 import { ALCANCES } from '../alcance.js';
-import { AVISO_DATA, dataCalendarioValida } from '../mentoria/datas.js';
+import { AVISO_DATA, DATA_MAX, DATA_MIN, dataCalendarioValida } from '../mentoria/datas.js';
+import {
+  CAMPOS_EVOLUCAO,
+  LIMITE_CAMPO_EVOLUCAO,
+  LIMITE_DESCRICAO_CONQUISTA,
+} from '../mentoria/evolucao.js';
 import {
   INSCRICAO_STATUS,
   MENTORIAS,
@@ -17,7 +22,7 @@ import { STATUS_IMPORTACAO } from '../mentoria/importacao.js';
 import { linkPermitido } from '../mentoria/links.js';
 import { DEGRAUS_ATRASO, FILA_TIPOS } from '../mentoria/fila.js';
 import { MOMENTOS_MENSAGEM } from '../mentoria/mensagens.js';
-import { ENVIO_STATUS } from '../mentoria/onboarding.js';
+import { ENVIO_STATUS, ENVIO_TIPOS, ENVIO_TIPOS_MANUAIS } from '../mentoria/onboarding.js';
 import { ACAO_STATUS, GATILHOS, PERFIS_ACAO, REUNIAO_TIPOS } from '../mentoria/plano.js';
 import { PILARES } from '../mentoria/metas.js';
 import { META_STATUS, SEMAFORO_CORES } from '../mentoria/semaforo.js';
@@ -205,6 +210,29 @@ export const caixaSchema = z
   })
   .strict();
 export type CaixaPut = z.output<typeof caixaSchema>;
+
+/**
+ * Envios físicos (NPAC-56): "Marcar enviado" (data e rastreio) e "Marcar entregue" (data). Caixa e
+ * presente ainda sem linha vão com `envioId` nulo e versão 0; a data vazia volta com o aviso do banco.
+ */
+export const envioMarcarSchema = z
+  .object({
+    inscricaoId: z.uuid(),
+    tipo: z.enum(ENVIO_TIPOS),
+    envioId: z.uuid().nullable(),
+    version: z.number().int().min(0),
+    status: z.enum(['ENVIADO', 'ENTREGUE']),
+    data,
+    rastreio: texto(120),
+  })
+  .strict();
+export type EnvioMarcar = z.output<typeof envioMarcarSchema>;
+
+/** "Novo envio": kit ou certificado, lançado à mão (G10). */
+export const envioNovoSchema = z
+  .object({ inscricaoId: z.uuid(), tipo: z.enum(ENVIO_TIPOS_MANUAIS) })
+  .strict();
+export type EnvioNovo = z.output<typeof envioNovoSchema>;
 
 const registrosImportados = z.array(z.unknown()).max(25_000).optional();
 
@@ -568,3 +596,31 @@ export const checkinPatchSchema = z
   .object({ version, enviadoEm: dataHora.optional(), ...camposCheckin })
   .strict();
 export type CheckinPatch = z.output<typeof checkinPatchSchema>;
+
+// Aba Evolução (NPAC-57): lista fechada de campos, cada um até 2.000 caracteres; vazio apaga. Primeira gravação manda
+// `version: 0` (cria a linha); as seguintes, a da resposta anterior.
+const textoEvolucao = opc(
+  z.string().trim().max(LIMITE_CAMPO_EVOLUCAO, 'Escreva até 2.000 caracteres por campo'),
+);
+export const evolucaoPutSchema = z
+  .object({
+    version: versionPut,
+    ...(Object.fromEntries(CAMPOS_EVOLUCAO.map((c) => [c, textoEvolucao])) as Record<
+      (typeof CAMPOS_EVOLUCAO)[number],
+      typeof textoEvolucao
+    >),
+  })
+  .strict()
+  .refine((b) => CAMPOS_EVOLUCAO.some((c) => b[c] !== undefined), 'Envie ao menos um campo');
+export type EvolucaoPut = z.output<typeof evolucaoPutSchema>;
+
+// Conquista nova: data na faixa do módulo (como os outros campos de data) e descrição até 500 caracteres.
+export const conquistaCriarSchema = z
+  .object({
+    data: opc(dataIso.refine((v) => v >= DATA_MIN && v <= DATA_MAX, AVISO_DATA)),
+    descricao: opc(
+      z.string().trim().max(LIMITE_DESCRICAO_CONQUISTA, 'Escreva até 500 caracteres na descrição'),
+    ),
+  })
+  .strict();
+export type ConquistaCriar = z.output<typeof conquistaCriarSchema>;

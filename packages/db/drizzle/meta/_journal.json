@@ -533,6 +533,34 @@
       "when": 1795105150761,
       "tag": "0075_alcance_carteira",
       "breakpoints": true
+    },
+    {
+      "idx": 76,
+      "version": "7",
+      "when": 1795309419495,
+      "tag": "0076_acompanhamento_evolucao",
+      "breakpoints": true
+    },
+    {
+      "idx": 77,
+      "version": "7",
+      "when": 1795395831218,
+      "tag": "0077_venda_vira_mentorado",
+      "breakpoints": true
+    },
+    {
+      "idx": 78,
+      "version": "7",
+      "when": 1795402376024,
+      "tag": "0078_envios_fisicos",
+      "breakpoints": true
+    },
+    {
+      "idx": 79,
+      "version": "7",
+      "when": 1795423976024,
+      "tag": "0079_renda_extra_agendou_pagamento",
+      "breakpoints": true
     }
   ]
 }

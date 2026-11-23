@@ -1,6 +1,10 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { AVISO_PAYLOAD, AvisosScheduler } from '../src/mentoria/avisos.scheduler.js';
+import {
+  AVISO_PAYLOAD,
+  AvisosScheduler,
+  ENVIOS_PAYLOAD,
+} from '../src/mentoria/avisos.scheduler.js';
 import { MENTORIA_CLOCK } from '../src/mentoria/relogio.js';
 import { PUSH_SENDER } from '../src/push/push.service.js';
 import {
@@ -126,6 +130,29 @@ afterEach(async () => {
   await owner`delete from mentoria_perfis where user_id in (${ids.murilo!}, ${ids.igor!})`;
   await owner`update "user" set role = 'SDR', can_prospect = true, can_close = false,
     active = true where id in (${ids.murilo!}, ${ids.igor!})`;
+});
+
+describe('push das 8h do cargo Envios (NPAC-56, M6)', () => {
+  it('"Tem envio para hoje" às 8h, uma vez por dia, só com algo a enviar; a Caixa sai da Operação', async () => {
+    await virar('murilo', 'ENVIOS');
+    await aparelho('murilo');
+    await disparar();
+    expect(para('murilo')).toHaveLength(0); // nada a enviar
+    const i = await inscricao();
+    await owner`update mentoria_onboarding_etapas set formulario_preenchido = true,
+      formulario_preenchido_em = ${antes(6)} where inscricao_id = ${i} and etapa = 'BOAS_VINDAS'`;
+    await disparar();
+    expect(para('murilo')).toHaveLength(1);
+    expect(para('murilo')[0]!.payload).toEqual(ENVIOS_PAYLOAD);
+    expect(ENVIOS_PAYLOAD.title).toBe('Tem envio para hoje');
+    // Caixa parada há 6 dias: sem o cargo Envios, a Operação receberia; com ela, não.
+    expect(para('carla')).toHaveLength(0);
+    await disparar();
+    expect(para('murilo')).toHaveLength(1);
+    await ate(brasilia('2026-12-11T08:00:00'));
+    expect(para('murilo')).toHaveLength(2);
+    expect(JSON.stringify(push.sent)).not.toMatch(/Fictício|ficticio/i);
+  });
 });
 
 describe('avisos da Fila no celular', () => {

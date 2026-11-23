@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { itemEhMeu, itemVisivel, type FilaItemBase } from '../src/mentoria/fila.js';
+import {
+  FILA_FEITO_MANUAL,
+  FILA_GRUPOS,
+  FILA_TIPOS,
+  FILA_TIPO_LABEL,
+  itemEhMeu,
+  itemVisivel,
+  type FilaItemBase,
+} from '../src/mentoria/fila.js';
 import {
   linkGrupoValido,
   linkWhatsApp,
@@ -105,5 +113,38 @@ describe('quem vê o item da Fila', () => {
   it('fora do perfil, nem na equipe', () => {
     const manu = { id: 'manu', perfil: 'ESPECIALISTA' as const, admin: false };
     expect(itemVisivel(base, manu, 'EQUIPE')).toBe(false);
+  });
+  it('"Nova inscrição" (NPAC-56, G4) é só de quem é Admin', () => {
+    const nova = {
+      ...base,
+      tipo: 'NOVA_INSCRICAO' as const,
+      responsavelPerfil: 'ACOMPANHAMENTO' as const,
+    };
+    const carla = { id: 'carla', perfil: 'ACOMPANHAMENTO' as const, admin: false };
+    expect(itemEhMeu(nova, duda)).toBe(true);
+    expect(itemEhMeu(nova, carla)).toBe(false);
+    expect(itemVisivel(nova, carla, 'EQUIPE')).toBe(false);
+    expect(itemVisivel(nova, diretor, 'EQUIPE')).toBe(true);
+    expect(itemVisivel(nova, op, 'EQUIPE')).toBe(false);
+  });
+  it('"Venda estornada" (M7) é da responsável, ou do perfil sem ela', () => {
+    const estornada = {
+      ...base,
+      tipo: 'VENDA_ESTORNADA' as const,
+      responsavelPerfil: 'ACOMPANHAMENTO' as const,
+    };
+    const carla = { id: 'carla', perfil: 'ACOMPANHAMENTO' as const, admin: false };
+    expect(itemEhMeu(estornada, carla)).toBe(true);
+    expect(itemEhMeu({ ...estornada, responsavelId: 'duda' }, carla)).toBe(false);
+    expect(itemEhMeu({ ...estornada, responsavelId: 'duda' }, duda)).toBe(true);
+    expect(FILA_FEITO_MANUAL).toContain('VENDA_ESTORNADA');
+  });
+  it('todo tipo da Fila tem rótulo e grupo', () => {
+    for (const t of FILA_TIPOS) {
+      expect(FILA_TIPO_LABEL[t]).toBeTruthy();
+      expect(FILA_GRUPOS.some((g) => (g.tipos as readonly string[]).includes(t))).toBe(true);
+    }
+    expect(FILA_TIPO_LABEL.NOVA_INSCRICAO).toBe('Nova inscrição');
+    expect(FILA_TIPO_LABEL.VENDA_ESTORNADA).toBe('Venda estornada');
   });
 });

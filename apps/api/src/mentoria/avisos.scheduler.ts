@@ -25,6 +25,17 @@ export const AVISO_PAYLOAD: PushPayload = {
   tag: 'mentoria-fila',
 };
 
+/** Push das 8h ao cargo Envios (NPAC-56, M6): sem nome, só quando há algo a enviar. */
+export const ENVIOS_PAYLOAD: PushPayload = {
+  title: 'Tem envio para hoje',
+  body: 'Envios físicos',
+  url: '/acompanhamento/envios',
+  tag: 'mentoria-envios',
+};
+
+/** Chaves do push das 8h dos envios (`envios:<dia>`, 0078). */
+const ENVIOS_CHAVE = 'envios:';
+
 /** Se o próximo já venceu logo depois de um disparo (outra instância com o lock), espera 1 s. */
 const RETRY_DELAY = 1000;
 
@@ -143,8 +154,15 @@ export class AvisosScheduler implements OnApplicationBootstrap, OnModuleDestroy 
     const due = await this.db.execute<{ chave: string; user_ids: string[] }>(
       sql`select * from mentoria_aviso_reclamar(${now}::timestamptz)`,
     );
-    const pessoas = [...new Set(due.flatMap((r) => r.user_ids))];
-    if (pessoas.length) await this.push.notify(pessoas, AVISO_PAYLOAD);
+    const de = (envios: boolean) => [
+      ...new Set(
+        due.filter((r) => r.chave.startsWith(ENVIOS_CHAVE) === envios).flatMap((r) => r.user_ids),
+      ),
+    ];
+    const fila = de(false);
+    const envios = de(true);
+    if (fila.length) await this.push.notify(fila, AVISO_PAYLOAD);
+    if (envios.length) await this.push.notify(envios, ENVIOS_PAYLOAD);
   }
 }
 

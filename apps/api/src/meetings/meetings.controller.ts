@@ -10,6 +10,13 @@ const future = z.iso
   .datetime({ offset: true })
   .transform((s) => new Date(s))
   .refine((d) => d.getTime() > Date.now(), 'Escolha um horário futuro');
+/** NPAC-62: reunião que já aconteceu, lançada como realizada. Até um ano para trás. */
+const YEAR_MS = 365 * 86_400_000;
+const past = z.iso
+  .datetime({ offset: true })
+  .transform((s) => new Date(s))
+  .refine((d) => d.getTime() <= Date.now(), 'Escolha um horário que já passou')
+  .refine((d) => d.getTime() >= Date.now() - YEAR_MS, 'Escolha uma data de até um ano atrás');
 const version = z.object({ version: z.number().int().positive() });
 const schedule = z
   .object({
@@ -19,6 +26,7 @@ const schedule = z
     origin: z.enum(MEETING_ORIGINS),
   })
   .strict();
+const done = schedule.extend({ scheduledAt: past }).strict();
 const change = version
   .extend({ scheduledAt: future.optional(), closerId: z.string().min(1).optional() })
   .strict()
@@ -35,6 +43,12 @@ export class MeetingsController {
   @Can('meeting:schedule')
   create(@CurrentUser() u: SessionUser, @Body() body: unknown) {
     return this.meetings.create(u, validate(schedule, body));
+  }
+  /** Reunião já realizada (NPAC-62, Igor 23/11/2026, "1A, 2A"): SDR do lead ou liderança. */
+  @Post('done')
+  @Can('meeting:schedule')
+  createDone(@CurrentUser() u: SessionUser, @Body() body: unknown) {
+    return this.meetings.createDone(u, validate(done, body));
   }
   @Patch(':id')
   @Can('meeting:reschedule')

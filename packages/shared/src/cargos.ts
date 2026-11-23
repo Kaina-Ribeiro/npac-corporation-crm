@@ -16,6 +16,7 @@ export const CARGOS = [
   'OPERACAO',
   'ESPECIALISTA',
   'MENTOR',
+  'ENVIOS',
 ] as const;
 export type Cargo = (typeof CARGOS)[number];
 
@@ -31,7 +32,6 @@ export type CargoInfo = {
   area: Area;
   role: Role;
   perfil: Perfil | null;
-  dica: string;
 };
 
 export const CARGO_INFO: Record<Cargo, CargoInfo> = {
@@ -40,57 +40,71 @@ export const CARGO_INFO: Record<Cargo, CargoInfo> = {
     area: 'COMERCIAL',
     role: 'SDR',
     perfil: null,
-    dica: 'Cadastra e trabalha os próprios leads e agenda reuniões. Não vê valores de venda.',
   },
   CLOSER: {
     label: 'Closer',
     area: 'COMERCIAL',
     role: 'CLOSER',
     perfil: null,
-    dica: 'Faz as reuniões e registra vendas e pagamentos.',
   },
   HEAD: {
     label: 'Head',
     area: 'COMERCIAL',
     role: 'HEAD',
     perfil: null,
-    dica: 'Vê e gerencia todo o comercial. Administra SDRs e Closers.',
   },
   DIRETOR: {
     label: 'Diretoria',
     area: 'COMERCIAL',
     role: 'DIRETOR',
     perfil: null,
-    dica: 'Tudo do Head. Dá cargos de liderança e é Admin do Acompanhamento.',
   },
   ACOMPANHAMENTO: {
     label: 'Acompanhamento',
     area: 'ACOMPANHAMENTO',
     role: 'ACOMPANHAMENTO',
     perfil: 'ACOMPANHAMENTO',
-    dica: 'Cuida da jornada de todos os mentorados.',
   },
   OPERACAO: {
     label: 'Operação',
     area: 'ACOMPANHAMENTO',
     role: 'ACOMPANHAMENTO',
     perfil: 'OPERACAO',
-    dica: 'Cadastra inscrições, onboarding, Caixa e agenda de reuniões.',
   },
   ESPECIALISTA: {
     label: 'Especialista',
     area: 'ACOMPANHAMENTO',
     role: 'ACOMPANHAMENTO',
     perfil: 'ESPECIALISTA',
-    dica: 'Vê só os mentorados das reuniões que conduz.',
   },
   MENTOR: {
     label: 'Mentor',
     area: 'ACOMPANHAMENTO',
     role: 'ACOMPANHAMENTO',
     perfil: 'MENTOR',
-    dica: 'Aparece como condutor das reuniões. Ainda sem acesso: o painel chega depois.',
   },
+  ENVIOS: {
+    label: 'Envios',
+    area: 'ACOMPANHAMENTO',
+    role: 'ACOMPANHAMENTO',
+    perfil: 'ENVIOS',
+  },
+};
+
+/**
+ * Dica de cada cargo no campo Cargo do Admin. Fora do `CARGO_INFO` para não pesar no JS de `/leads`
+ * (o selo do cargo usa só rótulo e perfil).
+ */
+export const CARGO_DICA: Record<Cargo, string> = {
+  SDR: 'Cadastra e trabalha os próprios leads e agenda reuniões. Não vê valores de venda.',
+  CLOSER: 'Faz as reuniões e registra vendas e pagamentos.',
+  HEAD: 'Vê e gerencia todo o comercial. Administra SDRs e Closers.',
+  DIRETOR: 'Tudo do Head. Dá cargos de liderança e é Admin do Acompanhamento.',
+  ACOMPANHAMENTO: 'Cuida da jornada de todos os mentorados.',
+  OPERACAO: 'Cadastra inscrições, onboarding, Caixa e agenda de reuniões.',
+  ESPECIALISTA: 'Vê só os mentorados das reuniões que conduz.',
+  MENTOR: 'Aparece como condutor das reuniões. Ainda sem acesso: o painel chega depois.',
+  ENVIOS: 'Envia caixas, presentes, kits e certificados.',
 };
 
 export const CARGOS_POR_AREA: Record<Area, Cargo[]> = {

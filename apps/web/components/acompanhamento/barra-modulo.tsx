@@ -10,10 +10,30 @@ const SEM_TOPO = [
   '/acompanhamento/configuracoes',
 ];
 
-/** Topo do módulo: busca em todas as abas; no celular, o avatar leva ao Mais. */
-export function BarraModulo({ inicial, foto }: { inicial: string; foto: string | null }) {
+/**
+ * Topo do módulo: busca em todas as abas; no celular, o avatar leva ao Mais. O cargo Envios não busca
+ * mentorados (NPAC-56): fica só o avatar.
+ */
+export function BarraModulo({
+  inicial,
+  foto,
+  busca = true,
+}: {
+  inicial: string;
+  foto: string | null;
+  busca?: boolean;
+}) {
   const path = usePathname();
   if (SEM_TOPO.includes(path)) return null;
+  if (!busca)
+    return (
+      <div className="top so-cel">
+        <span className="flex-1" />
+        <Link className="ava me" href="/acompanhamento/mais" aria-label="Menu e conta">
+          {foto ? <img src={foto} alt="" /> : inicial}
+        </Link>
+      </div>
+    );
   return (
     <div className="top">
       <BuscaModulo />

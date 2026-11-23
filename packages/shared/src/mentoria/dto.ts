@@ -11,9 +11,10 @@ import type {
   TipoAvaliacao,
   TipoInscricao,
 } from './enums.js';
-import type { EnvioStatus, Etapa, EtapaStatus } from './onboarding.js';
+import type { EnvioStatus, EnvioTipo, Etapa, EtapaStatus } from './onboarding.js';
 import type { AcaoStatus, Gatilho, PerfilAcao, ReuniaoTipo } from './plano.js';
 import type { CanalContato, Plataforma, ReuniaoStatus } from './reunioes.js';
+import type { CampoEvolucao } from './evolucao.js';
 import type { Pilar } from './metas.js';
 import type { CicloStatus, TarefaOrigem, TarefaStatus } from './pmes.js';
 import type { MetaStatus, SemaforoCor, SemaforoMotivo } from './semaforo.js';
@@ -225,6 +226,33 @@ export type IdrPainel = {
   entregueEm: string | null;
 };
 
+/**
+ * Um envio da aba Envios físicos (NPAC-56). Só o que a Maria precisa: nomes, endereço e CEP e a foto do
+ * presente (M5). `id` nulo = Caixa ou presente ainda sem linha (versão 0).
+ */
+export type EnvioDTO = {
+  id: string | null;
+  inscricaoId: string;
+  tipo: EnvioTipo;
+  status: EnvioStatus;
+  nomes: string[];
+  endereco: string | null;
+  cep: string | null;
+  fotoMidiaId: string | null;
+  enviadoEm: string | null;
+  entregueEm: string | null;
+  rastreio: string | null;
+  version: number;
+};
+
+/** `GET mentoria/envios`: "A enviar", "Em trânsito" e "Entregues" (últimos 30 dias). */
+export type EnviosDTO = {
+  hoje: string;
+  aEnviar: EnvioDTO[];
+  emTransito: EnvioDTO[];
+  entregues: EnvioDTO[];
+};
+
 /** `POST mentoria/onboarding/painel`: a aba Onboarding inteira. */
 export type PainelOnboarding = {
   total: number;
@@ -344,6 +372,11 @@ export type FichaDTO = {
   valorCentavos: number | null;
   formaPagamento: string | null;
   statusFinanceiro: StatusFinanceiro | null;
+  /**
+   * Venda do comercial que criou a inscrição (NPAC-56): com ela, a situação do pagamento vem das
+   * parcelas e não se edita (M8). Nula = cadastrada ou importada.
+   */
+  dealId: string | null;
   status: InscricaoStatus;
   responsavelId: string | null;
   origem: Origem | null;
@@ -399,6 +432,10 @@ export type FichaDTO = {
     checkin: boolean;
     /** Dar segunda chance no PME aberto (Admin, Acompanhamento). */
     segundaChance: boolean;
+    /** Aba Evolução aparece (Admin, Acompanhamento com a carteira, Operação; NPAC-57). */
+    verEvolucao: boolean;
+    /** Edita a aba Evolução: cartões, momentos, fotos e conquistas (Admin, Acompanhamento). */
+    evolucao: boolean;
     /** Trocar o responsável: quem edita a inscrição, menos quem tem "só a carteira" (Fase 3B, e). */
     responsavel: boolean;
     admin: boolean;
@@ -647,3 +684,46 @@ export type ContatoDTO = {
 
 /** Quem pode conduzir: qualquer usuário ativo (D4, §3), com o perfil do módulo se tiver. */
 export type Condutor = { id: string; nome: string; perfil: Perfil | null };
+
+/** Conquista da aba Evolução (NPAC-57). `criadoEm`: ISO. */
+export type ConquistaDTO = {
+  id: string;
+  data: string | null;
+  descricao: string | null;
+  midia: { id: string; tipo: 'FOTO' | 'VIDEO' } | null;
+  criadoEm: string;
+};
+
+/** Aba Evolução (`GET mentoria/inscricoes/:id/evolucao`): textos decifrados e o que vem das outras abas. */
+export type EvolucaoDTO = {
+  inscricaoId: string;
+  /** 0 = ainda sem linha (o primeiro salvamento cria). */
+  version: number;
+  campos: Record<CampoEvolucao, string | null>;
+  atualAtualizadoEm: string | null;
+  /** Nome de quem mexeu por último nos tópicos ou na foto do momento atual. */
+  atualAtualizadoPor: string | null;
+  fotoInicial: { id: string; em: string } | null;
+  fotoAtual: { id: string; em: string } | null;
+  /** Da aba Momento inicial, só leitura. */
+  daAba: { dor: string | null; sonho: string | null; meta: string | null };
+  partida: {
+    recebeCentavos: number | null;
+    custoCentavos: number | null;
+    dividasCentavos: number | null;
+    guardadoCentavos: number | null;
+    concluidoEm: string | null;
+  };
+  /** Avaliação PILARES INICIAL de cada pessoa. */
+  pilares: {
+    pessoaId: string;
+    nome: string;
+    fe: number | null;
+    saude: number | null;
+    dinheiro: number | null;
+    relacionamentos: number | null;
+  }[];
+  /** Por data, sem data por último. */
+  conquistas: ConquistaDTO[];
+  podeEditar: boolean;
+};

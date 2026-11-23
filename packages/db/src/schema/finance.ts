@@ -27,11 +27,14 @@ export const products = pgTable(
     priceCents: integer('price_cents').notNull(),
     /** Renda extra do SDR por venda deste produto (NPAC-48, Igor 17/11/2026); a liderança edita. */
     sdrBonusCents: integer('sdr_bonus_cents').notNull().default(0),
+    /** Mentoria que a venda deste produto cria no Acompanhamento (NPAC-56, M1); nulo = não vira mentorado. */
+    mentoria: text('mentoria'),
     active: boolean('active').notNull().default(true),
   },
   (t) => [
     check('product_positive_price', sql`${t.priceCents} > 0`),
     check('product_sdr_bonus', sql`${t.sdrBonusCents} >= 0`),
+    check('product_mentoria', sql`${t.mentoria} in ('RDV', '2M', '6M')`),
   ],
 );
 

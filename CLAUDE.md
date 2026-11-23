@@ -102,7 +102,8 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
 - **Acompanhamento (mentorados), v2 em 5 partes** (plano `docs/superpowers/plans/2026-11-10-acompanhamento-v2-fase-1.md`, protótipo `docs/acompanhamento/prototipo/canvas/`):
   API `api/mentoria/*` (guarda 404 + MFA: `MentoriaController` em `mentoria.guard.ts`; perfil `perfil.guard.ts`,
   `perfis.*`; inscrição e ficha `inscricoes.*`, `ficha.service.ts`, `historico.ts`; mídia `midia.controller.ts`,
-  `media-store.ts`, `media-sniff.ts`, `media-worker.ts`; cifra `mentoria-crypto.ts`; onboarding e Caixa `onboarding.*`
+  `media-store.ts`, `media-sniff.ts` (`semMetadados`: foto sem EXIF/GPS; MP4/MOV com `udta`/`meta`/`uuid` virando `free`
+  zerado, mesmo tamanho e posições, NPAC-57; PDF como veio), `media-worker.ts`; cifra `mentoria-crypto.ts`; onboarding e Caixa `onboarding.*`
   (regras puras `sh/mentoria/onboarding.ts`; CAIXA e IDR são derivadas, gatilhos da 0048); importação `importacao/*`, junção das
   fontes `sh/mentoria/importacao.ts`, planilha lida por título em `ler-planilha.ts`, CPF descartado ali; `importacao_chave` impede
   reimportar quem foi renomeado; reimportar só acrescenta, quem já está não muda; tela em Configurações > Importação, com
@@ -127,7 +128,28 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   Parte 3 (0069): check-ins `checkins.*`, semáforo (`mentoria_semaforo`, histórico gravado pelo `avisos.scheduler.ts`), rótulos
   `sh/mentoria/semaforo.ts`, tela `components/acompanhamento/semaforo.tsx`, colunas e filtro em `mentorados-lista.tsx`;
   Parte 4 (0070): itens novos da Fila (`mentoria_fila`, `fila.service.ts`, degraus em `sh/mentoria/fila.ts`), contato do degrau
-  (`reunioes.service.ts`), aba 7 `pmes-ciclos.controller.ts` + `web/app/(app)/acompanhamento/pmes`, `components/acompanhamento/pmes-ciclos.tsx`
+  (`reunioes.service.ts`), aba 7 `pmes-ciclos.controller.ts` + `web/app/(app)/acompanhamento/pmes`, `components/acompanhamento/pmes-ciclos.tsx`;
+  **Evolução** (NPAC-57, 22/11/2026, spec `docs/superpowers/specs/2026-11-21-aba-evolucao-design.md`, plano
+  `docs/plans/npac-57-aba-evolucao.md`, opção A): aba da ficha com cartões antes → hoje, Momento inicial (da aba Momento
+  inicial) × Momento atual com foto e tópicos, Pontos de partida dos 4 pilares, Conquistas e "Baixar PDF". Banco 0076:
+  `mentoria_evolucao` (uma por inscrição, textos cifrados com AAD, `version`; `atual_atualizado_em/por` gravados pelo gatilho
+  `mentoria_evolucao_guarda`) e `mentoria_conquistas` (sem UPDATE; sai só por `mentoria_conquista_excluir`), área `EVOLUCAO`
+  em `mentoria_edita`. Veem e baixam o PDF Admin, Acompanhamento ("só a carteira": a carteira) e Operação
+  (`mentoria_ve_evolucao`; leitura por `mentoria_ids_carteira()`, nunca `_visiveis`); editam Admin e Acompanhamento; a
+  **Especialista recebe 404** (aba, rotas e PDF). API `evolucao.controller.ts` + `evolucao.service.ts` (`GET` e
+  `PUT inscricoes/:id/evolucao` com `version`, `POST inscricoes/:id/conquistas`, `DELETE conquistas/:id`; histórico só com nomes
+  de campo); fotos pelo `midia.controller.ts` com os donos `evolucao-inicial`, `evolucao-atual` (dono = inscrição, uma foto
+  por momento) e `conquista`, conferidos no banco por `mentoria_midia_do_dono` (mídia de outro registro, 22023). **Cópia do
+  legado ao subir e depois de cada importação** (`evolucao-legado.ts`, 2A; `ImportacaoService.importar` chama
+  `copiarDepoisDeImportar` após o commit, sem lançar, pois em prod a importação veio depois do deploy): uma instância por vez (advisory lock), percorre `mentoria_legado` pelas funções
+  SECURITY DEFINER `mentoria_evolucao_legado_pendentes`/`_gravar`, que só rodam sem sessão (`app_user_id() IS NULL`; pedido
+  logado recebe 42501); nunca sobrescreve campo escrito nem duplica conquista, marca `legado_copiado_em`, **não grava
+  histórico** e loga só "evolução: N inscrições copiadas do legado" (ilegível: só o id, fica pendente). Excluir e anonimizar
+  a inscrição levam evolução, conquistas e mídias; nada da evolução no CSV. Tela `components/acompanhamento/evolucao*.tsx`
+  (fila de salvamento `evolucao:<id>`; grades por container query `.evs`, não pela largura da tela); regras puras
+  `sh/mentoria/evolucao.ts`. **PDF pela impressão do navegador**: rota `app/(impressao)/acompanhamento/ficha/[id]/evolucao/pdf/`
+  (grupo fora da casca do app, CSS `evolucao-pdf.css`, A4 com `@page { margin: 0 }`, `imprimir-ao-abrir.tsx`). e2e
+  `acompanhamento-evolucao.spec.ts`, `mobile-layout-evolucao.spec.ts`; capturas `CAPTURAS=<pasta> … e2e/capturas-evolucao.spec.ts`
   · banco `db/src/schema/mentoria.ts`
   - 0044–0045 (`mentoria_perfil()`, `mentoria_admin()`, `mentoria_ve()`, `mentoria_edita()`, funções `mentoria_*`) ·
     seed `db/src/seed-mentoria.ts` · lógica pura `sh/mentoria/*` (cliente: `@npac/shared/mentoria`, sem zod) ·
@@ -138,6 +160,56 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
 - **Docs:** `docs/spec.md`; deploy `docs/deploy.md` (Oracle), `docs/deploy-cubeship.md` (o `web` do
   ITODEV só fala com a API dele pela build arg `API_INTERNAL_URL`; sem ela cai na API de produção:
   conferir com o `curl` da seção 4 antes de testar); planos `docs/superpowers/plans/`; releases `RELEASING.md`
+- **Próximo no Acompanhamento** (Gabriel, 19/11/2026): a gestão vem antes da área do mentorado, que fica por último.
+  Bloco 1 (NPAC-56, venda vira mentorado + cargo Envios e aba Envios físicos): spec
+  `docs/superpowers/specs/2026-11-19-acompanhamento-gestao-bloco-1-design.md`, plano `docs/plans/acompanhamento-gestao-bloco-1.md`.
+  O Acompanhamento mexe no comercial quando precisar (G1, 19/11/2026). Partes 1 e 2 prontas (22 e 23/11/2026).
+- **Venda vira mentorado** (NPAC-56, Parte 1, 0077; Eduarda 1A–5A): `insertSale` (`api/finance/finance.service.ts`) recebe
+  `InscricaoDaVenda` (`api/mentoria/venda/inscricao-da-venda.ts`, exportado pelo `MentoriaModule` com o `AvisosScheduler`)
+  e, se o produto tem `products.mentoria` (`RDV`/`2M`/`6M`; Admin > Produtos "Vira mentorado", "Não" = nulo; a 0077
+  preencheu os de mentoria pelo código ou nome, como a 0066), cria a inscrição **na transação da venda** (G9): decifra o
+  contato do lead (chave do comercial), cifra com a do Acompanhamento (AAD da pessoa) e chama
+  `mentoria_inscricao_da_venda` (SECURITY DEFINER; só quem criou a venda, venda não estornada e sem inscrição): ONBOARDING,
+  INDIVIDUAL, sem responsável, `data_compra` = dia de Brasília do `closed_at`, valor = total, forma Cartão/Pix/Boleto/Parcial,
+  pessoa 1 com nome, WhatsApp, e-mail e Instagram, as 6 etapas, histórico `inscricao.criada_pela_venda` e auditoria
+  `mentoria.inscricao_da_venda` (sem nome nem e-mail). Falhou: 409 "Não foi possível criar o mentorado no Acompanhamento.
+  Tente de novo; se continuar, avise a liderança." e a venda inteira volta (o log leva só o código do erro). Vale para
+  `POST /finance/deals` e o cadastro em Venda Fechada com a venda; o mesmo `requestKey` não duplica; vendas de antes da 0077
+  não viram (M2); pessoa já mentorada ganha outra inscrição (M3). Depois do commit, `avisos.rearm()` (venda e estorno).
+  `mentoria_inscricoes.deal_id` **sem FK** (a FK travaria o `truncate deals` dos testes; venda não se apaga), único quando
+  não nulo; só o banco grava (gatilho `mentoria_inscricoes_venda_guarda`, que também recusa mudar `status_financeiro` de
+  inscrição com venda: 400 "A situação do pagamento vem das parcelas do comercial"). **Estorno** (gatilho
+  `deals_mentoria_estorno`): a inscrição vira CANCELADO (pausa aberta fecha no dia), nada é apagado, histórico
+  `inscricao.cancelada_pelo_estorno` e auditoria. **Situação do pagamento** `mentoria_status_financeiro(inscricao)`: sem venda
+  a coluna; com venda QUITADO (nada em aberto), EM_ATRASO (parcela sem baixa vencida) ou EM_DIA; nulo para quem não vê. Ficha
+  e CSV leem por ela; a ficha traz `dealId`, mostra o selo "Veio da venda de DD/MM" e o Financeiro só leitura. **Fila**:
+  `NOVA_INSCRICAO` (`nova-inscricao:<inscrição>`, inscrição com venda sem responsável e não cancelada; só de quem é Admin,
+  `SO_ADMIN` em `sh/mentoria/fila.ts`; o painel tem o seletor "Responsável" e "Já tem inscrição: <mentoria>, <status>"
+  pelo índice cego, `jaTem` no DTO) e `VENDA_ESTORNADA` (`venda-estornada:<inscrição>`, CANCELADO com o histórico do estorno;
+  da responsável ou do perfil; sai com "Visto", `FILA_FEITO_MANUAL`). Push: nova à Admin (selo; sem nenhuma, a Diretoria) e
+  estornada à responsável, uma vez cada (`mentoria_avisos_candidatos`). O closer só executa a função: não lê o módulo (404
+  na ficha). Testes: `db/test/mentoria-venda.test.ts`, `fila-equivalencia` (bloco NPAC-56), `api/test/mentoria-v2-venda.e2e.test.ts`,
+  `e2e/acompanhamento-venda.spec.ts`. Venda de RDV/2M/6M nos testes do comercial agora também cria inscrição.
+
+- **Envios físicos** (NPAC-56, Parte 2, 0078; protótipo aprovado pelo Gabriel, "A", capturas em
+  `docs/acompanhamento/prototipo/envios/`): cargo **Envios** (perfil `ENVIOS` no Acompanhamento, a Maria; `sh/cargos.ts`,
+  convidado pela Admin do módulo na aba Perfis) que **não lê nada pela RLS**: tudo por funções SECURITY DEFINER. Lista
+  `mentoria_envios_lista(agora)` (nomes, endereço cifrado, CEP, foto só do presente ainda não entregue; a gestão vê só o que
+  a RLS dela deixa) e escrita `mentoria_envio_marcar(inscricao, tipo, envio, version, status, data, rastreio, agora)`
+  (advisory lock, 409 por versão, mensagens em português, histórico só com nomes de campo); as duas e o push leem a interna
+  `mentoria_envios_calc`. Entram sozinhos: a **Caixa** quando a etapa está pendente e o formulário do endereço foi marcado
+  (ou a Boas-vindas dispensada), o **presente da família** quando a foto da família chega; Caixa e presente sem linha vêm com
+  `id` nulo e versão 0 e ganham a linha na primeira marcação (ler não grava). Kit e certificado: "Novo envio" da gestão
+  (`POST mentoria/envios`, Admin, Acompanhamento e Operação). A Caixa entregue conclui a etapa CAIXA (gatilho
+  `mentoria_caixa_segue_envio`, também pelo `PUT …/caixa` do Onboarding). Entregues somem depois de 30 dias. API
+  `envios.controller.ts` (`GET mentoria/envios`, `POST mentoria/envios/marcar`); fora disso, de `mentoria/eu` e da foto do
+  presente (`mentoria_envio_foto_ve` na política de `mentoria_midia`), o cargo recebe 404 (o `PADRAO` do `PerfilGuard` não
+  inclui ENVIOS). Web: `/acompanhamento/envios` (`components/acompanhamento/envios.tsx`, `soEnvios`/`veEnvios` em
+  `lib/acompanhamento.ts`): o cargo entra direto nela (`/acompanhamento` redireciona), menu, barra do celular e Mais só com
+  ela, sem a busca do topo; a gestão vê "Abrir ficha" e "Novo envio". Fila: `ENVIAR_CAIXA` vai ao perfil Envios quando há
+  alguém ativo nele (`mentoria_tem_envios()`), senão à Operação; push "Tem envio para hoje" às 8h (`envios:<dia>`, a quem é
+  Envios, havendo algo a enviar; `ENVIOS_PAYLOAD` no `avisos.scheduler.ts`). Testes: `db/test/mentoria-envios.test.ts`,
+  `fila-equivalencia` (bloco Parte 2), `api/test/mentoria-v2-envios.e2e.test.ts`, `e2e/acompanhamento-envios.spec.ts`.
 
 **Navegação e carregamento** (desempenho, Fase 2, 12/11/2026): o menu usa o `prefetch` padrão do Next
 (rota dinâmica sem `loading.tsx` não pré-carrega a página); `semPrefetch` (Ficha e itens "Em breve")
@@ -210,7 +282,7 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   cargo Acompanhamento sem o selo, `area_membros.alcance` = `TODOS` (padrão, igual a antes) ou `CARTEIRA` (só as
   inscrições em que a pessoa é `responsavel_id`). Não é cargo novo: o perfil continua `ACOMPANHAMENTO` (guardas `@Perfis`,
   responsável, transferência e catálogos iguais). Grava pela regra única como troca de cargo: `area_definir_membro(…,
-  alcance)` (5 argumentos; a de 4 mantém o alcance), por convite, aprovação, `PATCH admin/users` e `PUT mentoria/perfis`
+alcance)` (5 argumentos; a de 4 mantém o alcance), por convite, aprovação, `PATCH admin/users` e `PUT mentoria/perfis`
   (campo `alcance`; "Só a carteira" em outro cargo = 400); trocar o cargo ou dar o selo volta a `TODOS` (gatilho
   `area_membros_alcance` + CHECK). Recorte só no banco: `mentoria_so_carteira()`, `mentoria_ids_carteira()`,
   `mentoria_carteira_ok(inscricao)`; `mentoria_ve_todas()` exclui quem tem "só a carteira"; as políticas que liam
@@ -256,7 +328,7 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
   do banco grava por ela) e `mentoria_definir_perfil` chama `area_definir_membro`. Coluna `mestre` só pelas funções.
 - **Cargo em um passo** (11/11/2026, spec `docs/superpowers/specs/2026-11-11-cargos-design.md`): no
   Admin, um campo "Cargo" agrupado (Comercial: SDR, Closer, Head, Diretoria; Acompanhamento:
-  Acompanhamento, Operação, Especialista, Mentor). Rótulos, dicas e o mapa cargo ↔ (`role`, perfil) em
+  Acompanhamento, Operação, Especialista, Mentor, Envios). Rótulos, dicas e o mapa cargo ↔ (`role`, perfil) em
   `sh/cargos.ts` (`@npac/shared/cargos`, sem zod); regra pura `resolverCargo`, aplicada por
   `api/admin/cargo.ts` em convite, aprovação de pedido e PATCH (mesmo schema `sh/schemas/account.ts`).
   Cargo do Acompanhamento grava `role = ACOMPANHAMENTO` + perfil (`mentoria_definir_perfil`) na mesma
@@ -329,7 +401,7 @@ sem `'use client'` (ex.: `lib/last-user.ts`, `role-tag.tsx`).
 - MFA (TOTP) **opcional** (28/10/2026, vale com `MFA_LIGADO`): cada um liga/desliga em `/conta/mfa`; quem ligou confirma o
   login, código enviado sozinho aos 6 dígitos (`lib/otp-input.ts`). Primeiro acesso só obriga trocar a senha.
 - **Acompanhamento** (`ACOMPANHAMENTO`, 04/11/2026): só o módulo de mentorados; dentro dele, o **perfil**
-  (`mentoria_perfis`: Acompanhamento, Operação, Especialista, Mentor) e o selo de Admin decidem o resto, por RLS
+  (`mentoria_perfis`: Acompanhamento, Operação, Especialista, Mentor, Envios) e o selo de Admin decidem o resto, por RLS
   (`mentoria_ve`, `mentoria_edita`; Diretoria é Admin sem linha). Cargo sem perfil vê "Peça ao Admin" e Mentor vê
   "Seu painel chega em breve", sem menu (`components/acompanhamento/sem-acesso.tsx`, no layout de `(app)`); API 404 em tudo menos
   `mentoria/eu`. MFA obrigatório nas rotas `mentoria/*` para quem usa o módulo (Diretoria ou vínculo no Acompanhamento), 404 para os demais. O cargo não vê nada do comercial
@@ -520,12 +592,30 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
   o closer não recebe. Igor, 17/11 ("1A, 2B"): a renda segue o produto que o SDR marcou, mesmo que o
   closer registre outro; venda registrada direto pelo closer, sem marcação, não gera renda. Valores do Igor: Nação Promocional R$ 5, Padrão (Normal) R$ 10, Completo (Cheio) R$ 20,
   RDV R$ 70, 2M R$ 90, 6M R$ 120 (seed e 0066, por código ou nome).
+  **Venda vinda de Agendou Pagamento** (NPAC-59, Igor 23/11/2026, "A"): pôr o lead em Agendou Pagamento com o
+  produto já é a venda do SDR. Quem registra a venda (closer ou liderança, `POST /finance/deals`) grava a marcação
+  (`recordPaymentSaleMark` em `api/leads/sale-mark.ts`, antes de limpar o pagamento): SDR do lead, produto do
+  pagamento, reunião realizada mais recente, data e autor do registro. Sem reunião realizada ou com marcação ativa,
+  nada. Registro direto de outra etapa segue sem renda (2B). A 0079 deu a marcação às vendas assim registradas
+  desde 17/11 (produto da venda, porque o do pagamento some ao registrar; `db/test/renda-extra-agendou-pagamento.test.ts`).
 - **Campos por etapa** (NPAC-38, 05/11/2026, "1A 2A 3A"): Agendados pedem `meeting` (criada na
   mesma transação, origem pela etapa, `rearm()` depois do commit; reunião futura aberta dispensa),
   Agendou Pagamento pede data (`next_contact_at`) + produto + valor, Sem Perfil pede `lost_reason`
   (+ texto se Outro; limpa o próximo contato). 409 `MEETING_/PAYMENT_/REASON_REQUIRED` só quando a
   etapa muda; leads antigos ficam como estão. Sair da etapa ou registrar venda apaga pagamento e
   motivo. Closer grava esses campos só junto da troca (gatilho da 0037, refeito na 0039). Regra em `api/leads/stage-fields.ts`.
+  **Agendou Pagamento só depois da reunião realizada** (NPAC-59, Igor 23/11/2026, "A": cadastrou → reunião → realizada →
+  Agendou Pagamento → pagou): entrar na etapa pede reunião com resultado DONE e não cancelada (409
+  `MEETING_DONE_REQUIRED`, "marque antes a reunião como realizada"; futura, sem resultado ou no-show não contam), para
+  todos os cargos. O cadastro não entra mais na etapa (lead novo não tem reunião); quem já está nela fica (3A). Na tela,
+  `StageOptionsAfterMeeting` (`components/stage-options-after-meeting.tsx`, fora do `crm-ui` pelo limite de JS de
+  `/leads`) desativa a opção no cadastro e na ficha sem reunião realizada; Pipeline e lista mostram o 409 na janelinha.
+  **Reunião já realizada lançada depois** (NPAC-62, Igor 23/11/2026, "1A, 2A"): na ficha, a caixa "A reunião já aconteceu"
+  (só o SDR dono do lead e a liderança; closer 403, quem não vê o lead 404) manda `POST /meetings/done` (`createDone` em
+  `api/meetings/meetings.service.ts`): horário passado, até um ano atrás (400 fora disso), entra DONE com `outcome_at` =
+  o horário, então o valor por reunião realizada conta no dia em que ela aconteceu (2A). Lead já em Venda com venda ativa
+  vinda de Agendou Pagamento, fechada depois da reunião e desde 17/11, sem marcação: a renda extra entra agora
+  (`recordLoggedMeetingSaleMark` em `api/leads/sale-mark.ts`, produto da venda, data da venda). e2e `e2e/reuniao-ja-realizada.spec.ts`.
   **Pagamento parcial** (NPAC-41, "1A"): caixa "Já pagou uma entrada" → `payment_entry_cents`
   (0 < entrada < valor, CHECK + 400); a data vira a do restante. Não cria venda nem entra nos
   relatórios até o closer registrar; o registro abre em Parcial com entrada + restante na data.
@@ -736,7 +826,9 @@ VARREDURA_URL=http://localhost:3150 VARREDURA_SENHA=senha-do-e2e-123 VARREDURA_O
 ```
 
 - Endereço que não existe é 404 com a navegação do cargo (`app/not-found.tsx`); não há mais a página
-  "Em breve" do comercial (`[secao]`). Os "Em breve" do Acompanhamento ficam (D4).
+  "Em breve" do comercial (`[secao]`). Os "Em breve" do Acompanhamento ficam (D4). `notFound()` numa tela
+  ou layout de `(app)` cai em `app/(app)/not-found.tsx`, só o aviso (`components/shell/aviso-404.tsx`), porque a
+  casca já tem a barra lateral (NPAC-58: o da raiz ali mostrava duas; e2e em `e2e/sidebar.spec.ts`).
 
 - **Medição** só no `npac_e2e_perf` (nunca no dev `npac`); senha de todos `senha-do-e2e-123`. Plano,
   metas e números de antes/depois em `docs/plans/desempenho.md`.
@@ -760,7 +852,7 @@ VARREDURA_URL=http://localhost:3150 VARREDURA_SENHA=senha-do-e2e-123 VARREDURA_O
 - API e e2e compartilham usuários: teste que mexe em MFA/senha/papel restaura no fim; `truncate leads`
   inclui as tabelas com FK.
 - e2e loga com `email.split('@')[0]`. Seeds: diretor (DIRETOR), ana/ronaldo (HEAD), ale/murilo/igor
-  (SDR), sonia (CLOSER), carla (Acompanhamento sem perfil), duda (Acompanhamento + Admin), operacao, manu, leo, `@npac.com.br`; teste que troca papel: `update "user" set role = …` e restaurar.
+  (SDR), sonia (CLOSER), carla (Acompanhamento sem perfil), duda (Acompanhamento + Admin), operacao, manu, leo, maria (Envios), `@npac.com.br`; teste que troca papel: `update "user" set role = …` e restaurar.
 - Playwright: `filter({ visible: true })`/`exact: true` (layout mobile oculto duplica controles);
   `role=alert` também pega o anunciador de rotas do Next; nada de `networkidle` (SSE).
 - JS de `/leads` < 150 KB gzip (teste; hoje ~149,7, com a release em 150,0 antes da Fase 2 do desempenho). Sem libs pesadas no cliente, nem zod; prefira server components.

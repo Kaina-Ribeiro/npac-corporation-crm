@@ -114,10 +114,13 @@ export class FichaService {
       meta: boolean;
       checkin: boolean;
       segunda_chance: boolean;
+      ver_evolucao: boolean;
+      evolucao: boolean;
       so_carteira: boolean;
       admin: boolean;
       travado_por: string | null;
       pausa_dias: number | null;
+      financeiro: string | null;
     }>(sql`
       select mentoria_mes_jornada(${id}::uuid, (now() at time zone 'America/Sao_Paulo')::date) as mes,
         mentoria_edita('INSCRICAO', ${id}::uuid) as inscricao,
@@ -132,8 +135,11 @@ export class FichaService {
         mentoria_edita('META', ${id}::uuid) as meta,
         mentoria_edita('CHECKIN', ${id}::uuid) as checkin,
         mentoria_edita('SEGUNDA_CHANCE', ${id}::uuid) as segunda_chance,
+        mentoria_ve_evolucao(${id}::uuid) as ver_evolucao,
+        mentoria_edita('EVOLUCAO', ${id}::uuid) as evolucao,
         mentoria_admin() as admin,
         mentoria_so_carteira() as so_carteira,
+        mentoria_status_financeiro(${id}::uuid) as financeiro,
         (select name from "user" where id = ${momento?.travadoPor ?? null}) as travado_por,
         (select (now() at time zone 'America/Sao_Paulo')::date - p.inicio
          from mentoria_pausas p where p.inscricao_id = ${id}::uuid and p.fim is null) as pausa_dias`);
@@ -220,7 +226,9 @@ export class FichaService {
       mesJornada: extra?.mes ?? null,
       valorCentavos: i.valorCentavos,
       formaPagamento: i.formaPagamento,
-      statusFinanceiro: i.statusFinanceiro as FichaDTO['statusFinanceiro'],
+      // Com venda, das parcelas do comercial (NPAC-56, G6/M8); sem venda, a coluna.
+      statusFinanceiro: (extra?.financeiro ?? null) as FichaDTO['statusFinanceiro'],
+      dealId: i.dealId,
       status: i.status as FichaDTO['status'],
       responsavelId: i.responsavelId,
       origem: i.origem as FichaDTO['origem'],
@@ -294,6 +302,8 @@ export class FichaService {
         meta: extra?.meta === true,
         checkin: extra?.checkin === true,
         segundaChance: extra?.segunda_chance === true,
+        verEvolucao: extra?.ver_evolucao === true,
+        evolucao: extra?.ver_evolucao === true && extra?.evolucao === true,
         responsavel: extra?.inscricao === true && extra?.so_carteira !== true,
         admin: extra?.admin === true,
       },

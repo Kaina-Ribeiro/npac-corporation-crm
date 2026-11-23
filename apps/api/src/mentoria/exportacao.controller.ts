@@ -151,7 +151,7 @@ export class ExportacaoService {
         to_char(i.inicio_jornada, 'YYYY-MM-DD') as inicio,
         to_char(i.termino_previsto, 'YYYY-MM-DD') as termino,
         to_char(i.data_idr, 'YYYY-MM-DD') as idr, u.name as responsavel, i.origem,
-        i.status_financeiro as financeiro, i.valor_centavos as valor,
+        mentoria_status_financeiro(i.id) as financeiro, i.valor_centavos as valor,
         to_char(mentoria_ultimo_contato(i.id), 'YYYY-MM-DD') as ultimo,
         c.numero as pme,
         case when c.id is not null then mentoria_ciclo_status(c.concluido_em, c.nao_concluido_em,

@@ -32,13 +32,16 @@ export default async function FichaPage({
   // Aba lembrada para qualquer ficha (NPAC-46); `?aba=` (Fila, Ctrl+K) vence e vira a lembrada.
   const cookie = acCookie('ficha', me.id);
   const salvo = readPrefs(jar.get(cookie)?.value, FICHA_REGRAS);
-  const abaDaUrl = aba !== undefined && abaValida(aba) === aba;
+  // A aba Evolução só para quem a vê (spec §5.1): sem acesso, o link cai na aba padrão.
+  const permitida = (a: string | undefined) =>
+    a === 'evolucao' && !ficha.pode.verEvolucao ? undefined : a;
+  const abaDaUrl = permitida(aba) !== undefined && abaValida(aba) === aba;
   return (
     <Ficha
       key={id}
       ficha={ficha}
       responsaveis={responsaveis}
-      abaInicial={abaDaUrl ? abaValida(aba) : abaValida(salvo.aba)}
+      abaInicial={abaDaUrl ? abaValida(aba) : abaValida(permitida(salvo.aba))}
       lembrar={{ cookie, valor: writePrefs(salvo, FICHA_REGRAS), abaDaUrl }}
     />
   );
