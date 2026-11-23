@@ -13,7 +13,7 @@ não lê nada do módulo pela RLS e usa duas funções `SECURITY DEFINER` (lista
 
 **Spec:** `docs/superpowers/specs/2026-11-19-acompanhamento-gestao-bloco-1-design.md` (decisões G1–G10, M1–M9).
 
-**Status:** escrito em 19/11/2026. Execução: uma sessão por parte (regra do Gabriel), em ordem; a Parte 2 só começa com
+**Status:** escrito em 19/11/2026; migrations renumeradas em 22/11 (a 0076 é da aba Evolução, NPAC-57). Execução: uma sessão por parte (regra do Gabriel), em ordem; a Parte 2 só começa com
 a Parte 1 mesclada na release aberta.
 
 | Parte | O quê | Tarefas | PR | Status |
@@ -26,7 +26,7 @@ Branches: `feat/NPAC-56-venda-vira-mentorado` e `feat/NPAC-56-envios-fisicos`, a
 
 ## Global Constraints
 
-- Migrations novas: `0076_venda_vira_mentorado.sql` (Parte 1) e `0077_envios_fisicos.sql` (Parte 2), com snapshot e
+- Migrations novas: `0077_venda_vira_mentorado.sql` (Parte 1) e `0078_envios_fisicos.sql` (Parte 2), com snapshot e
   `_journal.json` (`idx` e `when` crescentes; se outra migration entrar antes, renumerar). Nunca reescrever migration aplicada.
 - Runtime `npac_app` sem BYPASSRLS; toda consulta em `withUser`; política de leitura no formato `(select f())` (teste
   `db/test/rls-por-consulta.test.ts`).
@@ -62,7 +62,7 @@ Branches: `feat/NPAC-56-venda-vira-mentorado` e `feat/NPAC-56-envios-fisicos`, a
 ### Tarefa 1.1: Produto "Vira mentorado" (banco + Admin > Produtos)
 
 **Files:**
-- Create: `packages/db/drizzle/0076_venda_vira_mentorado.sql` (+ snapshot, `_journal.json`) — esta tarefa abre a migration; 1.2 continua nela
+- Create: `packages/db/drizzle/0077_venda_vira_mentorado.sql` (+ snapshot, `_journal.json`) — esta tarefa abre a migration; 1.2 continua nela
 - Modify: `packages/db/src/schema/finance.ts` (coluna `mentoria`), `apps/api/src/admin/catalog.ts` (create/update/list),
   componente de Admin > Produtos no web (o que hoje edita "Renda extra do SDR"), `packages/db/src/seed.ts`
 - Test: `apps/api/test/admin.e2e.test.ts` (ou o arquivo que já testa `sdrBonusCents`), `packages/db/test/migrations.test.ts`
@@ -84,7 +84,7 @@ Branches: `feat/NPAC-56-venda-vira-mentorado` e `feat/NPAC-56-envios-fisicos`, a
 ### Tarefa 1.2: Funções do banco — criar pela venda, estorno e situação do pagamento
 
 **Files:**
-- Modify: `packages/db/drizzle/0076_venda_vira_mentorado.sql`, `packages/db/src/schema/mentoria.ts` (`dealId`)
+- Modify: `packages/db/drizzle/0077_venda_vira_mentorado.sql`, `packages/db/src/schema/mentoria.ts` (`dealId`)
 - Test: `packages/db/test/mentoria-venda.test.ts` (novo)
 
 **Interfaces:**
@@ -116,7 +116,7 @@ Branches: `feat/NPAC-56-venda-vira-mentorado` e `feat/NPAC-56-envios-fisicos`, a
   - `it('recusa editar situação do pagamento de inscrição com venda')`.
   - `it('grava auditoria da criação e do cancelamento sem nome nem e-mail')` → 2 linhas em `audit_log`, nenhuma coluna contém o nome do lead.
 - [ ] **Step 2:** `pnpm --filter @npac/db test -t "mentoria-venda"` → FAIL.
-- [ ] **Step 3:** escrever as funções e o gatilho na 0076; `dealId` no schema.
+- [ ] **Step 3:** escrever as funções e o gatilho na 0077; `dealId` no schema.
 - [ ] **Step 4:** migrar e rodar → PASS; `pnpm --filter @npac/db test` inteiro (inclui `rls-por-consulta`) → PASS.
 - [ ] **Step 5:** commit `feat(NPAC-56): banco cria a inscricao pela venda e cancela no estorno`.
 
@@ -162,7 +162,7 @@ Branches: `feat/NPAC-56-venda-vira-mentorado` e `feat/NPAC-56-envios-fisicos`, a
 ### Tarefa 1.4: Fila — "Nova inscrição" e "Venda estornada"
 
 **Files:**
-- Modify: `packages/shared/src/mentoria/fila.ts`, `packages/db/drizzle/0076_venda_vira_mentorado.sql` (redefine
+- Modify: `packages/shared/src/mentoria/fila.ts`, `packages/db/drizzle/0077_venda_vira_mentorado.sql` (redefine
   `mentoria_fila(agora)` a partir da versão da 0075), `apps/api/src/mentoria/fila.service.ts`,
   `apps/web/components/acompanhamento/fila.tsx`
 - Test: `packages/shared/test/mentoria-fila.test.ts` (ou o teste existente de `itemEhMeu`), `packages/db/test/fila-equivalencia.test.ts`,
@@ -200,7 +200,7 @@ Branches: `feat/NPAC-56-venda-vira-mentorado` e `feat/NPAC-56-envios-fisicos`, a
   responsável → item some → ficha mostra "Veio da venda de" e a situação do pagamento sem campo de edição.
 - [ ] **Step 2:** `pnpm --filter @npac/web e2e e2e/acompanhamento-venda.spec.ts` → FAIL; implementar a ficha → PASS.
 - [ ] **Step 3:** `CLAUDE.md`: tirar qualquer menção a "CRM intocado", registrar venda → inscrição (G2–G6, M1–M3, M7–M8),
-  migration 0076, novos tipos da Fila; status da Parte 1 aqui.
+  migration 0077, novos tipos da Fila; status da Parte 1 aqui.
 - [ ] **Step 4:** `pnpm lint && pnpm typecheck`, `pnpm --filter @npac/api test`, `pnpm --filter @npac/db test`,
   `pnpm --filter @npac/shared test` → tudo verde (saída longa em arquivo, só as falhas no contexto).
 - [ ] **Step 5:** commit, push, PR para a release aberta; esperar CI completo (verify e e2e) antes do squash-merge; testar no
@@ -215,7 +215,7 @@ Antes da Tarefa 2.4: protótipo da aba (375 e 1440, claro e escuro) aprovado pel
 ### Tarefa 2.1: Perfil e cargo `ENVIOS`
 
 **Files:**
-- Create: `packages/db/drizzle/0077_envios_fisicos.sql` (+ snapshot, journal)
+- Create: `packages/db/drizzle/0078_envios_fisicos.sql` (+ snapshot, journal)
 - Modify: `packages/shared/src/mentoria/enums.ts` (`PERFIS`), `packages/shared/src/cargos.ts` (`CARGOS`, `CARGO_INFO`),
   `packages/db/src/schema/areas.ts` (CHECK `area_membros_acompanhamento`), funções que listam os cargos do Acompanhamento
   na 0072 (`area_definir_membro` e a tradução de `user.role`), `apps/web/components/cargo-field.tsx` (se a lista não vier de
@@ -234,7 +234,7 @@ Antes da Tarefa 2.4: protótipo da aba (375 e 1440, claro e escuro) aprovado pel
 ### Tarefa 2.2: Funções e API dos envios
 
 **Files:**
-- Modify: `packages/db/drizzle/0077_envios_fisicos.sql`
+- Modify: `packages/db/drizzle/0078_envios_fisicos.sql`
 - Create: `apps/api/src/mentoria/envios.controller.ts`, `apps/api/src/mentoria/envios.service.ts`
 - Modify: `apps/api/src/mentoria/onboarding.service.ts` (a escrita da Caixa passa a usar `EnviosService.marcar`),
   `apps/api/src/mentoria/mentoria.module.ts`, `apps/api/src/mentoria/perfil.guard.ts` (Envios só nas rotas marcadas)
@@ -272,7 +272,7 @@ Antes da Tarefa 2.4: protótipo da aba (375 e 1440, claro e escuro) aprovado pel
 ### Tarefa 2.3: Fila e push dos envios (M4, M6)
 
 **Files:**
-- Modify: `packages/db/drizzle/0077_envios_fisicos.sql` (`mentoria_fila`: `ENVIAR_CAIXA` vai a `ENVIOS` quando houver
+- Modify: `packages/db/drizzle/0078_envios_fisicos.sql` (`mentoria_fila`: `ENVIAR_CAIXA` vai a `ENVIOS` quando houver
   alguém ativo com esse cargo, senão `OPERACAO`), `packages/shared/src/mentoria/fila.ts` (`responsavelPerfil` aceita
   `'ENVIOS'`), `apps/api/src/mentoria/avisos.scheduler.ts`
 - Test: `packages/db/test/fila-equivalencia.test.ts`, `apps/api/test/mentoria-v2-avisos.e2e.test.ts`
@@ -307,7 +307,7 @@ Antes da Tarefa 2.4: protótipo da aba (375 e 1440, claro e escuro) aprovado pel
 ### Tarefa 2.5: Docs e fechamento da Parte 2
 
 - [ ] **Step 1:** `CLAUDE.md` (cargo Envios, perfil sem leitura pela RLS, funções de envio, push das 8h, seed `maria`,
-  migration 0077); status da Parte 2 aqui.
+  migration 0078); status da Parte 2 aqui.
 - [ ] **Step 2:** `pnpm lint && pnpm typecheck` e as suítes da API, do banco, do shared e o e2e do módulo → verde.
 - [ ] **Step 3:** commit, push, PR para a release aberta, CI completo antes do squash-merge; ITODEV com `maria` (criar a
   conta lá pelo convite da `duda`) e `duda`, varredura por cargo (`apps/web/scripts/varredura-por-cargo.mjs maria`).
