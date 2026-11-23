@@ -54,6 +54,28 @@ export async function scheduleMeeting(tx: Tx, u: AuthUser, input: Schedule) {
   return { id: created!.id, version: created!.version };
 }
 
+/**
+ * Reunião que já aconteceu (NPAC-62), lançada realizada no próprio horário: o valor por reunião conta
+ * no dia dela. Também na entrada em Agendou Pagamento sem reunião realizada (NPAC-65). Quem chama
+ * confere a permissão (SDR dono do lead ou liderança) e o horário passado.
+ */
+export async function logDoneMeeting(
+  tx: Tx,
+  u: AuthUser,
+  lead: { id: string; sdrId: string; stageId: string },
+  input: Omit<Schedule, 'outcome' | 'outcomeAt' | 'leadId'>,
+) {
+  const m = await scheduleMeeting(tx, u, {
+    ...input,
+    leadId: lead.id,
+    outcome: 'DONE',
+    outcomeAt: input.scheduledAt,
+  });
+  await recordActivity(tx, u, lead.id, 'meeting.outcome', ['outcome'], m.id);
+  await recordLoggedMeetingSaleMark(tx, u, lead, { id: m.id, scheduledAt: input.scheduledAt });
+  return m;
+}
+
 @Injectable()
 export class MeetingsService {
   constructor(
@@ -145,14 +167,7 @@ export class MeetingsService {
     return withUser(this.db, u.id, async (tx) => {
       const lead = await lockLead(tx, input.leadId);
       if (!isLeader(u.role) && lead.sdrId !== u.id) throw new ForbiddenException();
-      const m = await scheduleMeeting(tx, u, {
-        ...input,
-        outcome: 'DONE',
-        outcomeAt: input.scheduledAt,
-      });
-      await recordActivity(tx, u, input.leadId, 'meeting.outcome', ['outcome'], m.id);
-      await recordLoggedMeetingSaleMark(tx, u, lead, { id: m.id, scheduledAt: input.scheduledAt });
-      return m;
+      return logDoneMeeting(tx, u, lead, input);
     });
   }
   async update(u: AuthUser, id: string, input: MeetingChange) {

@@ -7,6 +7,7 @@ import { AuditService } from '../audit/audit.service.js';
 import { toCsv } from '../common/csv.js';
 import { FieldCrypto } from '../common/crypto/field-crypto.js';
 import { DB } from '../common/db/db.module.js';
+import { sdrDoFiltro } from '../common/sdr-filtro.js';
 
 export type ReportQuery = {
   page?: number;
@@ -251,7 +252,8 @@ type SoldRow = { kind: 'sdr' | 'closer'; id: string; name: string; sales: number
  * Vendas na visão do SDR (NPAC-51, Igor 18/11/2026, "1A"): a venda conta assim que ele marca, na
  * data da marcação, sem esperar o closer pôr o valor. Uma por lead: a marcação ativa vale pela
  * venda dela; venda registrada sem marcação conta no dia da venda, como antes. O closer é o da
- * reunião da marcação (o da venda, na registrada). Mesmos filtros do relatório.
+ * reunião da marcação ou, na venda direta (NPAC-65, sem reunião), o do lead; na registrada, o da
+ * venda. Mesmos filtros do relatório.
  */
 async function sdrSales(tx: Tx, q: ReportQuery, start: Date, end: Date) {
   const s = start.toISOString();
@@ -262,9 +264,9 @@ async function sdrSales(tx: Tx, q: ReportQuery, start: Date, end: Date) {
   const rows = await tx.execute<Record<string, unknown>>(
     sql`with scope as(select l.id from leads l join pipeline_stages s on s.id=l.stage_id where ${scope(q)}),
     sold as(
-      select k.sdr_id,m.closer_id from sdr_sale_marks k join meetings m on m.id=k.meeting_id
+      select k.sdr_id,coalesce(m.closer_id,l.closer_id) as closer_id from sdr_sale_marks k left join meetings m on m.id=k.meeting_id join leads l on l.id=k.lead_id
         where k.canceled_at is null and k.marked_at>=${s} and k.marked_at<${e} and k.lead_id in(select id from scope)
-          and (${sdr}::text is null or k.sdr_id=${sdr}) and (${closer}::text is null or m.closer_id=${closer}) and (${product}::uuid is null or k.product_id=${product}::uuid)
+          and (${sdr}::text is null or k.sdr_id=${sdr}) and (${closer}::text is null or coalesce(m.closer_id,l.closer_id)=${closer}) and (${product}::uuid is null or k.product_id=${product}::uuid)
       union all
       select d.sdr_id,d.closer_id from deals d
         where d.reversed_at is null and d.closed_at>=${s} and d.closed_at<${e} and d.lead_id in(select id from scope)
@@ -315,7 +317,8 @@ export class ReportsService {
       };
     });
   }
-  async search(u: AuthUser, q: ReportQuery, opts: { audit?: boolean } = {}) {
+  async search(u: AuthUser, query: ReportQuery, opts: { audit?: boolean } = {}) {
+    const q = { ...query, sdrId: sdrDoFiltro(u, query.sdrId) };
     const w = window(q);
     const { start, end } = w;
     const result = await withUser(
@@ -423,7 +426,8 @@ export class ReportsService {
     const r = await people(tx, baseCtes({ period: 'MONTH' }, start, end), start, end);
     return { ...r, from: start.toISOString(), to: end.toISOString() };
   }
-  async csv(u: AuthUser, q: ReportQuery) {
+  async csv(u: AuthUser, query: ReportQuery) {
+    const q = { ...query, sdrId: sdrDoFiltro(u, query.sdrId) };
     // "Tudo": sem recorte de data de criação (filtros continuam valendo).
     const created =
       q.period === 'ALL'

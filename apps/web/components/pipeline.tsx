@@ -33,6 +33,7 @@ import { parseHidden, PIPE_COOKIE_PATH, serializeHidden } from '@/lib/pipeline-c
 import { stageNeedsFields, type StageFieldsBody } from '@/lib/stage-fields';
 import { keep, recall } from '@/lib/screen-memory';
 import { rememberPrefs } from '@/lib/screen-prefs';
+import { useTypedSearch } from '@/lib/typed-search';
 import { readPreference, savePreference } from '@/lib/user-cookie';
 import { control, FormError, quietButton, StageOptions } from './crm-ui';
 import { LeadFilters, readFilters } from './lead-filters';
@@ -138,9 +139,14 @@ export function Pipeline({
     if (mine !== seq.current) return;
     setColumns(fresh);
     if (prefs.cookie) keep(prefs.cookie, selected.search || undefined);
-    setActive((old) =>
-      fresh.some((c) => c.stage.key === old) ? old : (fresh[0]?.stage.key ?? old),
-    );
+    // Com texto buscado, se a etapa aberta (no celular) ficou vazia, abre a primeira com resultado
+    // (NPAC-64: pode ser uma coluna oculta). Não grava no cookie: é só desta busca.
+    const hit = selected.search ? fresh.find((c) => c.total > 0)?.stage.key : undefined;
+    setActive((old) => {
+      const col = fresh.find((c) => c.stage.key === old);
+      if (hit && !col?.total) return hit;
+      return col ? old : (fresh[0]?.stage.key ?? old);
+    });
   }
   async function move(lead: PipelineLead, target: string) {
     if (busy || lead.stageKey === target) return;
@@ -221,9 +227,17 @@ export function Pipeline({
       setBusy(false);
     }
   }
-  /** Texto da busca no Enter (telefone e e-mail só são achados inteiros). */
+  /**
+   * Busca ao digitar (NPAC-63), com os filtros já aplicados; Enter busca na hora. Telefone e e-mail
+   * só são achados inteiros.
+   */
+  const typed = useTypedSearch((term) => {
+    if (term !== (filters.search ?? ''))
+      void run({ ...shownFilters, ...(term ? { search: term } : {}) });
+  });
   function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    typed.cancel();
     const f = new FormData(e.currentTarget);
     const selected = readFilters(f);
     if (selected.period === 'RANGE' && !(selected.from && selected.to)) return;
@@ -273,7 +287,11 @@ export function Pipeline({
     }
   }
   // No celular aparece uma etapa por vez: se a escolhida estiver oculta, vale a primeira visível.
-  const shown = board.filter((c) => !hidden.includes(c.stage.key));
+  // NPAC-64: com texto buscado, a coluna oculta que tem resultado aparece (marcada "Oculta"); sem
+  // texto, volta a escolha da pessoa, que não muda.
+  const hiddenHit = (c: PipelineDTO[number]) =>
+    !!filters.search && c.total > 0 && hidden.includes(c.stage.key);
+  const shown = board.filter((c) => !hidden.includes(c.stage.key) || hiddenHit(c));
   const current = shown.some((c) => c.stage.key === active) ? active : shown[0]?.stage.key;
   return (
     <div className="flex flex-col gap-4">
@@ -315,6 +333,7 @@ export function Pipeline({
           name="q"
           type="search"
           enterKeyHint="search"
+          onChange={(e) => typed.onChange(e.target.value)}
           className={control}
           aria-label="Buscar no Pipeline"
           placeholder="Nome, WhatsApp, @instagram ou e-mail"
@@ -362,21 +381,19 @@ export function Pipeline({
         />
       )}
       <nav aria-label="Etapas do Pipeline" className="flex gap-2 overflow-x-auto pb-2 md:hidden">
-        {board
-          .filter((c) => !hidden.includes(c.stage.key))
-          .map((c) => (
-            <button
-              key={c.stage.id}
-              onClick={() => {
-                setActive(c.stage.key);
-                remember(shownFilters, c.stage.key);
-              }}
-              aria-pressed={current === c.stage.key}
-              className={`${quietButton} shrink-0 ${current === c.stage.key ? 'bg-[var(--on)]' : ''}`}
-            >
-              {c.stage.label} ({c.total})
-            </button>
-          ))}
+        {shown.map((c) => (
+          <button
+            key={c.stage.id}
+            onClick={() => {
+              setActive(c.stage.key);
+              remember(shownFilters, c.stage.key);
+            }}
+            aria-pressed={current === c.stage.key}
+            className={`${quietButton} shrink-0 ${current === c.stage.key ? 'bg-[var(--on)]' : ''}`}
+          >
+            {c.stage.label} ({c.total})
+          </button>
+        ))}
       </nav>
       {/* Grade que quebra linha em vez de rolar para o lado: mais colunas quanto mais larga a tela
           (≈4 em 1440, 6 em 1920, 8 em 2560). No celular, uma etapa por vez pelas abas acima. */}
@@ -384,100 +401,97 @@ export function Pipeline({
         data-own-motion
         className="grid items-start gap-4 pb-4 md:grid-cols-[repeat(auto-fill,minmax(260px,1fr))]"
       >
-        {board
-          .filter((c) => !hidden.includes(c.stage.key))
-          .map((c, col) => (
-            <section
-              key={c.stage.id}
-              aria-label={c.stage.label}
-              // Entrada (globals.css `.reveal`): só as colunas, na cascata curta da página (0, 30
-              // e 60 ms); os cards entram junto com a coluna, nunca um a um.
-              style={{ '--delay': `${Math.min(col, 2) * 30}ms` } as CSSProperties}
-              className={`reveal glass-card scroll-thin min-w-0 flex-col gap-3 p-3 md:max-h-[min(70vh,720px)] md:overflow-y-auto ${current === c.stage.key ? 'flex' : 'hidden md:flex'}`}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
-                e.preventDefault();
-                const id = e.dataTransfer.getData('text/plain');
-                const lead = board.flatMap((col) => col.items).find((l) => l.id === id);
-                if (lead) void move(lead, c.stage.key);
-              }}
-            >
-              <h2 className="flex justify-between gap-2 px-1 text-sm font-semibold">
-                {c.stage.label}
+        {shown.map((c, col) => (
+          <section
+            key={c.stage.id}
+            aria-label={c.stage.label}
+            // Entrada (globals.css `.reveal`): só as colunas, na cascata curta da página (0, 30
+            // e 60 ms); os cards entram junto com a coluna, nunca um a um.
+            style={{ '--delay': `${Math.min(col, 2) * 30}ms` } as CSSProperties}
+            className={`reveal glass-card scroll-thin min-w-0 flex-col gap-3 p-3 md:max-h-[min(70vh,720px)] md:overflow-y-auto ${current === c.stage.key ? 'flex' : 'hidden md:flex'}`}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              const id = e.dataTransfer.getData('text/plain');
+              const lead = board.flatMap((col) => col.items).find((l) => l.id === id);
+              if (lead) void move(lead, c.stage.key);
+            }}
+          >
+            <h2 className="flex justify-between gap-2 px-1 text-sm font-semibold">
+              {c.stage.label}
+              <span className="flex items-center gap-2">
+                {hiddenHit(c) && <span className="role role-TAG">Oculta</span>}
                 <span className="text-ink2">{c.total}</span>
-              </h2>
-              {c.items.map((l) => (
-                <article
-                  key={l.id}
-                  draggable={!busy}
-                  onDragStart={(e) => e.dataTransfer.setData('text/plain', l.id)}
-                  className="rounded-2xl border border-line bg-[var(--gl2)] p-3"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <Link
-                      className="text-sm font-semibold"
-                      href={`/leads/${l.id}`}
-                      prefetch={false}
-                    >
-                      {l.name}
-                    </Link>
-                    <span className={`tier tier-${l.tier}`}>{TIER_LABELS[l.tier]}</span>
+              </span>
+            </h2>
+            {c.items.map((l) => (
+              <article
+                key={l.id}
+                draggable={!busy}
+                onDragStart={(e) => e.dataTransfer.setData('text/plain', l.id)}
+                className="rounded-2xl border border-line bg-[var(--gl2)] p-3"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <Link className="text-sm font-semibold" href={`/leads/${l.id}`} prefetch={false}>
+                    {l.name}
+                  </Link>
+                  <span className={`tier tier-${l.tier}`}>{TIER_LABELS[l.tier]}</span>
+                </div>
+                {l.saleToRegister && (
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <span className="sale-pending">Venda a registrar</span>
+                    {canRegister && (
+                      <Link
+                        className="text-xs font-semibold text-gold-deep underline-offset-2 hover:underline"
+                        href={`/leads/${l.id}#vendas`}
+                        prefetch={false}
+                      >
+                        Registrar venda
+                      </Link>
+                    )}
                   </div>
-                  {l.saleToRegister && (
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                      <span className="sale-pending">Venda a registrar</span>
-                      {canRegister && (
-                        <Link
-                          className="text-xs font-semibold text-gold-deep underline-offset-2 hover:underline"
-                          href={`/leads/${l.id}#vendas`}
-                          prefetch={false}
-                        >
-                          Registrar venda
-                        </Link>
-                      )}
-                    </div>
-                  )}
-                  {l.paymentToComplete && (
-                    <div className="mt-2">
-                      <span className="sale-pending">Pagamento a completar</span>
-                    </div>
-                  )}
-                  <p className="my-2 text-xs text-ink2">
-                    {l.nextContactAt
-                      ? new Date(l.nextContactAt).toLocaleDateString('pt-BR', {
-                          timeZone: 'America/Sao_Paulo',
-                        })
-                      : 'Sem próximo contato'}
-                  </p>
-                  <select
-                    aria-label={`Mover ${l.name} para`}
-                    className="w-full rounded-lg border border-line p-2 text-xs"
-                    value={l.stageKey}
-                    disabled={busy}
-                    onChange={(e) => void move(l, e.target.value)}
-                  >
-                    <StageOptions
-                      stages={stages}
-                      current={l.stageKey}
-                      incomeUnknown={l.tier === 'DESCOBRINDO'}
-                    />
-                  </select>
-                </article>
-              ))}
-              {c.items.length === 0 && (
-                <p className="px-1 py-5 text-center text-xs text-ink2">Nenhum lead nesta etapa.</p>
-              )}
-              {c.items.length < c.total && (
-                <button
+                )}
+                {l.paymentToComplete && (
+                  <div className="mt-2">
+                    <span className="sale-pending">Pagamento a completar</span>
+                  </div>
+                )}
+                <p className="my-2 text-xs text-ink2">
+                  {l.nextContactAt
+                    ? new Date(l.nextContactAt).toLocaleDateString('pt-BR', {
+                        timeZone: 'America/Sao_Paulo',
+                      })
+                    : 'Sem próximo contato'}
+                </p>
+                <select
+                  aria-label={`Mover ${l.name} para`}
+                  className="w-full rounded-lg border border-line p-2 text-xs"
+                  value={l.stageKey}
                   disabled={busy}
-                  className={quietButton}
-                  onClick={() => void more(c.stage.key, c.page + 1)}
+                  onChange={(e) => void move(l, e.target.value)}
                 >
-                  Carregar mais
-                </button>
-              )}
-            </section>
-          ))}
+                  <StageOptions
+                    stages={stages}
+                    current={l.stageKey}
+                    incomeUnknown={l.tier === 'DESCOBRINDO'}
+                  />
+                </select>
+              </article>
+            ))}
+            {c.items.length === 0 && (
+              <p className="px-1 py-5 text-center text-xs text-ink2">Nenhum lead nesta etapa.</p>
+            )}
+            {c.items.length < c.total && (
+              <button
+                disabled={busy}
+                className={quietButton}
+                onClick={() => void more(c.stage.key, c.page + 1)}
+              >
+                Carregar mais
+              </button>
+            )}
+          </section>
+        ))}
       </div>
     </div>
   );

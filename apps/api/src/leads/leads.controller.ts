@@ -72,7 +72,15 @@ const quickActionSchema = z
   .strict();
 
 const saleMarkSchema = z
-  .object({ version: z.number().int().positive(), productId: z.uuid() })
+  .object({
+    version: z.number().int().positive(),
+    productId: z.uuid(),
+    // Venda direta (NPAC-65): sem reunião, o SDR escolhe o closer que põe o valor.
+    directSale: z
+      .object({ closerId: z.string().min(1) })
+      .strict()
+      .optional(),
+  })
   .strict();
 
 const uuid = z.uuid();

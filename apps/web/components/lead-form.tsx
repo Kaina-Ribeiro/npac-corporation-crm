@@ -37,6 +37,8 @@ export function LeadForm({
   lead: latestLead,
   products,
   openMeeting,
+  saleHint,
+  meetingDone = false,
 }: {
   catalog: LeadCatalog;
   me: { id: string; role: Role };
@@ -45,6 +47,10 @@ export function LeadForm({
   products: ProductDTO[];
   /** Reunião futura aberta do lead: mudar para Agendado não pede outra. */
   openMeeting?: OpenMeeting | null;
+  /** Dica da Venda no select de etapa da ficha (NPAC-68), a mesma do "Mover para". */
+  saleHint?: string;
+  /** O lead já tem reunião realizada (NPAC-65: Agendou Pagamento não pede a que já aconteceu). */
+  meetingDone?: boolean;
 }) {
   const router = useRouter();
   // O rascunho pertence à versão exibida ao abrir o formulário. SSE não pode
@@ -270,7 +276,10 @@ export function LeadForm({
               current={lead?.stageKey ?? 'SONDAGEM'}
               allowSale={!lead}
               incomeUnknown={band === 'DESCOBRINDO'}
-              meetingDone={Boolean(lead)}
+              // Agendou Pagamento pede ali mesmo a reunião que já aconteceu (NPAC-65), também no
+              // cadastro; o closer não usa este formulário.
+              meetingDone
+              saleHint={saleHint}
             />
           </select>
         </Field>
@@ -290,6 +299,7 @@ export function LeadForm({
             products={products}
             role={me.role}
             lead={lead}
+            meetingDone={meetingDone}
           />
         )}
         {isLeader(me.role) && (

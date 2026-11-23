@@ -71,7 +71,8 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   admin `admin.tsx`, `access-requests.tsx`, quadro "Acessos" `acessos-card.tsx`, linha da equipe `lib/equipe.ts` · Ctrl+K `shell/command-palette.tsx` · avisos `inbox.tsx` ·
   textos de atividade `lib/activity-text.ts` · campos por etapa `stage-fields.tsx` (+ `lib/stage-fields.ts`,
   `lib/stage-kind.ts`) e janelinha `stage-move-dialog.tsx` (Pipeline, lista, massa) · editor de colunas `pipeline-columns-editor.tsx` · ação
-  rápida do Hoje `today-quick-action.tsx` · closer completa o pagamento `payment-complete.tsx` · SDR marca a
+  rápida do Hoje `today-quick-action.tsx` · concluir tarefa com o próximo passo `task-complete-dialog.tsx`
+  (+ `task-complete-button.tsx` na ficha) · closer completa o pagamento `payment-complete.tsx` · SDR marca a
   venda `sale-mark.tsx` · menu de CSV `csv-export.tsx` (API: `api/common/csv.ts`) ·
   avisos compartilhados (selo do chat, `(N)` na aba, lembretes) `lib/alerts.ts`, `meeting-reminder.tsx` ·
   push no aparelho `lib/push.ts`, `public/sw.js`, `/conta/avisos`, convite `components/push-invite.tsx`
@@ -339,8 +340,15 @@ alcance)` (5 argumentos; a de 4 mantém o alcance), por convite, aprovação, `P
   troca perfil (`PUT /mentoria/perfis` recusa `null`) e, desde a Fase 3 do NPAC-54, convida, aprova e desativa; "Peça ao
   Admin" fica para conta antiga sem perfil (selo "falta perfil"). O selo aparece como "Admin do Acompanhamento".
 - Liderança vê tudo; SDR, os próprios leads; CLOSER, leads com reunião não cancelada dele ou
-  que o SDR lhe passou em Agendou Pagamento (`leads.closer_id`).
+  que o SDR lhe passou em Agendou Pagamento (`leads.closer_id`; também depois, como venda a registrar, NPAC-68).
   Invisível e inexistente → **404**, nunca 403. `canProspect`/`canClose` são dados; nada depende de nomes.
+- **Filtro de SDR fixo no próprio SDR** (NPAC-66, Igor 23/11/2026): para o papel SDR, a API troca qualquer
+  `sdrId` pelo id dele (`sdrDoFiltro` em `api/common/sdr-filtro.ts`, em `reports.service.ts` `search`/`csv` e
+  `leads.service.ts` `list`/`csv`; o Pipeline passa pelo `list`): pedir outro SDR devolve os dados dele, sem
+  erro. `GET /leads/catalog` traz `sdrFixo` (nome do SDR logado, só para o SDR); com ele, "SDR do relatório"
+  e "Responsável SDR" (Leads e Pipeline) mostram só esse nome, sem "Todos", e o cookie de filtro não guarda
+  `sdrId` (`sdrRule` em `sh/screen-prefs.ts`; cookie antigo com outro SDR cai no vazio). Liderança e closer
+  como antes. Testes: `api/test/filtro-sdr.e2e.test.ts`, `e2e/filtro-sdr.spec.ts`.
 - **SDR não recebe R$ de venda** (pedido do cliente, 04/11/2026): `/reports/search`, `/reports/summary`
   e `/team` cortam no servidor (`dropSales`), o lead vem sem valor e entrada (`toDTO`) e
   `/finance/products` sem preço; o Dashboard do SDR mostra comparecimento. Closer igual a
@@ -495,7 +503,7 @@ DEFINER`, a Especialista vê o número inteiro): só tarefas FEITA ÷ total do c
   Nas telas vale o texto literal do PDF, exceto IDR: "Introdução da Riqueza" (o PDF diz "à"; corrigido).
 - Cookies em vez de localStorage: último usuário `npac_last_user` (`Path=/login`, vale nas duas telas de entrada); ordem dos cards
   `npac_dash_<hash do id>` (`Path=/dashboard`, só IDs, o servidor já renderiza na ordem); colunas
-  ocultas `npac_pipe_<hash>` (`Path=/pipeline`) e filtro do Hoje `npac_hoje_<hash>` (`Path=/hoje`),
+  ocultas `npac_pipe_<hash>` (`Path=/pipeline`; com texto buscado, a coluna oculta que tem resultado aparece marcada "Oculta" e, no celular, abre se a aberta ficou vazia, NPAC-64) e filtro do Hoje `npac_hoje_<hash>` (`Path=/hoje`),
   helpers em `lib/user-cookie.ts`.
 - **Filtros lembrados** (NPAC-46, 11/11/2026, Gabriel "A, no aparelho"): cada tela grava filtro, aba e
   período em `npac_f_<tela>_<hash>` só no `Path` da tela (`PREFS` em `lib/screen-prefs.ts`; `rememberPrefs`
@@ -507,7 +515,7 @@ DEFINER`, a Especialista vê o número inteiro): só tarefas FEITA ÷ total do c
   Relatórios, Admin (aba), Chat (conversa). **Busca por texto e página só na memória da aba**
   (`lib/screen-memory.ts`, por pessoa): voltam ao trocar de tela, somem no F5; nunca em cookie, URL ou
   storage. Seleção em massa não é lembrada. **Filtros aplicam ao mudar** (sem "Aplicar filtros",
-  "Filtrar Hoje", "Buscar" do Pipeline, "Atualizar relatório"); o texto da busca segue no Enter; "Limpar
+  "Filtrar Hoje", "Buscar" do Pipeline, "Atualizar relatório"); a busca de Leads e do Pipeline roda ao digitar (NPAC-63, Igor 23/11/2026: 300 ms depois da última tecla, campo vazio na hora, Enter na hora; `useTypedSearch` em `lib/typed-search.ts`); "Limpar
   filtros" aparece com filtro ativo. `CsvExport` de `/leads` vem sob demanda (`next/dynamic`) pelo limite
   de 150 KB.
   **Acompanhamento** (PR 2): mapa à parte `AC_PREFS` em `lib/acompanhamento-prefs.ts` (cookies `npac_f_ac_*`,
@@ -598,6 +606,29 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
   pagamento, reunião realizada mais recente, data e autor do registro. Sem reunião realizada ou com marcação ativa,
   nada. Registro direto de outra etapa segue sem renda (2B). A 0079 deu a marcação às vendas assim registradas
   desde 17/11 (produto da venda, porque o do pagamento some ao registrar; `db/test/renda-extra-agendou-pagamento.test.ts`).
+  **SDR marca a venda de quem pagou** (NPAC-68, Igor 23/11/2026: "sem depender que somente o Closer faça"): em Agendou
+  Pagamento, o SDR do lead (ou a liderança) usa o "Marcar venda" **ao lado do "Mover para"** (não mais no card Reuniões),
+  já com o produto do pagamento. Mesmo `POST /leads/:id/sale-mark`: nessa etapa o closer da venda é o do pagamento
+  (`leads.closer_id`; sem ele, o da reunião) e o produto tem de ser dele (400); a reunião realizada continua obrigatória
+  (409 `MEETING_DONE_REQUIRED`; NPAC-65, 4.4B: nada automático). O `sale.pending` só leva a reunião como entidade quando o
+  closer dela é o da venda (senão o aviso iria ao closer da reunião). Sem reunião realizada, a ficha mostra "Para marcar
+  a venda, marque antes a reunião como realizada." e o link "A reunião já aconteceu" (leva ao card Reuniões com a caixa
+  marcada). Nos selects de etapa da ficha do SDR, a Venda diz "(use “Marcar venda”)" ou "(depois da reunião realizada)"
+  (`saleHint` em `stage-options-after-meeting.tsx`). A 0080 faz o closer do lead ver a venda a registrar (Venda sem venda
+  ativa) mesmo sem reunião com o lead (`closer_has_lead`/`closer_lead_ids`). e2e `e2e/venda-agendou-pagamento.spec.ts`.
+  **Venda direta do SDR** (NPAC-65, Igor 23/11/2026, "4.1A, 4.3A, 2.1A"; tela aprovada pelo Gabriel): o SDR vendeu sem
+  reunião, só à vista, no cartão ou no boleto (sem entrada, sem pagamento agendado). Na ficha, sem reunião realizada e
+  fora de Agendou Pagamento, o SDR do lead ou a liderança usa **"Venda direta"** ao lado do "Mover para"
+  (`components/direct-sale.tsx`: "Closer" + "Produto vendido", sem R$; dica da Venda "(use “Venda direta”)"); no cadastro
+  em Venda Fechada, "Teve reunião ou foi venda direta?" ("Teve reunião" já marcado; `sold-fields.tsx`, campo
+  `sf_sold_direct`). API: `POST /leads/:id/sale-mark` com `directSale: { closerId }` e `POST /leads` com
+  `directSale: { closerId }` + `soldProductId` (sem `meeting`; os dois juntos, 400). O lead vai para Venda como venda a
+  registrar com o closer escolhido (produto dele, ativo, que fecha venda: 400), que recebe `sale.pending`; o SDR ganha a
+  renda extra e nada soma em reunião realizada. Com reunião realizada ou em Agendou Pagamento, 409 `NOT_DIRECT_SALE`.
+  0081: `sdr_sale_marks.meeting_id` aceita nulo (= venda direta), o gatilho `leads_guard_owner_columns` deixa o SDR pôr
+  no lead o closer da venda direta e `lead_direct_sale(lead)` (SECURITY DEFINER, só sim/não) faz o registro da venda
+  recusar "Parcial" (400 "Venda direta é à vista, no cartão ou no boleto, sem entrada."; o cadastro com a venda agora não
+  oferece Parcial). No relatório do SDR (`sdrSales`), a venda direta conta para o closer do lead. e2e `e2e/venda-direta.spec.ts`.
 - **Campos por etapa** (NPAC-38, 05/11/2026, "1A 2A 3A"): Agendados pedem `meeting` (criada na
   mesma transação, origem pela etapa, `rearm()` depois do commit; reunião futura aberta dispensa),
   Agendou Pagamento pede data (`next_contact_at`) + produto + valor, Sem Perfil pede `lost_reason`
@@ -607,9 +638,18 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
   **Agendou Pagamento só depois da reunião realizada** (NPAC-59, Igor 23/11/2026, "A": cadastrou → reunião → realizada →
   Agendou Pagamento → pagou): entrar na etapa pede reunião com resultado DONE e não cancelada (409
   `MEETING_DONE_REQUIRED`, "marque antes a reunião como realizada"; futura, sem resultado ou no-show não contam), para
-  todos os cargos. O cadastro não entra mais na etapa (lead novo não tem reunião); quem já está nela fica (3A). Na tela,
-  `StageOptionsAfterMeeting` (`components/stage-options-after-meeting.tsx`, fora do `crm-ui` pelo limite de JS de
-  `/leads`) desativa a opção no cadastro e na ficha sem reunião realizada; Pipeline e lista mostram o 409 na janelinha.
+  todos os cargos; quem já está nela fica (3A). `StageOptionsAfterMeeting` (`components/stage-options-after-meeting.tsx`,
+  fora do `crm-ui` pelo limite de JS de `/leads`) desativa a opção só para o closer na ficha sem reunião realizada.
+  **Reunião que já aconteceu na entrada da etapa** (NPAC-65, Igor 23/11/2026, 15:12: "para a pessoa agendar pagamento
+  ela já realizou uma reunião"): sem reunião realizada, o SDR e a liderança informam ali mesmo a reunião passada
+  ("A reunião já aconteceu": "Quando aconteceu (Brasília)", "Closer da reunião", "Origem do agendamento";
+  `PastMeetingFields` em `stage-fields.tsx`), ao mover (ficha, Pipeline e lista; a janelinha busca `/api/meetings` para
+  saber se já há realizada) **e no cadastro direto na etapa** (desfaz o "cadastro não entra" do NPAC-59). PATCH e POST
+  `/leads` levam `meetingDone` (passado, até um ano; fora da entrada em Agendou Pagamento, 400; closer 403) e a reunião
+  entra realizada na mesma transação (`logDoneMeeting` em `meetings.service.ts`, o mesmo do `POST /meetings/done`).
+  Quem já está na etapa sem reunião não muda sozinho (4.4B): o SDR lança a reunião pela ficha. A pergunta "Teve reunião
+  ou foi venda direta?" saiu: venda direta (só à vista, cartão ou boleto, direto para Venda Fechada) espera a resposta
+  do Igor sobre quem põe o valor.
   **Reunião já realizada lançada depois** (NPAC-62, Igor 23/11/2026, "1A, 2A"): na ficha, a caixa "A reunião já aconteceu"
   (só o SDR dono do lead e a liderança; closer 403, quem não vê o lead 404) manda `POST /meetings/done` (`createDone` em
   `api/meetings/meetings.service.ts`): horário passado, até um ano atrás (400 fora disso), entra DONE com `outcome_at` =
@@ -664,6 +704,20 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
   vencidas (`overdueTasks`, que saem do painel Tarefas); reunião de hoje vencida segue também na
   agenda; cobranças têm bloco próprio. `moveDue` passa o que vence no navegador (sem polling, que
   gravaria auditoria). Ação rápida `POST /leads/:id/quick-action` (Chamado/Remarcado/Próxima ação).
+- **Concluir tarefa pede o próximo passo** (NPAC-67, Igor 23/11/2026, "2.1B, 2.2A, 2.3A, 2.4B"; desenho A do
+  Gabriel, capturas em `docs/prototipos/npac-67/`): o círculo do Hoje (Atrasados e Tarefas) e o "Concluir" das
+  Tarefas da ficha abrem a janelinha "Concluir tarefa" (`components/task-complete-dialog.tsx`, por `next/dynamic`):
+  "O que aconteceu" (obrigatório, vira nota da ficha) e "Próximo passo": **Agendou reunião** (data e hora + closer),
+  **Novo follow-up** (nova data de contato) ou **Ligar para a pessoa** (data e hora da ligação; os dois últimos viram
+  o próximo contato do lead). `POST /leads/:leadId/tasks/:id/complete` `{ version, note, next, at, closerId? }`
+  (`api/leads/task-complete.service.ts`, `@Can('lead:update')`): conclui a tarefa, grava a nota e aplica o passo
+  numa transação, com `task.updated`/`note.created`/`lead.contact_rescheduled` ou `lead.moved` + `meeting.scheduled`
+  na timeline; versão da tarefa (409 `VERSION_CONFLICT`; já concluída, 409 `TASK_DONE`); data no passado 400; SDR em
+  Agendou Pagamento não muda o contato (403, como a ação rápida). "Agendou reunião" usa `scheduleMeeting` e
+  `rearm()` depois do commit e leva o lead para Agendado como o Pipeline: Criando Relacionamento → Agendado direto,
+  Em follow-up e No-show → Agendado follow-up; nas outras etapas o lead fica e a reunião entra como follow-up.
+  O closer e a tarefa pessoal concluem direto, como antes. Testes: `api/test/concluir-tarefa.e2e.test.ts`,
+  `e2e/concluir-tarefa.spec.ts`.
 - Desativar usuário derruba sessões; leads dele vão por `POST /admin/users/:id/transfer-leads`.
   Login de conta desativada: 401 com o mesmo corpo da senha errada (gancho `session.create.before` em
   `api/auth/auth.ts` lança o erro do plugin `username`; `return false` ali vira 500).

@@ -8,19 +8,25 @@ import { showToast } from './toast';
 /**
  * Marcar venda (NPAC-48, Igor 17/11/2026): depois da reunião realizada, o SDR escolhe só o produto
  * vendido, sem valor. O lead vai para Venda como "venda a registrar" e o closer da reunião recebe
- * o aviso para pôr o valor. Os produtos são os do closer da reunião (o closer da venda).
+ * o aviso para pôr o valor. Os produtos são os do closer da venda: o da reunião ou, vindo de Agendou
+ * Pagamento (NPAC-68), o do pagamento, já com o produto do pagamento escolhido.
  */
 export function SaleMark({
   leadId,
   version,
   closerName,
   products,
+  defaultProductId = '',
+  inline = false,
   onDone,
 }: {
   leadId: string;
   version: number;
   closerName: string;
   products: ProductDTO[];
+  defaultProductId?: string;
+  /** Na linha do "Mover para" (NPAC-68): botão alinhado ao select; aberto, ocupa a largura toda. */
+  inline?: boolean;
   onDone: () => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -48,18 +54,28 @@ export function SaleMark({
   }
   if (!open)
     return (
-      <button type="button" className={`${button} self-start`} onClick={() => setOpen(true)}>
+      <button
+        type="button"
+        className={inline ? button : `${button} self-start`}
+        onClick={() => setOpen(true)}
+      >
         Marcar venda
       </button>
     );
   return (
     <form
       onSubmit={submit}
-      className="flex flex-col gap-3 rounded-2xl border border-line p-4"
+      className={`flex flex-col gap-3 rounded-2xl border border-line p-4 ${inline ? 'w-full' : ''}`}
       aria-label="Marcar venda"
     >
       <Field label="Produto vendido">
-        <select name="productId" className={control} defaultValue="" required autoFocus>
+        <select
+          name="productId"
+          className={control}
+          defaultValue={products.some((p) => p.id === defaultProductId) ? defaultProductId : ''}
+          required
+          autoFocus
+        >
           <option value="" disabled>
             Escolha o produto
           </option>

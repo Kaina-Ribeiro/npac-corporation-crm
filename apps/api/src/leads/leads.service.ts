@@ -35,13 +35,14 @@ import { AuditService } from '../audit/audit.service.js';
 import { toCsv } from '../common/csv.js';
 import { FieldCrypto } from '../common/crypto/field-crypto.js';
 import { DB } from '../common/db/db.module.js';
+import { sdrDoFiltro } from '../common/sdr-filtro.js';
 import { insertSale, requestHash } from '../finance/finance.service.js';
 import { AvisosScheduler } from '../mentoria/avisos.scheduler.js';
 import { InscricaoDaVenda } from '../mentoria/venda/inscricao-da-venda.js';
-import { scheduleMeeting } from '../meetings/meetings.service.js';
+import { logDoneMeeting, scheduleMeeting } from '../meetings/meetings.service.js';
 import { ReminderScheduler } from '../push/reminders.js';
 import { recordActivity } from './activity.js';
-import { recordSaleMark } from './sale-mark.js';
+import { directSalePartial, recordSaleMark } from './sale-mark.js';
 import { assertIncomeStage, EMPTY_STAGE_STATE, resolveStageFields } from './stage-fields.js';
 import {
   LeadsRepository,
@@ -89,9 +90,8 @@ export class LeadsService {
   ) {}
 
   async catalog(u: AuthUser) {
-    return withUser(this.db, u.id, async (tx) => ({
-      stages: await tx.select().from(pipelineStages).orderBy(asc(pipelineStages.position)),
-      team: await tx
+    return withUser(this.db, u.id, async (tx) => {
+      const team = await tx
         .select({
           id: user.id,
           name: user.name,
@@ -100,8 +100,15 @@ export class LeadsService {
           canClose: user.canClose,
         })
         .from(user)
-        .where(eq(user.active, true)),
-    }));
+        .where(eq(user.active, true));
+      // Filtro de SDR fixo no próprio SDR (NPAC-66): as telas mostram só o nome dele.
+      const sdrFixo = u.role === 'SDR' ? team.find((m) => m.id === u.id)?.name : undefined;
+      return {
+        stages: await tx.select().from(pipelineStages).orderBy(asc(pipelineStages.position)),
+        team,
+        ...(sdrFixo ? { sdrFixo } : {}),
+      };
+    });
   }
 
   async pipeline(u: AuthUser, q: LeadListQuery, meta: RequestMeta) {
@@ -225,6 +232,9 @@ export class LeadsService {
         await recordActivity(tx, u, created, 'payment.pending', [], undefined, meta);
       // Mesma transação: se a reunião falhar, o lead não fica criado.
       if (stage.meeting) await scheduleMeeting(tx, u, { leadId: created, ...stage.meeting });
+      // Cadastro direto em Agendou Pagamento (NPAC-65): a reunião que já aconteceu entra realizada.
+      if (stage.meetingDone)
+        await logDoneMeeting(tx, u, { id: created, sdrId, stageId }, stage.meetingDone);
       const mentorado = sold
         ? await this.registerSold(tx, u, { id: created, sdrId, stageId }, sold, input, hash)
         : false;
@@ -241,7 +251,8 @@ export class LeadsService {
   async list(u: AuthUser, q: LeadListQuery, meta: RequestMeta): Promise<Page<LeadDTO>> {
     if (q.period === 'RANGE' && (!q.from || !q.to || q.from > q.to))
       throw new BadRequestException('Intervalo inválido');
-    const { search, page, pageSize, ...filters } = q;
+    const { search, page, pageSize, ...rest } = q;
+    const filters = { ...rest, sdrId: sdrDoFiltro(u, rest.sdrId) };
     const { rows, total } = await withUser(this.db, u.id, (tx) =>
       this.repo.list(tx, { ...filters, search: this.parseSearch(search) }, page, pageSize),
     );
@@ -257,7 +268,8 @@ export class LeadsService {
 
   /** CSV com contato (só liderança, pela rota): período, filtros atuais ou todos. */
   async csv(u: AuthUser, q: LeadExportQuery, meta: RequestMeta): Promise<string> {
-    const { search, createdFrom, createdTo, ...filters } = q;
+    const { search, createdFrom, createdTo, ...rest } = q;
+    const filters = { ...rest, sdrId: sdrDoFiltro(u, rest.sdrId) };
     if (!createdFrom !== !createdTo || (createdFrom && createdTo && createdFrom > createdTo))
       throw new BadRequestException('Intervalo inválido');
     const created =
@@ -309,15 +321,32 @@ export class LeadsService {
   }
 
   /**
-   * Venda Fechada no cadastro (NPAC-39): a reunião é obrigatória e já aconteceu; a venda, só para
-   * quem registra venda, e só nesta etapa. Devolve a reunião, ou nada fora da Venda.
+   * Venda Fechada no cadastro (NPAC-39): a reunião é obrigatória e já aconteceu, ou é venda direta do
+   * SDR (NPAC-65, "4.3A": sem reunião, só à vista, no cartão ou no boleto, com o closer escolhido); a
+   * venda, só para quem registra venda, e só nesta etapa. Devolve o closer da venda e o horário da
+   * reunião (sem ele, venda direta), ou nada fora da Venda.
    */
-  private checkSoldLead(u: AuthUser, input: LeadCreateInput) {
+  private checkSoldLead(
+    u: AuthUser,
+    input: LeadCreateInput,
+  ): { closerId: string; scheduledAt?: Date } | undefined {
     if (input.sale && !can(u, 'sale:register'))
       throw new ForbiddenException('Só o closer e a liderança registram a venda.');
     if (input.stageKey !== 'VENDA') {
-      if (input.sale) throw new BadRequestException('A venda só vai junto da etapa Venda');
+      if (input.sale || input.directSale)
+        throw new BadRequestException('A venda só vai junto da etapa Venda');
       return undefined;
+    }
+    if (input.directSale) {
+      if (input.meeting)
+        throw new BadRequestException('Escolha se teve reunião ou se foi venda direta.');
+      if (input.sale?.method === 'PARTIAL') throw directSalePartial();
+      if (!input.sale && !input.soldProductId)
+        throw new ConflictException({
+          code: 'PRODUCT_REQUIRED',
+          message: 'Para cadastrar em Venda Fechada, escolha o produto vendido.',
+        });
+      return { closerId: input.directSale.closerId };
     }
     if (!input.meeting)
       throw new ConflictException({
@@ -344,36 +373,47 @@ export class LeadsService {
     tx: Tx,
     u: AuthUser,
     lead: { id: string; sdrId: string; stageId: string },
-    meeting: { scheduledAt: Date; closerId: string },
+    meeting: { scheduledAt?: Date; closerId: string },
     input: LeadCreateInput,
     hash: string,
   ) {
-    const m = await scheduleMeeting(tx, u, {
-      leadId: lead.id,
-      closerId: meeting.closerId,
-      scheduledAt: meeting.scheduledAt,
-      origin: 'DIRETO',
-      outcome: 'DONE',
-      outcomeAt: meeting.scheduledAt,
-    });
-    await recordActivity(tx, u, lead.id, 'meeting.outcome', ['outcome'], m.id);
-    const mark = { leadId: lead.id, sdrId: lead.sdrId, meetingId: m.id };
+    // Venda direta (NPAC-65): sem reunião; nada soma no valor por reunião realizada.
+    const m = meeting.scheduledAt
+      ? await scheduleMeeting(tx, u, {
+          leadId: lead.id,
+          closerId: meeting.closerId,
+          scheduledAt: meeting.scheduledAt,
+          origin: 'DIRETO',
+          outcome: 'DONE',
+          outcomeAt: meeting.scheduledAt,
+        })
+      : null;
+    if (m) await recordActivity(tx, u, lead.id, 'meeting.outcome', ['outcome'], m.id);
+    const mark = { leadId: lead.id, sdrId: lead.sdrId, meetingId: m?.id ?? null };
     if (!input.sale) {
-      // Produto vendido: ativo e do closer da reunião (o closer da venda).
+      // Produto vendido: ativo e do closer da venda (o da reunião ou o escolhido na venda direta).
       const [p] = await tx
         .select({ id: products.id })
         .from(products)
+        .innerJoin(user, eq(user.id, products.closerId))
         .where(
           and(
             eq(products.id, input.soldProductId!),
             eq(products.closerId, meeting.closerId),
             eq(products.active, true),
+            eq(user.active, true),
+            eq(user.canClose, true),
           ),
         );
-      if (!p) throw new BadRequestException('Produto inválido para o closer da reunião');
+      if (!p)
+        throw new BadRequestException(
+          m
+            ? 'Produto inválido para o closer da reunião'
+            : 'Produto inválido para o closer escolhido',
+        );
       // Cadastrar em Venda Fechada é o SDR marcando a venda (NPAC-48): conta a renda extra.
       await recordSaleMark(tx, u, { ...mark, productId: p.id });
-      await recordActivity(tx, u, lead.id, 'sale.pending', [], m.id);
+      await recordActivity(tx, u, lead.id, 'sale.pending', [], m?.id);
       return false;
     }
     const { closedOn, ...sale } = input.sale;

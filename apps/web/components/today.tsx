@@ -1,5 +1,6 @@
 'use client';
 import type { LeadCatalog, TodayDTO } from '@npac/shared';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
 import { money } from '@npac/shared/money';
@@ -16,6 +17,12 @@ import { useCrmRefresh } from './shell/live-updates';
 import { SEM_FOTOS, type TeamPhotos } from './avatar';
 import { MeetingReminder } from './meeting-reminder';
 import { MeetingAction, QuickAction } from './today-quick-action';
+
+// Só no clique do círculo: a janelinha não pesa no JS da tela.
+const TaskCompleteDialog = dynamic(
+  () => import('./task-complete-dialog').then((m) => m.TaskCompleteDialog),
+  { ssr: false },
+);
 
 const SP = 'America/Sao_Paulo';
 const when = (at: string | null) =>
@@ -229,6 +236,8 @@ export function Today({
   const [filters, setFilters] = useState<TodayFilters>(initialFilters);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  /** Tarefa de lead sendo concluída (NPAC-67): a janelinha pede o que aconteceu e o próximo passo. */
+  const [completing, setCompleting] = useState<TodayDTO['tasks'][number] | null>(null);
   // Relógio do navegador para a marca "agora" da agenda: só depois de montar (sem divergir do
   // HTML do servidor) e a cada 30 s, junto com a passagem do que venceu para Atrasados.
   const [now, setNow] = useState<number | null>(null);
@@ -318,11 +327,15 @@ export function Today({
       aria-label={`Concluir ${t.title}`}
       title="Concluir"
       onClick={() =>
-        void action(
-          t.leadId ? `/api/leads/${t.leadId}/tasks/${t.id}` : `/api/tasks/${t.id}`,
-          'PATCH',
-          { version: t.version, completed: true },
-        )
+        // Tarefa de lead, para quem edita o lead: pede o próximo passo (NPAC-67). Tarefa pessoal
+        // e o closer (não muda contato nem agenda) concluem direto, como antes.
+        quick && t.leadId
+          ? setCompleting(t)
+          : void action(
+              t.leadId ? `/api/leads/${t.leadId}/tasks/${t.id}` : `/api/tasks/${t.id}`,
+              'PATCH',
+              { version: t.version, completed: true },
+            )
       }
     >
       <svg
@@ -484,6 +497,21 @@ export function Today({
         </form>
       )}
       <FormError message={error} />
+      {completing?.leadId && (
+        <TaskCompleteDialog
+          task={{
+            id: completing.id,
+            leadId: completing.leadId,
+            leadName: completing.name ?? 'Lead',
+            title: completing.title,
+            dueAt: completing.dueAt,
+            version: completing.version,
+          }}
+          team={catalog.team}
+          onSaved={() => void load().catch((e: Error) => setError(e.message))}
+          onClose={() => setCompleting(null)}
+        />
+      )}
 
       {/* Fila de trabalho à esquerda, agenda do dia à direita (empilha abaixo de xl). */}
       <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(360px,420px)] 3xl:grid-cols-[minmax(0,1fr)_480px]">

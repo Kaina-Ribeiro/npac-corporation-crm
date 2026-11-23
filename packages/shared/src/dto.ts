@@ -52,6 +52,11 @@ export type LeadCatalog = {
     canProspect: boolean;
     canClose: boolean;
   }[];
+  /**
+   * Nome do SDR logado (só para o papel SDR, NPAC-66): o filtro de SDR de Leads, Pipeline e
+   * Relatórios fica só com ele, sem "Todos"; a API ignora outro `sdrId`.
+   */
+  sdrFixo?: string;
 };
 /** Resposta do Google Forms ligada ao lead. */
 export type FormResponseDTO = {

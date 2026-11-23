@@ -628,6 +628,364 @@ describe('venda que vem do Agendou Pagamento dá a renda extra ao SDR', () => {
   });
 });
 
+// NPAC-68 (Igor, 23/11/2026): o cliente pagou e o lead está em Agendou Pagamento. O SDR do lead (ou
+// a liderança) marca a venda sem depender do closer: o lead vai para Venda a registrar com o closer e
+// o produto do pagamento, o closer é avisado para pôr o valor e o SDR ganha a renda extra. Continua
+// pedindo a reunião realizada (NPAC-65 em aberto).
+describe('SDR marca a venda vinda de Agendou Pagamento (NPAC-68)', () => {
+  /** Lead do Ale com reunião realizada do Ronaldo e pagamento com a Sônia, entrada já paga. */
+  const paidLead = async (productId = padrao) => {
+    const id = await leadWithMeeting('DONE', 'ronaldo');
+    const res = await h.patch(
+      `/api/leads/${id}`,
+      {
+        version: await version(id),
+        stageKey: 'AGENDOU_PAGAMENTO',
+        paymentProductId: productId,
+        paymentCloserId: ids.sonia,
+        paymentEntryPaid: true,
+      },
+      ale,
+    );
+    expect(res.status, res.text).toBe(200);
+    return id;
+  };
+  const pendingTo = (id: string) =>
+    owner<{ user_id: string }[]>`
+      select n.user_id from notifications n join lead_timeline t on t.id = n.timeline_id
+      where t.lead_id = ${id} and t.kind = 'sale.pending'`;
+
+  it('Venda a registrar com o closer e o produto do pagamento; renda do SDR e aviso só ao closer do pagamento', async () => {
+    const id = await paidLead();
+    const res = await mark(id);
+    expect(res.status, res.text).toBe(201);
+    const got = (await h.get(`/api/leads/${id}`, ale)).body;
+    expect(got).toMatchObject({
+      stageKey: 'VENDA',
+      saleToRegister: true,
+      soldProductId: padrao,
+      closer: { id: ids.sonia },
+      paymentProductId: null,
+      paymentEntryPaid: false,
+    });
+    expect(await marks(id)).toMatchObject([
+      { sdr_id: ids.ale, product_id: padrao, bonus_cents: 1000, marked_by: ids.ale },
+    ]);
+    // O closer da reunião (Ronaldo) não é o da venda: o aviso vai só à Sônia.
+    expect((await pendingTo(id)).map((n) => n.user_id)).toEqual([ids.sonia]);
+  });
+
+  it('o closer do pagamento, sem reunião com o lead, vê a venda a registrar no Hoje e registra', async () => {
+    const id = await paidLead();
+    expect((await mark(id)).status).toBe(201);
+    const forCloser = await h.get(`/api/leads/${id}`, sonia);
+    expect(forCloser.status, forCloser.text).toBe(200);
+    expect(forCloser.body).toMatchObject({ saleToRegister: true, soldProductId: padrao });
+    const today = (await h.post('/api/today/search', {}, sonia)).body.salesToRegister as {
+      id: string;
+    }[];
+    expect(today.map((s) => s.id)).toEqual([id]);
+    expect((await register(id)).status).toBe(201);
+    // A marcação do SDR continua uma só depois do registro.
+    expect(await marks(id)).toHaveLength(1);
+  });
+
+  it('produto de outro closer que não o do pagamento → 400 e nada muda', async () => {
+    const id = await paidLead();
+    // RDV é do Ronaldo; o pagamento é com a Sônia.
+    expect((await mark(id, rdv)).status).toBe(400);
+    expect((await h.get(`/api/leads/${id}`, ale)).body.stageKey).toBe('AGENDOU_PAGAMENTO');
+    expect(await marks(id)).toHaveLength(0);
+  });
+
+  it('sem reunião realizada (lead de antes da NPAC-59) → 409 MEETING_DONE_REQUIRED em português', async () => {
+    const res = await h.post(
+      '/api/leads',
+      {
+        name: `Lead Pagou Sem Reunião ${++seq}`,
+        instagram: `@pagou.sem.reuniao.${seq}`,
+        incomeBand: 'R8_15K',
+        source: 'BIO',
+        stageKey: 'EM_FOLLOW',
+      },
+      ale,
+    );
+    expect(res.status, res.text).toBe(201);
+    const id = res.body.id as string;
+    await owner`update leads set stage_id = (select id from pipeline_stages where key = 'AGENDOU_PAGAMENTO'),
+      payment_product_id = ${padrao}, closer_id = ${ids.sonia}, payment_entry_paid = true where id = ${id}`;
+    const r = await mark(id);
+    expect(r.status).toBe(409);
+    expect(r.body).toMatchObject({
+      code: 'MEETING_DONE_REQUIRED',
+      message: 'Marque a venda depois de uma reunião realizada.',
+    });
+    expect((await h.get(`/api/leads/${id}`, ale)).body.stageKey).toBe('AGENDOU_PAGAMENTO');
+    expect(await marks(id)).toHaveLength(0);
+  });
+
+  it('closer não marca (403); a liderança marca pelo SDR e o aviso vai ao SDR e ao closer', async () => {
+    const id = await paidLead();
+    expect((await mark(id, padrao, sonia)).status).toBe(403);
+    expect((await mark(id, padrao, ronaldo)).status).toBe(201);
+    expect(await marks(id)).toMatchObject([{ sdr_id: ids.ale, marked_by: ids.ronaldo }]);
+    expect((await pendingTo(id)).map((n) => n.user_id).sort()).toEqual([ids.ale, ids.sonia].sort());
+  });
+});
+
+// NPAC-65 (Igor, 23/11/2026, 15:12): Agendou Pagamento sempre teve reunião. Sem reunião realizada, ao
+// mover ou no cadastro direto na etapa, a reunião que já aconteceu vem junto (`meetingDone`, como o
+// NPAC-62). Quem já está na etapa sem reunião não muda sozinho (4.4B).
+describe('Agendou Pagamento pede a reunião que já aconteceu (NPAC-65)', () => {
+  const newLead = async (extra: Record<string, unknown> = {}) =>
+    h.post(
+      '/api/leads',
+      {
+        name: `Lead Reunião Passada ${++seq}`,
+        instagram: `@reuniao.passada.${seq}`,
+        incomeBand: 'R8_15K',
+        source: 'BIO',
+        stageKey: 'EM_FOLLOW',
+        ...extra,
+      },
+      ale,
+    );
+  const past = (days: number) => new Date(Date.now() - days * DAY).toISOString();
+  const payment = () => ({ paymentProductId: padrao, paymentCloserId: ids.sonia });
+  const meetingsOf = (id: string) =>
+    owner<{ outcome: string | null; same: boolean; closer_id: string; origin: string }[]>`
+      select outcome, outcome_at = scheduled_at as same, closer_id, origin from meetings where lead_id = ${id}`;
+  const stageOf = async (id: string) =>
+    (await h.get(`/api/leads/${id}`, ale)).body.stageKey as string;
+
+  it('mover sem reunião realizada: a que já aconteceu entra junto e conta no dia dela', async () => {
+    const res = await newLead();
+    const id = res.body.id as string;
+    const move = async (meetingDone?: Record<string, unknown>) =>
+      h.patch(
+        `/api/leads/${id}`,
+        {
+          version: await version(id),
+          stageKey: 'AGENDOU_PAGAMENTO',
+          ...payment(),
+          ...(meetingDone ? { meetingDone } : {}),
+        },
+        ale,
+      );
+    const without = await move();
+    expect(without.status).toBe(409);
+    expect(without.body.code).toBe('MEETING_DONE_REQUIRED');
+    const future = new Date(Date.now() + DAY).toISOString();
+    expect(
+      (await move({ scheduledAt: future, closerId: ids.sonia, origin: 'DIRETO' })).status,
+    ).toBe(400);
+    const when = past(2);
+    const ok = await move({ scheduledAt: when, closerId: ids.sonia, origin: 'FOLLOW' });
+    expect(ok.status, ok.text).toBe(200);
+    expect(await stageOf(id)).toBe('AGENDOU_PAGAMENTO');
+    expect(await meetingsOf(id)).toEqual([
+      { outcome: 'DONE', same: true, closer_id: ids.sonia, origin: 'FOLLOW' },
+    ]);
+    const day = spDay(new Date(when));
+    const then = await h.post('/api/reports/search', { period: 'RANGE', from: day, to: day }, ale);
+    expect(then.body.metrics).toMatchObject({ done: 1, meetingValueCents: 700 });
+    // Com a reunião realizada, o SDR marca a venda quando o cliente paga (NPAC-68).
+    expect((await mark(id)).status).toBe(201);
+  });
+
+  it('cadastro direto em Agendou Pagamento com a reunião que já aconteceu; sem ela, 409', async () => {
+    const without = await newLead({ stageKey: 'AGENDOU_PAGAMENTO', ...payment() });
+    expect(without.status).toBe(409);
+    expect(without.body.code).toBe('MEETING_DONE_REQUIRED');
+    const res = await newLead({
+      stageKey: 'AGENDOU_PAGAMENTO',
+      ...payment(),
+      paymentEntryPaid: true,
+      meetingDone: { scheduledAt: past(1), closerId: ids.sonia, origin: 'DIRETO' },
+    });
+    expect(res.status, res.text).toBe(201);
+    const id = res.body.id as string;
+    expect((await h.get(`/api/leads/${id}`, ale)).body).toMatchObject({
+      stageKey: 'AGENDOU_PAGAMENTO',
+      paymentProductId: padrao,
+      paymentEntryPaid: true,
+      closer: { id: ids.sonia },
+    });
+    expect(await meetingsOf(id)).toEqual([
+      { outcome: 'DONE', same: true, closer_id: ids.sonia, origin: 'DIRETO' },
+    ]);
+  });
+
+  it('closer não lança a reunião (403); fora da entrada em Agendou Pagamento, 400', async () => {
+    const id = (await newLead()).body.id as string;
+    // A Sônia enxerga o lead pela reunião marcada (futura) com ela.
+    await owner`insert into meetings (lead_id, closer_id, scheduled_at, origin, created_by)
+      values (${id}, ${ids.sonia}, now() + interval '2 days', 'DIRETO', ${ids.ale})`;
+    const closer = await h.patch(
+      `/api/leads/${id}`,
+      {
+        version: await version(id, sonia),
+        stageKey: 'AGENDOU_PAGAMENTO',
+        paymentProductId: padrao,
+        paymentAmountCents: 300_000,
+        nextContactAt: new Date(Date.now() + DAY).toISOString(),
+        meetingDone: { scheduledAt: past(1), closerId: ids.sonia, origin: 'DIRETO' },
+      },
+      sonia,
+    );
+    expect(closer.status).toBe(403);
+    const other = await h.patch(
+      `/api/leads/${id}`,
+      {
+        version: await version(id),
+        stageKey: 'NO_SHOW',
+        meetingDone: { scheduledAt: past(1), closerId: ids.sonia, origin: 'DIRETO' },
+      },
+      ale,
+    );
+    expect(other.status).toBe(400);
+  });
+});
+
+// NPAC-65 (Igor, 23/11/2026, "4.1A, 4.3A, 2.1A"): venda direta do SDR, sem reunião, à vista, no cartão
+// ou no boleto. O SDR escolhe o closer e o produto; o lead vai para Venda a registrar, o closer
+// escolhido põe o valor e o SDR ganha a renda extra sem somar reunião. Vale na ficha e no cadastro.
+describe('venda direta do SDR (NPAC-65)', () => {
+  const plainLead = async () => {
+    const res = await h.post(
+      '/api/leads',
+      {
+        name: `Lead Venda Direta ${++seq}`,
+        instagram: `@venda.direta.${seq}`,
+        incomeBand: 'R8_15K',
+        source: 'BIO',
+        stageKey: 'EM_FOLLOW',
+      },
+      ale,
+    );
+    expect(res.status, res.text).toBe(201);
+    return res.body.id as string;
+  };
+  const direct = async (id: string, productId = padrao, closerId = ids.sonia, cookie = ale) =>
+    h.post(
+      `/api/leads/${id}/sale-mark`,
+      { version: await version(id, cookie), productId, directSale: { closerId } },
+      cookie,
+    );
+  const markMeetings = (id: string) =>
+    owner<{ meeting_id: string | null; bonus_cents: number }[]>`
+      select meeting_id, bonus_cents from sdr_sale_marks where lead_id = ${id} and canceled_at is null`;
+  const pendingTo = (id: string) =>
+    owner<{ user_id: string }[]>`
+      select n.user_id from notifications n join lead_timeline t on t.id = n.timeline_id
+      where t.lead_id = ${id} and t.kind = 'sale.pending'`;
+
+  it('ficha: sem reunião, o SDR escolhe o closer; venda a registrar, renda e nenhuma reunião', async () => {
+    const id = await plainLead();
+    const res = await direct(id);
+    expect(res.status, res.text).toBe(201);
+    expect((await h.get(`/api/leads/${id}`, ale)).body).toMatchObject({
+      stageKey: 'VENDA',
+      saleToRegister: true,
+      soldProductId: padrao,
+      closer: { id: ids.sonia },
+    });
+    expect(await markMeetings(id)).toEqual([{ meeting_id: null, bonus_cents: 1000 }]);
+    expect((await pendingTo(id)).map((n) => n.user_id)).toEqual([ids.sonia]);
+    expect(await owner`select 1 from meetings where lead_id = ${id}`).toHaveLength(0);
+    const sdr = (await dashboard()).body;
+    expect(sdr.saleBonus).toMatchObject({ count: 1, cents: 1000 });
+    expect(sdr.metrics).toMatchObject({ sales: 1, done: 0, meetingValueCents: 0 });
+    // A closer escolhida vê o lead no Hoje (sem reunião com ele) e registra à vista; Parcial, não.
+    const hoje = (await h.post('/api/today/search', {}, sonia)).body.salesToRegister as {
+      id: string;
+    }[];
+    expect(hoje.map((s) => s.id)).toContain(id);
+    const partial = await h.post(
+      '/api/finance/deals',
+      {
+        leadId: id,
+        productId: padrao,
+        closerId: ids.sonia,
+        version: await version(id, sonia),
+        totalCents: 300_000,
+        method: 'PARTIAL',
+        entryCents: 100_000,
+        installments: [
+          { amountCents: 200_000, dueAt: new Date(Date.now() + 10 * DAY).toISOString() },
+        ],
+        requestKey: randomUUID(),
+      },
+      sonia,
+    );
+    expect(partial.status).toBe(400);
+    expect(partial.body.message).toBe(
+      'Venda direta é à vista, no cartão ou no boleto, sem entrada.',
+    );
+    expect((await register(id)).status).toBe(201);
+    expect(await markMeetings(id)).toHaveLength(1);
+  });
+
+  it('com reunião realizada ou em Agendou Pagamento não é venda direta (409); produto de outro closer, 400; closer, 403', async () => {
+    const withMeeting = await leadWithMeeting();
+    const a = await direct(withMeeting);
+    expect(a.status).toBe(409);
+    expect(a.body.code).toBe('NOT_DIRECT_SALE');
+    const paying = await plainLead();
+    await owner`update leads set stage_id = (select id from pipeline_stages where key = 'AGENDOU_PAGAMENTO'),
+      payment_product_id = ${padrao}, closer_id = ${ids.sonia} where id = ${paying}`;
+    expect((await direct(paying)).body.code).toBe('NOT_DIRECT_SALE');
+    const id = await plainLead();
+    // RDV é do Ronaldo; a closer escolhida é a Sônia.
+    expect((await direct(id, rdv)).status).toBe(400);
+    expect((await direct(id, padrao, ids.sonia, sonia)).status).toBe(403);
+    expect(await markMeetings(id)).toEqual([]);
+    // A liderança marca pelo SDR: o aviso vai ao SDR e à closer escolhida.
+    expect((await direct(id, rdv, ids.ronaldo, ronaldo)).status).toBe(201);
+    expect(await marks(id)).toMatchObject([{ sdr_id: ids.ale, marked_by: ids.ronaldo }]);
+  });
+
+  it('cadastro em Venda Fechada como venda direta (4.3A); com a reunião junto, 400', async () => {
+    const base = {
+      incomeBand: 'R8_15K',
+      source: 'BIO',
+      stageKey: 'VENDA',
+      soldProductId: padrao,
+    };
+    const res = await h.post(
+      '/api/leads',
+      {
+        ...base,
+        name: `Lead Cadastro Direta ${++seq}`,
+        instagram: `@cadastro.direta.${seq}`,
+        directSale: { closerId: ids.sonia },
+      },
+      ale,
+    );
+    expect(res.status, res.text).toBe(201);
+    const id = res.body.id as string;
+    expect((await h.get(`/api/leads/${id}`, ale)).body).toMatchObject({
+      stageKey: 'VENDA',
+      saleToRegister: true,
+      closer: { id: ids.sonia },
+    });
+    expect(await owner`select 1 from meetings where lead_id = ${id}`).toHaveLength(0);
+    expect(await markMeetings(id)).toEqual([{ meeting_id: null, bonus_cents: 1000 }]);
+    const both = await h.post(
+      '/api/leads',
+      {
+        ...base,
+        name: `Lead Cadastro Direta ${++seq}`,
+        instagram: `@cadastro.direta.${seq}`,
+        directSale: { closerId: ids.sonia },
+        meeting: { scheduledAt: new Date(Date.now() - DAY).toISOString(), closerId: ids.sonia },
+      },
+      ale,
+    );
+    expect(both.status).toBe(400);
+  });
+});
+
 describe('reunião já realizada lançada depois (NPAC-62, "1A, 2A")', () => {
   /** Lead do Ale em Em follow, sem reunião (como a lead do Igor, de antes do CRM). */
   const leadWithoutMeeting = async () => {

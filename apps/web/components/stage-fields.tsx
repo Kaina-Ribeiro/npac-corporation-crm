@@ -2,7 +2,7 @@
 import type { LeadCatalog, LeadDTO, ProductDTO, Role } from '@npac/shared';
 import { LOST_REASON_LABELS, LOST_REASON_OTHER_MAX, LOST_REASONS } from '@npac/shared/enums';
 import { money, parseCents } from '@npac/shared/money';
-import { useState, type ReactNode } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import {
   centsInput,
   nextContactLabel,
@@ -58,6 +58,7 @@ export function StageFields({
   products,
   role,
   lead,
+  meetingDone = false,
 }: {
   stage: string;
   /** A etapa vai mudar (ou é o cadastro): só então a reunião é pedida. */
@@ -67,6 +68,8 @@ export function StageFields({
   products: ProductDTO[];
   role: Role;
   lead?: StageFieldsLead;
+  /** O lead já tem reunião realizada: Agendou Pagamento não pede a que já aconteceu (NPAC-65). */
+  meetingDone?: boolean;
 }) {
   const kind = stageFieldsKind(stage);
   // Valores atuais só valem na própria etapa (ao sair, a API apaga pagamento e motivo).
@@ -120,42 +123,57 @@ export function StageFields({
     );
   }
 
+  // Agendou Pagamento sempre teve reunião (NPAC-65): sem a realizada, o SDR e a liderança informam a
+  // que já aconteceu (o closer não lança reunião; a API responde 409).
+  const origin =
+    kind === 'PAYMENT' && changed && role !== 'CLOSER' && !meetingDone ? (
+      <PastMeetingFields team={team} lead={lead} />
+    ) : null;
+
   if (kind === 'PAYMENT' && role === 'SDR')
-    return <SdrPaymentFields changed={changed} lead={lead} team={team} products={products} />;
+    return (
+      <>
+        {origin}
+        <SdrPaymentFields changed={changed} lead={lead} team={team} products={products} />
+      </>
+    );
 
   if (kind === 'PAYMENT') {
     return (
-      <PaymentValueFields
-        amount={amount}
-        setAmount={setAmount}
-        required={changed}
-        keep={keep}
-        lead={lead}
-      >
-        <Field label="Produto">
-          <select
-            name={SF.product}
-            className={control}
-            required={changed}
-            value={productId}
-            onChange={(e) => {
-              setProductId(e.target.value);
-              const p = products.find((x) => x.id === e.target.value);
-              // O valor começa com o preço do produto e pode ser editado.
-              if (p) setAmount(centsInput(p.priceCents ?? 0));
-            }}
-          >
-            <option value="" disabled={changed}>
-              Escolha o produto
-            </option>
-            {products.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name} — {p.closerName} — {money(p.priceCents ?? 0)}
+      <>
+        {origin}
+        <PaymentValueFields
+          amount={amount}
+          setAmount={setAmount}
+          required={changed}
+          keep={keep}
+          lead={lead}
+        >
+          <Field label="Produto">
+            <select
+              name={SF.product}
+              className={control}
+              required={changed}
+              value={productId}
+              onChange={(e) => {
+                setProductId(e.target.value);
+                const p = products.find((x) => x.id === e.target.value);
+                // O valor começa com o preço do produto e pode ser editado.
+                if (p) setAmount(centsInput(p.priceCents ?? 0));
+              }}
+            >
+              <option value="" disabled={changed}>
+                Escolha o produto
               </option>
-            ))}
-          </select>
-        </Field>
-      </PaymentValueFields>
+              {products.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name} — {p.closerName} — {money(p.priceCents ?? 0)}
+                </option>
+              ))}
+            </select>
+          </Field>
+        </PaymentValueFields>
+      </>
     );
   }
 
@@ -211,6 +229,57 @@ export function StageFields({
         }
       />
     </Field>
+  );
+}
+
+/**
+ * NPAC-65 (Igor, 23/11/2026): "para a pessoa agendar pagamento ela já realizou uma reunião". Sem reunião
+ * realizada, a que já aconteceu entra junto com a etapa (os campos do NPAC-62), no cadastro ou ao mover.
+ */
+function PastMeetingFields({ team, lead }: { team: LeadCatalog['team']; lead?: StageFieldsLead }) {
+  const titleId = useId();
+  const max = toBrasiliaInput(new Date().toISOString());
+  return (
+    <>
+      <p id={titleId} className="col-span-full w-full text-sm font-semibold text-ink2">
+        A reunião já aconteceu
+      </p>
+      <Field label="Quando aconteceu (Brasília)">
+        <input
+          name={SF.doneAt}
+          type="datetime-local"
+          className={control}
+          max={max}
+          required
+          aria-describedby={titleId}
+        />
+      </Field>
+      <Field label="Closer da reunião">
+        <select
+          name={SF.doneCloser}
+          className={control}
+          required
+          defaultValue={lead?.closer?.id ?? ''}
+        >
+          <option value="" disabled>
+            Escolha
+          </option>
+          {team
+            .filter((u) => u.canClose)
+            .map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.name}
+              </option>
+            ))}
+        </select>
+      </Field>
+      <Field label="Origem do agendamento">
+        <select name={SF.doneOrigin} className={control}>
+          <option value="DIRETO">Direto</option>
+          <option value="FOLLOW">Follow-up</option>
+        </select>
+      </Field>
+    </>
   );
 }
 

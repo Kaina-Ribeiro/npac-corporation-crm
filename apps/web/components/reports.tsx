@@ -683,14 +683,16 @@ export function Reports({
               <>
                 <Field label="SDR do relatório">
                   <select name="sdrId" className={control} defaultValue={filters.sdrId ?? ''}>
-                    <option value="">Todos no meu escopo</option>
-                    {catalog.team
-                      .filter((u) => u.canProspect)
-                      .map((u) => (
-                        <option key={u.id} value={u.id}>
-                          {u.name}
-                        </option>
-                      ))}
+                    {/* SDR vê só ele (NPAC-66): o vazio é o escopo dele, a API já fica nele. */}
+                    <option value="">{catalog.sdrFixo ?? 'Todos no meu escopo'}</option>
+                    {!catalog.sdrFixo &&
+                      catalog.team
+                        .filter((u) => u.canProspect)
+                        .map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.name}
+                          </option>
+                        ))}
                   </select>
                 </Field>
                 <Field label="Closer do relatório">
