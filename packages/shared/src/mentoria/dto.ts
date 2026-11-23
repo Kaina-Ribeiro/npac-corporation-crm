@@ -345,6 +345,11 @@ export type FichaDTO = {
   valorCentavos: number | null;
   formaPagamento: string | null;
   statusFinanceiro: StatusFinanceiro | null;
+  /**
+   * Venda do comercial que criou a inscrição (NPAC-56): com ela, a situação do pagamento vem das
+   * parcelas e não se edita (M8). Nula = cadastrada ou importada.
+   */
+  dealId: string | null;
   status: InscricaoStatus;
   responsavelId: string | null;
   origem: Origem | null;

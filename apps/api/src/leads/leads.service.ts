@@ -36,6 +36,8 @@ import { toCsv } from '../common/csv.js';
 import { FieldCrypto } from '../common/crypto/field-crypto.js';
 import { DB } from '../common/db/db.module.js';
 import { insertSale, requestHash } from '../finance/finance.service.js';
+import { AvisosScheduler } from '../mentoria/avisos.scheduler.js';
+import { InscricaoDaVenda } from '../mentoria/venda/inscricao-da-venda.js';
 import { scheduleMeeting } from '../meetings/meetings.service.js';
 import { ReminderScheduler } from '../push/reminders.js';
 import { recordActivity } from './activity.js';
@@ -82,6 +84,8 @@ export class LeadsService {
     private readonly crypto: FieldCrypto,
     private readonly audit: AuditService,
     private readonly reminders: ReminderScheduler,
+    private readonly inscricao: InscricaoDaVenda,
+    private readonly avisos: AvisosScheduler,
   ) {}
 
   async catalog(u: AuthUser) {
@@ -156,7 +160,7 @@ export class LeadsService {
         if (retry) {
           if (retry.requestHash !== hash)
             throw new ConflictException('Chave já usada em outra requisição');
-          return { id: retry.leadId, scheduled: false };
+          return { id: retry.leadId, scheduled: false, mentorado: false };
         }
       }
       // Serializa por contato entre todos os SDRs. A ordem evita deadlocks quando
@@ -221,12 +225,16 @@ export class LeadsService {
         await recordActivity(tx, u, created, 'payment.pending', [], undefined, meta);
       // Mesma transação: se a reunião falhar, o lead não fica criado.
       if (stage.meeting) await scheduleMeeting(tx, u, { leadId: created, ...stage.meeting });
-      if (sold) await this.registerSold(tx, u, { id: created, sdrId, stageId }, sold, input, hash);
-      return { id: created, scheduled: Boolean(stage.meeting || sold) };
+      const mentorado = sold
+        ? await this.registerSold(tx, u, { id: created, sdrId, stageId }, sold, input, hash)
+        : false;
+      return { id: created, scheduled: Boolean(stage.meeting || sold), mentorado };
     });
 
     // Depois do commit, como no POST /meetings.
     if (id.scheduled) void this.reminders.rearm();
+    // Venda de mentoria registrada no cadastro: "Nova inscrição" na Fila (NPAC-56).
+    if (id.mentorado) void this.avisos.rearm();
     return { id: id.id };
   }
 
@@ -329,7 +337,8 @@ export class LeadsService {
 
   /**
    * Reunião realizada (o SDR recebe por ela no dia da reunião) e, se veio, a venda com o dia
-   * informado. Sem a venda, o lead fica "a registrar" e o closer da reunião é avisado.
+   * informado. Sem a venda, o lead fica "a registrar" e o closer da reunião é avisado. Devolve se a
+   * venda criou o mentorado no Acompanhamento (NPAC-56).
    */
   private async registerSold(
     tx: Tx,
@@ -365,7 +374,7 @@ export class LeadsService {
       // Cadastrar em Venda Fechada é o SDR marcando a venda (NPAC-48): conta a renda extra.
       await recordSaleMark(tx, u, { ...mark, productId: p.id });
       await recordActivity(tx, u, lead.id, 'sale.pending', [], m.id);
-      return;
+      return false;
     }
     const { closedOn, ...sale } = input.sale;
     const today = spDay(new Date());
@@ -379,9 +388,11 @@ export class LeadsService {
       { ...sale, closerId: meeting.closerId },
       hash,
       closedAt,
+      this.inscricao,
     );
     await recordSaleMark(tx, u, { ...mark, productId: sale.productId });
     await recordActivity(tx, u, lead.id, 'sale.registered', [], d.id);
+    return d.inscricaoId !== null;
   }
 
   private resolveSdr(u: AuthUser, requested: string | undefined): string {

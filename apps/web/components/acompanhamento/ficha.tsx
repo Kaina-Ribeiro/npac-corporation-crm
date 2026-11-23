@@ -52,6 +52,8 @@ import {
 
 const COOKIE_ULTIMA_FICHA = 'npac_ultima_ficha';
 const sm = `${quietButton} sm`;
+/** AAAA-MM-DD → DD/MM (selo "Veio da venda de DD/MM", NPAC-56). */
+const diaMes = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
 
 function Jornada({
   ficha,
@@ -269,6 +271,8 @@ function Inscricao({
       <CampoPr {...base} rotulo="Pagamento" campo="formaPagamento" valor={ficha.formaPagamento} />
       <CampoPr
         {...base}
+        // Com venda, vem das parcelas do comercial (NPAC-56, M8): só leitura.
+        editavel={ed && !ficha.dealId}
         rotulo="Financeiro"
         campo="statusFinanceiro"
         valor={ficha.statusFinanceiro}
@@ -650,6 +654,9 @@ export function Ficha({
               <span className="tag">{ficha.mentoria}</span>
               <span className="tag">{TIPO_INSCRICAO_LABEL[ficha.tipo]}</span>
               <TagStatus status={ficha.status} />
+              {ficha.dealId && ficha.dataCompra && (
+                <span className="tag">Veio da venda de {diaMes(ficha.dataCompra)}</span>
+              )}
               <IndicadorSalvo />
             </div>
           </div>

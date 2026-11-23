@@ -538,3 +538,83 @@ describe('Parte 4: tipos novos sem quebrar os antigos', () => {
     expect(await n(SDR)).toBe(0);
   });
 });
+
+describe('NPAC-56: "Nova inscrição" e "Venda estornada"', () => {
+  const NOVOS = ['NOVA_INSCRICAO', 'VENDA_ESTORNADA'];
+  let nova = '';
+  let estornada = '';
+  const QUEM = [DIRETOR, DUDA, OPERACAO, MANU];
+  const antes = new Map<string, string[]>();
+
+  beforeAll(async () => {
+    for (const u of QUEM)
+      antes.set(
+        u,
+        (await fila(u, AGORAS[0]!, 'mentoria_fila')).map((l) => l.chave),
+      );
+    const criar = async (status: string, responsavel: string | null) => {
+      const [i] = await owner<{ id: string }[]>`
+        insert into mentoria_inscricoes (tipo, mentoria, status, deal_id, responsavel_id)
+        values ('INDIVIDUAL', 'RDV', ${status}, gen_random_uuid(), ${responsavel}) returning id`;
+      await owner`insert into mentoria_pessoas (inscricao_id, ordem, nome, nome_norm)
+        values (${i!.id}, 1, 'Mentorado Fictício Venda', 'mentorado ficticio venda')`;
+      return i!.id;
+    };
+    nova = await criar('ONBOARDING', null);
+    await criar('ONBOARDING', ACOMP); // já tem responsável: sem item
+    await criar('CANCELADO', null); // cancelada à mão, sem estorno: sem item
+    estornada = await criar('CANCELADO', ACOMP);
+    await owner`insert into mentoria_historico (inscricao_id, ator_id, tipo)
+      values (${estornada}, ${DUDA}, 'inscricao.cancelada_pelo_estorno')`;
+  });
+
+  it('a Fila traz os dois itens com a pessoa certa e não muda os tipos antigos', async () => {
+    const linhas = await withUser(db, DUDA, async (tx) => [
+      ...(await tx.execute<{
+        chave: string;
+        tipo: string;
+        inscricao_id: string;
+        responsavel_perfil: string;
+        responsavel_id: string | null;
+      }>(sql`select * from mentoria_fila(${AGORAS[0]!}::timestamptz)
+        where tipo in ('NOVA_INSCRICAO', 'VENDA_ESTORNADA') order by tipo`)),
+    ]);
+    expect(
+      linhas.map((l) => [l.chave, l.tipo, l.inscricao_id, l.responsavel_perfil, l.responsavel_id]),
+    ).toEqual([
+      [`nova-inscricao:${nova}`, 'NOVA_INSCRICAO', nova, 'ACOMPANHAMENTO', null],
+      [`venda-estornada:${estornada}`, 'VENDA_ESTORNADA', estornada, 'ACOMPANHAMENTO', ACOMP],
+    ]);
+    // Os outros tipos ficam como estavam antes das inscrições da venda.
+    for (const u of QUEM) {
+      const atual = (await fila(u, AGORAS[0]!, 'mentoria_fila')).filter(
+        (l) => !NOVOS.includes(l.tipo),
+      );
+      expect({ u, linhas: atual.map((l) => l.chave) }).toEqual({ u, linhas: antes.get(u) });
+    }
+    // Fora do módulo (e a Especialista, que não vê a inscrição), nada.
+    for (const u of [SDR, CARLA, MANU2])
+      expect(
+        (await fila(u, AGORAS[0]!, 'mentoria_fila')).filter((l) => NOVOS.includes(l.tipo)),
+      ).toEqual([]);
+  });
+
+  it('o push vai à Admin (nova) e à responsável (estornada); o "Visto" tira a estornada', async () => {
+    const avisos = async () =>
+      (
+        await owner<{ chave: string; user_ids: string[] }[]>`
+          select chave, user_ids from mentoria_avisos_candidatos(${AGORAS[0]!}::timestamptz)
+          where chave like 'nova-inscricao:%' or chave like 'venda-estornada:%' order by chave`
+      ).map((a) => [a.chave, a.user_ids]);
+    expect(await avisos()).toEqual([
+      [`nova-inscricao:${nova}`, [DUDA]],
+      [`venda-estornada:${estornada}`, [ACOMP]],
+    ]);
+    await owner`insert into mentoria_fila_feitos (chave, feito_por)
+      values (${`venda-estornada:${estornada}`}, ${ACOMP})`;
+    expect(await avisos()).toEqual([[`nova-inscricao:${nova}`, [DUDA]]]);
+    expect(
+      (await fila(ACOMP, AGORAS[0]!, 'mentoria_fila')).filter((l) => l.tipo === 'VENDA_ESTORNADA'),
+    ).toEqual([]);
+  });
+});

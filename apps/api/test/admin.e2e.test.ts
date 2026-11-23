@@ -248,6 +248,47 @@ describe('catálogo e etapas', () => {
     );
   });
 
+  it('produto guarda e devolve "Vira mentorado"', async () => {
+    const list = await h.get('/api/admin/products', head);
+    // A migration e o seed marcam os produtos de mentoria (M1).
+    const rdv = list.body.find((p: { code: string }) => p.code === 'RDV');
+    expect(rdv.mentoria).toBe('RDV');
+    const criado = await h.post(
+      '/api/admin/products',
+      {
+        code: 'TESTE_VIRA_2M',
+        name: 'Teste 2M',
+        closerId: ids.sonia,
+        priceCents: 100000,
+        mentoria: '2M',
+      },
+      head,
+    );
+    expect(criado.status).toBe(201);
+    const id = criado.body.id as string;
+    try {
+      const lido = (await h.get('/api/admin/products', head)).body.find(
+        (p: { id: string }) => p.id === id,
+      );
+      expect(lido.mentoria).toBe('2M');
+      expect((await h.patch(`/api/admin/products/${id}`, { mentoria: null }, head)).status).toBe(
+        200,
+      );
+      expect(
+        (await h.get('/api/admin/products', head)).body.find((p: { id: string }) => p.id === id)
+          .mentoria,
+      ).toBeNull();
+      expect((await h.patch(`/api/admin/products/${id}`, { mentoria: 'X' }, head)).status).toBe(
+        400,
+      );
+      // O SDR não recebe o campo (como não recebe o preço).
+      const sdr = await h.get('/api/finance/products', ale);
+      expect(Object.keys(sdr.body[0])).not.toContain('mentoria');
+    } finally {
+      await owner`delete from products where id = ${id}`;
+    }
+  });
+
   it('renomeia etapa sem trocar a chave', async () => {
     const stages = await h.get('/api/admin/stages', head);
     const s = stages.body.find((x: { key: string }) => x.key === 'SONDAGEM');

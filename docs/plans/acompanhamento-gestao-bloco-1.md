@@ -13,16 +13,19 @@ não lê nada do módulo pela RLS e usa duas funções `SECURITY DEFINER` (lista
 
 **Spec:** `docs/superpowers/specs/2026-11-19-acompanhamento-gestao-bloco-1-design.md` (decisões G1–G10, M1–M9).
 
-**Status:** escrito em 19/11/2026; migrations renumeradas em 22/11 (a 0076 é da aba Evolução, NPAC-57). Execução: uma sessão por parte (regra do Gabriel), em ordem; a Parte 2 só começa com
+**Status:** escrito em 19/11/2026; migrations renumeradas em 22/11 (a 0076 é da aba Evolução, NPAC-57). Parte 1 feita em
+22/11/2026. Diferenças do plano: `mentoria_inscricoes.deal_id` ficou **sem FK** (a FK travaria o `truncate deals` de ~20
+testes; a venda não se apaga e só a função grava a coluna); a `mentoria_fila` mais nova era a da 0070 (não a 0075); o
+push da "Nova inscrição" vai às Admins do Acompanhamento (sem nenhuma ativa, à Diretoria). Execução: uma sessão por parte (regra do Gabriel), em ordem; a Parte 2 só começa com
 a Parte 1 mesclada na release aberta.
 
 | Parte | O quê | Tarefas | PR | Status |
 |---|---|---|---|---|
-| 1 | Venda vira mentorado | 1.1–1.5 | `feat(NPAC-56): venda vira mentorado no acompanhamento` | ⏳ |
+| 1 | Venda vira mentorado | 1.1–1.5 | `feat(NPAC-56): venda vira mentorado no acompanhamento` | ✅ 22/11 |
 | 2 | Cargo Envios e aba Envios físicos | 2.1–2.5 | `feat(NPAC-56): cargo envios e aba envios fisicos` | ⏳ |
 
 Branches: `feat/NPAC-56-venda-vira-mentorado` e `feat/NPAC-56-envios-fisicos`, a partir da `release/vX.Y` aberta
-(hoje `release/v0.19`), conforme `RELEASING.md`.
+(hoje `release/v0.20`), conforme `RELEASING.md`.
 
 ## Global Constraints
 

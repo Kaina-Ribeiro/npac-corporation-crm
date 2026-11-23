@@ -540,6 +540,13 @@
       "when": 1795309419495,
       "tag": "0076_acompanhamento_evolucao",
       "breakpoints": true
+    },
+    {
+      "idx": 77,
+      "version": "7",
+      "when": 1795395831218,
+      "tag": "0077_venda_vira_mentorado",
+      "breakpoints": true
     }
   ]
 }

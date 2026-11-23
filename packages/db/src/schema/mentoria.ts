@@ -84,10 +84,19 @@ export const mentoriaInscricoes = pgTable(
       .array()
       .notNull()
       .default(sql`'{}'::text[]`),
+    /**
+     * Venda do comercial que criou a inscrição (NPAC-56, G2); nula = cadastrada ou importada. Sem FK
+     * de propósito: venda nunca é apagada, só a função `mentoria_inscricao_da_venda` grava (gatilho
+     * `mentoria_inscricoes_venda_guarda`), e a FK impediria o `truncate deals` dos testes.
+     */
+    dealId: uuid('deal_id'),
     version: integer('version').notNull().default(1),
     ...autoria,
   },
   (t) => [
+    uniqueIndex('mentoria_inscricoes_deal')
+      .on(t.dealId)
+      .where(sql`${t.dealId} is not null`),
     uniqueIndex('mentoria_inscricoes_importacao_chave')
       .on(t.importacaoChave)
       .where(sql`${t.importacaoChave} is not null`),
