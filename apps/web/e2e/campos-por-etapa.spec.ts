@@ -219,6 +219,8 @@ test('pipeline e lista: mudar para etapa com dados abre a janelinha; cancelar de
     .filter({ visible: true })
     .check();
   const bulk = page.getByRole('combobox', { name: 'Mover para etapa', exact: true });
+  // A barra da ação em massa aparece depois da seleção: espera antes de ler as opções.
+  await expect(bulk.locator('option[value="PERDIDO"]')).toHaveCount(1);
   const options = await bulk.locator('option').allTextContents();
   expect(options).not.toContain('Agendado Direto');
   expect(options).not.toContain('Agendado do Follow');
@@ -395,11 +397,13 @@ test('item 13: SDR informa produto e closer; o closer completa na ficha e regist
   await closerPage.goto('/pipeline');
   const column = closerPage.getByRole('region', { name: 'Agendou Pagamento 💳' });
   await expect(column.getByText('Lead pagamento do SDR', { exact: true })).toBeVisible();
-  await expect(column.getByText('Pagamento a completar', { exact: true })).toBeVisible();
+  // Só o card deste lead: outro teste pode deixar mais um pagamento a completar da Sônia.
+  const card = column.locator('article', { hasText: 'Lead pagamento do SDR' });
+  await expect(card.getByText('Pagamento a completar', { exact: true })).toBeVisible();
   for (const w of WIDTHS) {
     await closerPage.setViewportSize({ width: w, height: 900 });
     if (w < 768) await closerPage.getByRole('button', { name: /^Agendou Pagamento/ }).click();
-    await expect(column.getByText('Pagamento a completar', { exact: true })).toBeVisible();
+    await expect(card.getByText('Pagamento a completar', { exact: true })).toBeVisible();
     expect(
       await closerPage.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
     ).toBe(true);
