@@ -359,3 +359,34 @@ test('Diretoria: menu do módulo abre Mentorados, ficha e Configurações', asyn
   await page.waitForURL(/\/acompanhamento\/configuracoes/);
   await expect(page.getByLabel('Perfil de Duda')).toHaveValue('ACOMPANHAMENTO');
 });
+
+test('Jornada: a linha dos 12 meses passa por trás das bolinhas; Histórico: botões com espaço antes da lista', async ({
+  page,
+}) => {
+  await entrar(page, 'duda');
+  await page.goto(`/acompanhamento/ficha/${FICHA_CASAL}?aba=jornada`);
+  const dots = page.locator('.rail .dot');
+  await expect(dots).toHaveCount(12);
+  // Na metade direita de cada bolinha, quem está por cima é a própria bolinha (ou o ✓ dentro dela), nunca o traço do mês seguinte.
+  const cobertas = await dots.evaluateAll((ds) =>
+    ds.flatMap((d, i) => {
+      const r = d.getBoundingClientRect();
+      const y = r.top + r.height / 2;
+      return [r.left + 4, r.right - 4].flatMap((x) => {
+        const e = document.elementFromPoint(x, y);
+        return e?.closest('.dot') === d ? [] : [`${i + 1}`];
+      });
+    }),
+  );
+  expect(cobertas).toEqual([]);
+
+  await page.getByRole('tab', { name: 'Histórico', exact: true }).click();
+  const primeiro = page.locator('section[aria-label="Histórico"] .ev').first();
+  await expect(primeiro).toBeVisible();
+  const espaco = await page.evaluate(() => {
+    const hh = document.querySelector('section[aria-label="Histórico"] .hh')!;
+    const ev = document.querySelector('section[aria-label="Histórico"] .ev')!;
+    return ev.getBoundingClientRect().top - hh.getBoundingClientRect().bottom;
+  });
+  expect(espaco).toBeGreaterThanOrEqual(10);
+});
