@@ -5480,3 +5480,215 @@
     background: rgba(255, 255, 255, 0.03);
   }
 }
+
+/* Envios físicos (NPAC-56, Parte 2): "A enviar" em cartões no topo, "Em trânsito" e "Entregues" abaixo. */
+.ac .ef {
+  .ef-seg {
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .ef-h {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 10px 2px;
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .ef-h span {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink3);
+  }
+  .ef-grade {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+    gap: 14px;
+  }
+  .ef-card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+  }
+  .ef-corpo {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    flex: 1;
+  }
+  .ef-dados {
+    flex: 1;
+    min-width: 0;
+  }
+  .ef-nome {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    overflow-wrap: anywhere;
+  }
+  .ef-end {
+    margin-top: 6px;
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--ink2);
+    overflow-wrap: anywhere;
+  }
+  .ef-end span {
+    display: block;
+    margin-top: 2px;
+    font-weight: 600;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .ef-end.falta {
+    color: var(--danger);
+    font-weight: 600;
+  }
+  .ef-foto {
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink2);
+    text-decoration: none;
+  }
+  .ef-foto img {
+    width: 88px;
+    height: 66px;
+    object-fit: cover;
+    border-radius: 12px;
+    box-shadow: 0 0 0 1px var(--line);
+  }
+  .ef-acoes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .ef-form {
+    display: grid;
+    gap: 10px;
+  }
+  .ef-form label {
+    display: grid;
+    gap: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink2);
+  }
+  .ef-baixo {
+    display: grid;
+    gap: 14px;
+  }
+  .ef-lista {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .ef-r {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 12px;
+    padding: 12px 16px;
+    border-top: 1px solid var(--line);
+  }
+  .ef-r.p1 {
+    border-top: 0;
+  }
+  .ef-id {
+    min-width: 0;
+    flex: 1 1 220px;
+  }
+  .ef-id b {
+    display: block;
+    font-size: 15px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+  .ef-id small {
+    display: block;
+    font-size: 13px;
+    color: var(--ink2);
+    overflow-wrap: anywhere;
+  }
+  .ef-form-l {
+    flex: 1 1 100%;
+  }
+  .ef-nota {
+    padding: 0 16px 12px;
+    font-size: 12px;
+    color: var(--ink3);
+  }
+  @media (max-width: 767.98px) {
+    .hrow .acts {
+      width: 100%;
+    }
+    .ef-acoes .btn {
+      min-height: 44px;
+      flex: 1;
+      justify-content: center;
+    }
+    .ef-r > .btn {
+      min-height: 44px;
+      width: 100%;
+      justify-content: center;
+    }
+  }
+  @media (min-width: 1280px) {
+    .ef-baixo {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      align-items: start;
+    }
+  }
+}
+.ac .ef {
+  .ef-topo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .ef-ico {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 11px;
+    background: var(--tag-gold-bg);
+    color: var(--tag-gold);
+  }
+  .ef-ico svg {
+    width: 18px;
+    height: 18px;
+  }
+  .ef-tipo {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink2);
+  }
+  .ef-copiar {
+    margin-top: 8px;
+    padding: 0;
+    border: 0;
+    background: none;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--tag-info);
+    cursor: pointer;
+  }
+  .ef-copiar:hover {
+    text-decoration: underline;
+  }
+  .ef-30 {
+    margin-left: auto;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ink3);
+  }
+}

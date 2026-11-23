@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { CargoTag } from '@/components/role-tag';
 import { ContaCard } from '@/components/shell/conta-card';
 import { ICONES, Icone } from '@/components/acompanhamento/ui';
-import { lerEu, podeCadastrar, sessaoDoModulo, ultimaFicha } from '@/lib/acompanhamento';
+import { lerEu, podeCadastrar, sessaoDoModulo, soEnvios, ultimaFicha } from '@/lib/acompanhamento';
 
 export const metadata = { title: 'Mais' };
 
@@ -65,12 +65,19 @@ function Grupo({ titulo, itens }: { titulo: string; itens: Item[] }) {
 export default async function MaisPage() {
   const me = await sessaoDoModulo();
   if (!me) return null;
-  const [eu, ultima] = await Promise.all([lerEu(), ultimaFicha()]);
+  const eu = await lerEu();
+  const envios = soEnvios(eu);
+  const ultima = envios ? null : await ultimaFicha();
   const avisos: Item = {
     rotulo: 'Avisos neste aparelho',
     icone: ICONES.sino,
     href: '/conta/avisos',
-    sub: 'Push da Fila do dia',
+    sub: envios ? 'Push dos envios' : 'Push da Fila do dia',
+  };
+  const enviosItem: Item = {
+    rotulo: 'Envios físicos',
+    icone: ICONES.envios,
+    href: '/acompanhamento/envios',
   };
   return (
     <section className="view">
@@ -84,43 +91,50 @@ export default async function MaisPage() {
           alcance={eu?.soCarteira ? 'CARTEIRA' : null}
         />
       </ContaCard>
-      <Grupo
-        titulo="Acompanhamento"
-        itens={[
-          {
-            rotulo: 'Ficha do mentorado',
-            icone: ICONES.ficha,
-            href: '/acompanhamento/ficha',
-            sub: ultima ? `Última aberta: ${ultima.nome}` : undefined,
-          },
-          ...(podeCadastrar(eu)
-            ? [
-                {
-                  rotulo: 'Onboarding',
-                  icone: ICONES.onboarding,
-                  href: '/acompanhamento/onboarding',
-                },
-              ]
-            : []),
-          {
-            rotulo: 'Plano dos 12 meses',
-            icone: ICONES.plano,
-            href: '/acompanhamento/plano',
-          },
-          ...(podeCadastrar(eu)
-            ? [{ rotulo: 'PMEs e ciclos', icone: ICONES.pmes, href: '/acompanhamento/pmes' }]
-            : []),
-        ]}
-      />
-      <Grupo
-        titulo="Em breve"
-        itens={[
-          breve('Linha do tempo e conquistas', ICONES.linha, 'linha-do-tempo'),
-          breve('Envios físicos', ICONES.envios, 'envios'),
-          breve('Eventos e agenda', ICONES.eventos, 'eventos'),
-          breve('Renovações e gestão', ICONES.renovacoes, 'renovacoes'),
-        ]}
-      />
+      {envios && <Grupo titulo="Acompanhamento" itens={[enviosItem]} />}
+      {!envios && (
+        <Grupo
+          titulo="Acompanhamento"
+          itens={[
+            {
+              rotulo: 'Ficha do mentorado',
+              icone: ICONES.ficha,
+              href: '/acompanhamento/ficha',
+              sub: ultima ? `Última aberta: ${ultima.nome}` : undefined,
+            },
+            ...(podeCadastrar(eu)
+              ? [
+                  {
+                    rotulo: 'Onboarding',
+                    icone: ICONES.onboarding,
+                    href: '/acompanhamento/onboarding',
+                  },
+                ]
+              : []),
+            {
+              rotulo: 'Plano dos 12 meses',
+              icone: ICONES.plano,
+              href: '/acompanhamento/plano',
+            },
+            ...(podeCadastrar(eu)
+              ? [
+                  { rotulo: 'PMEs e ciclos', icone: ICONES.pmes, href: '/acompanhamento/pmes' },
+                  enviosItem,
+                ]
+              : []),
+          ]}
+        />
+      )}
+      {!envios && (
+        <Grupo
+          titulo="Em breve"
+          itens={[
+            breve('Linha do tempo e conquistas', ICONES.linha, 'linha-do-tempo'),
+            breve('Eventos e agenda', ICONES.eventos, 'eventos'),
+            breve('Renovações e gestão', ICONES.renovacoes, 'renovacoes'),
+          ]}
+        />
+      )}
       {eu?.admin && (
         <Grupo
           titulo="Admin"

@@ -618,3 +618,35 @@ describe('NPAC-56: "Nova inscrição" e "Venda estornada"', () => {
     ).toEqual([]);
   });
 });
+
+describe('NPAC-56, Parte 2: "Caixa a enviar" vai para o cargo Envios (M4)', () => {
+  const MARIA = 'fq-maria';
+  afterAll(async () => {
+    await owner`delete from "user" where id = ${MARIA}`;
+  });
+
+  it('com alguém ativo no cargo Envios, só o perfil do ENVIAR_CAIXA muda; desativada, volta à Operação', async () => {
+    const linhas = async () =>
+      (
+        await withUser(db, DUDA, async (tx) => [
+          ...(await tx.execute<{ chave: string; tipo: string; responsavel_perfil: string }>(
+            sql`select * from mentoria_fila(${AGORAS[0]!}::timestamptz)`,
+          )),
+        ])
+      ).map((l) => [l.chave, l.tipo, l.responsavel_perfil]);
+    const antes = await linhas();
+    expect(antes.some(([, t]) => t === 'ENVIAR_CAIXA')).toBe(true);
+    await owner`insert into "user" (id, name, email, role, can_prospect, can_close, active)
+      values (${MARIA}, 'Maria FQ', 'maria@fq.test', 'ACOMPANHAMENTO', false, false, true)`;
+    await owner`insert into mentoria_perfis (user_id, perfil, admin) values (${MARIA}, 'ENVIOS', false)`;
+    expect(await linhas()).toEqual(
+      antes.map(([k, t, p]) => [k, t, t === 'ENVIAR_CAIXA' ? 'ENVIOS' : p]),
+    );
+    // O push do 4º dia da Caixa sai da Operação: ela recebe o "Tem envio para hoje".
+    const caixa = await owner<{ n: number }[]>`select count(*)::int as n
+      from mentoria_avisos_candidatos(${AGORAS[0]!}::timestamptz) where chave like 'enviar-caixa:%'`;
+    expect(caixa[0]!.n).toBe(0);
+    await owner`update "user" set active = false where id = ${MARIA}`;
+    expect(await linhas()).toEqual(antes);
+  });
+});

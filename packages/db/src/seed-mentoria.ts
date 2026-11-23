@@ -21,6 +21,7 @@ const EQUIPE = [
   { username: 'operacao', name: 'Operação', perfil: 'OPERACAO', admin: false },
   { username: 'manu', name: 'Manu', perfil: 'ESPECIALISTA', admin: false },
   { username: 'leo', name: 'Leo', perfil: 'MENTOR', admin: false },
+  { username: 'maria', name: 'Maria', perfil: 'ENVIOS', admin: false },
 ] as const;
 
 /** `meses`: há quantos meses a jornada começou; nulo = antes da IDR. */

@@ -32,6 +32,7 @@ import { MetasController } from './metas.controller.js';
 import { MetasService } from './metas.service.js';
 import { ContatosController } from './contatos.controller.js';
 import { PmesController, PmesService } from './pmes.controller.js';
+import { EnviosController, EnviosService } from './envios.controller.js';
 import { PmesCiclosController, PmesCiclosService } from './pmes-ciclos.controller.js';
 import { FilaController, Pme1Controller } from './fila.controller.js';
 import { FilaService } from './fila.service.js';
@@ -67,6 +68,7 @@ import { InscricaoDaVenda } from './venda/inscricao-da-venda.js';
     EvolucaoController,
     CheckinsController,
     PmesCiclosController,
+    EnviosController,
   ],
   providers: [
     MentoriaGuard,
@@ -93,6 +95,7 @@ import { InscricaoDaVenda } from './venda/inscricao-da-venda.js';
     EvolucaoLegado,
     CheckinsService,
     InscricaoDaVenda,
+    EnviosService,
     { provide: MENTORIA_CLOCK, useValue: systemClock },
     {
       provide: MentoriaCrypto,

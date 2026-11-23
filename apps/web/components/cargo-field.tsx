@@ -3,6 +3,7 @@ import {
   AREA_LABEL,
   AREAS,
   ATUA_COMO,
+  CARGO_DICA,
   CARGO_INFO,
   CARGOS,
   CARGOS_POR_AREA,
@@ -83,7 +84,7 @@ export function CargoSelect({
 export function CargoDica({ cargo }: { cargo: Cargo | null }) {
   return (
     <p className="text-xs leading-snug font-normal text-ink2">
-      {cargo ? CARGO_INFO[cargo].dica : 'Escolha o perfil do Acompanhamento para liberar o módulo.'}
+      {cargo ? CARGO_DICA[cargo] : 'Escolha o perfil do Acompanhamento para liberar o módulo.'}
     </p>
   );
 }

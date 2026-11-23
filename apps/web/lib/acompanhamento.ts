@@ -45,6 +45,12 @@ export const lerEu = cache(() => tentar<EuMentoria>('/api/mentoria/eu'));
 export const podeCadastrar = (eu: EuMentoria | null) =>
   !!eu && (eu.admin || eu.perfil === 'ACOMPANHAMENTO' || eu.perfil === 'OPERACAO');
 
+/** Cargo Envios sem o selo (NPAC-56): só a aba Envios físicos. */
+export const soEnvios = (eu: EuMentoria | null) => !!eu && !eu.admin && eu.perfil === 'ENVIOS';
+
+/** Quem abre Envios físicos: a gestão (Admin, Acompanhamento, Operação) e o cargo Envios. */
+export const veEnvios = (eu: EuMentoria | null) => podeCadastrar(eu) || soEnvios(eu);
+
 /** Quem exporta planilha (§6): Admin e Acompanhamento. A API repete a regra. */
 export const podeExportar = (eu: EuMentoria | null) =>
   !!eu && (eu.admin || eu.perfil === 'ACOMPANHAMENTO');

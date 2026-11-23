@@ -359,7 +359,10 @@ export const mentoriaOnboardingEtapas = pgTable(
   ],
 );
 
-/** Envios físicos. A Fase 1 usa só a CAIXA, uma por inscrição. */
+/**
+ * Envios físicos: uma CAIXA e um PRESENTE_FAMILIA por inscrição; KIT e CERTIFICADO à mão (NPAC-56, G10).
+ * O cargo Envios escreve só por `mentoria_envio_marcar` (0078).
+ */
 export const mentoriaEnviosFisicos = pgTable(
   'mentoria_envios_fisicos',
   {
@@ -379,6 +382,9 @@ export const mentoriaEnviosFisicos = pgTable(
     uniqueIndex('mentoria_envios_caixa_unica')
       .on(t.inscricaoId)
       .where(sql`${t.tipo} = 'CAIXA'`),
+    uniqueIndex('mentoria_envios_presente_unico')
+      .on(t.inscricaoId)
+      .where(sql`${t.tipo} = 'PRESENTE_FAMILIA'`),
     index('mentoria_envios_inscricao').on(t.inscricaoId),
     check(
       'mentoria_envios_tipo',

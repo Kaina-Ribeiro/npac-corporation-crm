@@ -11,7 +11,7 @@ import type {
   TipoAvaliacao,
   TipoInscricao,
 } from './enums.js';
-import type { EnvioStatus, Etapa, EtapaStatus } from './onboarding.js';
+import type { EnvioStatus, EnvioTipo, Etapa, EtapaStatus } from './onboarding.js';
 import type { AcaoStatus, Gatilho, PerfilAcao, ReuniaoTipo } from './plano.js';
 import type { CanalContato, Plataforma, ReuniaoStatus } from './reunioes.js';
 import type { CampoEvolucao } from './evolucao.js';
@@ -224,6 +224,33 @@ export type IdrPainel = {
   pessoas: PessoaResumo[];
   /** Nulo quando a Caixa foi dispensada. */
   entregueEm: string | null;
+};
+
+/**
+ * Um envio da aba Envios físicos (NPAC-56). Só o que a Maria precisa: nomes, endereço e CEP e a foto do
+ * presente (M5). `id` nulo = Caixa ou presente ainda sem linha (versão 0).
+ */
+export type EnvioDTO = {
+  id: string | null;
+  inscricaoId: string;
+  tipo: EnvioTipo;
+  status: EnvioStatus;
+  nomes: string[];
+  endereco: string | null;
+  cep: string | null;
+  fotoMidiaId: string | null;
+  enviadoEm: string | null;
+  entregueEm: string | null;
+  rastreio: string | null;
+  version: number;
+};
+
+/** `GET mentoria/envios`: "A enviar", "Em trânsito" e "Entregues" (últimos 30 dias). */
+export type EnviosDTO = {
+  hoje: string;
+  aEnviar: EnvioDTO[];
+  emTransito: EnvioDTO[];
+  entregues: EnvioDTO[];
 };
 
 /** `POST mentoria/onboarding/painel`: a aba Onboarding inteira. */

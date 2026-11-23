@@ -16,13 +16,19 @@ não lê nada do módulo pela RLS e usa duas funções `SECURITY DEFINER` (lista
 **Status:** escrito em 19/11/2026; migrations renumeradas em 22/11 (a 0076 é da aba Evolução, NPAC-57). Parte 1 feita em
 22/11/2026. Diferenças do plano: `mentoria_inscricoes.deal_id` ficou **sem FK** (a FK travaria o `truncate deals` de ~20
 testes; a venda não se apaga e só a função grava a coluna); a `mentoria_fila` mais nova era a da 0070 (não a 0075); o
-push da "Nova inscrição" vai às Admins do Acompanhamento (sem nenhuma ativa, à Diretoria). Execução: uma sessão por parte (regra do Gabriel), em ordem; a Parte 2 só começa com
+push da "Nova inscrição" vai às Admins do Acompanhamento (sem nenhuma ativa, à Diretoria). Parte 2 (23/11/2026): 2.1–2.3
+prontas antes do protótipo aprovado; diferenças: a escrita é `POST mentoria/envios/marcar` (corpo com `inscricaoId`,
+`tipo`, `envioId` nulo e versão 0 para Caixa e presente ainda sem linha), porque a lista não cria linha ao ler; a
+função interna `mentoria_envios_calc` serve à lista, à escrita e ao push; a Caixa do Onboarding (`PUT …/caixa`) continua
+pelo caminho dela (o gatilho `mentoria_caixa_segue_envio` faz as duas concluírem a etapa); com alguém no cargo Envios, o
+push do 4º dia da Caixa não vai à Operação (a Maria recebe o "Tem envio para hoje"). Tela (2.4) pelo protótipo aprovado
+(Gabriel, "A", capturas em `docs/acompanhamento/prototipo/envios/`); "Novo envio" escolhe o mentorado pela busca do módulo. Execução: uma sessão por parte (regra do Gabriel), em ordem; a Parte 2 só começa com
 a Parte 1 mesclada na release aberta.
 
 | Parte | O quê | Tarefas | PR | Status |
 |---|---|---|---|---|
 | 1 | Venda vira mentorado | 1.1–1.5 | `feat(NPAC-56): venda vira mentorado no acompanhamento` | ✅ 22/11 |
-| 2 | Cargo Envios e aba Envios físicos | 2.1–2.5 | `feat(NPAC-56): cargo envios e aba envios fisicos` | ⏳ |
+| 2 | Cargo Envios e aba Envios físicos | 2.1–2.5 | `feat(NPAC-56): cargo envios e aba envios fisicos` | ✅ 23/11 |
 
 Branches: `feat/NPAC-56-venda-vira-mentorado` e `feat/NPAC-56-envios-fisicos`, a partir da `release/vX.Y` aberta
 (hoje `release/v0.20`), conforme `RELEASING.md`.

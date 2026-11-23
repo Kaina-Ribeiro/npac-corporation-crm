@@ -22,7 +22,7 @@ import { STATUS_IMPORTACAO } from '../mentoria/importacao.js';
 import { linkPermitido } from '../mentoria/links.js';
 import { DEGRAUS_ATRASO, FILA_TIPOS } from '../mentoria/fila.js';
 import { MOMENTOS_MENSAGEM } from '../mentoria/mensagens.js';
-import { ENVIO_STATUS } from '../mentoria/onboarding.js';
+import { ENVIO_STATUS, ENVIO_TIPOS, ENVIO_TIPOS_MANUAIS } from '../mentoria/onboarding.js';
 import { ACAO_STATUS, GATILHOS, PERFIS_ACAO, REUNIAO_TIPOS } from '../mentoria/plano.js';
 import { PILARES } from '../mentoria/metas.js';
 import { META_STATUS, SEMAFORO_CORES } from '../mentoria/semaforo.js';
@@ -210,6 +210,29 @@ export const caixaSchema = z
   })
   .strict();
 export type CaixaPut = z.output<typeof caixaSchema>;
+
+/**
+ * Envios físicos (NPAC-56): "Marcar enviado" (data e rastreio) e "Marcar entregue" (data). Caixa e
+ * presente ainda sem linha vão com `envioId` nulo e versão 0; a data vazia volta com o aviso do banco.
+ */
+export const envioMarcarSchema = z
+  .object({
+    inscricaoId: z.uuid(),
+    tipo: z.enum(ENVIO_TIPOS),
+    envioId: z.uuid().nullable(),
+    version: z.number().int().min(0),
+    status: z.enum(['ENVIADO', 'ENTREGUE']),
+    data,
+    rastreio: texto(120),
+  })
+  .strict();
+export type EnvioMarcar = z.output<typeof envioMarcarSchema>;
+
+/** "Novo envio": kit ou certificado, lançado à mão (G10). */
+export const envioNovoSchema = z
+  .object({ inscricaoId: z.uuid(), tipo: z.enum(ENVIO_TIPOS_MANUAIS) })
+  .strict();
+export type EnvioNovo = z.output<typeof envioNovoSchema>;
 
 const registrosImportados = z.array(z.unknown()).max(25_000).optional();
 

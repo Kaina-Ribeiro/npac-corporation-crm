@@ -36,6 +36,7 @@ import { registrarHistorico } from './historico.js';
 import { farejar, semMetadados } from './media-sniff.js';
 import { MEDIA_STORE, type MediaStore } from './media-store.js';
 import { MentoriaController } from './mentoria.guard.js';
+import { Perfis } from './perfil.guard.js';
 
 /** Limite do PDF: 20 MB por foto, vídeo ou PDF. */
 export const LIMITE_ARQUIVO = 20 * 1024 * 1024;
@@ -265,7 +266,9 @@ export class MidiaController {
     }
   }
 
+  /** O cargo Envios lê só a foto da família do presente ainda não entregue (RLS, 0078). */
   @Get('midia/:id')
+  @Perfis('ACOMPANHAMENTO', 'OPERACAO', 'ESPECIALISTA', 'ENVIOS')
   async baixar(
     @CurrentUser() u: SessionUser,
     @Param('id') id: string,

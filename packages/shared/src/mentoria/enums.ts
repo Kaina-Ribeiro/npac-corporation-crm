@@ -3,13 +3,15 @@ export const MENTORIAS = ['RDV', '2M', '6M'] as const;
 export type Mentoria = (typeof MENTORIAS)[number];
 
 /** Perfil dentro do módulo (D3). Admin é um selo somado ao perfil, não um perfil (D13). */
-export const PERFIS = ['ACOMPANHAMENTO', 'OPERACAO', 'ESPECIALISTA', 'MENTOR'] as const;
+/** ENVIOS (NPAC-56): só a aba Envios físicos, pelas funções de envio; nada do módulo pela RLS. */
+export const PERFIS = ['ACOMPANHAMENTO', 'OPERACAO', 'ESPECIALISTA', 'MENTOR', 'ENVIOS'] as const;
 export type Perfil = (typeof PERFIS)[number];
 export const PERFIL_LABEL: Record<Perfil, string> = {
   ACOMPANHAMENTO: 'Acompanhamento',
   OPERACAO: 'Operação',
   ESPECIALISTA: 'Especialista',
   MENTOR: 'Mentor',
+  ENVIOS: 'Envios',
 };
 
 export const INSCRICAO_STATUS = [

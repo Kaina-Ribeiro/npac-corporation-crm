@@ -43,6 +43,18 @@ export const ETAPA_STATUS_LABEL: Record<EtapaStatus, string> = {
   ANTERIOR_AO_SISTEMA: 'Antes do sistema',
 };
 
+/** Envios físicos (NPAC-56): a Caixa do onboarding, o presente da família, kit e certificado (à mão, G10). */
+export const ENVIO_TIPOS = ['CAIXA', 'PRESENTE_FAMILIA', 'KIT', 'CERTIFICADO'] as const;
+export type EnvioTipo = (typeof ENVIO_TIPOS)[number];
+export const ENVIO_TIPO_LABEL: Record<EnvioTipo, string> = {
+  CAIXA: 'Caixa da Verdadeira Riqueza',
+  PRESENTE_FAMILIA: 'Presente da família',
+  KIT: 'Kit',
+  CERTIFICADO: 'Certificado',
+};
+/** Kit e certificado nascem à mão ("Novo envio"); Caixa e presente entram sozinhos (G8, M5). */
+export const ENVIO_TIPOS_MANUAIS = ['KIT', 'CERTIFICADO'] as const;
+
 export const ENVIO_STATUS = ['PREPARANDO', 'ENVIADO', 'ENTREGUE'] as const;
 export type EnvioStatus = (typeof ENVIO_STATUS)[number];
 
