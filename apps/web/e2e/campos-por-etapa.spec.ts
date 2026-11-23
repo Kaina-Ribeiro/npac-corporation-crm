@@ -27,6 +27,16 @@ async function newLead(page: Page, name: string, instagram: string) {
   return ((await res.json()) as { id: string }).id;
 }
 
+/**
+ * Reunião realizada do lead (NPAC-59: Agendou Pagamento só vem depois dela). `closer`: quem a
+ * conduziu, pelo usuário do e-mail.
+ */
+async function doneMeeting(leadId: string, closer = 'sonia') {
+  await owner`insert into meetings (lead_id, closer_id, scheduled_at, origin, outcome, outcome_at, created_by)
+    select ${leadId}, c.id, now() - interval '3 hours', 'DIRETO', 'DONE', now() - interval '2 hours', a.id
+    from "user" c, "user" a where c.email = ${`${closer}@npac.com.br`} and a.email = 'ale@npac.com.br'`;
+}
+
 test('cadastro em Agendado Direto pede a reunião e a cria junto com o lead', async ({ page }) => {
   await login(page, 'ale@npac.com.br');
   await page.goto('/leads/new');
@@ -40,11 +50,10 @@ test('cadastro em Agendado Direto pede a reunião e a cria junto com o lead', as
   // No-Show: só muda o rótulo.
   await stage.selectOption('NO_SHOW');
   await expect(page.getByLabel('Tentar remarcar em (Brasília)', { exact: true })).toBeVisible();
-  // Agendou Pagamento, pelo SDR: caixa, produto e closer; valor e data ficam com o closer.
-  await stage.selectOption('AGENDOU_PAGAMENTO');
-  await expect(page.getByLabel('Produto', { exact: true })).toBeVisible();
-  await expect(page.getByLabel('Closer', { exact: true })).toBeVisible();
-  await expect(page.getByLabel('Valor combinado (R$)', { exact: true })).toHaveCount(0);
+  // Agendou Pagamento só depois da reunião realizada (NPAC-59): o cadastro não oferece.
+  const payment = stage.locator('option[value="AGENDOU_PAGAMENTO"]');
+  await expect(payment).toBeDisabled();
+  await expect(payment).toHaveText('Agendou Pagamento 💳 (depois da reunião realizada)');
   // Sem Perfil: motivo, com a caixa de texto só no Outro.
   await stage.selectOption('PERDIDO');
   await expect(page.getByLabel('Motivo', { exact: true })).toBeVisible();
@@ -93,6 +102,10 @@ test('ficha: Sem Perfil + Outro exige o texto; Agendou Pagamento do SDR pede pro
   const id = await newLead(page, 'Lead sem perfil ficha', '@sem.perfil.ficha');
   await page.goto(`/leads/${id}`);
   const move = page.getByLabel('Mover para', { exact: true });
+  // Sem reunião realizada, a ficha não oferece Agendou Pagamento (NPAC-59).
+  await expect(move.locator('option[value="AGENDOU_PAGAMENTO"]')).toBeDisabled();
+  await doneMeeting(id);
+  await page.reload();
   await move.selectOption('AGENDOU_PAGAMENTO');
   await expect(page.getByLabel('Produto', { exact: true })).toBeVisible();
   await expect(page.getByLabel('Closer', { exact: true })).toBeVisible();
@@ -131,7 +144,7 @@ test('pipeline e lista: mudar para etapa com dados abre a janelinha; cancelar de
 }) => {
   await login(page, 'ale@npac.com.br');
   const name = 'Lead janelinha pipeline';
-  await newLead(page, name, '@janelinha.pipeline');
+  await doneMeeting(await newLead(page, name, '@janelinha.pipeline'));
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/pipeline');
   const select = page.getByRole('combobox', { name: `Mover ${name} para`, exact: true });
@@ -231,13 +244,24 @@ test('Agendou Pagamento parcial (NPAC-41): entrada e data do restante até o reg
   browser,
 }) => {
   await login(page, 'ronaldo@npac.com.br');
-  await page.goto('/leads/new');
-  await page.getByLabel('SDR responsável', { exact: true }).selectOption({ label: 'Ale' });
-  await page.getByLabel('Nome', { exact: true }).fill('Lead com entrada');
-  await page.getByLabel('Instagram', { exact: true }).fill('@lead.entrada');
-  await page.getByLabel('Faixa de renda', { exact: true }).selectOption('R8_15K');
-  await page.getByLabel('Origem', { exact: true }).selectOption('BIO');
-  await page.getByLabel('Etapa', { exact: true }).selectOption('AGENDOU_PAGAMENTO');
+  // O cadastro não entra em Agendou Pagamento (NPAC-59): o lead já teve a reunião realizada.
+  const [ale] = await owner<
+    { id: string }[]
+  >`select id from "user" where email = 'ale@npac.com.br'`;
+  const created = await page.request.post('/api/leads', {
+    data: {
+      name: 'Lead com entrada',
+      instagram: '@lead.entrada',
+      incomeBand: 'R8_15K',
+      source: 'BIO',
+      sdrId: ale!.id,
+    },
+  });
+  expect(created.ok()).toBe(true);
+  const id = ((await created.json()) as { id: string }).id;
+  await doneMeeting(id);
+  await page.goto(`/leads/${id}`);
+  await page.getByLabel('Mover para', { exact: true }).selectOption('AGENDOU_PAGAMENTO');
   await expect(page.getByLabel('Entrada já paga (R$)', { exact: true })).toHaveCount(0);
   await page.getByLabel('Já pagou uma entrada').check();
   const due = spInput(new Date(Date.now() + 10 * 86_400_000));
@@ -250,7 +274,7 @@ test('Agendou Pagamento parcial (NPAC-41): entrada e data do restante até o reg
   await page.getByLabel('Valor combinado (R$)', { exact: true }).fill('3000');
   // Entrada igual ao valor: o formulário avisa antes da API.
   await page.getByLabel('Entrada já paga (R$)', { exact: true }).fill('3000');
-  await page.getByRole('button', { name: 'Cadastrar lead', exact: true }).click();
+  await page.getByRole('button', { name: 'Mover', exact: true }).click();
   await expect(page.getByText('A entrada precisa ser maior que zero e menor')).toBeVisible();
   await page.getByLabel('Entrada já paga (R$)', { exact: true }).fill('1000');
   await expect(page.getByText('Restante: R$ 2.000,00')).toBeVisible();
@@ -260,15 +284,13 @@ test('Agendou Pagamento parcial (NPAC-41): entrada e data do restante até o reg
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
     ).toBe(true);
     await page.screenshot({
-      path: `test-results/pagamento-parcial-cadastro-${w}.png`,
+      path: `test-results/pagamento-parcial-mover-${w}.png`,
       fullPage: true,
       animations: 'disabled',
     });
   }
   await page.setViewportSize({ width: 1280, height: 900 });
-  await page.getByRole('button', { name: 'Cadastrar lead', exact: true }).click();
-  await page.waitForURL(/\/leads\/[0-9a-f-]{36}$/);
-  const id = page.url().split('/').pop()!;
+  await page.getByRole('button', { name: 'Mover', exact: true }).click();
   await expect(page.getByText(/Restante combinado para:/)).toBeVisible();
   await expect(
     page.getByText(/entrada de R\$\s1\.000,00 paga, faltam R\$\s2\.000,00/),
@@ -318,12 +340,11 @@ test('item 13: SDR informa produto e closer; o closer completa na ficha e regist
   browser,
 }) => {
   await login(page, 'ale@npac.com.br');
-  await page.goto('/leads/new');
-  await page.getByLabel('Nome', { exact: true }).fill('Lead pagamento do SDR');
-  await page.getByLabel('Instagram', { exact: true }).fill('@lead.pagamento.sdr');
-  await page.getByLabel('Faixa de renda', { exact: true }).selectOption('R8_15K');
-  await page.getByLabel('Origem', { exact: true }).selectOption('BIO');
-  await page.getByLabel('Etapa', { exact: true }).selectOption('AGENDOU_PAGAMENTO');
+  // Depois da reunião realizada (NPAC-59), conduzida pelo Ronaldo: a Sônia segue sem reunião.
+  const id = await newLead(page, 'Lead pagamento do SDR', '@lead.pagamento.sdr');
+  await doneMeeting(id, 'ronaldo');
+  await page.goto(`/leads/${id}`);
+  await page.getByLabel('Mover para', { exact: true }).selectOption('AGENDOU_PAGAMENTO');
   // Só caixa, produto (sem R$) e closer.
   await expect(page.getByLabel('Valor combinado (R$)', { exact: true })).toHaveCount(0);
   await expect(page.getByLabel('Entrada já paga (R$)', { exact: true })).toHaveCount(0);
@@ -343,15 +364,13 @@ test('item 13: SDR informa produto e closer; o closer completa na ficha e regist
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
     ).toBe(true);
     await page.screenshot({
-      path: `test-results/pagamento-sdr-cadastro-${w}.png`,
+      path: `test-results/pagamento-sdr-mover-${w}.png`,
       fullPage: true,
       animations: 'disabled',
     });
   }
   await page.setViewportSize({ width: 1280, height: 900 });
-  await page.getByRole('button', { name: 'Cadastrar lead', exact: true }).click();
-  await page.waitForURL(/\/leads\/[0-9a-f-]{36}$/);
-  const id = page.url().split('/').pop()!;
+  await page.getByRole('button', { name: 'Mover', exact: true }).click();
   await expect(page.getByText('Pagamento a completar', { exact: true })).toBeVisible();
   await expect(page.getByText(/Closer: Sônia/)).toBeVisible();
   await expect(page.getByRole('button', { name: 'Completar pagamento', exact: true })).toHaveCount(

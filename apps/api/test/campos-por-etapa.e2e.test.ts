@@ -54,6 +54,25 @@ const get = async (id: string, cookie: Cookie = ale) =>
 const meetingsOf = (id: string) =>
   owner<{ closer_id: string; origin: string; created_by: string }[]>`
     select closer_id, origin, created_by from meetings where lead_id = ${id}`;
+/** Reunião realizada da Sônia: Agendou Pagamento só vem depois dela (NPAC-59). */
+const doneMeeting = (id: string) =>
+  owner`insert into meetings (lead_id, closer_id, scheduled_at, origin, outcome, outcome_at, created_by)
+    values (${id}, ${ids.sonia}, now() - interval '3 hours', 'DIRETO', 'DONE', now() - interval '2 hours', ${ids.ale})`;
+/**
+ * Lead da liderança em Agendou Pagamento. O cadastro não entra mais na etapa (NPAC-59): o lead nasce,
+ * ganha a reunião realizada e é movido (fica na versão 2).
+ */
+async function paymentLeadAsHead(fields: Record<string, unknown>) {
+  const id = await createAsHead(lead());
+  await doneMeeting(id);
+  const res = await h.patch(
+    `/api/leads/${id}`,
+    { version: 1, stageKey: 'AGENDOU_PAGAMENTO', ...fields },
+    ronaldo,
+  );
+  if (res.status !== 200) throw new Error(`mudança de etapa falhou (${res.status}): ${res.text}`);
+  return id;
+}
 const timeline = (id: string) =>
   owner<{ kind: string; fields: string[] }[]>`
     select kind, fields from lead_timeline where lead_id = ${id} order by at, id`;
@@ -161,6 +180,7 @@ describe('Agendados pedem a reunião', () => {
 describe('Agendou Pagamento pede data, produto e valor', () => {
   it('sem os três → 409 PAYMENT_REQUIRED; com eles grava no lead', async () => {
     const id = await createAsHead(lead());
+    await doneMeeting(id);
     for (const partial of [
       {},
       { nextContactAt: inDays(5), paymentProductId: productId },
@@ -200,30 +220,20 @@ describe('Agendou Pagamento pede data, produto e valor', () => {
   });
 
   it('produto inexistente → 400', async () => {
-    const res = await h.post(
-      '/api/leads',
-      lead({
-        sdrId: ids.ale,
+    const id = await createAsHead(lead());
+    await doneMeeting(id);
+    const res = await h.patch(
+      `/api/leads/${id}`,
+      {
+        version: 1,
         stageKey: 'AGENDOU_PAGAMENTO',
         nextContactAt: inDays(5),
         paymentProductId: randomUUID(),
         paymentAmountCents: 1000,
-      }),
+      },
       ronaldo,
     );
     expect(res.status).toBe(400);
-  });
-
-  it('cadastro já em Agendou Pagamento', async () => {
-    const id = await createAsHead(
-      lead({
-        stageKey: 'AGENDOU_PAGAMENTO',
-        nextContactAt: inDays(5),
-        paymentProductId: productId,
-        paymentAmountCents: 300000,
-      }),
-    );
-    expect((await get(id, ronaldo)).paymentAmountCents).toBe(300000);
   });
 });
 
@@ -270,17 +280,14 @@ describe('Sem Perfil pede o motivo', () => {
 
 describe('estado atual da etapa', () => {
   it('sair da etapa apaga pagamento e motivo', async () => {
-    const id = await createAsHead(
-      lead({
-        stageKey: 'AGENDOU_PAGAMENTO',
-        nextContactAt: inDays(5),
-        paymentProductId: productId,
-        paymentAmountCents: 300000,
-      }),
-    );
+    const id = await paymentLeadAsHead({
+      nextContactAt: inDays(5),
+      paymentProductId: productId,
+      paymentAmountCents: 300000,
+    });
     await h.patch(
       `/api/leads/${id}`,
-      { version: 1, stageKey: 'PERDIDO', lostReason: 'SEM_INTERESSE' },
+      { version: 2, stageKey: 'PERDIDO', lostReason: 'SEM_INTERESSE' },
       ronaldo,
     );
     expect(await get(id, ronaldo)).toMatchObject({
@@ -288,7 +295,7 @@ describe('estado atual da etapa', () => {
       paymentAmountCents: null,
       lostReason: 'SEM_INTERESSE',
     });
-    await h.patch(`/api/leads/${id}`, { version: 2, stageKey: 'EM_FOLLOW' }, ronaldo);
+    await h.patch(`/api/leads/${id}`, { version: 3, stageKey: 'EM_FOLLOW' }, ronaldo);
     expect(await get(id, ronaldo)).toMatchObject({ lostReason: null, lostReasonOther: null });
   });
 
@@ -316,16 +323,13 @@ describe('estado atual da etapa', () => {
   });
 
   it('na mesma etapa dá para corrigir o pagamento', async () => {
-    const id = await createAsHead(
-      lead({
-        stageKey: 'AGENDOU_PAGAMENTO',
-        nextContactAt: inDays(5),
-        paymentProductId: productId,
-        paymentAmountCents: 300000,
-      }),
-    );
+    const id = await paymentLeadAsHead({
+      nextContactAt: inDays(5),
+      paymentProductId: productId,
+      paymentAmountCents: 300000,
+    });
     expect(
-      (await h.patch(`/api/leads/${id}`, { version: 1, paymentAmountCents: 280000 }, ronaldo))
+      (await h.patch(`/api/leads/${id}`, { version: 2, paymentAmountCents: 280000 }, ronaldo))
         .status,
     ).toBe(200);
     expect((await get(id, ronaldo)).paymentAmountCents).toBe(280000);
@@ -335,21 +339,18 @@ describe('estado atual da etapa', () => {
     const [p] = await owner<
       { closer_id: string }[]
     >`select closer_id from products where id = ${productId}`;
-    const id = await createAsHead(
-      lead({
-        stageKey: 'AGENDOU_PAGAMENTO',
-        nextContactAt: inDays(5),
-        paymentProductId: productId,
-        paymentAmountCents: 300000,
-      }),
-    );
+    const id = await paymentLeadAsHead({
+      nextContactAt: inDays(5),
+      paymentProductId: productId,
+      paymentAmountCents: 300000,
+    });
     const res = await h.post(
       '/api/finance/deals',
       {
         leadId: id,
         productId,
         closerId: p!.closer_id,
-        version: 1,
+        version: 2,
         totalCents: 300000,
         method: 'PIX',
         entryCents: 0,
@@ -370,8 +371,9 @@ describe('estado atual da etapa', () => {
 describe('closer marca a etapa depois da reunião', () => {
   async function leadOnSoniaAgenda() {
     const id = await create(lead({ nextContactAt: inDays(1) }));
-    await owner`insert into meetings (lead_id, closer_id, scheduled_at, origin, created_by)
-      values (${id}, ${ids.sonia}, now() - interval '1 hour', 'DIRETO', ${ids.ale})`;
+    // Reunião realizada: Agendou Pagamento só vem depois dela (NPAC-59).
+    await owner`insert into meetings (lead_id, closer_id, scheduled_at, origin, outcome, outcome_at, created_by)
+      values (${id}, ${ids.sonia}, now() - interval '1 hour', 'DIRETO', 'DONE', now(), ${ids.ale})`;
     return id;
   }
 
@@ -427,19 +429,16 @@ describe('closer marca a etapa depois da reunião', () => {
 // Pagamento parcial (NPAC-41, Igor 06/11/2026, "1A"): o lead já deu uma entrada e o restante tem
 // data combinada. Fica em Agendou Pagamento; só vira venda quando o closer registrar.
 describe('Agendou Pagamento parcial', () => {
-  const partial = (over: Record<string, unknown> = {}) =>
-    lead({
-      sdrId: ids.ale,
-      stageKey: 'AGENDOU_PAGAMENTO',
-      nextContactAt: inDays(10),
-      paymentProductId: productId,
-      paymentAmountCents: 1_800_000,
-      paymentEntryCents: 600_000,
-      ...over,
-    });
+  const partial = (over: Record<string, unknown> = {}) => ({
+    nextContactAt: inDays(10),
+    paymentProductId: productId,
+    paymentAmountCents: 1_800_000,
+    paymentEntryCents: 600_000,
+    ...over,
+  });
 
-  it('grava a entrada no cadastro e devolve no lead; nada vira venda', async () => {
-    const id = await createAsHead(partial());
+  it('grava a entrada e devolve no lead; nada vira venda', async () => {
+    const id = await paymentLeadAsHead(partial());
     expect(await get(id, ronaldo)).toMatchObject({
       stageKey: 'AGENDOU_PAGAMENTO',
       paymentAmountCents: 1_800_000,
@@ -450,19 +449,25 @@ describe('Agendou Pagamento parcial', () => {
   });
 
   it('entrada igual ou maior que o valor → 400 e nada gravado', async () => {
+    const id = await createAsHead(lead());
+    await doneMeeting(id);
     for (const entry of [1_800_000, 2_000_000]) {
-      const res = await h.post('/api/leads', partial({ paymentEntryCents: entry }), ronaldo);
+      const res = await h.patch(
+        `/api/leads/${id}`,
+        { version: 1, stageKey: 'AGENDOU_PAGAMENTO', ...partial({ paymentEntryCents: entry }) },
+        ronaldo,
+      );
       expect(res.status).toBe(400);
       expect(res.body.message).toMatch(/entrada/i);
     }
-    expect(await owner`select id from leads`).toHaveLength(0);
+    expect((await get(id, ronaldo)).stageKey).toBe('SONDAGEM');
   });
 
   it('na mesma etapa dá para tirar a entrada; sair da etapa apaga', async () => {
-    const id = await createAsHead(partial());
+    const id = await paymentLeadAsHead(partial());
     const clear = await h.patch(
       `/api/leads/${id}`,
-      { version: 1, paymentEntryCents: null },
+      { version: 2, paymentEntryCents: null },
       ronaldo,
     );
     expect(clear.status).toBe(200);
@@ -475,11 +480,11 @@ describe('Agendou Pagamento parcial', () => {
 
     const again = await h.patch(
       `/api/leads/${id}`,
-      { version: 2, paymentEntryCents: 500_000 },
+      { version: 3, paymentEntryCents: 500_000 },
       ronaldo,
     );
     expect(again.status).toBe(200);
-    const out = await h.patch(`/api/leads/${id}`, { version: 3, stageKey: 'EM_FOLLOW' }, ronaldo);
+    const out = await h.patch(`/api/leads/${id}`, { version: 4, stageKey: 'EM_FOLLOW' }, ronaldo);
     expect(out.status).toBe(200);
     expect(await get(id, ronaldo)).toMatchObject({
       paymentEntryCents: null,
@@ -489,8 +494,9 @@ describe('Agendou Pagamento parcial', () => {
 
   it('closer grava a entrada junto da troca; registrar a venda apaga', async () => {
     const id = await create(lead({ nextContactAt: inDays(1) }));
-    await owner`insert into meetings (lead_id, closer_id, scheduled_at, origin, created_by)
-      values (${id}, ${ids.sonia}, now() - interval '1 hour', 'DIRETO', ${ids.ale})`;
+    // Reunião realizada: Agendou Pagamento só vem depois dela (NPAC-59).
+    await owner`insert into meetings (lead_id, closer_id, scheduled_at, origin, outcome, outcome_at, created_by)
+      values (${id}, ${ids.sonia}, now() - interval '1 hour', 'DIRETO', 'DONE', now(), ${ids.ale})`;
     const [nacao] = await owner<{ id: string }[]>`
       select id from products where code = 'NACAO_PADRAO'`;
     const pay = await h.patch(
@@ -529,5 +535,77 @@ describe('Agendou Pagamento parcial', () => {
       paymentEntryCents: null,
       paymentAmountCents: null,
     });
+  });
+});
+
+// NPAC-59 (Igor, 23/11/2026, "A"): o lead segue a sequência cadastrou → reunião → reunião realizada →
+// Agendou Pagamento → pagou. Entrar em Agendou Pagamento pede uma reunião marcada como realizada.
+describe('Agendou Pagamento só depois da reunião realizada', () => {
+  const sdrPayment = () => ({
+    stageKey: 'AGENDOU_PAGAMENTO',
+    paymentProductId: productId,
+    paymentCloserId: ids.sonia,
+  });
+  const headPayment = () => ({
+    stageKey: 'AGENDOU_PAGAMENTO',
+    nextContactAt: inDays(5),
+    paymentProductId: productId,
+    paymentAmountCents: 300000,
+  });
+  const meetingRow = (id: string, outcome: string | null, extra = '') =>
+    owner.unsafe(
+      `insert into meetings (lead_id, closer_id, scheduled_at, origin, outcome, outcome_at, created_by, canceled_at)
+       values ($1, $2, now() - interval '2 hours', 'DIRETO', $3::meeting_outcome,
+         case when $3::text is null then null else now() - interval '1 hour' end, $4, ${extra || 'null'})`,
+      [id, ids.sonia, outcome, ids.ale],
+    );
+
+  it('cadastro em Agendou Pagamento → 409 MEETING_DONE_REQUIRED (SDR e liderança)', async () => {
+    for (const [body, cookie] of [
+      [lead(sdrPayment()), ale],
+      [lead({ sdrId: ids.ale, ...headPayment() }), ronaldo],
+    ] as const) {
+      const res = await h.post('/api/leads', body, cookie);
+      expect(res.status, res.text).toBe(409);
+      expect(res.body).toMatchObject({
+        code: 'MEETING_DONE_REQUIRED',
+        message: 'Para mover para Agendou pagamento, marque antes a reunião como realizada.',
+      });
+    }
+    expect(await owner`select id from leads`).toHaveLength(0);
+  });
+
+  it('sem reunião realizada → 409; reunião futura, sem resultado, no-show ou cancelada não contam', async () => {
+    const id = await create(lead());
+    const tryMove = () => h.patch(`/api/leads/${id}`, { version: 1, ...sdrPayment() }, ale);
+    expect((await tryMove()).body.code).toBe('MEETING_DONE_REQUIRED');
+    await owner`insert into meetings (lead_id, closer_id, scheduled_at, origin, created_by)
+      values (${id}, ${ids.sonia}, now() + interval '1 day', 'DIRETO', ${ids.ale})`;
+    await meetingRow(id, null);
+    await meetingRow(id, 'NO_SHOW');
+    await meetingRow(id, 'DONE', 'now()');
+    const res = await tryMove();
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe('MEETING_DONE_REQUIRED');
+    expect((await get(id)).stageKey).toBe('SONDAGEM');
+  });
+
+  it('com reunião realizada, SDR e liderança movem', async () => {
+    const id = await create(lead());
+    await meetingRow(id, 'DONE');
+    const sdr = await h.patch(`/api/leads/${id}`, { version: 1, ...sdrPayment() }, ale);
+    expect(sdr.status, sdr.text).toBe(200);
+    const other = await create(lead());
+    await meetingRow(other, 'DONE');
+    const head = await h.patch(`/api/leads/${other}`, { version: 1, ...headPayment() }, ronaldo);
+    expect(head.status, head.text).toBe(200);
+  });
+
+  it('lead que já está na etapa sem reunião continua editável (só a troca exige)', async () => {
+    const id = await create(lead());
+    await owner`update leads set stage_id = (select id from pipeline_stages where key = 'AGENDOU_PAGAMENTO'),
+      payment_product_id = ${productId}, closer_id = ${ids.sonia} where id = ${id}`;
+    const res = await h.patch(`/api/leads/${id}`, { version: 1, summary: 'segue' }, ale);
+    expect(res.status, res.text).toBe(200);
   });
 });

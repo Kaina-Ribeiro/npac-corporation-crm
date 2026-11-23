@@ -51,10 +51,35 @@ beforeEach(async () => {
   await owner`update "user" set two_factor_enabled = true where email = 'ronaldo@npac.com.br'`;
 });
 
-async function create(body: object, cookie: Cookie = ale): Promise<string> {
-  const res = await h.post('/api/leads', body, cookie);
+const PAYMENT_KEYS = [
+  'stageKey',
+  'nextContactAt',
+  'paymentProductId',
+  'paymentCloserId',
+  'paymentEntryPaid',
+  'paymentAmountCents',
+  'paymentEntryCents',
+];
+/**
+ * Lead com uma reunião realizada. Desde o NPAC-59 o cadastro não entra em Agendou Pagamento (a etapa
+ * pede a reunião realizada): com a etapa no corpo, o lead nasce, ganha a reunião e é movido por quem
+ * o criou (versão 2). A reunião é do Ronaldo, para a Sônia seguir como "closer sem reunião".
+ */
+async function create(body: Record<string, unknown>, cookie: Cookie = ale): Promise<string> {
+  const pay = body.stageKey === 'AGENDOU_PAGAMENTO';
+  const pick = (keep: boolean) =>
+    Object.fromEntries(Object.entries(body).filter(([k]) => PAYMENT_KEYS.includes(k) === keep));
+  const res = await h.post('/api/leads', pay ? pick(false) : body, cookie);
   if (res.status !== 201) throw new Error(`criação falhou (${res.status}): ${res.text}`);
-  return res.body.id;
+  const id: string = res.body.id;
+  await owner`insert into meetings (lead_id, closer_id, scheduled_at, origin, outcome, outcome_at, created_by)
+    values (${id}, ${ids.ronaldo}, now() - interval '3 hours', 'DIRETO', 'DONE', now() - interval '2 hours', ${ids.ale})`;
+  if (pay) {
+    const move = await h.patch(`/api/leads/${id}`, { version: 1, ...pick(true) }, cookie);
+    if (move.status !== 200)
+      throw new Error(`mudança de etapa falhou (${move.status}): ${move.text}`);
+  }
+  return id;
 }
 const get = async (id: string, cookie: Cookie = ale) =>
   (await h.get(`/api/leads/${id}`, cookie)).body;
@@ -82,12 +107,12 @@ const notified = (id: string, kind: string) =>
 const complete = (id: string, over: Record<string, unknown> = {}, cookie: Cookie = sonia) =>
   h.patch(
     `/api/leads/${id}`,
-    { version: 1, paymentAmountCents: 300_000, nextContactAt: inDays(4), ...over },
+    { version: 2, paymentAmountCents: 300_000, nextContactAt: inDays(4), ...over },
     cookie,
   );
 
 describe('SDR em Agendou Pagamento', () => {
-  it('cadastro grava só produto, closer e a marca; o next_contact_at fica nulo', async () => {
+  it('a etapa grava só produto, closer e a marca; o next_contact_at fica nulo', async () => {
     const id = await create(lead(sdrPayment()));
     expect(await row(id)).toEqual({
       closer_id: ids.sonia,
@@ -125,9 +150,10 @@ describe('SDR em Agendou Pagamento', () => {
       expect(res.status).toBe(409);
       expect(res.body.code).toBe('PAYMENT_REQUIRED');
     }
+    // O cadastro não entra na etapa (NPAC-59): para antes, na reunião realizada.
     expect(
       (await h.post('/api/leads', lead(sdrPayment({ paymentCloserId: undefined })), ale)).body.code,
-    ).toBe('PAYMENT_REQUIRED');
+    ).toBe('MEETING_DONE_REQUIRED');
   });
 
   it('valor, entrada ou data vindos do SDR → 403 e nada gravado', async () => {
@@ -141,8 +167,9 @@ describe('SDR em Agendou Pagamento', () => {
     ]) {
       const res = await h.patch(`/api/leads/${id}`, { version: 1, ...sdrPayment(extra) }, ale);
       expect(res.status).toBe(403);
-      // No cadastro, `nextContactAt: null` já para no formato (400).
-      expect([400, 403]).toContain(
+      // No cadastro, `nextContactAt: null` já para no formato (400); o resto, na reunião realizada
+      // que a etapa pede (NPAC-59, 409).
+      expect([400, 409]).toContain(
         (await h.post('/api/leads', lead(sdrPayment(extra)), ale)).status,
       );
     }
@@ -174,7 +201,7 @@ describe('SDR em Agendou Pagamento', () => {
     const res = await h.patch(
       `/api/leads/${id}`,
       {
-        version: 1,
+        version: 2,
         paymentProductId: other!.id,
         paymentCloserId: ids.ronaldo,
         paymentEntryPaid: false,
@@ -195,7 +222,7 @@ describe('SDR em Agendou Pagamento', () => {
     const res = await h.patch(
       `/api/leads/${id}`,
       {
-        version: 1,
+        version: 2,
         paymentProductId: productId,
         paymentCloserId: ids.sonia,
         paymentEntryPaid: true,
@@ -215,9 +242,9 @@ describe('SDR em Agendou Pagamento', () => {
       { paymentCloserId: ids.ronaldo },
       { paymentEntryPaid: false },
     ]) {
-      expect((await h.patch(`/api/leads/${id}`, { version: 2, ...change }, ale)).status).toBe(403);
+      expect((await h.patch(`/api/leads/${id}`, { version: 3, ...change }, ale)).status).toBe(403);
     }
-    expect((await h.patch(`/api/leads/${id}`, { version: 2, summary: 'ok' }, ale)).status).toBe(
+    expect((await h.patch(`/api/leads/${id}`, { version: 3, summary: 'ok' }, ale)).status).toBe(
       200,
     );
     expect((await row(id)).payment_amount_cents).toBe(300_000);
@@ -238,9 +265,9 @@ describe('SDR em Agendou Pagamento', () => {
     expect((await complete(id)).status).toBe(200);
     const before = (await row(id)).next_contact_at;
     for (const body of [
-      { version: 2, action: 'CALLED' },
-      { version: 2, action: 'RESCHEDULED', at: inDays(9) },
-      { version: 2, action: 'NEXT_ACTION', at: inDays(9), title: 'Ligar' },
+      { version: 3, action: 'CALLED' },
+      { version: 3, action: 'RESCHEDULED', at: inDays(9) },
+      { version: 3, action: 'NEXT_ACTION', at: inDays(9), title: 'Ligar' },
     ]) {
       expect((await h.post(`/api/leads/${id}/quick-action`, body, ale)).status).toBe(403);
     }
@@ -380,7 +407,7 @@ describe('closer completa o pagamento', () => {
 
     const mine = await create(lead(sdrPayment()));
     expect((await complete(mine)).status).toBe(200);
-    expect((await complete(mine, { version: 2, paymentAmountCents: 1 })).status).toBe(403);
+    expect((await complete(mine, { version: 3, paymentAmountCents: 1 })).status).toBe(403);
   });
 
   it('closer não troca produto nem outros campos ao completar', async () => {
@@ -405,7 +432,7 @@ describe('closer completa o pagamento', () => {
 
   it('liderança edita outro campo sem apagar o que o SDR informou', async () => {
     const id = await create(lead(sdrPayment()));
-    const res = await h.patch(`/api/leads/${id}`, { version: 1, summary: 'anotado' }, ronaldo);
+    const res = await h.patch(`/api/leads/${id}`, { version: 2, summary: 'anotado' }, ronaldo);
     expect(res.status).toBe(200);
     expect(await row(id)).toMatchObject({
       payment_product_id: productId,
@@ -423,7 +450,7 @@ describe('closer completa o pagamento', () => {
         leadId: id,
         productId,
         closerId: productCloser,
-        version: 2,
+        version: 3,
         totalCents: 300_000,
         method: 'PARTIAL',
         entryCents: 100_000,
@@ -448,7 +475,7 @@ describe('closer completa o pagamento', () => {
     const id = await create(lead(sdrPayment()));
     const res = await h.patch(
       `/api/leads/${id}`,
-      { version: 1, stageKey: 'PERDIDO', lostReason: 'SEM_INTERESSE' },
+      { version: 2, stageKey: 'PERDIDO', lostReason: 'SEM_INTERESSE' },
       sonia,
     );
     expect(res.status).toBe(200);
@@ -461,7 +488,7 @@ describe('closer completa o pagamento', () => {
     const id = await create(lead(sdrPayment()));
     expect((await complete(id)).status).toBe(200);
     expect(
-      (await h.patch(`/api/leads/${id}`, { version: 2, stageKey: 'EM_FOLLOW' }, ale)).status,
+      (await h.patch(`/api/leads/${id}`, { version: 3, stageKey: 'EM_FOLLOW' }, ale)).status,
     ).toBe(200);
     expect(await row(id)).toMatchObject({
       next_contact_at: null,
@@ -480,7 +507,7 @@ describe('closer completa o pagamento', () => {
       (
         await h.patch(
           `/api/leads/${id}`,
-          { version: 2, stageKey: 'EM_FOLLOW', nextContactAt: at },
+          { version: 3, stageKey: 'EM_FOLLOW', nextContactAt: at },
           ale,
         )
       ).status,

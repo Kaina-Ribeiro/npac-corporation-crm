@@ -25,6 +25,12 @@ export const paymentRequired = (message = 'informe a data combinada, o produto e
     code: 'PAYMENT_REQUIRED',
     message: `Para mover para Agendou pagamento, ${message}`,
   });
+/** NPAC-59 (Igor, 23/11/2026, "A"): Agendou Pagamento vem depois da reunião realizada. */
+export const meetingDoneRequired = () =>
+  new ConflictException({
+    code: 'MEETING_DONE_REQUIRED',
+    message: 'Para mover para Agendou pagamento, marque antes a reunião como realizada.',
+  });
 export const reasonRequired = () =>
   new ConflictException({
     code: 'REASON_REQUIRED',
@@ -166,6 +172,15 @@ export async function resolveStageFields(
     else if (!opts.leadId || !(await hasOpenMeeting(tx, opts.leadId))) throw meetingRequired();
   }
 
+  // A sequência do lead (NPAC-59): cadastro → reunião → realizada → Agendou Pagamento. O cadastro
+  // não tem reunião, então não entra direto na etapa; lead que já está nela fica como está (3A).
+  if (
+    target === 'AGENDOU_PAGAMENTO' &&
+    changed &&
+    (!opts.leadId || !(await hasDoneMeeting(tx, opts.leadId)))
+  )
+    throw meetingDoneRequired();
+
   if (target === 'AGENDOU_PAGAMENTO' && sdr) {
     Object.assign(values, sdrPaymentValues(input, old, changed));
     const closer = input.paymentCloserId ?? opts.closerId ?? null;
@@ -295,6 +310,18 @@ async function hasOpenMeeting(tx: Tx, leadId: string) {
         isNull(meetings.outcome),
         gt(meetings.scheduledAt, new Date()),
       ),
+    )
+    .limit(1);
+  return Boolean(m);
+}
+
+/** Reunião realizada (resultado DONE) e não cancelada, como no "Marcar venda". */
+async function hasDoneMeeting(tx: Tx, leadId: string) {
+  const [m] = await tx
+    .select({ id: meetings.id })
+    .from(meetings)
+    .where(
+      and(eq(meetings.leadId, leadId), eq(meetings.outcome, 'DONE'), isNull(meetings.canceledAt)),
     )
     .limit(1);
   return Boolean(m);
