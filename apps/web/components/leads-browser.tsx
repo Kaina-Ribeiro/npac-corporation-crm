@@ -8,8 +8,10 @@ import { confirmLeaveSale } from '@/lib/leave-sale';
 import { keep, recall } from '@/lib/screen-memory';
 import { readPreference } from '@/lib/read-preference';
 import type { StageFieldsBody } from '@/lib/stage-fields';
-import { stageFieldsKind, stageNeedsFields } from '@/lib/stage-kind';
+import { stageNeedsFields } from '@/lib/stage-kind';
+import { useTypedSearch } from '@/lib/typed-search';
 import type { CsvExport as Csv } from './csv-export';
+import type { LeadsBulkBar as Bulk } from './leads-bulk-bar';
 import type { StageMoveDialog as Dialog } from './stage-move-dialog';
 import { StageOptions } from './crm-ui';
 import { LeadFilters, readFilters } from './lead-filters';
@@ -24,8 +26,6 @@ type Change = Partial<Pick<LeadDTO, 'stageKey'>> &
 /** Select que parece texto até receber hover/foco (edição direto na célula, como no Attio). */
 const cell =
   'max-w-full cursor-pointer rounded-lg border border-transparent bg-transparent py-1 pr-1 pl-1.5 text-[13px] text-ink transition-colors hover:border-line focus:border-line disabled:cursor-default disabled:hover:border-transparent';
-const barSelect =
-  'h-9 rounded-xl border border-line bg-[var(--on)] px-2.5 text-sm font-medium text-ink disabled:opacity-50';
 
 /** Busca e página guardadas só na memória da aba (nunca em cookie). */
 type Memory = { q: string; page: number };
@@ -119,6 +119,15 @@ export function LeadsBrowser({
     if (canAssign)
       import('./csv-export').then((m) => setCsv(() => m.CsvExport)).catch(() => undefined);
   }, [canAssign]);
+  // Ações em massa: a barra só baixa quando a pessoa marca o primeiro lead.
+  const [BulkBar, setBulkBar] = useState<typeof Bulk | null>(null);
+  const anySelected = selected.length > 0;
+  useEffect(() => {
+    if (anySelected && !BulkBar)
+      import('./leads-bulk-bar')
+        .then((m) => setBulkBar(() => m.LeadsBulkBar))
+        .catch(() => undefined);
+  }, [anySelected, BulkBar]);
   const sdrs = catalog.team.filter((u) => u.canProspect);
   const closers = catalog.team.filter((u) => u.canClose);
   // Aviso ao vivo repete o último pedido feito, não o último que voltou: com a busca ainda em voo,
@@ -289,32 +298,6 @@ export function LeadsBrowser({
       />
     </label>
   );
-  const bar = (
-    label: string,
-    placeholder: string,
-    options: [string, string][],
-    run: (v: string) => Change | null,
-  ) => (
-    <select
-      aria-label={label}
-      value=""
-      disabled={busy}
-      onChange={(e) => {
-        const change = run(e.target.value);
-        if (change) void bulk(change);
-      }}
-      className={barSelect}
-    >
-      <option value="" disabled>
-        {placeholder}
-      </option>
-      {options.map(([v, text]) => (
-        <option key={v} value={v}>
-          {text}
-        </option>
-      ))}
-    </select>
-  );
 
   /** Aplica um filtro salvo (ou limpa) e deixa o id na URL, que não carrega dado pessoal. */
   async function openView(v?: SavedViewDTO) {
@@ -376,8 +359,13 @@ export function LeadsBrowser({
     remember(() => '');
     void search(q, 1, {});
   }
+  // Ao digitar (NPAC-63): só o texto muda; filtros e filtro salvo ficam como estão.
+  const typed = useTypedSearch((term) => {
+    if (term !== lastRequest.current.term) void search(term, 1);
+  });
   function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    typed.cancel();
     const f = new FormData(e.currentTarget);
     const selected = readFilters(f);
     setFilters(selected);
@@ -442,6 +430,7 @@ export function LeadsBrowser({
             id="q"
             name="q"
             defaultValue={q}
+            onChange={(e) => typed.onChange(e.target.value)}
             placeholder="Nome, WhatsApp, @instagram ou e-mail"
             className="h-10 w-full rounded-xl border-0 bg-[rgba(118,118,128,.12)] pr-3 pl-9 text-base"
           />
@@ -696,64 +685,25 @@ export function LeadsBrowser({
           onClose={() => setPending((cur) => (cur === pending ? null : cur))}
         />
       )}
-      {selected.length > 0 && (
-        <section
-          aria-label="Ações em massa"
-          className="glass fixed right-3.5 bottom-[calc(max(16px,env(safe-area-inset-bottom))+80px)] left-3.5 z-30 mx-auto flex max-w-3xl flex-wrap items-center gap-2 rounded-2xl p-2.5 shadow-[0_14px_34px_-14px_rgba(0,0,0,.35)] md:bottom-6 md:left-[calc(var(--side-w)+32px)] md:transition-[left] md:duration-[var(--side-t)] md:ease-[var(--side-ease)]"
-        >
-          <b className="px-2 text-sm">
-            {selected.length} {selected.length === 1 ? 'selecionado' : 'selecionados'}
-          </b>
-          {bar(
-            'Mover para etapa',
-            'Mover para…',
-            // Venda só entra registrando a venda, lead a lead. Agendados e Agendou Pagamento pedem
-            // dados de cada lead (reunião, pagamento): só na ficha, no Pipeline ou na célula (2A).
-            catalog.stages
-              .filter(
-                (st) =>
-                  st.key !== 'VENDA' && !['MEETING', 'PAYMENT'].includes(stageFieldsKind(st.key)),
-              )
-              .map((st) => [st.key, st.label]),
-            (v) => {
-              // Sem Perfil: um motivo que vale para todos os selecionados.
-              if (stageNeedsFields(v)) {
-                askStage({ target: v });
-                return null;
-              }
-              return { stageKey: v as LeadDTO['stageKey'] };
-            },
-          )}
-          {canAssign &&
-            bar(
-              'Trocar SDR',
-              'SDR…',
-              sdrs.map((u) => [u.id, u.name]),
-              (v) => ({ sdrId: v }),
-            )}
-          {canAssign &&
-            bar(
-              'Trocar closer',
-              'Closer…',
-              closers.map((u) => [u.id, u.name]),
-              (v) => ({ closerId: v }),
-            )}
-          <button
-            type="button"
-            onClick={() => {
-              setSelected([]);
-              setBulkMsg('');
-            }}
-            className="ml-auto h-9 rounded-xl px-3 text-sm font-semibold text-ink2 hover:bg-black/5"
-          >
-            Limpar
-          </button>
-          {bulkMsg && (
-            <p role="status" className="w-full px-2 text-xs text-ink2">
-              {bulkMsg}
-            </p>
-          )}
-        </section>
+      {selected.length > 0 && BulkBar && (
+        <BulkBar
+          count={selected.length}
+          catalog={catalog}
+          canAssign={canAssign}
+          busy={busy}
+          message={bulkMsg}
+          onStage={(v) => {
+            // Sem Perfil: um motivo que vale para todos os selecionados.
+            if (stageNeedsFields(v)) askStage({ target: v });
+            else void bulk({ stageKey: v as LeadDTO['stageKey'] });
+          }}
+          onSdr={(v) => void bulk({ sdrId: v })}
+          onCloser={(v) => void bulk({ closerId: v })}
+          onClear={() => {
+            setSelected([]);
+            setBulkMsg('');
+          }}
+        />
       )}
 
       {pages > 1 && (
