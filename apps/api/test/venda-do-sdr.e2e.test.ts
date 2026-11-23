@@ -546,3 +546,84 @@ describe('Hoje de quem registra a venda lista as vendas a registrar', () => {
     expect(await hoje(sonia)).toEqual([]);
   });
 });
+
+// NPAC-59 (Igor, 23/11/2026, "A"): o SDR que pôs o lead em Agendou Pagamento com o produto já fez a
+// venda dele. Quando o closer (ou a liderança) registra a venda, o SDR ganha a renda extra do produto
+// que ele informou, ligada à reunião realizada mais recente, sem precisar de "Marcar venda".
+describe('venda que vem do Agendou Pagamento dá a renda extra ao SDR', () => {
+  /** SDR põe o lead (com reunião realizada) em Agendou Pagamento, com produto e entrada paga. */
+  const schedulePayment = async (id: string, productId = padrao) => {
+    const res = await h.patch(
+      `/api/leads/${id}`,
+      {
+        version: await version(id),
+        stageKey: 'AGENDOU_PAGAMENTO',
+        paymentProductId: productId,
+        paymentCloserId: ids.sonia,
+        paymentEntryPaid: true,
+      },
+      ale,
+    );
+    expect(res.status, res.text).toBe(200);
+  };
+
+  it('closer registra: renda do produto do SDR, na data do registro', async () => {
+    const id = await leadWithMeeting();
+    await schedulePayment(id);
+    expect((await register(id)).status).toBe(201);
+    expect(await marks(id)).toMatchObject([
+      {
+        sdr_id: ids.ale,
+        product_id: padrao,
+        bonus_cents: 1000,
+        marked_by: ids.sonia,
+        canceled_at: null,
+      },
+    ]);
+    const sdr = (await dashboard()).body;
+    expect(sdr.saleBonus).toMatchObject({ count: 1, cents: 1000 });
+    expect(sdr.metrics.sales).toBe(1);
+  });
+
+  it('liderança registra (caso do Igor com o acesso do Ronaldo): o SDR ganha igual', async () => {
+    const id = await leadWithMeeting();
+    await schedulePayment(id);
+    expect((await register(id, padrao, ronaldo)).status).toBe(201);
+    expect(await marks(id)).toMatchObject([
+      { sdr_id: ids.ale, product_id: padrao, bonus_cents: 1000, marked_by: ids.ronaldo },
+    ]);
+  });
+
+  it('closer registra outro produto: a renda segue o produto que o SDR informou', async () => {
+    const id = await leadWithMeeting();
+    await schedulePayment(id, promo);
+    expect((await register(id, padrao)).status).toBe(201);
+    expect(await marks(id)).toMatchObject([{ product_id: promo, bonus_cents: 500 }]);
+  });
+
+  it('estorno tira a renda', async () => {
+    const id = await leadWithMeeting();
+    await schedulePayment(id);
+    const sale = await register(id);
+    expect(sale.status).toBe(201);
+    const [d] = await owner<
+      { version: number }[]
+    >`select version from deals where id = ${sale.body.id}`;
+    const rev = await h.post(
+      `/api/finance/deals/${sale.body.id}/reverse`,
+      { version: d!.version },
+      ronaldo,
+    );
+    expect(rev.status, rev.text).toBeLessThan(300);
+    const after = await marks(id);
+    expect(after).toHaveLength(1);
+    expect(after[0]!.canceled_at).not.toBeNull();
+    expect((await dashboard()).body.saleBonus.count).toBe(0);
+  });
+
+  it('registro direto, sem Agendou Pagamento, continua sem renda (2B de 17/11)', async () => {
+    const id = await leadWithMeeting();
+    expect((await register(id)).status).toBe(201);
+    expect(await marks(id)).toEqual([]);
+  });
+});

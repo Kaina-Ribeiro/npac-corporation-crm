@@ -554,6 +554,13 @@
       "when": 1795402376024,
       "tag": "0078_envios_fisicos",
       "breakpoints": true
+    },
+    {
+      "idx": 79,
+      "version": "7",
+      "when": 1795423976024,
+      "tag": "0079_renda_extra_agendou_pagamento",
+      "breakpoints": true
     }
   ]
 }
