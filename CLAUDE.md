@@ -592,6 +592,12 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
   o closer não recebe. Igor, 17/11 ("1A, 2B"): a renda segue o produto que o SDR marcou, mesmo que o
   closer registre outro; venda registrada direto pelo closer, sem marcação, não gera renda. Valores do Igor: Nação Promocional R$ 5, Padrão (Normal) R$ 10, Completo (Cheio) R$ 20,
   RDV R$ 70, 2M R$ 90, 6M R$ 120 (seed e 0066, por código ou nome).
+  **Venda vinda de Agendou Pagamento** (NPAC-59, Igor 23/11/2026, "A"): pôr o lead em Agendou Pagamento com o
+  produto já é a venda do SDR. Quem registra a venda (closer ou liderança, `POST /finance/deals`) grava a marcação
+  (`recordPaymentSaleMark` em `api/leads/sale-mark.ts`, antes de limpar o pagamento): SDR do lead, produto do
+  pagamento, reunião realizada mais recente, data e autor do registro. Sem reunião realizada ou com marcação ativa,
+  nada. Registro direto de outra etapa segue sem renda (2B). A 0079 deu a marcação às vendas assim registradas
+  desde 17/11 (produto da venda, porque o do pagamento some ao registrar; `db/test/renda-extra-agendou-pagamento.test.ts`).
 - **Campos por etapa** (NPAC-38, 05/11/2026, "1A 2A 3A"): Agendados pedem `meeting` (criada na
   mesma transação, origem pela etapa, `rearm()` depois do commit; reunião futura aberta dispensa),
   Agendou Pagamento pede data (`next_contact_at`) + produto + valor, Sem Perfil pede `lost_reason`

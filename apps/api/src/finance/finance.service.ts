@@ -23,6 +23,7 @@ import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { DB } from '../common/db/db.module.js';
 import { recordActivity } from '../leads/activity.js';
 import { lockLead } from '../leads/lead-mutations.service.js';
+import { recordPaymentSaleMark } from '../leads/sale-mark.js';
 import { assertIncomeKnown } from '../leads/stage-fields.js';
 import { AvisosScheduler } from '../mentoria/avisos.scheduler.js';
 import { InscricaoDaVenda } from '../mentoria/venda/inscricao-da-venda.js';
@@ -205,6 +206,8 @@ export class FinanceService {
       }
       const lead = await lockLead(tx, input.leadId, input.version);
       const d = await insertSale(tx, u, lead, input, hash, undefined, this.inscricao);
+      // Vinda de Agendou Pagamento com o produto do SDR: a renda extra dele (NPAC-59).
+      await recordPaymentSaleMark(tx, u, lead);
       // Saiu de Agendou Pagamento (NPAC-38): o combinado vira a venda e deixa de ser estado do lead.
       await tx
         .update(leads)
