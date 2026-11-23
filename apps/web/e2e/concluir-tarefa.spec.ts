@@ -105,10 +105,27 @@ for (const caso of CASOS) {
       await janela
         .getByLabel('Closer da reunião', { exact: true })
         .selectOption({ label: 'Sônia' });
+      // A opção escolhida fica destacada (o primeiro desenho dependia de `:has(:checked)`, que o
+      // Chrome nem sempre redesenhava).
+      const escolhida = janela.locator('label', { hasText: caso.opcao });
+      await expect(escolhida).toHaveClass(/bg-\[var\(--bg\)\]/);
+      await expect(janela.locator('label', { hasText: 'Novo follow-up' })).not.toHaveClass(
+        /bg-\[var\(--bg\)\]/,
+      );
+      await janela.getByLabel(caso.campo, { exact: true }).blur();
       for (const largura of [1440, 1024, 768, 375]) {
         await page.setViewportSize({ width: largura, height: largura < 768 ? 812 : 900 });
         await page.screenshot({ path: `test-results/concluir-tarefa-${largura}.png` });
       }
+      // Tema escuro, nas pontas.
+      await page.evaluate(() => document.documentElement.classList.add('dark'));
+      // Os controles animam a cor (NPAC-31): a captura espera a troca de tema terminar.
+      await page.waitForTimeout(500);
+      for (const largura of [375, 1440]) {
+        await page.setViewportSize({ width: largura, height: largura < 768 ? 812 : 900 });
+        await page.screenshot({ path: `test-results/concluir-tarefa-${largura}-escuro.png` });
+      }
+      await page.evaluate(() => document.documentElement.classList.remove('dark'));
       await page.setViewportSize({ width: 1280, height: 720 });
     }
     await janela.getByRole('button', { name: 'Concluir', exact: true }).click();

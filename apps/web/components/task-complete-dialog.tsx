@@ -150,9 +150,14 @@ export function TaskCompleteDialog({
           <legend className="mb-2 text-sm font-semibold text-ink2">Próximo passo</legend>
           <div className="grid grid-cols-3 gap-1 rounded-2xl bg-black/[.06] p-1 dark:bg-white/[.08]">
             {NEXT_STEPS.map((o) => (
+              // Destaque pelo estado do React: `:has(:checked)` às vezes não redesenha no Chrome.
               <label
                 key={o.key}
-                className="grid min-h-11 cursor-pointer place-items-center rounded-xl px-2 py-1.5 text-center text-[13px] leading-tight font-semibold text-ink2 transition-[background,color,box-shadow] duration-150 hover:text-ink has-[:checked]:bg-[var(--bg)] has-[:checked]:text-ink has-[:checked]:shadow-[0_1px_2px_rgba(0,0,0,.12),0_0_0_0.5px_rgba(0,0,0,.06)] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[var(--gold-ring)] dark:has-[:checked]:bg-white/15"
+                className={`grid min-h-11 cursor-pointer place-items-center rounded-xl px-2 py-1.5 text-center text-[13px] leading-tight font-semibold transition-[background,color,box-shadow] duration-150 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[var(--gold-ring)] ${
+                  next === o.key
+                    ? 'bg-[var(--bg)] text-ink shadow-[0_1px_2px_rgba(0,0,0,.12),0_0_0_0.5px_rgba(0,0,0,.06)] dark:bg-white/15'
+                    : 'text-ink2 hover:text-ink'
+                }`}
               >
                 <input
                   type="radio"
