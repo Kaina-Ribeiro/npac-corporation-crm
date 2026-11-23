@@ -23,12 +23,19 @@ describe('mapa cargo ↔ (role, perfil)', () => {
       'OPERACAO',
       'ESPECIALISTA',
       'MENTOR',
+      'ENVIOS',
     ]);
   });
 
   it('cargo do Acompanhamento grava role ACOMPANHAMENTO + perfil', () => {
     expect(CARGO_INFO.OPERACAO).toMatchObject({ role: 'ACOMPANHAMENTO', perfil: 'OPERACAO' });
     expect(CARGO_INFO.MENTOR).toMatchObject({ role: 'ACOMPANHAMENTO', perfil: 'MENTOR' });
+    expect(CARGO_INFO.ENVIOS).toMatchObject({
+      label: 'Envios',
+      role: 'ACOMPANHAMENTO',
+      perfil: 'ENVIOS',
+      dica: 'Envia caixas, presentes, kits e certificados.',
+    });
     expect(CARGO_INFO.SDR).toMatchObject({ role: 'SDR', perfil: null });
     expect(CARGO_INFO.DIRETOR.label).toBe('Diretoria');
   });

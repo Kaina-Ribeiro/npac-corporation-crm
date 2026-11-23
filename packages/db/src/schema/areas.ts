@@ -36,7 +36,7 @@ export const areaMembros = pgTable(
       'area_membros_acompanhamento',
       sql`${t.area} <> 'ACOMPANHAMENTO' or (${t.cargo} is null and not ${t.head})
         or (${t.cargo} is not null
-          and ${t.cargo} in ('ACOMPANHAMENTO', 'OPERACAO', 'ESPECIALISTA', 'MENTOR'))`,
+          and ${t.cargo} in ('ACOMPANHAMENTO', 'OPERACAO', 'ESPECIALISTA', 'MENTOR', 'ENVIOS'))`,
     ),
     check(
       'area_membros_alcance',

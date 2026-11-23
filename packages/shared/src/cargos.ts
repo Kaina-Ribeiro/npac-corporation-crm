@@ -16,6 +16,7 @@ export const CARGOS = [
   'OPERACAO',
   'ESPECIALISTA',
   'MENTOR',
+  'ENVIOS',
 ] as const;
 export type Cargo = (typeof CARGOS)[number];
 
@@ -90,6 +91,13 @@ export const CARGO_INFO: Record<Cargo, CargoInfo> = {
     role: 'ACOMPANHAMENTO',
     perfil: 'MENTOR',
     dica: 'Aparece como condutor das reuniões. Ainda sem acesso: o painel chega depois.',
+  },
+  ENVIOS: {
+    label: 'Envios',
+    area: 'ACOMPANHAMENTO',
+    role: 'ACOMPANHAMENTO',
+    perfil: 'ENVIOS',
+    dica: 'Envia caixas, presentes, kits e certificados.',
   },
 };
 

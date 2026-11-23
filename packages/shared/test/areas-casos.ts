@@ -139,6 +139,16 @@ export const CASOS: Caso[] = [
     esperado: 'PROIBIDO',
   },
   {
+    nome: 'Head do Comercial não convida Envios',
+    pedido: { ator: HEAD_COM, acao: 'CONVIDAR', area: 'ACOMPANHAMENTO', cargo: 'ENVIOS' },
+    esperado: 'PROIBIDO',
+  },
+  {
+    nome: 'Admin do módulo convida Envios',
+    pedido: { ator: ADMIN_AC, acao: 'CONVIDAR', area: 'ACOMPANHAMENTO', cargo: 'ENVIOS' },
+    esperado: 'OK',
+  },
+  {
     nome: 'Admin do módulo convida Operação',
     pedido: { ator: ADMIN_AC, acao: 'CONVIDAR', area: 'ACOMPANHAMENTO', cargo: 'OPERACAO' },
     esperado: 'OK',
