@@ -7,6 +7,7 @@ import { AuditService } from '../audit/audit.service.js';
 import { toCsv } from '../common/csv.js';
 import { FieldCrypto } from '../common/crypto/field-crypto.js';
 import { DB } from '../common/db/db.module.js';
+import { sdrDoFiltro } from '../common/sdr-filtro.js';
 
 export type ReportQuery = {
   page?: number;
@@ -315,7 +316,8 @@ export class ReportsService {
       };
     });
   }
-  async search(u: AuthUser, q: ReportQuery, opts: { audit?: boolean } = {}) {
+  async search(u: AuthUser, query: ReportQuery, opts: { audit?: boolean } = {}) {
+    const q = { ...query, sdrId: sdrDoFiltro(u, query.sdrId) };
     const w = window(q);
     const { start, end } = w;
     const result = await withUser(
@@ -423,7 +425,8 @@ export class ReportsService {
     const r = await people(tx, baseCtes({ period: 'MONTH' }, start, end), start, end);
     return { ...r, from: start.toISOString(), to: end.toISOString() };
   }
-  async csv(u: AuthUser, q: ReportQuery) {
+  async csv(u: AuthUser, query: ReportQuery) {
+    const q = { ...query, sdrId: sdrDoFiltro(u, query.sdrId) };
     // "Tudo": sem recorte de data de criação (filtros continuam valendo).
     const created =
       q.period === 'ALL'

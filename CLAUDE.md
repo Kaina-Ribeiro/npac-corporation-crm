@@ -341,6 +341,13 @@ alcance)` (5 argumentos; a de 4 mantém o alcance), por convite, aprovação, `P
 - Liderança vê tudo; SDR, os próprios leads; CLOSER, leads com reunião não cancelada dele ou
   que o SDR lhe passou em Agendou Pagamento (`leads.closer_id`).
   Invisível e inexistente → **404**, nunca 403. `canProspect`/`canClose` são dados; nada depende de nomes.
+- **Filtro de SDR fixo no próprio SDR** (NPAC-66, Igor 23/11/2026): para o papel SDR, a API troca qualquer
+  `sdrId` pelo id dele (`sdrDoFiltro` em `api/common/sdr-filtro.ts`, em `reports.service.ts` `search`/`csv` e
+  `leads.service.ts` `list`/`csv`; o Pipeline passa pelo `list`): pedir outro SDR devolve os dados dele, sem
+  erro. `GET /leads/catalog` traz `sdrFixo` (nome do SDR logado, só para o SDR); com ele, "SDR do relatório"
+  e "Responsável SDR" (Leads e Pipeline) mostram só esse nome, sem "Todos", e o cookie de filtro não guarda
+  `sdrId` (`sdrRule` em `sh/screen-prefs.ts`; cookie antigo com outro SDR cai no vazio). Liderança e closer
+  como antes. Testes: `api/test/filtro-sdr.e2e.test.ts`, `e2e/filtro-sdr.spec.ts`.
 - **SDR não recebe R$ de venda** (pedido do cliente, 04/11/2026): `/reports/search`, `/reports/summary`
   e `/team` cortam no servidor (`dropSales`), o lead vem sem valor e entrada (`toDTO`) e
   `/finance/products` sem preço; o Dashboard do SDR mostra comparecimento. Closer igual a

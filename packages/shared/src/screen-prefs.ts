@@ -60,10 +60,12 @@ export const isoDate: PrefRule = (value) => /^\d{4}-\d{2}-\d{2}$/.test(value);
 export const brasiliaDay = (at: Date = new Date()) =>
   new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(at);
 
-type Catalog = Pick<LeadCatalog, 'stages' | 'team'>;
+type Catalog = Pick<LeadCatalog, 'stages' | 'team' | 'sdrFixo'>;
 const prospects = (c: Pick<LeadCatalog, 'team'>) =>
   c.team.filter((u) => u.canProspect).map((u) => u.id);
 const closers = (c: Pick<LeadCatalog, 'team'>) => c.team.filter((u) => u.canClose).map((u) => u.id);
+/** Filtro de SDR: o SDR não escolhe (fica nele, NPAC-66), então o cookie não guarda nenhum. */
+const sdrRule = (c: Catalog): PrefRules => (c.sdrFixo ? {} : { sdrId: oneOf(prospects(c)) });
 const SOURCES = [...LEAD_SOURCE_OPTIONS, ...LEGACY_LEAD_SOURCES, FORM_LEAD_SOURCE];
 
 /** Ordem padrão da lista de leads: não é gravada. */
@@ -75,7 +77,7 @@ export function leadFilterRules(c: Catalog): PrefRules {
     stage: oneOf(c.stages.map((s) => s.key)),
     tier: oneOf(TIERS),
     source: oneOf(SOURCES),
-    sdrId: oneOf(prospects(c)),
+    ...sdrRule(c),
     closerId: oneOf(closers(c)),
     period: oneOf(['TODAY', 'TOMORROW', 'WEEK', 'OVERDUE', 'NO_DATE', 'RANGE']),
     from: isoDate,
@@ -107,7 +109,7 @@ export function reportRules(c: Catalog, productIds: readonly string[]): PrefRule
     period: oneOf(['TODAY', 'RANGE']),
     from: isoDate,
     to: isoDate,
-    sdrId: oneOf(prospects(c)),
+    ...sdrRule(c),
     closerId: oneOf(closers(c)),
     stage: oneOf(c.stages.map((s) => s.key)),
     tier: oneOf(TIERS),
