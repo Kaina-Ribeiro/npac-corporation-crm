@@ -5,6 +5,7 @@ import {
   DEGRAU_DETALHE,
   ETAPA_LABEL,
   FILA_GRUPOS,
+  INSCRICAO_STATUS_LABEL,
   SEMAFORO_COR_LABEL,
   SEMAFORO_MOTIVO_LABEL,
   TAREFA_STATUS_LABEL,
@@ -20,6 +21,7 @@ import {
   type FilaGrupo,
   type FilaItemDTO,
   type MensagemModelo,
+  type Responsavel,
 } from '@npac/shared/mentoria';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -146,6 +148,11 @@ function acaoDe(item: FilaItemDTO): Acao | null {
           }
         : null;
     }
+    // NPAC-56: a responsável se escolhe no painel; o estorno sai com "Visto".
+    case 'NOVA_INSCRICAO':
+      return null;
+    case 'VENDA_ESTORNADA':
+      return { label: 'Visto', run: feito };
   }
 }
 
@@ -171,6 +178,8 @@ function oQue(item: FilaItemDTO, agora: Date): string {
       return item.tarefa?.descricao ? `Cobrar: ${item.tarefa.descricao}` : filaTitulo(item);
     case 'SEMAFORO':
       return item.semaforo ? `${filaTitulo(item)}: ${motivosDe(item)}` : filaTitulo(item);
+    case 'NOVA_INSCRICAO':
+      return item.mentorado ? `Nova inscrição · ${item.mentorado.mentoria}` : filaTitulo(item);
     default:
       return filaTitulo(item);
   }
@@ -232,6 +241,10 @@ function explicacao(item: FilaItemDTO, agora: Date): string {
       return item.ciclo?.degrau
         ? `${DEGRAU_DETALHE[item.ciclo.degrau]} O contato fica registrado na ficha.`
         : '';
+    case 'NOVA_INSCRICAO':
+      return `Venda registrada no comercial em ${desde}. A inscrição entrou sem responsável: escolha quem acompanha.`;
+    case 'VENDA_ESTORNADA':
+      return 'A venda foi estornada no comercial e a inscrição ficou cancelada. Reuniões, ações e contatos continuam na ficha.';
   }
 }
 
@@ -289,6 +302,7 @@ const HOJE_LONGO = new Intl.DateTimeFormat('pt-BR', {
 export function Fila({
   dados,
   mensagens,
+  responsaveis = [],
   euId,
   temPerfil,
   admin,
@@ -299,6 +313,8 @@ export function Fila({
 }: {
   dados: FilaDTO;
   mensagens: MensagemModelo[];
+  /** Quem pode ser responsável (NPAC-56): o painel da "Nova inscrição". */
+  responsaveis?: Responsavel[];
   euId: string;
   temPerfil: boolean;
   admin: boolean;
@@ -400,6 +416,28 @@ export function Fila({
       marcarFeito(chave);
       try {
         await run();
+        showToast();
+        router.refresh();
+      } catch (e) {
+        setErro((e as Error).message);
+      }
+    });
+  };
+
+  // "Nova inscrição" (NPAC-56, G4): a Admin escolhe a responsável; o item sai no clique.
+  const escolherResponsavel = (item: FilaItemDTO, responsavelId: string) => {
+    const insc = item.inscricaoId;
+    if (!insc) return;
+    setErro(null);
+    if (selChave === item.chave) fechar();
+    startTransition(async () => {
+      marcarFeito(item.chave);
+      try {
+        const atual = await clientApi<{ version: number }>(`/api/mentoria/inscricoes/${insc}`);
+        await clientApi(`/api/mentoria/inscricoes/${insc}`, 'PATCH', {
+          version: atual.version,
+          responsavelId,
+        });
         showToast();
         router.refresh();
       } catch (e) {
@@ -567,6 +605,8 @@ export function Fila({
               admin={admin}
               fechar={fechar}
               acao={botaoAcao(sel, 'btn btn-primary')}
+              responsaveis={responsaveis}
+              escolherResponsavel={escolherResponsavel}
             />
           )}
         </aside>
@@ -583,6 +623,8 @@ function Painel({
   admin,
   fechar,
   acao,
+  responsaveis,
+  escolherResponsavel,
 }: {
   l: Linha;
   agora: Date;
@@ -591,6 +633,8 @@ function Painel({
   admin: boolean;
   fechar: () => void;
   acao: React.ReactNode;
+  responsaveis: Responsavel[];
+  escolherResponsavel: (item: FilaItemDTO, responsavelId: string) => void;
 }) {
   const { item } = l;
   const m = item.mentorado;
@@ -653,6 +697,9 @@ function Painel({
         <h3>{oQue(item, agora)}</h3>
         <p>{explicacao(item, agora)}</p>
       </div>
+      {item.tipo === 'NOVA_INSCRICAO' && (
+        <NovaInscricao item={item} responsaveis={responsaveis} escolher={escolherResponsavel} />
+      )}
       <div className="pn-a">
         {acao}
         {item.inscricaoId && (
@@ -689,6 +736,59 @@ function Painel({
           </div>
         ))}
       </dl>
+    </div>
+  );
+}
+
+/** "Nova inscrição" (NPAC-56): a responsável e o aviso de quem já é mentorado (M3). */
+function NovaInscricao({
+  item,
+  responsaveis,
+  escolher,
+}: {
+  item: FilaItemDTO;
+  responsaveis: Responsavel[];
+  escolher: (item: FilaItemDTO, responsavelId: string) => void;
+}) {
+  const [resp, setResp] = useState('');
+  return (
+    <div className="pn-nova">
+      {item.jaTem && (
+        <p className="pn-jatem">
+          <Link href={ficha(item.jaTem.inscricaoId)} prefetch={false}>
+            Já tem inscrição: {item.jaTem.mentoria},{' '}
+            {INSCRICAO_STATUS_LABEL[item.jaTem.status].toLowerCase()}
+          </Link>
+        </p>
+      )}
+      <form
+        className="pn-resp"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (resp) escolher(item, resp);
+        }}
+      >
+        <label htmlFor={`resp-${item.chave}`}>Responsável</label>
+        <div className="pn-resp-row">
+          <select
+            id={`resp-${item.chave}`}
+            className="field"
+            value={resp}
+            onChange={(e) => setResp(e.target.value)}
+            required
+          >
+            <option value="">Escolha quem acompanha</option>
+            {responsaveis.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.nome}
+              </option>
+            ))}
+          </select>
+          <button type="submit" className="btn btn-primary" disabled={!resp}>
+            Definir
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

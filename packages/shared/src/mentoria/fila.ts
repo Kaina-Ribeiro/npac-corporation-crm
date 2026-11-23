@@ -1,5 +1,5 @@
 /** Fila do dia (SPEC §5, D18). O banco calcula os itens (`mentoria_fila`); aqui, quem vê o quê. */
-import type { Perfil, TipoInscricao, Mentoria } from './enums.js';
+import type { InscricaoStatus, Perfil, TipoInscricao, Mentoria } from './enums.js';
 import type { Etapa, EtapaStatus } from './onboarding.js';
 import type { ReuniaoTipo } from './plano.js';
 import type { CanalContato, ReuniaoStatus } from './reunioes.js';
@@ -25,6 +25,8 @@ export const FILA_TIPOS = [
   'SEMAFORO',
   'ENVIAR_PME',
   'PME_ATRASADO',
+  'NOVA_INSCRICAO',
+  'VENDA_ESTORNADA',
 ] as const;
 export type FilaTipo = (typeof FILA_TIPOS)[number];
 
@@ -48,6 +50,8 @@ export const FILA_TIPO_LABEL: Record<FilaTipo, string> = {
   SEMAFORO: 'Semáforo',
   ENVIAR_PME: 'Próximo PME',
   PME_ATRASADO: 'PME atrasado',
+  NOVA_INSCRICAO: 'Nova inscrição',
+  VENDA_ESTORNADA: 'Venda estornada',
 };
 
 /** Degraus da escada de atraso do PME (PDF, página 19; E20), contados do prazo atual. */
@@ -82,6 +86,8 @@ export const FILA_GRUPOS = [
     chave: 'ONBOARDING',
     label: 'Onboarding',
     tipos: [
+      'NOVA_INSCRICAO',
+      'VENDA_ESTORNADA',
       'BOAS_VINDAS',
       'PASSO_DEVIDO',
       'PARADO',
@@ -107,10 +113,14 @@ export const FILA_FEITO_MANUAL: readonly FilaTipo[] = [
   'AGENDA_MES',
   'REUNIOES_6M',
   'SEMAFORO',
+  'VENDA_ESTORNADA',
 ];
 
 /** Itens da Operação que também vão para quem conduz a reunião. */
 const COMPARTILHADOS: readonly FilaTipo[] = ['REUNIAO_HOJE', 'LINK_IDR'];
+
+/** Só de quem é Admin do Acompanhamento (NPAC-56, G4: a Admin escolhe a responsável). */
+const SO_ADMIN: readonly FilaTipo[] = ['NOVA_INSCRICAO'];
 
 export type FilaEscopo = 'MINHA' | 'EQUIPE';
 
@@ -131,6 +141,7 @@ export type FilaEu = { id: string; perfil: Perfil | null; admin: boolean };
 
 /** É da minha fila: meu nome no item, ou o meu perfil sem pessoa definida. */
 export function itemEhMeu(item: FilaItemBase, eu: FilaEu): boolean {
+  if (SO_ADMIN.includes(item.tipo)) return eu.admin;
   if (item.responsavelId === eu.id) return true;
   if (!eu.perfil || item.responsavelPerfil !== eu.perfil) return false;
   return item.responsavelId === null || COMPARTILHADOS.includes(item.tipo);
@@ -143,6 +154,7 @@ export function itemEhMeu(item: FilaItemBase, eu: FilaEu): boolean {
 export function itemVisivel(item: FilaItemBase, eu: FilaEu, escopo: FilaEscopo): boolean {
   if (escopo === 'MINHA') return itemEhMeu(item, eu);
   if (eu.admin) return true;
+  if (SO_ADMIN.includes(item.tipo)) return false;
   return itemEhMeu(item, eu) || (!!eu.perfil && item.responsavelPerfil === eu.perfil);
 }
 
@@ -192,6 +204,11 @@ export type FilaItemDTO = FilaItemBase & {
     /** PME_ATRASADO: o degrau da escada. */
     degrau: DegrauAtraso | null;
   } | null;
+  /**
+   * NOVA_INSCRICAO (NPAC-56, M3): outra inscrição da mesma pessoa (mesmo WhatsApp ou e-mail, pelo
+   * índice cego), a mais recente; a tela mostra "Já tem inscrição: <mentoria>, <status>".
+   */
+  jaTem: { inscricaoId: string; mentoria: Mentoria; status: InscricaoStatus } | null;
 };
 
 export type FilaDTO = {
@@ -243,5 +260,9 @@ export function filaTitulo(
       return item.ciclo?.degrau
         ? `${DEGRAU_LABEL[item.ciclo.degrau]} (${item.ciclo.numero}º PME)`
         : 'PME atrasado';
+    case 'NOVA_INSCRICAO':
+      return 'Nova inscrição';
+    case 'VENDA_ESTORNADA':
+      return 'Venda estornada: inscrição cancelada';
   }
 }

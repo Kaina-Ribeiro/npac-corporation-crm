@@ -1,4 +1,4 @@
-import type { FilaDTO, FilaGrupo, MensagemModelo } from '@npac/shared/mentoria';
+import type { FilaDTO, FilaGrupo, MensagemModelo, Responsavel } from '@npac/shared/mentoria';
 import { readPrefs, writePrefs } from '@npac/shared/screen-prefs';
 import { cookies } from 'next/headers';
 import { Fila } from '@/components/acompanhamento/fila';
@@ -33,6 +33,10 @@ export default async function FilaPage({
     apiPost<FilaDTO>('/api/mentoria/fila', escopo ? { escopo } : {}),
     apiGet<MensagemModelo[]>('/api/mentoria/mensagens'),
   ]);
+  // "Nova inscrição" (NPAC-56): a Admin escolhe a responsável ali mesmo, entre as elegíveis.
+  const responsaveis = dados.itens.some((i) => i.tipo === 'NOVA_INSCRICAO')
+    ? (await apiGet<Responsavel[]>('/api/mentoria/responsaveis')).filter((r) => r.elegivel)
+    : [];
   return (
     <>
       <PushInvite className="mb-5" />
@@ -40,6 +44,7 @@ export default async function FilaPage({
         photos={await getTeamPhotos()}
         dados={dados}
         mensagens={mensagens}
+        responsaveis={responsaveis}
         euId={me.id}
         temPerfil={comBotao}
         admin={!!eu?.admin}
