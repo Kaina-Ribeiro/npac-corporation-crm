@@ -12,6 +12,7 @@ import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import { DB } from '../common/db/db.module.js';
 import { recordActivity } from '../leads/activity.js';
 import { lockLead } from '../leads/lead-mutations.service.js';
+import { recordLoggedMeetingSaleMark } from '../leads/sale-mark.js';
 import { assertIncomeKnown } from '../leads/stage-fields.js';
 import { ReminderScheduler } from '../push/reminders.js';
 import { cancelMeeting } from './cancel.js';
@@ -133,6 +134,26 @@ export class MeetingsService {
     });
     void this.reminders.rearm();
     return result;
+  }
+  /**
+   * Reunião que já aconteceu (NPAC-62, Igor 23/11/2026, "1A, 2A"): o SDR dono do lead ou a liderança
+   * lança com o horário passado e ela entra realizada, com `outcome_at` = o horário (o SDR recebe por
+   * ela no dia em que aconteceu, como no cadastro em Venda Fechada). Se o lead já está em Venda com a
+   * venda vinda de Agendou Pagamento e sem renda extra, a renda entra agora (NPAC-59).
+   */
+  async createDone(u: AuthUser, input: Omit<Schedule, 'outcome' | 'outcomeAt'>) {
+    return withUser(this.db, u.id, async (tx) => {
+      const lead = await lockLead(tx, input.leadId);
+      if (!isLeader(u.role) && lead.sdrId !== u.id) throw new ForbiddenException();
+      const m = await scheduleMeeting(tx, u, {
+        ...input,
+        outcome: 'DONE',
+        outcomeAt: input.scheduledAt,
+      });
+      await recordActivity(tx, u, input.leadId, 'meeting.outcome', ['outcome'], m.id);
+      await recordLoggedMeetingSaleMark(tx, u, lead, { id: m.id, scheduledAt: input.scheduledAt });
+      return m;
+    });
   }
   async update(u: AuthUser, id: string, input: MeetingChange) {
     const result = await withUser(this.db, u.id, async (tx) => {
