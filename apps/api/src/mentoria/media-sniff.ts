@@ -74,13 +74,51 @@ function webpLimpo(b: Buffer): Buffer {
   return Buffer.concat([Buffer.from('RIFF', 'latin1'), tam, corpo]);
 }
 
+/** Caixas de metadado do MP4/MOV: local (©xyz, loci, ISO6709), aparelho, autor e XMP. */
+const CAIXAS_METADADO = new Set(['udta', 'meta', 'uuid']);
+/** Onde as caixas de metadado moram; o resto (mdat incluso) não é aberto. */
+const CAIXAS_CONTEINER = new Set(['moov', 'trak']);
+
 /**
- * Imagem sem EXIF/GPS (D17). Vídeo e PDF passam como vieram (aceite do dono no MVP). Sem
- * biblioteca nova: o corte é por estrutura do arquivo, sem decodificar pixels.
+ * MP4/MOV: cada caixa `udta`, `meta` e `uuid` (no topo, no `moov` e em cada `trak`) vira `free` com o conteúdo
+ * zerado. Tamanho e posição de tudo ficam iguais, então os índices que apontam para o `mdat` continuam certos e o
+ * vídeo toca igual. Caixa com tamanho inválido encerra a varredura daquele nível (o resto vai como veio).
+ */
+function mp4Limpo(original: Buffer): Buffer {
+  const b = Buffer.from(original);
+  const varrer = (ini: number, fim: number) => {
+    let i = ini;
+    while (i + 8 <= fim) {
+      let tam = b.readUInt32BE(i);
+      let cab = 8;
+      if (tam === 1) {
+        if (i + 16 > fim) return;
+        const grande = b.readBigUInt64BE(i + 8);
+        if (grande > BigInt(fim - i)) return;
+        tam = Number(grande);
+        cab = 16;
+      } else if (tam === 0) tam = fim - i;
+      if (tam < cab || i + tam > fim) return;
+      const tipo = ascii(b, i + 4, i + 8);
+      if (CAIXAS_METADADO.has(tipo)) {
+        b.write('free', i + 4, 'latin1');
+        b.fill(0, i + cab, i + tam);
+      } else if (CAIXAS_CONTEINER.has(tipo)) varrer(i + cab, i + tam);
+      i += tam;
+    }
+  };
+  varrer(0, b.length);
+  return b;
+}
+
+/**
+ * Imagem sem EXIF/GPS (D17) e vídeo sem local e aparelho (NPAC-57). PDF passa como veio. Sem biblioteca nova: o
+ * corte é por estrutura do arquivo, sem decodificar pixels nem quadros.
  */
 export function semMetadados(b: Buffer, mime: string): Buffer {
   if (mime === 'image/jpeg') return jpegLimpo(b);
   if (mime === 'image/png') return pngLimpo(b);
   if (mime === 'image/webp') return webpLimpo(b);
+  if (mime === 'video/mp4' || mime === 'video/quicktime') return mp4Limpo(b);
   return b;
 }
