@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   CARGOS,
+  CARGO_DICA,
   CARGO_INFO,
   CARGOS_POR_AREA,
   cargoDe,
@@ -15,7 +16,7 @@ describe('mapa cargo ↔ (role, perfil)', () => {
   it('cada cargo tem rótulo, área e dica', () => {
     for (const c of CARGOS) {
       expect(CARGO_INFO[c].label.length).toBeGreaterThan(0);
-      expect(CARGO_INFO[c].dica.length).toBeGreaterThan(10);
+      expect(CARGO_DICA[c].length).toBeGreaterThan(10);
     }
     expect(CARGOS_POR_AREA.COMERCIAL).toEqual(['SDR', 'CLOSER', 'HEAD', 'DIRETOR']);
     expect(CARGOS_POR_AREA.ACOMPANHAMENTO).toEqual([
@@ -34,8 +35,8 @@ describe('mapa cargo ↔ (role, perfil)', () => {
       label: 'Envios',
       role: 'ACOMPANHAMENTO',
       perfil: 'ENVIOS',
-      dica: 'Envia caixas, presentes, kits e certificados.',
     });
+    expect(CARGO_DICA.ENVIOS).toBe('Envia caixas, presentes, kits e certificados.');
     expect(CARGO_INFO.SDR).toMatchObject({ role: 'SDR', perfil: null });
     expect(CARGO_INFO.DIRETOR.label).toBe('Diretoria');
   });

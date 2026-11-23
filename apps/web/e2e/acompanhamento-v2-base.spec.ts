@@ -152,11 +152,7 @@ test('as 3 abas futuras mostram "em breve"; a 7 e Envios físicos saíram', asyn
   await page.waitForURL(/\/acompanhamento\/envios$/);
   await expect(page.getByRole('heading', { name: 'Envios físicos' })).toBeVisible();
   await page.goto('/acompanhamento/mentorados');
-  for (const nome of [
-    'Linha do tempo e conquistas',
-    'Eventos e agenda',
-    'Renovações e gestão',
-  ]) {
+  for (const nome of ['Linha do tempo e conquistas', 'Eventos e agenda', 'Renovações e gestão']) {
     await lateral(page).getByRole('link', { name: nome, exact: true }).click();
     await page.waitForURL(/\/acompanhamento\/em-breve\//);
     await expect(page.getByRole('heading', { name: 'Esta aba chega em breve' })).toBeVisible();
@@ -202,6 +198,7 @@ test('Configurações: só Admin vê e define o perfil', async ({ page, browser 
     'Operação',
     'Especialista',
     'Mentor',
+    'Envios',
   ]);
   await page.getByLabel('Perfil de Carla').selectOption('ESPECIALISTA');
   await expect.poll(perfilDaCarla).toBe('ESPECIALISTA');
