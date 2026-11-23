@@ -13,18 +13,22 @@ const NOME = 'Comprador da Mentoria';
 let produto = '';
 
 test.beforeAll(async () => {
-  await owner`delete from products where code = 'E2E_V56_RDV'`;
+  // De novo no mesmo banco: o produto já tem venda (não se apaga), então volta a ficar ativo.
   const [p] = await owner<{ id: string }[]>`
     insert into products (code, name, closer_id, price_cents, mentoria)
     select 'E2E_V56_RDV', 'Mentoria RDV da Sônia', id, 1800000, 'RDV'
-    from "user" where email = 'sonia@npac.com.br' returning id`;
+    from "user" where email = 'sonia@npac.com.br'
+    on conflict (code) do update set active = true, mentoria = 'RDV' returning id`;
   produto = p!.id;
 });
 test.beforeEach(async () => {
   await owner`truncate rate_limit`;
 });
 test.afterAll(async () => {
-  // A venda fica (deals não se apaga); só o produto sai do catálogo da Sônia.
+  // A venda fica (deals não se apaga); a inscrição que ela criou sai, para não aparecer nos outros
+  // testes do módulo, e o produto sai do catálogo da Sônia.
+  await owner`delete from mentoria_inscricoes where deal_id in (
+    select d.id from deals d join products p on p.id = d.product_id where p.code = 'E2E_V56_RDV')`;
   await owner`update products set active = false where code = 'E2E_V56_RDV'`;
   await closeTestConnections();
 });
