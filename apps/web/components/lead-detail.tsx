@@ -252,9 +252,9 @@ export function LeadDetail({
                   Registrar venda
                 </a>
               ) : (
-                // Vinda de Agendou Pagamento (NPAC-68), o closer da venda é o do pagamento.
+                // Vinda de Agendou Pagamento (NPAC-68), o closer da venda pode ser outro que o da reunião.
                 <span className="text-xs text-ink2">
-                  {lead.closer
+                  {lead.closer && lead.closer.id !== lastDone?.closerId
                     ? `${lead.closer.name} registra a venda.`
                     : 'O closer da reunião registra a venda.'}
                 </span>
