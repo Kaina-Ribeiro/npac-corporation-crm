@@ -1,9 +1,11 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Patch, Post, Req } from '@nestjs/common';
+import type { FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { Can } from '../auth/can.decorator.js';
 import { CurrentUser, type SessionUser } from '../auth/current-user.decorator.js';
 import { entityId, validate } from '../common/validate.js';
 import { LeadActivityService } from './lead-activity.service.js';
+import { TASK_NEXT_STEPS, TaskCompleteService } from './task-complete.service.js';
 
 const note = z.object({ body: z.string().trim().min(1).max(5000) }).strict();
 const task = z
@@ -22,10 +24,23 @@ const change = task
   .extend({ version: z.number().int().positive(), completed: z.boolean().optional() })
   .strict()
   .refine((v) => Object.keys(v).length > 1, 'Informe alteração');
+/** NPAC-67: concluir pede o que aconteceu (vira nota) e o próximo passo. */
+const completion = z
+  .object({
+    version: z.number().int().positive(),
+    note: note.shape.body,
+    next: z.enum(TASK_NEXT_STEPS),
+    at: z.iso.datetime({ offset: true }).transform((s) => new Date(s)),
+    closerId: z.string().min(1).max(64).optional(),
+  })
+  .strict();
 
 @Controller('leads/:leadId')
 export class LeadActivityController {
-  constructor(private readonly activity: LeadActivityService) {}
+  constructor(
+    private readonly activity: LeadActivityService,
+    private readonly completions: TaskCompleteService,
+  ) {}
   @Get('activity')
   list(@CurrentUser() u: SessionUser, @Param('leadId') id: string) {
     return this.activity.list(u, entityId(id));
@@ -64,5 +79,24 @@ export class LeadActivityController {
     @Body() body: unknown,
   ) {
     return this.activity.editTask(u, entityId(leadId), entityId(id), validate(change, body));
+  }
+  /** Quem edita o lead (não o closer): no Hoje e nas Tarefas da ficha. */
+  @Post('tasks/:id/complete')
+  @HttpCode(200)
+  @Can('lead:update')
+  completeTask(
+    @CurrentUser() u: SessionUser,
+    @Param('leadId') leadId: string,
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @Req() req: FastifyRequest,
+  ) {
+    return this.completions.complete(
+      u,
+      entityId(leadId),
+      entityId(id),
+      validate(completion, body),
+      { ip: req.ip, userAgent: req.headers['user-agent'] },
+    );
   }
 }

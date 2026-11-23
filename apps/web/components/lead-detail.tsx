@@ -33,6 +33,7 @@ import { PaymentComplete } from './payment-complete';
 import { SaleMark } from './sale-mark';
 import { StageFields } from './stage-fields';
 import { FinancePanel } from './finance-panel';
+import { TaskCompleteButton } from './task-complete-button';
 import { useCrmRefresh } from './shell/live-updates';
 
 const date = (s: string) =>
@@ -511,19 +512,31 @@ export function LeadDetail({
                     .join(' · ')}
                 </small>
               </div>
-              <button
-                className={quietButton}
-                disabled={busy}
-                aria-label={`${t.completedAt ? 'Reabrir' : 'Concluir'} ${t.title}`}
-                onClick={() =>
-                  void mutate(`/api/leads/${lead.id}/tasks/${t.id}`, 'PATCH', {
-                    version: t.version,
-                    completed: !t.completedAt,
-                  })
-                }
-              >
-                {t.completedAt ? 'Reabrir' : 'Concluir'}
-              </button>
+              {/* NPAC-67: concluir pede o que aconteceu e o próximo passo (o closer conclui direto). */}
+              {!t.completedAt && me.role !== 'CLOSER' ? (
+                <TaskCompleteButton
+                  task={{ ...t, leadId: lead.id, leadName: lead.name }}
+                  team={catalog.team}
+                  defaultCloserId={lead.closer?.id}
+                  className={quietButton}
+                  disabled={busy}
+                  onSaved={() => router.refresh()}
+                />
+              ) : (
+                <button
+                  className={quietButton}
+                  disabled={busy}
+                  aria-label={`${t.completedAt ? 'Reabrir' : 'Concluir'} ${t.title}`}
+                  onClick={() =>
+                    void mutate(`/api/leads/${lead.id}/tasks/${t.id}`, 'PATCH', {
+                      version: t.version,
+                      completed: !t.completedAt,
+                    })
+                  }
+                >
+                  {t.completedAt ? 'Reabrir' : 'Concluir'}
+                </button>
+              )}
             </div>
           ))}
           <form onSubmit={add('tasks')} className="flex flex-col gap-3">
