@@ -37,6 +37,7 @@ export function LeadForm({
   lead: latestLead,
   products,
   openMeeting,
+  saleHint,
 }: {
   catalog: LeadCatalog;
   me: { id: string; role: Role };
@@ -45,6 +46,8 @@ export function LeadForm({
   products: ProductDTO[];
   /** Reunião futura aberta do lead: mudar para Agendado não pede outra. */
   openMeeting?: OpenMeeting | null;
+  /** Dica da Venda no select de etapa da ficha (NPAC-68), a mesma do "Mover para". */
+  saleHint?: string;
 }) {
   const router = useRouter();
   // O rascunho pertence à versão exibida ao abrir o formulário. SSE não pode
@@ -271,6 +274,7 @@ export function LeadForm({
               allowSale={!lead}
               incomeUnknown={band === 'DESCOBRINDO'}
               meetingDone={Boolean(lead)}
+              saleHint={saleHint}
             />
           </select>
         </Field>
