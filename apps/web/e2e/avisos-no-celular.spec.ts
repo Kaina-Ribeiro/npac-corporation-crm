@@ -75,7 +75,7 @@ test('"Agora não" esconde o convite neste aparelho, mesmo depois de recarregar'
   await login(page, 'ale@npac.com.br');
   await convite(page).getByRole('button', { name: 'Agora não' }).click();
   await expect(convite(page)).toHaveCount(0);
-  const adiado = (await page.context().cookies()).find((c) => c.name === 'npac_push_convite');
+  const adiado = (await page.context().cookies()).find((c) => c.name === 'npac_push_convite_2');
   expect(adiado?.expires).toBeGreaterThan(Date.now() / 1000 + 6 * 86_400);
   await page.reload();
   await page.goto('/hoje');
@@ -99,4 +99,50 @@ test('sem push no servidor, não há convite', async ({ page }) => {
   await page.goto('/hoje');
   await chave;
   await expect(convite(page)).toHaveCount(0);
+});
+
+// NPAC-71 (Gabriel, 24/11/2026): os avisos de todos foram zerados no servidor (0083). O navegador ainda
+// guarda a inscrição antiga; antes a tela se dava por "ligada" só por isso, sem convite e sem receber nada.
+test('aparelho inscrito que o servidor não conhece: o convite aparece e "Ativar avisos" registra de novo', async ({
+  page,
+}) => {
+  const ENDERECO = 'https://push.test/aparelho-antigo';
+  await page.addInitScript((endpoint) => {
+    class FakeNotification {
+      static permission: NotificationPermission = 'granted';
+      static requestPermission = () => Promise.resolve('granted' as NotificationPermission);
+    }
+    Object.defineProperty(window, 'Notification', { value: FakeNotification, configurable: true });
+    if (!('PushManager' in window))
+      Object.defineProperty(window, 'PushManager', { value: class {}, configurable: true });
+    // A inscrição que o navegador já tinha, de antes da limpeza.
+    const inscricao = {
+      endpoint,
+      toJSON: () => ({ endpoint, keys: { p256dh: 'chave-do-aparelho', auth: 'segredo' } }),
+      unsubscribe: () => Promise.resolve(true),
+    };
+    const registro = { pushManager: { getSubscription: () => Promise.resolve(inscricao) } };
+    const sw = navigator.serviceWorker;
+    Object.defineProperty(sw, 'getRegistration', { value: () => Promise.resolve(registro) });
+    Object.defineProperty(sw, 'register', { value: () => Promise.resolve(registro) });
+    Object.defineProperty(sw, 'ready', { value: Promise.resolve(registro) });
+  }, ENDERECO);
+  await page.route('**/api/push/key', (r) => r.fulfill({ json: { publicKey: CHAVE } }));
+  await owner`delete from push_subscriptions where endpoint = ${ENDERECO}`;
+  try {
+    await login(page, 'ale@npac.com.br');
+    await expect(convite(page)).toBeVisible();
+    await convite(page).getByRole('button', { name: 'Ativar avisos' }).click();
+    await expect(convite(page)).toHaveCount(0);
+    const [linha] = await owner<{ username: string }[]>`
+      select u.username from push_subscriptions s join "user" u on u.id = s.user_id
+      where s.endpoint = ${ENDERECO}`;
+    expect(linha?.username).toBe('ale');
+    // Registrado: ao voltar, a tela confere com o servidor e não convida de novo.
+    await page.reload();
+    await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible();
+    await expect(convite(page)).toHaveCount(0);
+  } finally {
+    await owner`delete from push_subscriptions where endpoint = ${ENDERECO}`;
+  }
 });

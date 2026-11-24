@@ -59,6 +59,29 @@ afterEach(() => {
   push.send = enviar;
 });
 
+describe('aparelho inscrito × o que o servidor conhece', () => {
+  const conferir = (cookie: string, nome: string) =>
+    h.post('/api/push/subscriptions/check', { endpoint: device(nome) }, cookie);
+
+  it('responde se a inscrição deste aparelho é da pessoa; a de outra pessoa não conta', async () => {
+    await subscribe('a');
+    const meu = await conferir(ale, 'a');
+    expect(meu.status).toBe(200);
+    expect(meu.body).toEqual({ known: true });
+    expect((await conferir(ale, 'nunca-ativado')).body).toEqual({ known: false });
+    const murilo = await h.signIn('murilo@npac.com.br');
+    expect((await conferir(murilo, 'a')).body).toEqual({ known: false });
+  });
+
+  it('depois de apagada no servidor, o aparelho deixa de constar e pode ativar de novo', async () => {
+    await subscribe('a');
+    await owner`delete from push_subscriptions`;
+    expect((await conferir(ale, 'a')).body).toEqual({ known: false });
+    await subscribe('a');
+    expect((await conferir(ale, 'a')).body).toEqual({ known: true });
+  });
+});
+
 describe('envio do push', () => {
   it('os aparelhos da pessoa recebem ao mesmo tempo, sem transação aberta no banco', async () => {
     for (const nome of ['a', 'b', 'c']) await subscribe(nome);

@@ -134,6 +134,14 @@ export class PushService {
     return { ok: true };
   }
 
+  /** A pessoa só enxerga as próprias inscrições (RLS): a de outra pessoa responde `false`. */
+  async known(userId: string, endpoint: string) {
+    const rows = await withUser(this.db, userId, (tx) =>
+      tx.execute(sql`select 1 from push_subscriptions where endpoint = ${endpoint}`),
+    );
+    return { known: rows.length > 0 };
+  }
+
   async unsubscribe(userId: string, endpoint: string) {
     await withUser(this.db, userId, (tx) =>
       tx.execute(sql`delete from push_subscriptions where endpoint = ${endpoint}`),
