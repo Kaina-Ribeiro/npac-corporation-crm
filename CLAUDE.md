@@ -815,12 +815,19 @@ protótipo no canvas "Meu perfil". Gabriel aprovou com "1A, 2A, 3A".
   poucas linhas: com os cabeçalhos sobravam ~25 min e as linhas de push sumiam). Testes: `db/test/reminders.test.ts`,
   `api/test/push-envio.e2e.test.ts`, `push-sender.test.ts`, `logger.test.ts`, `e2e/sw-aviso.spec.ts` (o `sw.js`
   num `self` de mentira, sem navegador).
+  **Ligado = o servidor conhece o aparelho** (Gabriel, 24/11/2026: "todos começam com os avisos desligados e aparece
+  o aviso de ativar"): a 0083 apagou todas as inscrições uma vez. `pushState`/`conviteState` (`lib/push.ts`,
+  `ligadoAqui`) só dão o aparelho por ligado se o navegador tem a inscrição **e** `POST /api/push/subscriptions/check
+{ endpoint }` responde `{ known: true }` (RLS: só as da própria pessoa). Antes bastava o navegador: inscrição apagada
+  no servidor (limpeza, 404/410, aparelho que passou para outra pessoa) deixava o aparelho "ligado", sem receber e sem
+  convite. "Ativar avisos" reaproveita a inscrição do navegador e registra de novo, sem pedir a permissão outra vez.
+  Se a consulta falhar, não convida. e2e em `avisos-no-celular.spec.ts`.
 - **Convite para ativar** (NPAC-48, pedido do Igor 16/11/2026: a equipe não sabia que dava):
   `components/push-invite.tsx` no topo do Dashboard, Hoje, Chat (dentro da coluna, para o campo não sair
   da tela) e Fila do Acompanhamento; fora do layout para não pesar no JS de `/leads`. Só aparece se dá
   para ligar e ainda não está ligado neste aparelho (`conviteState` em `lib/push.ts`): notificação
   bloqueada, sem suporte ou sem VAPID não convida; iPhone fora da Tela de Início recebe o passo a passo.
-  "Agora não"/"Entendi" = cookie `npac_push_convite` (`Path=/`, 7 dias, por aparelho). O Chromium do e2e
+  "Agora não"/"Entendi" = cookie `npac_push_convite_2` (`Path=/`, 7 dias, por aparelho; o `_2` de 24/11/2026 fez o convite voltar para todos). O Chromium do e2e
   começa com notificação "denied": `e2e/avisos-no-celular.spec.ts` simula "default" e a chave.
 - **Barra do celular** (NPAC-48, Igor 16/11/2026): Dashboard, Hoje, Pipeline, **Chat** (com selo de não
   lidas), Mais; Leads vai para a tela Mais (`BOTTOM_HREFS` em `shell/nav-items.tsx`). Desktop sem mudança.

@@ -67,6 +67,17 @@ export class PushController {
   ) {
     return this.push.unsubscribe(u.id, validate(z.object({ endpoint }).strict(), body).endpoint);
   }
+  /**
+   * O servidor conhece a inscrição deste aparelho, para esta pessoa? O navegador sozinho não sabe:
+   * a inscrição dele continua existindo depois que a API apaga a linha (NPAC-71). POST: o endpoint
+   * identifica o aparelho e não vai em URL.
+   */
+  @Post('subscriptions/check') @HttpCode(200) check(
+    @CurrentUser() u: SessionUser,
+    @Body() body: unknown,
+  ) {
+    return this.push.known(u.id, validate(z.object({ endpoint }).strict(), body).endpoint);
+  }
 }
 
 @Global()

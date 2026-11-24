@@ -28,17 +28,40 @@ async function currentSubscription(): Promise<PushSubscription | null> {
   return (await reg?.pushManager.getSubscription()) ?? null;
 }
 
+/**
+ * Ligado de verdade = o navegador tem a inscrição **e** o servidor a conhece para esta pessoa. Só o
+ * navegador não basta: a inscrição dele continua existindo quando o servidor apaga a linha (limpeza,
+ * inscrição dada como expirada, o aparelho passou para outra pessoa), e o aparelho ficava "ligado"
+ * sem receber nada e sem convite (NPAC-71). Se a consulta falhar, não insiste no convite.
+ */
+async function ligadoAqui(): Promise<boolean> {
+  const sub = await currentSubscription();
+  if (!sub) return false;
+  try {
+    const { known } = await clientApi<{ known: boolean }>('/api/push/subscriptions/check', 'POST', {
+      endpoint: sub.endpoint,
+    });
+    return known;
+  } catch {
+    return true;
+  }
+}
+
 export async function pushState(): Promise<PushState> {
   if (iosOutsideHome() && !supported()) return 'ios-home';
   if (!supported()) return iosOutsideHome() ? 'ios-home' : 'unsupported';
   const { publicKey } = await clientApi<{ publicKey: string | null }>('/api/push/key');
   if (!publicKey) return 'server-off';
   if (Notification.permission === 'denied') return 'denied';
-  return (await currentSubscription()) ? 'on' : 'off';
+  return (await ligadoAqui()) ? 'on' : 'off';
 }
 
-/** "Agora não" no convite: esconde neste aparelho por 7 dias (cookie, nada pessoal). */
-const CONVITE_COOKIE = 'npac_push_convite';
+/**
+ * "Agora não" no convite: esconde neste aparelho por 7 dias (cookie, nada pessoal). O `_2` é de
+ * 24/11/2026 (Gabriel): os avisos de todos foram zerados e o convite voltou para todo mundo, também
+ * para quem tinha adiado.
+ */
+const CONVITE_COOKIE = 'npac_push_convite_2';
 
 export function adiarConvite() {
   const secure = location.protocol === 'https:' ? '; Secure' : '';
@@ -54,7 +77,7 @@ export async function conviteState(): Promise<'off' | 'ios-home' | null> {
     return null;
   const ios = iosOutsideHome();
   if (!ios && (!supported() || Notification.permission === 'denied')) return null;
-  if (!ios && (await currentSubscription())) return null;
+  if (!ios && (await ligadoAqui())) return null;
   const { publicKey } = await clientApi<{ publicKey: string | null }>('/api/push/key');
   if (!publicKey) return null;
   return ios ? 'ios-home' : 'off';
