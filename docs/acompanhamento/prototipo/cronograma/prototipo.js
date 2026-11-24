@@ -27,6 +27,8 @@
     t.includes('youtube') ? `<span>${t.split(' https')[0]}</span> <a class="cr-link" href="#">youtube.com ${svg(SETA, 'cr-s')}</a>` : t;
 
   const css = `
+  .ac{--cr-surf:#fff;--cr-bd:rgba(60,60,67,.2)}
+  .dark .ac{--cr-surf:rgba(255,255,255,.07);--cr-bd:rgba(235,235,245,.2)}
   .ac .cr-i{width:15px;height:15px;flex:none}
   .ac .cr-s{width:12px;height:12px;flex:none}
   .ac .cr-bloco{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border-radius:7px;font-size:12px;font-weight:600;white-space:nowrap;background:rgba(120,120,128,.14);color:var(--tag-neutro)}
@@ -40,7 +42,7 @@
   .ac .cr-grupo-h{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--ink2)}
   .ac .cr-grupo-h .cr-ok{color:var(--gold-text);text-transform:none;letter-spacing:0;font-weight:600}
   .ac .cr-grupo-h .cr-falta{color:var(--ink3);text-transform:none;letter-spacing:0;font-weight:600}
-  .ac .cr-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--gl2, rgba(255,255,255,.5));font-size:14px;line-height:1.4}
+  .ac .cr-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--cr-bd);border-radius:12px;background:var(--cr-surf);font-size:14px;line-height:1.4;color:var(--ink)}
   .ac .cr-item .cr-tx{flex:1;min-width:0}
   .ac .cr-item .cr-tx small{display:block;color:var(--ink2);font-size:12px;margin-top:2px}
   .ac .cr-item .cr-acts{display:flex;gap:4px;flex:none}
@@ -61,11 +63,11 @@
   .ac .cr-st.nao{background:var(--tag-bad-bg);color:var(--tag-bad)}
   .ac .cr-st.parcial{background:var(--tag-gold-bg);color:var(--tag-gold)}
   .ac .cr-resumo{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px}
-  .ac .cr-tile{border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:grid;gap:2px}
-  .ac .cr-tile b{font-size:20px;letter-spacing:-.02em}
+  .ac .cr-tile{border:1px solid var(--cr-bd);background:var(--cr-surf);border-radius:12px;padding:10px 12px;display:grid;gap:2px;align-content:start}
+  .ac .cr-tile b{font-size:20px;letter-spacing:-.02em;color:var(--ink)}
   .ac .cr-tile span{font-size:12.5px;color:var(--ink2);display:flex;align-items:center;gap:5px}
-  .ac .cr-tile small{font-size:12px;color:var(--ink3)}
-  .ac .cr-pme{border:1px solid var(--line);border-radius:14px;padding:12px;display:grid;gap:8px}
+  .ac .cr-tile small{font-size:12px;color:var(--ink2)}
+  .ac .cr-pme{border:1px solid var(--cr-bd);background:var(--cr-surf);border-radius:14px;padding:12px;display:grid;gap:8px}
   .ac .cr-pme-h{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px 10px}
   .ac .cr-pme-h b{font-size:14.5px}
   .ac .cr-pme-h span{font-size:12.5px;color:var(--ink2)}
@@ -87,19 +89,48 @@
   .ac .cr-banco{display:grid}
   .ac .cr-bi{display:grid;grid-template-columns:28px 1fr auto;gap:4px 12px;align-items:start;padding:12px 4px;border-top:1px solid var(--line);font-size:14px;line-height:1.4}
   .ac .cr-bi:first-child{border-top:0}
-  .ac .cr-bi .n{color:var(--ink3);font-size:12.5px;padding-top:2px;text-align:right}
-  .ac .cr-bi small{display:block;color:var(--ink3);font-size:12.5px;margin-top:3px}
-  .ac .cr-bi.esc .cr-tx{color:var(--ink3)}
+  .ac .cr-bi .n{color:var(--ink2);font-size:12.5px;padding-top:2px;text-align:right}
+  .ac .cr-bi small{display:block;color:var(--ink2);font-size:12.5px;margin-top:3px}
+  .ac .cr-bi.esc .cr-tx{color:var(--ink2)}
   .ac .cr-bi .cr-acts{display:flex;gap:4px}
   .ac .cr-col{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:8px 16px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
   .ac .cr-col:first-of-type{border-top:0}
   .ac .cr-col .nm b{display:block;font-size:14px}
-  .ac .cr-col .nm small{color:var(--ink3);font-size:12.5px}
+  .ac .cr-col .nm small{color:var(--ink2);font-size:12.5px}
   .ac .cr-col .dica{grid-column:2;font-size:12.5px;color:var(--tag-info);margin-top:-2px}
-  .ac .cr-arq{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 12px;border:1px solid var(--line);border-radius:12px;font-size:14px}
+  .ac .cr-arq{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 12px;border:1px solid var(--cr-bd);background:var(--cr-surf);border-radius:12px;font-size:14px}
   .ac .cr-arq b{font-weight:600}
   .ac .cr-nota{font-size:13px;color:var(--ink2);margin:0}
   .ac .cr-cta{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:12px;border:1px dashed var(--line);border-radius:12px;font-size:13.5px;color:var(--ink2)}
+  .ac .cr-x{width:34px;padding:0!important;justify-content:center}
+  .ac .cr-acts .btn{gap:5px}
+  .ac .cr-troca{border:1.5px solid var(--ink);border-radius:12px;background:var(--cr-surf);overflow:hidden}
+  .ac .cr-troca-h{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px 6px;font-size:14px;font-weight:700}
+  .ac .cr-troca-at{padding:0 12px 10px;font-size:12.5px;color:var(--ink2)}
+  .ac .cr-troca .q{display:flex;align-items:center;gap:8px;height:40px;margin:0 12px 6px;padding:0 12px;border-radius:10px;border:1px solid var(--cr-bd);color:var(--ink2);font-size:14px}
+  .ac .cr-troca .cr-op{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 12px;border-top:1px solid var(--cr-bd);border-radius:0;font-size:14px;color:var(--ink)}
+  .ac .cr-troca .cr-op:hover{background:transparent}
+  .ac .cr-troca .cr-op .esc{font-size:12.5px;font-weight:700;color:var(--ink);white-space:nowrap}
+  .ac .cr-troca .cr-op-sec{padding:10px 12px 4px;border-top:1px solid var(--cr-bd);font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--ink2)}
+  .ac .cr-troca .cr-op.off{color:var(--ink2);border-top:0;padding-top:6px;flex-wrap:nowrap!important}
+  .ac .cr-troca .cr-op .cr-st{flex:none}
+  .ac .cr-troca .cr-op.novo{border-top:1px solid var(--cr-bd);margin:0;padding:12px;font-weight:700}
+  .ac .cr-mais{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:12px;border:1px solid var(--cr-bd);background:var(--cr-surf);color:var(--ink);font-size:20px;line-height:1}
+  .ac .cr-seg.rola{flex-wrap:nowrap;overflow-x:auto;margin:0 -16px;padding:0 16px 2px;scrollbar-width:none}
+  .ac .cr-seg.rola button{flex:none}
+  .ac .cr-sel{width:100%;height:44px;border-radius:12px;border:1px solid var(--cr-bd);background:var(--cr-surf);padding:0 12px;font-size:16px;color:var(--ink);font-weight:600}
+  .ac .cr-bm{display:grid;gap:2px;padding:12px 0 2px;border-top:1px solid var(--cr-bd);font-size:15px;line-height:1.4;color:var(--ink)}
+  .ac .cr-bm:first-child{border-top:0}
+  .ac .cr-bm .meta{display:flex;align-items:center;flex-wrap:wrap;gap:0 14px;font-size:13px;color:var(--ink2)}
+  .ac .cr-bm .meta a{display:inline-flex;align-items:center;min-height:44px;font-weight:700;color:var(--ink);text-decoration:underline;text-underline-offset:2px}
+  .ac .cr-bm.esc>span{color:var(--ink2)}
+  .ac .cr-bm-a{display:grid;grid-template-columns:1fr 44px;gap:10px;align-items:start;padding:12px 0;border-top:1px solid var(--cr-bd);font-size:15px;line-height:1.4}
+  .ac .cr-bm-a:first-child{border-top:0}
+  .ac .cr-bm-a small{display:block;font-size:13px;color:var(--ink2);margin-top:4px}
+  .ac .cr-bc{border:1px solid var(--cr-bd);background:var(--cr-surf);border-radius:14px;padding:12px;display:grid;gap:8px;font-size:15px;line-height:1.4}
+  .ac .cr-bc-h{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13px;color:var(--ink2)}
+  .ac .cr-bc-h .ic{display:flex;gap:6px}
+  .ac .cr-bc-h .ic button{width:44px;height:44px;border-radius:12px;border:1px solid var(--cr-bd);background:transparent;color:var(--ink);display:inline-flex;align-items:center;justify-content:center}
   .ac .cr-tile.cr-acao{box-shadow:inset 0 0 0 1.5px var(--ink)}
   .ac .cr-tile.cr-acao .rev{font-size:12.5px;font-weight:700;color:var(--ink);text-decoration:underline}
   .cr-dlg .cr-rodape{position:sticky;bottom:-24px;margin:4px -24px -24px;padding:12px 24px 16px;background:var(--gl-solid);border-top:1px solid var(--line);justify-content:space-between!important;align-items:center;z-index:2}
@@ -161,21 +192,24 @@
         .map(
           (t, i) => `<div class="cr-item"><div class="cr-tx">${link(t)}${
             b === 'FILME' && i === 0 ? '<span class="cr-plan">Estava na planilha para este PME</span>' : ''
-          }</div><div class="cr-acts"><button type="button" class="cr-ib" aria-label="Trocar">${svg(TROCA, 'cr-s')}<span class="rot">Trocar</span></button><button type="button" class="cr-ib" aria-label="Tirar">${svg(X, 'cr-s')}</button></div></div>`,
+          }</div><div class="cr-acts"><button type="button" class="btn btn-secondary sm">${svg(TROCA, 'cr-s')}Trocar</button><button type="button" class="btn btn-secondary sm cr-x" aria-label="Tirar">${svg(X, 'cr-s')}</button></div></div>`,
         )
         .join('');
-      const busca =
-        trocar && b === 'DESAFIO'
-          ? `<div class="cr-busca"><div class="q">${svg(BUSCA, 'cr-s')} Buscar desafio</div>
-            <div class="cr-op"><span>Durante 7 dias, beber pelo menos 3 litros de água por dia.</span></div>
-            <div class="cr-op"><span>Fazer 100 agachamentos em um único dia.</span></div>
-            <div class="cr-op"><span>Durante 7 dias, fazer pelo menos um elogio sincero por dia para alguém.</span></div>
-            <div class="cr-op off"><span>Durante 3 dias colocar despertador no celular de uma em uma hora…</span><small>Já recebeu no 1º PME</small></div>
-            <div class="cr-op off"><span>Dormir no chão durante uma noite.</span><small>Já recebeu no RDV</small></div>
+      const troca = trocar && b === 'DESAFIO';
+      const busca = troca
+        ? `<div class="cr-troca"><div class="cr-troca-h"><span>Trocar o desafio</span><button type="button" class="btn btn-ghost sm">Cancelar</button></div>
+            <div class="cr-troca-at">No lugar de: Passar 24 horas em jejum, ingerindo apenas água.</div>
+            <div class="q">${svg(BUSCA, 'cr-s')} Buscar desafio</div>
+            <div class="cr-op"><span>Durante 7 dias, beber pelo menos 3 litros de água por dia.</span><span class="esc">Escolher</span></div>
+            <div class="cr-op"><span>Fazer 100 agachamentos em um único dia.</span><span class="esc">Escolher</span></div>
+            <div class="cr-op"><span>Durante 7 dias, fazer pelo menos um elogio sincero por dia para alguém.</span><span class="esc">Escolher</span></div>
+            <div class="cr-op-sec">Já recebeu · não dá para repetir</div>
+            <div class="cr-op off"><span>Durante 3 dias colocar despertador no celular de uma em uma hora…</span><span class="cr-st">1º PME</span></div>
+            <div class="cr-op off"><span>Dormir no chão durante uma noite.</span><span class="cr-st">RDV</span></div>
             <button type="button" class="cr-op novo">${svg(MAIS, 'cr-s')}Escrever um desafio só para esta pessoa</button></div>`
-          : '';
-      return `<div class="cr-grupo"><div class="cr-grupo-h"><span style="display:flex;align-items:center;gap:6px">${svg(ICON[b])}${PLURAL[b]}</span><span class="cr-ok">${SUG[b].length} de ${MODELO[b]}</span></div>${itens}${busca}${
-        trocar && b === 'DESAFIO' ? '' : `<button type="button" class="cr-add">${svg(MAIS, 'cr-s')}Adicionar ${b === 'EAP' ? 'EAP' : NOME[b].toLowerCase()}</button>`
+        : '';
+      return `<div class="cr-grupo"><div class="cr-grupo-h"><span style="display:flex;align-items:center;gap:6px">${svg(ICON[b])}${PLURAL[b]}</span><span class="cr-ok">${SUG[b].length} de ${MODELO[b]}</span></div>${troca ? busca : itens}${
+        trocar && b === 'DESAFIO' ? '' : `<button type="button" class="btn btn-secondary sm" style="justify-self:start">${svg(MAIS, 'cr-s')}Adicionar ${b === 'EAP' ? 'EAP' : NOME[b].toLowerCase()}</button>`
       }</div>`;
     }).join('');
     const sec = document.createElement('div');
@@ -302,7 +336,7 @@
   }
 
   /* 4. Configurações > Cronograma (banco, só Admin). */
-  function banco() {
+  function banco(opcao) {
     estilo();
     const tabs = document.querySelector('.view .tabs');
     tabs.querySelectorAll('a').forEach((a) => a.classList.remove('on'));
@@ -318,7 +352,7 @@
     const seg = ORDEM.map(
       (b, i) => `<button type="button" class="${i === 1 ? 'on' : ''}">${svg(ICON[b])}${PLURAL[b]} <em>${[48, 103, 35, 29, 78][i]}</em></button>`,
     ).join('');
-    const itens = [
+    const dados = [
       ['Durante 3 dias colocar despertador no celular de uma em uma hora com a escrita: isso que estou prestes a fazer está me aproximando ou distanciando dos meus sonhos?', 'Enviado 43 vezes', false],
       ['Passar 24 horas em jejum, ingerindo apenas água. (Ao iniciar e ao finalizar o jejum, envie uma foto com o horário no grupo.)<small style="font-style:italic">“Grande parte do sofrimento vem da dificuldade em lidar com pequenos desconfortos…”</small>', 'Enviado 10 vezes', false],
       ['Fazer 100 agachamentos em um único dia. (Grave um pequeno vídeo realizando parte dos agachamentos ou envie uma foto ao concluir.)<small style="font-style:italic">“Seu corpo é capaz de muito mais do que você imagina…”</small>', 'Enviado 6 vezes', false],
@@ -326,9 +360,10 @@
       ['Dormir no chão durante uma noite. (Envie uma foto do local onde dormiu.)<small style="font-style:italic">“Quando escolhemos abrir mão do conforto por um curto período, passamos a valorizá-lo muito mais…”</small>', 'Enviado 5 vezes', false],
       ['Durante 7 dias, beber pelo menos 3 litros de água por dia. (Envie uma foto da garrafa utilizada ou um registro diário da quantidade consumida.)<small style="font-style:italic">“Disciplina também é cuidar do próprio corpo…”</small>', 'Nunca enviado', false],
       ['Durante 30 dias, manter sua cama arrumada antes de sair do quarto. (Envie uma foto da cama arrumada no primeiro e no último dia do desafio.)', 'Nunca enviado', false],
-    ]
+    ];
+    const itens = dados
       .map(
-        ([t, m, esc], i) => `<div class="cr-bi ${esc ? 'esc' : ''}"><span class="n">${i + 1}</span><div class="cr-tx">${t}<small>${esc ? '<span class="cr-st" style="height:20px;margin-right:6px">Escondido</span>' : ''}${m}</small></div><div class="cr-acts"><button type="button" class="cr-ib">Editar</button><button type="button" class="cr-ib">${esc ? 'Mostrar' : 'Esconder'}</button></div></div>`,
+        ([t, m, esc], i) => `<div class="cr-bi ${esc ? 'esc' : ''}"><span class="n">${i + 1}</span><div class="cr-tx">${t}<small>${esc ? '<span class="cr-st" style="height:20px;margin-right:6px">Escondido</span>' : ''}${m}</small></div><div class="cr-acts"><button type="button" class="btn btn-secondary sm">Editar</button><button type="button" class="btn btn-secondary sm">${esc ? 'Mostrar' : 'Esconder'}</button></div></div>`,
       )
       .join('');
     corpo.innerHTML = `<section class="card sec">
@@ -336,6 +371,34 @@
       <p class="cr-nota" style="margin-bottom:12px">A Operação escolhe daqui no envio de cada PME. Item já enviado não se apaga: esconda para ele sair das sugestões. Corrigir o texto não muda o que já foi enviado.</p>
       <div class="cr-barra" style="margin-bottom:8px"><div class="cr-seg">${seg}</div><div class="cr-q">${svg(BUSCA, 'cr-s')} Buscar no banco</div></div>
       <div class="cr-banco">${itens}</div></section>`;
+    if (!opcao) return;
+    /* Opções só do celular (375 px), para escolher. */
+    const texto = (t) => t.replace(/<small[^>]*>.*?<\/small>/, '');
+    const segRola = `<div class="cr-seg rola" style="margin-bottom:10px">${seg}</div>`;
+    const busca = `<div class="cr-q" style="max-width:none;height:44px;margin-bottom:6px">${svg(BUSCA, 'cr-s')} Buscar no banco</div>`;
+    const OLHO = 'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z';
+    const LAPIS = 'M4 20h4L19 9l-4-4L4 16zM14 6l4 4';
+    const tagEsc = '<span class="cr-st" style="height:20px;margin-right:6px">Escondido</span>';
+    let lista = '';
+    let filtro = segRola + busca;
+    if (opcao === 'A') {
+      filtro = `<select class="cr-sel" style="margin-bottom:8px">${ORDEM.map((b, i) => `<option ${i === 1 ? 'selected' : ''}>${PLURAL[b]} · ${[48, 103, 35, 29, 78][i]}</option>`).join('')}</select>${busca}`;
+      lista = dados
+        .map(([t, m, esc]) => `<div class="cr-bm-a"><div style="color:var(${esc ? '--ink2' : '--ink'})">${texto(t)}<small>${esc ? tagEsc : ''}${m.split(' · ')[0]}</small></div><button type="button" class="cr-mais" aria-label="Opções">⋯</button></div>`)
+        .join('');
+    } else if (opcao === 'B') {
+      lista = dados
+        .map(([t, m, esc]) => `<div class="cr-bm ${esc ? 'esc' : ''}"><span>${texto(t)}</span><div class="meta">${esc ? tagEsc : ''}<span>${m.split(' · ')[0]}</span><a href="#">Editar</a><a href="#">${esc ? 'Mostrar' : 'Esconder'}</a></div></div>`)
+        .join('');
+    } else {
+      lista = `<div style="display:grid;gap:8px">${dados
+        .map(([t, m, esc]) => `<div class="cr-bc"><div class="cr-bc-h"><span>${esc ? tagEsc : ''}${m.split(' · ')[0]}</span><span class="ic"><button type="button" aria-label="Editar">${svg(LAPIS)}</button><button type="button" aria-label="${esc ? 'Mostrar' : 'Esconder'}">${svg(OLHO)}</button></span></div><div style="color:var(${esc ? '--ink2' : '--ink'})">${texto(t)}</div></div>`)
+        .join('')}</div>`;
+    }
+    const sec = corpo.querySelector('section');
+    sec.querySelector('.cr-barra').outerHTML = filtro;
+    sec.querySelector('.cr-banco').innerHTML = lista;
+    sec.querySelector('.cr-nota').textContent = 'Esconda o que não quer mais nas sugestões. Item já enviado não se apaga.';
   }
 
   /* 5. Configurações > Importação: card do cronograma com a prévia. */
@@ -372,7 +435,7 @@
         <div>
           ${col('Mentorado Fictício 01', 'Coluna 4 · vai até o 12º mês · 61 itens', ['RDV · Concluído · 12º PME', '2M · Ativo · 2º PME', 'Ignorar esta coluna'], 'A coluna vai até o 12º mês: deve ser o RDV. O que ele recebeu lá também vale na 2M.')}
           ${col('Mentorada 04', 'Coluna 9 · vai até o 5º mês · 26 itens', ['Escolher a ficha…', 'Mentorada Fictícia 04 · RDV · Ativo · 5º PME', 'Mentorada Fictícia 06 · 6M · Ativo · 1º PME', 'Ignorar esta coluna'])}
-          </div><button type="button" class="cr-add" style="margin-top:4px">Ver as outras 23 colunas em dúvida</button></div>
+          </div><button type="button" class="btn btn-secondary sm" style="margin-top:4px;justify-self:start">Ver as outras 23 colunas em dúvida</button></div>
       <div class="cr-sec"><div class="cr-sec-h"><h3>Sem ficha (9)</h3><span class="cr-modelo">Nome da planilha que não achei no sistema</span></div>
         <div>${col('Mentorados 08 e 09', 'Coluna 17 · vai até o 3º mês · 18 itens', ['Ignorar esta coluna', 'Mentorada Fictícia 08 e Mentorado Fictício 09 · RDV · Ativo', 'Buscar outra ficha…'])}</div>
       </div>

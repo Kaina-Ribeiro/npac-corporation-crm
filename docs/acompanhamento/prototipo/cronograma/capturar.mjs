@@ -26,7 +26,10 @@ const TELAS = {
   },
   card: { url: `${FICHA}?aba=jornada`, rodar: '__cr.card()', inteira: false },
   aba: { url: `${FICHA}?aba=historico`, rodar: '__cr.aba()', inteira: true },
-  banco: { url: '/acompanhamento/configuracoes?aba=pmes', rodar: '__cr.banco()', inteira: true },
+  banco: { url: '/acompanhamento/configuracoes?aba=pmes', rodar: '__cr.banco()', inteira: true, larguras: [1440, 1024, 768] },
+  'banco-a': { url: '/acompanhamento/configuracoes?aba=pmes', rodar: "__cr.banco('A')", inteira: true, larguras: [375] },
+  'banco-b': { url: '/acompanhamento/configuracoes?aba=pmes', rodar: "__cr.banco('B')", inteira: true, larguras: [375] },
+  'banco-c': { url: '/acompanhamento/configuracoes?aba=pmes', rodar: "__cr.banco('C')", inteira: true, larguras: [375] },
   importacao: { url: '/acompanhamento/configuracoes?aba=importacao', rodar: '__cr.importacao()', inteira: true },
 };
 const LARGURAS = [
@@ -53,7 +56,7 @@ await page.waitForURL((u) => !u.pathname.startsWith('/login'));
 await page.waitForLoadState('load');
 
 for (const [nome, t] of telas) {
-  for (const [w, h] of LARGURAS) {
+  for (const [w, h] of LARGURAS.filter(([lw]) => !t.larguras || t.larguras.includes(lw))) {
     for (const tema of ESCURO.has(nome) && (w === 1440 || w === 375) ? ['claro', 'escuro'] : ['claro']) {
       await page.setViewportSize({ width: w, height: h });
       await page.goto(`${BASE}${t.url}`, { waitUntil: 'load' });

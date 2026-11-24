@@ -31,3 +31,11 @@ Depois da crítica: rodapé fixo com "Enviar" e a contagem de itens na janela; "
 "escrever um … só para esta pessoa" dentro da busca); comprovante só em quem marcou Feita, no card; etiqueta "Não fez"
 no próprio item da planilha e texto inteiro (sem cortar) na aba; "Escondido" como etiqueta no banco; "Para você
 decidir" destacado na importação; toque de 44 px no celular e cinza médio nas linhas apagadas (contraste).
+
+## 2ª revisão (24/11, Gabriel: contraste, troca quebrada, banco feio no celular)
+
+Cartões, quadros de números e linhas com fundo sólido (branco no claro) e borda mais forte; botões com as classes do
+sistema (`btn btn-secondary sm`); a troca de item vira um painel no lugar do item, com "Escolher" em cada opção e "Já
+recebeu · não dá para repetir" em grupo separado. Banco no celular em 3 opções (`banco-a/b/c-375-claro.png`), para
+escolher: A = escolha do bloco em lista + menu "⋯" por item; B = blocos em uma linha que rola + "Editar · Esconder"
+escritos em cada item; C = cada item num cartão com ícones de lápis e olho.
