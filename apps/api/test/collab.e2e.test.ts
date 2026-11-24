@@ -107,6 +107,60 @@ describe('chat', () => {
     ).toBe(400);
   });
 
+  it('prévia da última mensagem: só das conversas que a pessoa lê, curta e numa linha', async () => {
+    const g = await general(ale);
+    await h.post(`/api/chat/channels/${g.id}/messages`, { body: 'primeira' }, ale);
+    const longa = `Bom dia,\n\ntime   ${'x'.repeat(200)}`;
+    await h.post(`/api/chat/channels/${g.id}/messages`, { body: longa }, murilo);
+    const dm = await h.post('/api/chat/dm', { userId: ids.murilo }, ale);
+    await h.post(`/api/chat/channels/${dm.body.id}/messages`, { body: 'segredo da DM' }, ale);
+
+    const deAle = (await h.get('/api/chat/channels', ale)).body as {
+      id: string;
+      lastMessage: { authorId: string; authorName: string; text: string } | null;
+    }[];
+    const geral = deAle.find((c) => c.id === g.id)!.lastMessage!;
+    expect(geral).toMatchObject({ authorId: ids.murilo, authorName: 'Murilo' });
+    expect(geral.text.startsWith('Bom dia, time xxx')).toBe(true);
+    expect(geral.text.length).toBeLessThanOrEqual(120);
+    expect(geral.text.endsWith('…')).toBe(true);
+    expect(deAle.find((c) => c.id === dm.body.id)!.lastMessage).toMatchObject({
+      authorId: ids.ale,
+      text: 'segredo da DM',
+    });
+
+    // RLS: a DM de outros não vaza nem pela prévia (a liderança também não lê).
+    for (const cookie of [head, sonia]) {
+      const res = await h.get('/api/chat/channels', cookie);
+      expect(res.status).toBe(200);
+      expect(JSON.stringify(res.body)).not.toContain('segredo');
+      expect(res.body.map((c: { id: string }) => c.id)).not.toContain(dm.body.id);
+    }
+  });
+
+  it('carrega as mensagens anteriores pelo cursor', async () => {
+    const g = await general(ale);
+    await owner`
+      insert into chat_messages (channel_id, author_id, body)
+      select ${g.id}, ${ids.ale!}, 'msg ' || n from generate_series(1, 55) n`;
+    const first = await h.get(`/api/chat/channels/${g.id}/messages`, murilo);
+    expect(first.body.messages).toHaveLength(50);
+    expect(first.body.hasMore).toBe(true);
+    expect(first.body.messages[0].body).toBe('msg 6');
+    const older = await h.get(
+      `/api/chat/channels/${g.id}/messages?before=${first.body.messages[0].id}`,
+      murilo,
+    );
+    expect(older.body.messages.map((m: { body: string }) => m.body)).toEqual([
+      'msg 1',
+      'msg 2',
+      'msg 3',
+      'msg 4',
+      'msg 5',
+    ]);
+    expect(older.body.hasMore).toBe(false);
+  });
+
   it('lista usuários ativos para DM sem e-mail', async () => {
     const res = await h.get('/api/chat/users', ale);
     expect(res.status).toBe(200);

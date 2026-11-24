@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { sql } from 'drizzle-orm';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { appDb, closeTestConnections, ownerSql } from '../src/testing.js';
@@ -157,5 +158,55 @@ describe('inscrições de push', () => {
     );
     await as('u-ana', sql`select push_purge_user('u-ale')`);
     expect(await as('u-ale', sql`select endpoint from push_subscriptions`)).toEqual([]);
+  });
+
+  // NPAC-71 (0082): em produção uma pessoa tinha 6 inscrições, 5 de iPhone, e cada aviso ia para todas.
+  const APPLE = 'https://web.push.apple.com/';
+  const ativar = (u: string, endpoint: string, aparelho: string) =>
+    as(u, sql`select push_subscribe(${endpoint}, '\\x01'::bytea, '\\x02'::bytea, ${aparelho})`);
+  const de = async (u: string) =>
+    (
+      await as<{ endpoint: string }>(
+        u,
+        sql`select endpoint from push_subscriptions order by endpoint`,
+      )
+    ).map((r) => r.endpoint);
+
+  it('ativar de novo no iPhone tira as inscrições antigas de iPhone da mesma pessoa', async () => {
+    await ativar('u-ale', 'https://fcm.googleapis.com/computador', 'Chrome · Windows');
+    await ativar('u-ale', `${APPLE}antiga-1`, 'Safari · iOS');
+    await ativar('u-ale', `${APPLE}antiga-2`, 'Safari · iOS');
+    await ativar('u-murilo', `${APPLE}do-murilo`, 'Safari · iOS');
+    await ativar('u-ale', `${APPLE}nova`, 'Safari · iOS');
+    expect(await de('u-ale')).toEqual(['https://fcm.googleapis.com/computador', `${APPLE}nova`]);
+    expect(await de('u-murilo')).toEqual([`${APPLE}do-murilo`]);
+  });
+
+  it('computador, Android e Safari do Mac não perdem a inscrição anterior', async () => {
+    await ativar('u-ale', 'https://fcm.googleapis.com/trabalho', 'Chrome · Windows');
+    await ativar('u-ale', 'https://fcm.googleapis.com/casa', 'Chrome · Windows');
+    await ativar('u-ale', 'https://fcm.googleapis.com/celular-1', 'Chrome · Android');
+    await ativar('u-ale', 'https://fcm.googleapis.com/celular-2', 'Chrome · Android');
+    await ativar('u-ale', `${APPLE}mac-1`, 'Safari · macOS');
+    await ativar('u-ale', `${APPLE}mac-2`, 'Safari · macOS');
+    expect(await de('u-ale')).toHaveLength(6);
+  });
+
+  it('a limpeza da 0082 deixa só a inscrição de iPhone mais nova de cada pessoa', async () => {
+    await owner`insert into push_subscriptions (user_id, endpoint, p256dh, auth, user_agent, created_at) values
+      ('u-ale', ${`${APPLE}a1`}, '\\x01', '\\x02', 'Safari · iOS', now() - interval '9 days'),
+      ('u-ale', ${`${APPLE}a2`}, '\\x01', '\\x02', 'Safari · iOS', now() - interval '4 days'),
+      ('u-ale', ${`${APPLE}a3`}, '\\x01', '\\x02', 'Safari · iOS', now() - interval '1 day'),
+      ('u-ale', 'https://fcm.googleapis.com/pc', '\\x01', '\\x02', 'Chrome · Windows', now() - interval '9 days'),
+      ('u-murilo', ${`${APPLE}m1`}, '\\x01', '\\x02', 'Safari · iOS', now() - interval '9 days')`;
+    const limpeza = readFileSync(
+      new URL('../drizzle/0082_push_uma_inscricao_por_iphone.sql', import.meta.url),
+      'utf8',
+    )
+      .split('--> statement-breakpoint')
+      .find((s) => /^\s*(--.*\n)*DELETE FROM push_subscriptions s USING/m.test(s));
+    await owner.unsafe(limpeza!);
+    expect(await de('u-ale')).toEqual(['https://fcm.googleapis.com/pc', `${APPLE}a3`]);
+    expect(await de('u-murilo')).toEqual([`${APPLE}m1`]);
   });
 });

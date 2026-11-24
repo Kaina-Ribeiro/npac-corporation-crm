@@ -1,13 +1,22 @@
 'use client';
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useSyncExternalStore } from 'react';
 import { SIDEBAR_COOKIE, SIDEBAR_EVENT } from '@/lib/sidebar';
 
 // Enxuto de propósito: entra no JS de todas as telas (/leads tem teto de 150 KB gzip).
 const Collapse = createContext<[boolean, () => void]>([false, () => {}]);
+/** Tablet em pé (768 a 1023 px, 4A do Chat): a sidebar fica recolhida e o botão abre. */
+// Sintaxe curta (teto de JS); navegador sem ela fica como no computador (aberta depois do JS).
+const ehTablet = () => matchMedia('(48em<=width<64em)').matches;
+const ouvir = (f: () => void) => (
+  addEventListener('resize', f),
+  () => removeEventListener('resize', f)
+);
 
 /**
  * Casca do app: guarda se a sidebar está recolhida (cookie, para o servidor já renderizar
  * assim), atende Ctrl/⌘+B e mostra o nome dos itens num tooltip quando ela vira trilho.
+ * No tablet em pé ela fica recolhida sem mexer no cookie (antes do JS, pelo CSS de globals.css);
+ * depois do JS, aberta vira `data-side="open"` e escolher uma tela recolhe de novo.
  */
 export function SidebarShell({
   initialCollapsed,
@@ -16,13 +25,18 @@ export function SidebarShell({
   initialCollapsed: boolean;
   children: React.ReactNode;
 }) {
-  const [collapsed, setCollapsed] = useState(initialCollapsed);
+  const [escolha, setCollapsed] = useState(initialCollapsed);
+  const [aberta, setAberta] = useState(false);
+  // `null` no servidor e na hidratação: aí vale o CSS (recolhida no tablet, antes do JS).
+  const tablet = useSyncExternalStore<boolean | null>(ouvir, ehTablet, () => null);
+  const collapsed = tablet ? !aberta : escolha;
   const [tip, setTip] = useState<{ text: string; top: number; left: number }>();
-  const toggle = () => setCollapsed((c) => !c);
+  const toggle = () => (ehTablet() ? setAberta((a) => !a) : setCollapsed((c) => !c));
 
   useEffect(() => {
     setTip(undefined);
-    document.cookie = `${SIDEBAR_COOKIE}=${+collapsed}; Path=/; Max-Age=31536000; SameSite=Lax`;
+    document.cookie = `${SIDEBAR_COOKIE}=${+escolha}; Path=/; Max-Age=31536000; SameSite=Lax`;
+    // `escolha` só muda fora do tablet, onde ela é o próprio `collapsed`.
   }, [collapsed]);
 
   // Carga direta numa tela do fim do menu com a janela baixa: a lista rola até o item ativo.
@@ -33,7 +47,7 @@ export function SidebarShell({
   }, []);
 
   useEffect(() => {
-    const toggle = () => setCollapsed((c) => !c);
+    // `toggle` só usa os setters e o `ehTablet`: o da primeira renderização serve.
     const onKey = (e: KeyboardEvent) => {
       // Só no desktop (a sidebar some abaixo de md) e fora de editores de texto rico.
       if ((e.ctrlKey || e.metaKey) && e.key === 'b' && innerWidth >= 768) {
@@ -66,11 +80,14 @@ export function SidebarShell({
     <Collapse.Provider value={[collapsed, toggle]}>
       <div
         className="shell flex min-h-dvh"
-        data-side={collapsed ? 'collapsed' : 'expanded'}
+        data-side={collapsed ? 'collapsed' : tablet == null ? 'expanded' : 'open'}
         onMouseOver={(e) => show(e.target)}
         onMouseLeave={() => setTip(undefined)}
         onFocus={(e) => show(e.target)}
-        onClick={() => setTip(undefined)}
+        onClick={(e) => {
+          setTip(undefined);
+          if ((e.target as Element).closest('nav a')) setAberta(false);
+        }}
       >
         {children}
         {tip && (

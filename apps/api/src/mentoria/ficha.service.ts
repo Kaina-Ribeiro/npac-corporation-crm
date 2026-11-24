@@ -468,6 +468,20 @@ export class FichaService {
     }).catch((e) => erroDoBanco(e));
   }
 
+  /** NPAC-70: só a Admin (ou a Diretoria); o banco confere e grava `anotacao.excluida` no histórico. */
+  excluirAnotacao(u: AuthUser, anotacaoId: string): Promise<void> {
+    return withUser(this.db, u.id, async (tx) => {
+      await tx.execute(sql`select mentoria_anotacao_excluir(${anotacaoId}::uuid)`);
+    }).catch((e) => erroDoBanco(e));
+  }
+
+  /** NPAC-70: só a Admin (ou a Diretoria); o banco confere e grava `contato.excluido` no histórico. */
+  excluirContato(u: AuthUser, contatoId: string): Promise<void> {
+    return withUser(this.db, u.id, async (tx) => {
+      await tx.execute(sql`select mentoria_contato_excluir(${contatoId}::uuid)`);
+    }).catch((e) => erroDoBanco(e));
+  }
+
   /** Alterações e anotações, da mais recente para a mais antiga. */
   historico(u: AuthUser, inscricaoId: string): Promise<{ itens: HistoricoItem[] }> {
     return withUser(this.db, u.id, async (tx) => {

@@ -27,6 +27,7 @@ import { and, eq, sql, type SQL } from 'drizzle-orm';
 import { DB } from '../common/db/db.module.js';
 import { ENV, type Env } from '../config/env.js';
 import { CursorSigner } from './cursor.js';
+import { mesJornadaJoin } from './contas-lista.js';
 import { conflitoDeVersao, erroDoBanco } from './erros.js';
 import { FichaService } from './ficha.service.js';
 import { exigirEdicao, registrarHistorico } from './historico.js';
@@ -188,9 +189,14 @@ export class InscricoesService {
     return sql`${DIA_BR.format(new Date(this.clock.now()))}::date`;
   }
 
-  /** Semáforo de hoje da inscrição `i` (nulo para quem não vê e fora de ATIVO). */
-  private semaforoDe() {
-    return sql`(select s.cor from mentoria_semaforo(i.id, ${this.dia()}) s)`;
+  /**
+   * Junções da lista: `mj.mes` = `mentoria_mes_jornada(i.id, hoje)` e `s` = o semáforo de hoje
+   * (`mentoria_semaforo_lote`, uma conta para a consulta inteira, igual a `mentoria_semaforo(i.id)`:
+   * nulo para quem não vê e fora de ATIVO). Antes eram funções por linha também no WHERE (NPAC-69).
+   */
+  private juncoes(o: { mes: boolean; semaforo: boolean }) {
+    return sql`${o.mes ? mesJornadaJoin(HOJE) : sql``}
+      ${o.semaforo ? sql`left join mentoria_semaforo_lote(${this.dia()}) s on s.inscricao_id = i.id` : sql``}`;
   }
 
   private async consultar(tx: Tx, where: SQL[], limite: number, depois?: SQL) {
@@ -199,7 +205,7 @@ export class InscricoesService {
     const hoje = this.dia();
     return tx.execute<LinhaBruta>(sql`
       select i.id, i.tipo, i.mentoria, i.status, i.responsavel_id, u.name as responsavel,
-        mentoria_mes_jornada(i.id, ${HOJE}) as mes,
+        mj.mes,
         ${COMPLETAR} as completar,
         (select json_agg(json_build_object('nome', p.nome, 'apelido', p.apelido,
            'fotoMidiaId', p.foto_midia_id) order by p.ordem)
@@ -222,7 +228,7 @@ export class InscricoesService {
       from mentoria_inscricoes i
       join mentoria_pessoas p1 on p1.inscricao_id = i.id and p1.ordem = 1
       left join "user" u on u.id = i.responsavel_id
-      left join lateral mentoria_semaforo(i.id, ${hoje}) s on true
+      ${this.juncoes({ mes: true, semaforo: true })}
       ${filtro}
       order by p1.nome_norm, i.id
       limit ${limite}`);
@@ -233,9 +239,9 @@ export class InscricoesService {
       const where: SQL[] = [];
       if (f.status) where.push(sql`i.status = ${f.status}`);
       if (f.responsavelId) where.push(sql`i.responsavel_id = ${f.responsavelId}`);
-      if (f.mes) where.push(sql`mentoria_mes_jornada(i.id, ${HOJE}) = ${f.mes}`);
+      if (f.mes) where.push(sql`mj.mes = ${f.mes}`);
       if (f.completar) where.push(COMPLETAR);
-      if (f.semaforo) where.push(sql`${this.semaforoDe()} = ${f.semaforo}`);
+      if (f.semaforo) where.push(sql`s.cor = ${f.semaforo}`);
       let depois: SQL | undefined;
       if (f.cursor) {
         const id = this.cursor.verify(f.cursor);
@@ -247,7 +253,8 @@ export class InscricoesService {
       const pagina = [...linhas].slice(0, PAGINA);
       const filtro = where.length ? sql`where ${sql.join(where, sql` and `)}` : sql``;
       const [t] = await tx.execute<{ n: number }>(
-        sql`select count(*)::int as n from mentoria_inscricoes i ${filtro}`,
+        sql`select count(*)::int as n from mentoria_inscricoes i
+          ${this.juncoes({ mes: !!f.mes, semaforo: !!f.semaforo })} ${filtro}`,
       );
       const [resumo] = await tx.execute<ResumoCarteira>(sql`
         select count(*)::int as total,

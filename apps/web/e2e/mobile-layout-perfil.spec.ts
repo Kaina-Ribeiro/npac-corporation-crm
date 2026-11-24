@@ -2,6 +2,7 @@ import { crc32, deflateSync } from 'node:zlib';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { closeTestConnections, ownerSql } from '@npac/db/testing';
 import { CAIXA_URL, E2E_DB, E2E_PASSWORD } from './env.js';
+import { novaConversa } from './chat-helpers.js';
 
 // NPAC-53 no celular (projeto 'iphone', WebKit, tela de toque): o Meu perfil, as duas janelinhas e
 // as telas que ganharam foto não rolam de lado, nada sai da tela (nem dentro de `overflow: hidden`,
@@ -229,7 +230,7 @@ test('telas com foto cabem no celular (CRM)', async ({ page }) => {
   }
   await page.goto('/chat');
   const [igor] = await owner<{ name: string }[]>`select name from "user" where email = ${IGOR}`;
-  await page.getByLabel('Nova conversa').selectOption({ label: igor!.name });
+  await novaConversa(page, igor!.name);
   await conferir(page, 'chat');
 });
 

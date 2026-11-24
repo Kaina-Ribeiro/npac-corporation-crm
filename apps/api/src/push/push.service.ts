@@ -21,6 +21,12 @@ export interface PushSender {
 }
 export const PUSH_SENDER = Symbol('PUSH_SENDER');
 
+/**
+ * Prazo para o serviço de push responder (NPAC-71). Sem ele, um aparelho que não responde segurava o
+ * envio até o sistema desistir da conexão, e os avisos seguintes esperavam atrás.
+ */
+export const PUSH_TIMEOUT_MS = 10_000;
+
 /** Host do serviço de push (ex.: `web.push.apple.com`): o endpoint inteiro identifica o aparelho. */
 function pushHost(endpoint: string): string {
   try {
@@ -78,6 +84,7 @@ export class WebPushSender implements PushSender {
         {
           TTL: 60 * 60,
           urgency: 'high',
+          timeout: PUSH_TIMEOUT_MS,
           vapidDetails: {
             subject: this.subject,
             publicKey: this.publicKey,
@@ -127,6 +134,14 @@ export class PushService {
     return { ok: true };
   }
 
+  /** A pessoa só enxerga as próprias inscrições (RLS): a de outra pessoa responde `false`. */
+  async known(userId: string, endpoint: string) {
+    const rows = await withUser(this.db, userId, (tx) =>
+      tx.execute(sql`select 1 from push_subscriptions where endpoint = ${endpoint}`),
+    );
+    return { known: rows.length > 0 };
+  }
+
   async unsubscribe(userId: string, endpoint: string) {
     await withUser(this.db, userId, (tx) =>
       tx.execute(sql`delete from push_subscriptions where endpoint = ${endpoint}`),
@@ -137,35 +152,51 @@ export class PushService {
   /**
    * Manda o mesmo aviso aos aparelhos de cada pessoa. A leitura das inscrições é feita como a
    * própria pessoa (RLS). Falha de push não quebra nada: a tela continua avisando.
+   * Os aparelhos recebem ao mesmo tempo e o envio acontece fora da transação (NPAC-71): em fila,
+   * com a transação aberta, um aparelho lento atrasava os outros e segurava uma conexão do banco.
    */
   async notify(userIds: string[], payload: PushPayload): Promise<void> {
     await Promise.all(
       [...new Set(userIds)].map(async (uid) => {
         try {
-          await withUser(this.db, uid, async (tx) => {
-            const subs = await tx.execute<{ endpoint: string; p256dh: Buffer; auth: Buffer }>(
+          const subs = await withUser(this.db, uid, async (tx) => [
+            ...(await tx.execute<{ endpoint: string; p256dh: Buffer; auth: Buffer }>(
               sql`select endpoint, p256dh, auth from push_subscriptions where user_id = ${uid}`,
+            )),
+          ]);
+          const results = await Promise.all(subs.map((s) => this.sendTo(s, payload)));
+          const gone = subs.filter((_, i) => results[i] === 'gone').map((s) => s.endpoint);
+          if (gone.length)
+            await withUser(this.db, uid, (tx) =>
+              tx.execute(
+                sql`delete from push_subscriptions where endpoint = any(${sql.param(gone)}::text[])`,
+              ),
             );
-            for (const s of subs) {
-              const result = await this.sender.send(
-                {
-                  endpoint: s.endpoint,
-                  p256dh: this.crypto.decrypt(s.p256dh),
-                  auth: this.crypto.decrypt(s.auth),
-                },
-                payload,
-              );
-              if (result === 'gone')
-                await tx.execute(
-                  sql`delete from push_subscriptions where endpoint = ${s.endpoint}`,
-                );
-            }
-          });
         } catch (e) {
           // Sem payload no log: só o tipo do erro.
           this.log.warn(`falha ao enviar push: ${(e as Error).name}`);
         }
       }),
     );
+  }
+
+  /** Um aparelho. Erro aqui (chave ilegível, rede) fica só neste: os outros recebem. */
+  private async sendTo(
+    s: { endpoint: string; p256dh: Buffer; auth: Buffer },
+    payload: PushPayload,
+  ): Promise<PushResult> {
+    try {
+      return await this.sender.send(
+        {
+          endpoint: s.endpoint,
+          p256dh: this.crypto.decrypt(s.p256dh),
+          auth: this.crypto.decrypt(s.auth),
+        },
+        payload,
+      );
+    } catch (e) {
+      this.log.warn(`falha ao enviar push: ${(e as Error).name}`);
+      return 'error';
+    }
   }
 }

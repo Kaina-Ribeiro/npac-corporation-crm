@@ -5,7 +5,12 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { button, FormError, quietButton } from '@/components/crm-ui';
 import { clientApi } from '@/lib/client-api';
-import { filaDeSalvamento, registrarVersion, salvarCampo } from '@/lib/acompanhamento-saver';
+import {
+  filaDeSalvamento,
+  ouvirCampo,
+  registrarVersion,
+  salvarCampo,
+} from '@/lib/acompanhamento-saver';
 import { CampoPr, useCampo } from './campo';
 import { IndicadorSalvo } from './indicador-salvo';
 import { enviarFoto } from './midia';
@@ -42,6 +47,9 @@ function Observacao({
   );
 }
 
+/** Passos como conjunto: o servidor devolve na ordem da lista, a tela na ordem dos cliques. */
+const conjunto = (itens: readonly string[]) => JSON.stringify([...itens].sort());
+
 /** A ação aberta: página própria, com os passos e o registro do que foi feito. */
 export function PlanoAcao({ acao }: { acao: AcaoDTO }) {
   const router = useRouter();
@@ -50,6 +58,8 @@ export function PlanoAcao({ acao }: { acao: AcaoDTO }) {
   const [feitos, setFeitos] = useState(acao.itensFeitos);
   const [erro, setErro] = useState('');
   const arquivo = useRef<HTMLInputElement>(null);
+  /** Passos que a pessoa marcou e o servidor ainda não devolveu (JSON), ou null. */
+  const esperado = useRef<string | null>(null);
   const atualizar = () =>
     void filaDeSalvamento()
       .idle()
@@ -57,11 +67,34 @@ export function PlanoAcao({ acao }: { acao: AcaoDTO }) {
 
   useEffect(() => {
     registrarVersion(chave, acao.version);
+    // Marcando rápido, a recarga pedida por um clique anterior chega com os passos de antes: adotá-la
+    // desmarcava o passo novo e o clique seguinte salvava a lista sem ele. Só adota com a fila parada e
+    // quando o servidor já tem o que foi marcado aqui.
+    if (filaDeSalvamento().isBusy()) return;
+    if (esperado.current !== null && conjunto(acao.itensFeitos) !== esperado.current) return;
+    esperado.current = null;
     setFeitos(acao.itensFeitos);
   }, [acao, chave]);
 
+  // Servidor recusou ou outra pessoa mudou os passos: a tela volta a seguir o servidor.
+  useEffect(
+    () =>
+      ouvirCampo(chave, 'itensFeitos', {
+        mudou: (valor) => {
+          esperado.current = null;
+          if (Array.isArray(valor)) setFeitos(valor as string[]);
+        },
+        erro: () => {
+          esperado.current = null;
+          router.refresh();
+        },
+      }),
+    [chave, router],
+  );
+
   function marcar(item: string) {
     const novo = feitos.includes(item) ? feitos.filter((i) => i !== item) : [...feitos, item];
+    esperado.current = conjunto(novo);
     setFeitos(novo);
     salvarCampo(chave, 'itensFeitos', novo, JSON.stringify(acao.itensFeitos));
     atualizar();
@@ -148,6 +181,8 @@ export function PlanoAcao({ acao }: { acao: AcaoDTO }) {
                 type="button"
                 className={feita ? quietButton : button}
                 onClick={() => {
+                  // Reabrir zera os passos no servidor: a tela volta a seguir o que ele devolver.
+                  esperado.current = null;
                   salvarCampo(chave, 'status', feita ? 'PENDENTE' : 'FEITA', acao.status);
                   atualizar();
                 }}

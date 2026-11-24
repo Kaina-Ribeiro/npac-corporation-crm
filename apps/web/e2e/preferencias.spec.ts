@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { closeTestConnections, ownerSql } from '@npac/db/testing';
 import { userCookieName } from '../lib/user-cookie';
 import { E2E_DB, E2E_PASSWORD } from './env.js';
+import { novaConversa } from './chat-helpers.js';
 
 const owner = ownerSql(E2E_DB);
 
@@ -556,7 +557,7 @@ test.describe('filtros lembrados: admin, chat e playbook', () => {
     await login(page, 'ana@npac.com.br');
     await page.goto('/chat');
     await expect(async () => {
-      await page.getByLabel('Nova conversa').selectOption({ label: 'Ale' });
+      await novaConversa(page, 'Ale');
       await expect(
         page.getByRole('navigation', { name: 'Conversas' }).getByRole('button', { name: /^Ale/ }),
       ).toHaveAttribute('aria-current', 'true', { timeout: 1500 });

@@ -50,10 +50,13 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   sidebar e do Ctrl+K, grupos e sub-itens do Acompanhamento: `shell/nav-menu.tsx`, só servidor, para
   não pesar no JS; `nav-items.tsx` também fica no servidor, a barra inferior é componente de servidor) · na sidebar só o
   miolo rola (`.side-scroll`: navegação + filtros salvos); topo e rodapé com o Sair ficam fixos, e a carga direta rola até o
-  item ativo (`sidebar-shell.tsx`) · Sair no celular (17/11/2026): o mesmo cartão `shell/conta-card.tsx` (foto, nome, cargo,
+  item ativo (`sidebar-shell.tsx`) · **tablet em pé (768 a 1023 px, NPAC-73, 4A):** a sidebar sai recolhida em trilho sem
+  mexer no cookie da escolha do computador (antes do JS pelo CSS `.shell[data-side='expanded']` na media do tablet em
+  `globals.css`; depois o `SidebarShell` põe `collapsed`); o botão abre (`data-side="open"`) e escolher uma tela recolhe.
+  Acima de 1024 px nada muda. O JS de `/leads` ficou no teto (149,99 KB): código novo na casca pesa contra o limite · Sair no celular (17/11/2026): o mesmo cartão `shell/conta-card.tsx` (foto, nome, cargo,
   Meu perfil, Sair) no topo do `/mais` e do `/acompanhamento/mais`; nada de outro Sair nessas telas (e2e `e2e/sair.spec.ts`) · classes de botão `lib/button.ts` · dropdown (todos os `<select>`) com o visual do CRM só por CSS
   (`appearance: base-select` + `::picker(select)` no fim de `globals.css`; Safari fica com o do
-  sistema; Lightning CSS não aceita pseudo-classe depois de `::picker`, use `select:open::picker(select)`) · login,
+  sistema; Lightning CSS não aceita pseudo-classe depois de `::picker`, use `select:open::picker(select)`) · vidro (`.glass`, `.glass-card`, `.ac .card`): `-webkit-backdrop-filter` sempre **antes** de `backdrop-filter`, também nos `none`; na ordem contrária o Lightning CSS do build descarta a linha sem prefixo e o Chrome/Android ficam sem desfoque (NPAC-69, e2e `e2e/vidro.spec.ts` lê o valor calculado no build); o vidro também cria contexto de empilhamento e é a referência de `position: fixed` dos filhos: menu aberto dentro dele (`details[open]`, `aria-expanded`) sobe o card com `z-index: 5` (`globals.css`, `modulo.css`), e popup novo dentro de vidro usa `<dialog>`/popover ou essa regra · login,
   pedir acesso, esqueci a senha (`/login/esqueci`, `/login/nova-senha`) `web/components/login/*` · **duas telas de
   entrada** (NPAC-52, 18/11/2026): `/login` (CRM, noite) e `/login/acompanhamento` (+ `/solicitar`, `/esqueci`;
   "ouro líquido de dia"), mesmas páginas (`login/pages.tsx`) com textos, endereço e destino em `login/area.ts`
@@ -65,6 +68,22 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   `web/lib/session.ts` · UI base (`Field`, `button`, `StageOptions`) `components/crm-ui.tsx` ·
   cargo (`ROLE_LABEL`, `RoleTag`, `CargoTag`) `components/role-tag.tsx` · campo Cargo (select agrupado,
   dica, caixas/selo) `components/cargo-field.tsx` · tokens/`.tier-*`/`.role-*` `web/app/globals.css`
+- **Chat** (redesign A1 com vidro, NPAC-73, 24/11/2026; protótipo `docs/prototipos/chat-redesign/`, Gabriel "1A, 2A, 3A,
+  4A"): `components/chat.tsx` (estado, rolagem, menção, cápsula), `chat-nova.tsx` (folha "Nova conversa" com "Buscar
+  pessoa", filtro só na tela), `chat-icons.tsx`, datas e grupos `lib/chat-format.ts` (hora curta, "Hoje"/"Ontem"/"Segunda,
+  23 de nov.", bolhas do mesmo autor juntas até 5 min); CSS só da tela em `app/(app)/(comercial)/chat/chat.css` (classes
+  `.ch-*`) e tokens `--chat-*` em `globals.css` (fundo, bolhas, cartão da menção, seleção dourada, vidro; claro e
+  escuro). Vidro só nos controles que flutuam (voltar, nome, `#`, cápsula, menu da menção; `.ch-vidro`, sólido com
+  `prefers-reduced-transparency`); as mensagens rolam sobre fundo sólido e as bordas somem num degradê **sem** desfoque
+  (iPhone antigo). Celular: lista e conversa alternam (`naTela`, NPAC-72); a conversa cobre a tela (`position: fixed`) e
+  segue o `visualViewport` com o teclado; a barra de baixo fica por cima e some com o teclado. Botões da cápsula e da busca
+  não tiram o foco do campo (`manterFoco`). Antigas (1A): o botão "Ver mensagens anteriores" no topo é observado
+  (`IntersectionObserver`) e busca `?before=` sozinho, mantendo o ponto de leitura; o aviso ao vivo não descarta as já
+  carregadas. Prévia (2A): `GET /chat/channels` traz `lastMessage` (`authorId`, `authorName`, `text` cortado em 120
+  caracteres numa linha, no SQL, sob a RLS; nunca em log, URL ou auditoria). Convite de avisos com `PushInvite
+variante="chat"`. Campos de 17 px ficam fora da regra dos 16 px com `.ch-campo`. e2e `chat-redesign.spec.ts`,
+  `chat-celular.spec.ts`, ajudantes `e2e/chat-helpers.ts` (`novaConversa`, `buscarLead`, `naConversa`); capturas
+  `CAPTURAS=<pasta> … e2e/capturas-chat.spec.ts` (mesmas telas do protótipo)
 - **Telas:** leads `components/leads-browser.tsx`, `lead-filters.tsx` · ficha/venda `lead-detail.tsx`,
   `sale-flow.tsx`, `finance-panel.tsx` · `pipeline.tsx`, `today.tsx`, `reports.tsx`, `dashboard-*.tsx`
   (cards reordenáveis: `dashboard-board.tsx`, `lib/dashboard-layout.ts`, `lib/board-motion.ts`) ·
@@ -114,7 +133,7 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   nunca IDR); Fila do dia `fila.*` (0053: `mentoria_fila(agora)` calcula na leitura, SECURITY INVOKER;
   0064: sem função por linha que releia tabela, porque cada uma reavalia a RLS (era 0,6–1 s); o mês da
   jornada e os dias parados repetem a conta de `mentoria_mes_jornada`/`mentoria_dias_pausados`: mudou
-  uma delas, mude a Fila; `db/test/fila-equivalencia.test.ts` compara com a versão da 0053; quem vê cada item `sh/mentoria/fila.ts` `itemVisivel`; `mentoria_fila_feitos` conclui o que não tem estado;
+  uma delas, mude a Fila e `api/mentoria/contas-lista.ts`; `db/test/fila-equivalencia.test.ts` compara com a versão da 0053; quem vê cada item `sh/mentoria/fila.ts` `itemVisivel`; `mentoria_fila_feitos` conclui o que não tem estado;
   relógio `MENTORIA_CLOCK` em `relogio.ts`); mensagens-modelo `mensagens.controller.ts` + `sh/mentoria/mensagens.ts`
   (0054; `{nome}`/`{nomes}`, WhatsApp copia e abre `wa.me/<número>` sem texto); push da Fila `avisos.scheduler.ts`
   (0055: um timer, `mentoria_aviso_proximo`/`_reclamar`, `mentoria_avisos_enviados`; `AvisosRearme` no
@@ -432,6 +451,13 @@ alcance)` (5 argumentos; a de 4 mantém o alcance), por convite, aprovação, `P
   Admin transferir. CSV do módulo: Admin e perfil Acompanhamento, auditado
   (`mentoria.csv`), contato só para Admin, nunca dor, sonho, meta, anotações ou textos de reunião. Excluir e
   anonimizar (LGPD) só Admin, pela ficha; anonimizar mantém inscrição, reuniões e ações para as contagens.
+  **Excluir contato e anotação** (NPAC-70, Duda 24/11/2026, "1A, 2C"): só a Admin do módulo e a Diretoria, pelo
+  "Excluir" de cada item na ficha > Histórico (janelinha de confirmação). `DELETE mentoria/contatos/:id` e
+  `DELETE mentoria/anotacoes/:id` (`@SoAdmin`, demais 404) chamam `mentoria_contato_excluir`/`mentoria_anotacao_excluir`
+  (0084, SECURITY DEFINER; o `npac_app` segue sem DELETE nas duas tabelas), que gravam `contato.excluido`/
+  `anotacao.excluida` no histórico, sem o texto. Contato excluído sai do "último contato" e, se fechava um degrau
+  do "PME atrasado", o item volta à Fila. Testes: `db/test/mentoria-excluir-registro.test.ts`,
+  `api/test/mentoria-v2-excluir-registro.e2e.test.ts`, `e2e/acompanhamento-excluir-registro.spec.ts`.
   Salvar ao sair do campo: em 409 a fila reaplica se o outro não mexeu naquele campo; se mexeu, avisa e mantém o dele (`resolverConflito`).
   Datas (18/11/2026, print da Eduarda): campo de data do módulo leva `min={DATA_MIN}`/`max={DATA_MAX}` (`sh/mentoria/datas.ts`,
   1900 a 2999, a faixa da API); sem eles o Chrome aceita ano "25" (0025) ou de 6 dígitos e a API recusava. `CampoPr` de data
@@ -772,6 +798,12 @@ protótipo no canvas "Meu perfil". Gabriel aprovou com "1A, 2A, 3A".
 
 - Chat: selo de não lidas (`chatUnread` em `/notifications`) e `(N)` no título, pelo SSE. Push sem
   texto: "Nova mensagem no Chat" (Geral → todos menos o autor) ou "de <nome>" (DM → destinatário).
+- **Chat só carrega o que está na tela** (NPAC-72, Igor 24/11/2026: "pesado no iPhone"; `components/chat.tsx`): abaixo
+  de 768 px a lista e a conversa são telas separadas, e a conversa só busca as mensagens e só grava o "lido até" quando
+  está na tela (`naTela`), e só grava havendo não lidas. Tocar na conversa já selecionada não a esvazia. O aviso ao
+  vivo (qualquer escrita do CRM) confere a lista (`GET /chat/channels`) e só rebusca as mensagens se a conversa aberta
+  tem não lidas ou outra mensagem mais nova (`lastMessageAt` × `vistoAte`). e2e `e2e/chat-celular.spec.ts`; capturas
+  em `docs/capturas/npac-72/`. Redesign do Chat: pedido à parte.
 - Lembretes do dono do lead (`leads.sdr_id`): `H1` (60 min) e `M15` (15 min) com
   "Confirmação enviada" (`POST /meetings/:id/confirm`, `meeting_confirmations` por horário, timeline
   `meeting.confirmed`); `M1` só aviso. Etapa vigente calculada no navegador (`sh/reminders.ts`).
@@ -797,12 +829,31 @@ protótipo no canvas "Meu perfil". Gabriel aprovou com "1A, 2A, 3A".
   (`WebPushSender`, NPAC-48): `push enviado: 201 web.push.apple.com`, `push recusado: <código> <host>
 <reason>`, `push expirado…` (404/410) e `push sem resposta: <ETIMEDOUT…> <host>`; nunca o endpoint
   inteiro, o texto do aviso ou dados da pessoa.
+- **Avisos no iPhone** (NPAC-71, Igor 24/11/2026: atraso e avisos que somem; medido em prod, o servidor envia na
+  hora e uma pessoa tinha 6 inscrições, 5 de iPhone): (1) no Safari (inscrição em `*.push.apple.com`) **todo push
+  mostra aviso**, também o do Chat com o Chat aberto (`avisoObrigatorio` em `public/sw.js`; push sem aviso faz o
+  iPhone cancelar a inscrição); no Chrome o Chat aberto e em foco segue sem alerta. (2) **Uma inscrição de
+  iPhone/iPad por pessoa** (0082): `push_subscribe` com aparelho "… · iOS" e endpoint da Apple tira as outras de
+  iPhone/iPad da mesma pessoa (`push_no_iphone`); computador, Android e Safari do Mac não mudam (o navegador não
+  distingue dois computadores iguais). (3) `PushService.notify` lê as inscrições, **fecha a transação** e envia a
+  todos os aparelhos ao mesmo tempo, com `PUSH_TIMEOUT_MS` (10 s) no web-push; erro num aparelho fica só nele.
+  (4) Log de acesso sem a checagem de saúde (`semLogDeAcesso`) e resposta só com o status (o Cubeship guarda
+  poucas linhas: com os cabeçalhos sobravam ~25 min e as linhas de push sumiam). Testes: `db/test/reminders.test.ts`,
+  `api/test/push-envio.e2e.test.ts`, `push-sender.test.ts`, `logger.test.ts`, `e2e/sw-aviso.spec.ts` (o `sw.js`
+  num `self` de mentira, sem navegador).
+  **Ligado = o servidor conhece o aparelho** (Gabriel, 24/11/2026: "todos começam com os avisos desligados e aparece
+  o aviso de ativar"): a 0083 apagou todas as inscrições uma vez. `pushState`/`conviteState` (`lib/push.ts`,
+  `ligadoAqui`) só dão o aparelho por ligado se o navegador tem a inscrição **e** `POST /api/push/subscriptions/check
+{ endpoint }` responde `{ known: true }` (RLS: só as da própria pessoa). Antes bastava o navegador: inscrição apagada
+  no servidor (limpeza, 404/410, aparelho que passou para outra pessoa) deixava o aparelho "ligado", sem receber e sem
+  convite. "Ativar avisos" reaproveita a inscrição do navegador e registra de novo, sem pedir a permissão outra vez.
+  Se a consulta falhar, não convida. e2e em `avisos-no-celular.spec.ts`.
 - **Convite para ativar** (NPAC-48, pedido do Igor 16/11/2026: a equipe não sabia que dava):
   `components/push-invite.tsx` no topo do Dashboard, Hoje, Chat (dentro da coluna, para o campo não sair
   da tela) e Fila do Acompanhamento; fora do layout para não pesar no JS de `/leads`. Só aparece se dá
   para ligar e ainda não está ligado neste aparelho (`conviteState` em `lib/push.ts`): notificação
   bloqueada, sem suporte ou sem VAPID não convida; iPhone fora da Tela de Início recebe o passo a passo.
-  "Agora não"/"Entendi" = cookie `npac_push_convite` (`Path=/`, 7 dias, por aparelho). O Chromium do e2e
+  "Agora não"/"Entendi" = cookie `npac_push_convite_2` (`Path=/`, 7 dias, por aparelho; o `_2` de 24/11/2026 fez o convite voltar para todos). O Chromium do e2e
   começa com notificação "denied": `e2e/avisos-no-celular.spec.ts` simula "default" e a chave.
 - **Barra do celular** (NPAC-48, Igor 16/11/2026): Dashboard, Hoje, Pipeline, **Chat** (com selo de não
   lidas), Mais; Leads vai para a tela Mais (`BOTTOM_HREFS` em `shell/nav-items.tsx`). Desktop sem mudança.
@@ -839,6 +890,13 @@ protótipo no canvas "Meu perfil". Gabriel aprovou com "1A, 2A, 3A".
   Dashboard do SDR levava 20 s. O teste-guarda de `db/test/rls-por-consulta.test.ts` varre `pg_policies`
   (única exceção: `mentoria_midia_leitura`). INSERT/UPDATE com `mentoria_edita*` seguem por linha.
   Tabela nova do módulo: política de leitura nesse formato e caso no teste de equivalência.
+- **Lista sem função por linha** (NPAC-69, 24/11/2026): `mentoria_mes_jornada`, `mentoria_onboarding_base` e
+  `mentoria_semaforo` são `LANGUAGE sql` com `SET search_path` (o Postgres não embute) e relêem tabelas sob a RLS a
+  cada chamada; numa lista (e pior, no WHERE de um filtro) custavam 0,2–0,5 s. Em consulta de lista: o mês e a base
+  da etapa vêm dos fragmentos de `api/mentoria/contas-lista.ts` (`mesJornadaJoin`, `RETOMADA_JOIN` + `BASE_ETAPA`,
+  usados pela lista de Mentorados e pelo painel do Onboarding) e o semáforo de `left join mentoria_semaforo_lote(dia)`
+  (uma conta para a consulta). A ficha (uma linha) segue com as funções. `api/test/mentoria-listas-equivalencia.e2e.test.ts`
+  compara com as funções por cargo (Diretoria, Admin, Acompanhamento, Operação, "só a carteira", Especialista).
 - Valor novo de enum não vale na mesma transação da migration (compare como texto). Num banco novo
   todas as migrations rodam numa transação só: em função `LANGUAGE sql` (o corpo é conferido ao criar),
   nada de `'ACOMPANHAMENTO'::role` ou `'DIRETOR'::role`; leia o valor como texto e converta na execução.
@@ -909,7 +967,7 @@ VARREDURA_URL=http://localhost:3150 VARREDURA_SENHA=senha-do-e2e-123 VARREDURA_O
   (SDR), sonia (CLOSER), carla (Acompanhamento sem perfil), duda (Acompanhamento + Admin), operacao, manu, leo, maria (Envios), `@npac.com.br`; teste que troca papel: `update "user" set role = …` e restaurar.
 - Playwright: `filter({ visible: true })`/`exact: true` (layout mobile oculto duplica controles);
   `role=alert` também pega o anunciador de rotas do Next; nada de `networkidle` (SSE).
-- JS de `/leads` < 150 KB gzip (teste; hoje ~149,7, com a release em 150,0 antes da Fase 2 do desempenho). Sem libs pesadas no cliente, nem zod; prefira server components.
+- JS de `/leads` < 150 KB gzip (teste; hoje 149,99 KB depois da sidebar do tablet, NPAC-73: não cabe mais nada na casca sem tirar algo). Sem libs pesadas no cliente, nem zod; prefira server components.
 - Capturas dos e2e: `apps/web/test-results/*.png`.
 
 ## Não commitar

@@ -31,6 +31,7 @@ import {
 } from '@npac/shared';
 import { and, eq, sql } from 'drizzle-orm';
 import { DB } from '../common/db/db.module.js';
+import { BASE_ETAPA, RETOMADA_JOIN } from './contas-lista.js';
 import { conflitoDeVersao, erroDoBanco } from './erros.js';
 import { exigirEdicao, registrarHistorico } from './historico.js';
 import { PlanoService } from './plano.service.js';
@@ -316,7 +317,7 @@ export class OnboardingService {
              'fotoMidiaId', p.foto_midia_id) order by p.ordem)
            from mentoria_pessoas p where p.inscricao_id = i.id) as pessoas,
           (select json_agg(json_build_object('id', e.id, 'etapa', e.etapa, 'status', e.status,
-             'version', e.version, 'base', mentoria_onboarding_base(e.id),
+             'version', e.version, 'base', ${BASE_ETAPA},
              'concluida_em', e.concluida_em, 'formulario', e.formulario_preenchido,
              'atualizado_em', e.atualizado_em))
            from mentoria_onboarding_etapas e where e.inscricao_id = i.id) as etapas,
@@ -326,6 +327,7 @@ export class OnboardingService {
            where v.inscricao_id = i.id and v.tipo = 'CAIXA') as caixa
         from mentoria_inscricoes i
         join mentoria_pessoas p1 on p1.inscricao_id = i.id and p1.ordem = 1
+        ${RETOMADA_JOIN}
         where i.status = 'ONBOARDING'
         order by p1.nome_norm, i.id`);
       const agora = new Date();

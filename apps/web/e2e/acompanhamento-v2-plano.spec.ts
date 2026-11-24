@@ -74,6 +74,52 @@ test('Duda marca os passos do mês 11 e a ação conclui', async ({ page }) => {
     .toBe('FEITA');
 });
 
+// Corrida vista no CI (24/11/2026): a recarga pedida por um clique chegava depois do clique seguinte,
+// com os passos de antes; a tela desmarcava o passo novo e o clique seguinte salvava a lista sem ele.
+test('marcando rápido com a recarga lenta, nenhum passo se perde', async ({ page }) => {
+  await entrar(page, 'duda');
+  await page.waitForURL(/\/acompanhamento\/fila/);
+  const id = await comPlano('Mentorado Fictício 71');
+  const [acao] = await owner<{ id: string }[]>`
+    select id from mentoria_acoes where inscricao_id = ${id} and mes = 11`;
+  await page.goto(`/acompanhamento/plano/acao/${acao!.id}`);
+  await expect(page.getByRole('checkbox', { name: 'Foto recebida', exact: true })).toBeVisible();
+  // Salvar lento (600 ms) e recarga lenta (300 ms): a recarga do 1º clique volta com o 2º ainda salvando.
+  const esperar = (ms: number) => new Promise((r) => setTimeout(r, ms));
+  await page.route(
+    (u) => u.pathname.startsWith('/api/mentoria/'),
+    async (route) => {
+      if (route.request().method() !== 'GET') await esperar(600);
+      await route.continue();
+    },
+  );
+  await page.route(
+    (u) => u.pathname.startsWith('/acompanhamento/plano/acao/'),
+    async (route) => {
+      if (route.request().headers()['rsc']) await esperar(300);
+      await route.continue();
+    },
+  );
+  const passo = (nome: string) => page.getByRole('checkbox', { name: nome, exact: true });
+  await passo('Foto recebida').click();
+  await page.waitForTimeout(700);
+  await passo('Presente produzido').click();
+  await page.waitForTimeout(400);
+  await passo('Enviado').click();
+  await expect
+    .poll(
+      async () =>
+        (
+          await owner<{ itens: string[] }[]>`
+          select itens_feitos as itens from mentoria_acoes where id = ${acao!.id}`
+        )[0]?.itens.length,
+      { timeout: 10_000 },
+    )
+    .toBe(3);
+  for (const passo of ['Foto recebida', 'Presente produzido', 'Enviado'])
+    await expect(page.getByRole('checkbox', { name: passo, exact: true })).toBeChecked();
+});
+
 test('"vence esta semana" lista as ações certas', async ({ page }) => {
   await entrar(page, 'duda');
   await page.waitForURL(/\/acompanhamento\/fila/);

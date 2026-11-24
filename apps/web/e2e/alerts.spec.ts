@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { closeTestConnections, ownerSql } from '@npac/db/testing';
 import { E2E_DB, E2E_PASSWORD } from './env.js';
+import { naConversa, novaConversa } from './chat-helpers.js';
 
 // Avisos do chat e lembretes de reunião (NPAC-26).
 const owner = ownerSql(E2E_DB);
@@ -48,10 +49,10 @@ test('chat: selo no menu e (N) no título sem recarregar; abrir a conversa zera'
   const ale = await browser.newPage();
   await login(ale, 'ale@npac.com.br');
   await ale.goto('/chat');
-  await ale.getByLabel('Nova conversa').selectOption({ label: 'Murilo' });
+  await novaConversa(ale, 'Murilo');
   await ale.getByLabel('Mensagem').fill('Reunião confirmada?');
   await ale.getByRole('button', { name: 'Enviar' }).click();
-  await expect(ale.getByText('Reunião confirmada?')).toBeVisible();
+  await expect(naConversa(ale, 'Reunião confirmada?')).toBeVisible();
 
   // O SSE avisa; o selo e o título mudam com a página aberta.
   await expect(badge).toBeVisible({ timeout: 10_000 });
@@ -68,8 +69,11 @@ test('chat: selo no menu e (N) no título sem recarregar; abrir a conversa zera'
   await murilo.setViewportSize({ width: 1280, height: 720 });
 
   await murilo.goto('/chat');
-  await murilo.getByRole('button', { name: /Ale/ }).first().click();
-  await expect(murilo.getByText('Reunião confirmada?')).toBeVisible();
+  await murilo
+    .getByRole('navigation', { name: 'Conversas' })
+    .getByRole('button', { name: /^Ale/ })
+    .click();
+  await expect(naConversa(murilo, 'Reunião confirmada?')).toBeVisible();
   await expect(badge).toHaveCount(0, { timeout: 10_000 });
   await expect(murilo).not.toHaveTitle(/^\(\d+\)/);
   await ale.close();
