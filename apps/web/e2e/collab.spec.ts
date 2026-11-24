@@ -46,7 +46,9 @@ test('chat: mensagem no Geral com #lead e DM privada', async ({ browser }) => {
   await murilo.getByRole('button', { name: 'Enviar' }).click();
   await expect(naConversa(murilo, 'Só entre nós')).toBeVisible();
   // O SSE avisa a Ale; a DM aparece com não lida sem recarregar.
-  await expect(ale.getByRole('button', { name: /Murilo/ })).toBeVisible({ timeout: 10_000 });
+  await expect(
+    ale.getByRole('navigation', { name: 'Conversas' }).getByRole('button', { name: /^Murilo/ }),
+  ).toBeVisible({ timeout: 10_000 });
   await ale.close();
   await murilo.close();
 });

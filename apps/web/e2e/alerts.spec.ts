@@ -69,7 +69,10 @@ test('chat: selo no menu e (N) no título sem recarregar; abrir a conversa zera'
   await murilo.setViewportSize({ width: 1280, height: 720 });
 
   await murilo.goto('/chat');
-  await murilo.getByRole('button', { name: /Ale/ }).first().click();
+  await murilo
+    .getByRole('navigation', { name: 'Conversas' })
+    .getByRole('button', { name: /^Ale/ })
+    .click();
   await expect(naConversa(murilo, 'Reunião confirmada?')).toBeVisible();
   await expect(badge).toHaveCount(0, { timeout: 10_000 });
   await expect(murilo).not.toHaveTitle(/^\(\d+\)/);
