@@ -146,6 +146,27 @@
   .ac-dialogo.cr-dlg{position:fixed}
   .ac .cr-sheet,.cr-sheet{position:absolute;inset:0;z-index:5;background:var(--gl-solid);padding:16px 20px 24px;overflow:auto;display:grid;gap:10px;align-content:start;border-radius:inherit}
   .cr-sheet-h{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:16px;padding-bottom:4px;border-bottom:1px solid var(--cr-bd, rgba(60,60,67,.2));margin:0 -20px 4px;padding:0 20px 10px}
+  .cr-sD{padding:0!important;gap:0!important;display:flex!important;flex-direction:column}
+  .cr-sD-h{position:sticky;top:0;z-index:2;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;padding:12px 12px 12px 8px;border-bottom:1px solid var(--cr-bd);background:var(--gl-solid);font-size:16px}
+  .cr-sD-h b{text-align:center;letter-spacing:-.01em}
+  .cr-sD-v{display:inline-flex;align-items:center;gap:2px;justify-self:start;min-height:44px;padding:0 10px 0 4px;border:0;background:transparent;color:var(--ink);font-size:15px;font-weight:600;border-radius:12px;cursor:pointer}
+  .cr-sD-c{flex:1 1 auto;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:8px;padding:16px 20px 20px}
+  .cr-sD-c>*,.ac .cr-sD-c .cr-q{flex:none!important}
+  .cr-sD-at{display:grid;gap:3px;padding:12px 14px;border-radius:14px;background:var(--tag-gold-bg);box-shadow:inset 0 0 0 1.5px var(--gold-deep);font-size:14.5px;line-height:1.4;color:var(--ink);margin-bottom:6px}
+  .cr-sD-at small{font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--gold-text)}
+  .cr-sD-op{display:flex;align-items:center;justify-content:space-between;gap:14px;width:100%;min-height:56px;padding:12px 14px;border-radius:14px;border:1px solid var(--cr-bd);background:var(--cr-surf);font:inherit;font-size:14.5px;line-height:1.4;color:var(--ink);text-align:left;cursor:pointer}
+  .cr-sD-esc{flex:none;font-size:13px;font-weight:700;color:var(--ink);padding:7px 12px;border-radius:10px;border:1px solid var(--cr-bd)}
+  .cr-sD-ja{display:grid;gap:2px;padding:4px 14px;border-radius:14px;background:rgba(120,120,128,.07)}
+  .cr-sD-ja .cr-tja{padding:8px 0}
+  .cr-sD-ja .cr-tja+.cr-tja{border-top:1px solid var(--cr-bd)}
+  .cr-sD .cr-tsec{padding-top:10px}
+  .cr-sD-f{position:sticky;bottom:0;padding:12px 20px 16px;border-top:1px solid var(--cr-bd);background:var(--gl-solid)}
+  .cr-sD-f .btn{width:100%;justify-content:center;white-space:normal}
+  .ac .cr-bd{border:1px solid var(--cr-bd);background:var(--cr-surf);border-radius:14px;padding:12px 14px 2px;display:grid;gap:2px;font-size:15px;line-height:1.4;color:var(--ink)}
+  .ac .cr-bd .meta{display:flex;align-items:center;flex-wrap:nowrap;gap:0 16px;font-size:13px;color:var(--ink2);border-top:1px solid var(--cr-bd);margin-top:8px}
+  .ac .cr-bd .meta .q{margin-right:auto}
+  .ac .cr-bd .meta a{display:inline-flex;align-items:center;min-height:44px;font-weight:700;color:var(--ink);text-decoration:underline;text-underline-offset:2px}
+  .ac .cr-bd.esc>span{color:var(--ink2)}
   .ac .cr-tile.cr-acao{box-shadow:inset 0 0 0 1.5px var(--ink)}
   .ac .cr-tile.cr-acao .rev{font-size:12.5px;font-weight:700;color:var(--ink);text-decoration:underline}
   .cr-dlg .cr-rodape{position:sticky;bottom:-24px;margin:4px -24px -24px;padding:12px 24px 16px;background:var(--gl-solid);border-top:1px solid var(--line);justify-content:space-between!important;align-items:center;z-index:2}
@@ -211,7 +232,7 @@
         )
         .join('');
       const troca = trocar && b === 'DESAFIO';
-      const v = trocar === true ? 'A' : trocar;
+      const v = trocar === true ? 'A' : trocar === 'D' ? 'B' : trocar;
       const OPS = [
         'Durante 7 dias, beber pelo menos 3 litros de água por dia.',
         'Fazer 100 agachamentos em um único dia.',
@@ -253,7 +274,31 @@
     (aviso || rodape).before(sec);
     rodape.classList.add('cr-rodape');
     rodape.insertAdjacentHTML('afterbegin', '<span class="cr-cont">8 itens do cronograma</span>');
-    if (trocar === 'B') {
+    if (trocar === 'D') {
+      const ops = [
+        'Durante 7 dias, beber pelo menos 3 litros de água por dia.',
+        'Fazer 100 agachamentos em um único dia.',
+        'Durante 7 dias, fazer pelo menos um elogio sincero por dia para alguém.',
+        'Ficar 12 horas sem utilizar cadeira.',
+      ];
+      const JA = [
+        ['Durante 3 dias colocar despertador no celular de uma em uma hora…', '1º PME'],
+        ['Dormir no chão durante uma noite.', 'RDV'],
+      ];
+      const sheet = document.createElement('div');
+      sheet.className = 'cr-sheet cr-sD';
+      sheet.innerHTML = `<div class="cr-sD-h"><button type="button" class="cr-sD-v" aria-label="Voltar">${svg('M15 18l-6-6 6-6', 'cr-i')}Voltar</button><b>Trocar desafio</b><span></span></div>
+        <div class="cr-sD-c">
+          <div class="cr-sD-at"><small>Trocando este</small><span>Passar 24 horas em jejum, ingerindo apenas água.</span></div>
+          <div class="cr-q" style="max-width:none;height:44px">${svg(BUSCA, 'cr-s')} Buscar entre 89 desafios</div>
+          <div class="cr-tsec">Ainda não recebeu</div>
+          ${ops.map((t) => `<button type="button" class="cr-sD-op"><span>${t}</span><span class="cr-sD-esc">Escolher</span></button>`).join('')}
+          <div class="cr-tsec">Já recebeu · não dá para repetir</div>
+          <div class="cr-sD-ja">${JA.map(([t, q]) => `<div class="cr-tja"><span>${t}</span><span class="cr-st">${q}</span></div>`).join('')}</div>
+        </div>
+        <div class="cr-sD-f"><button type="button" class="btn btn-secondary">${svg(MAIS, 'cr-s')}Escrever um desafio só para esta pessoa</button></div>`;
+      dl.appendChild(sheet);
+    } else if (trocar === 'B') {
       const JA = [
         ['Durante 3 dias colocar despertador no celular de uma em uma hora…', '1º PME'],
         ['Dormir no chão durante uma noite.', 'RDV'],
@@ -436,6 +481,10 @@
       lista = dados
         .map(([t, m, esc]) => `<div class="cr-bm-a"><div style="color:var(${esc ? '--ink2' : '--ink'})">${texto(t)}<small>${esc ? tagEsc : ''}${m.split(' · ')[0]}</small></div><button type="button" class="cr-mais" aria-label="Opções">⋯</button></div>`)
         .join('');
+    } else if (opcao === 'D') {
+      lista = `<div style="display:grid;gap:8px">${dados
+        .map(([t, m, esc]) => `<div class="cr-bd ${esc ? 'esc' : ''}">${esc ? `<span style="justify-self:start;margin-bottom:4px">${tagEsc}</span>` : ''}<span>${texto(t)}</span><div class="meta"><span class="q">${m.split(' · ')[0]}</span><a href="#">Editar</a><a href="#">${esc ? 'Mostrar' : 'Esconder'}</a></div></div>`)
+        .join('')}</div>`;
     } else if (opcao === 'B') {
       lista = dados
         .map(([t, m, esc]) => `<div class="cr-bm ${esc ? 'esc' : ''}"><span>${texto(t)}</span><div class="meta">${esc ? tagEsc : ''}<span>${m.split(' · ')[0]}</span><a href="#">Editar</a><a href="#">${esc ? 'Mostrar' : 'Esconder'}</a></div></div>`)

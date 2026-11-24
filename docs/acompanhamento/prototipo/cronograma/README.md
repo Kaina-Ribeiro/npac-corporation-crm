@@ -45,3 +45,10 @@ escritos em cada item; C = cada item num cartão com ícones de lápis e olho.
 A troca de item no celular em 3 opções (`troca-a/b/c-375-claro.png`, e 1440): A = painel claro dentro do bloco, com
 16 px de respiro e cada opção num fundo cinza suave; B = tela própria por cima da janela, com "‹ Voltar"; C = na
 própria lista, o item atual com contorno dourado ("Trocando este") e as opções como cartões logo abaixo.
+
+## 4ª revisão (24/11, Gabriel: "mistura B com C e refina")
+
+`troca-d-*.png`: tela própria por cima da janela (do B), com "‹ Voltar" fixo no topo, o item atual em destaque dourado
+"Trocando este" (do C), busca, "Ainda não recebeu" em cartões com "Escolher" ao lado, "Já recebeu · não dá para
+repetir" agrupado e apagado, e "Escrever um desafio só para esta pessoa" fixo embaixo. `banco-d-375-claro.png`: a
+mesma mistura no banco, cada item num cartão (C) com "Editar · Esconder" escritos (B) e "Escondido" no topo do cartão.
