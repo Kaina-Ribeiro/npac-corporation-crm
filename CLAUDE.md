@@ -797,6 +797,18 @@ protótipo no canvas "Meu perfil". Gabriel aprovou com "1A, 2A, 3A".
   (`WebPushSender`, NPAC-48): `push enviado: 201 web.push.apple.com`, `push recusado: <código> <host>
 <reason>`, `push expirado…` (404/410) e `push sem resposta: <ETIMEDOUT…> <host>`; nunca o endpoint
   inteiro, o texto do aviso ou dados da pessoa.
+- **Avisos no iPhone** (NPAC-71, Igor 24/11/2026: atraso e avisos que somem; medido em prod, o servidor envia na
+  hora e uma pessoa tinha 6 inscrições, 5 de iPhone): (1) no Safari (inscrição em `*.push.apple.com`) **todo push
+  mostra aviso**, também o do Chat com o Chat aberto (`avisoObrigatorio` em `public/sw.js`; push sem aviso faz o
+  iPhone cancelar a inscrição); no Chrome o Chat aberto e em foco segue sem alerta. (2) **Uma inscrição de
+  iPhone/iPad por pessoa** (0082): `push_subscribe` com aparelho "… · iOS" e endpoint da Apple tira as outras de
+  iPhone/iPad da mesma pessoa (`push_no_iphone`); computador, Android e Safari do Mac não mudam (o navegador não
+  distingue dois computadores iguais). (3) `PushService.notify` lê as inscrições, **fecha a transação** e envia a
+  todos os aparelhos ao mesmo tempo, com `PUSH_TIMEOUT_MS` (10 s) no web-push; erro num aparelho fica só nele.
+  (4) Log de acesso sem a checagem de saúde (`semLogDeAcesso`) e resposta só com o status (o Cubeship guarda
+  poucas linhas: com os cabeçalhos sobravam ~25 min e as linhas de push sumiam). Testes: `db/test/reminders.test.ts`,
+  `api/test/push-envio.e2e.test.ts`, `push-sender.test.ts`, `logger.test.ts`, `e2e/sw-aviso.spec.ts` (o `sw.js`
+  num `self` de mentira, sem navegador).
 - **Convite para ativar** (NPAC-48, pedido do Igor 16/11/2026: a equipe não sabia que dava):
   `components/push-invite.tsx` no topo do Dashboard, Hoje, Chat (dentro da coluna, para o campo não sair
   da tela) e Fila do Acompanhamento; fora do layout para não pesar no JS de `/leads`. Só aparece se dá

@@ -1,7 +1,7 @@
 import { Writable } from 'node:stream';
 import type { Logger } from 'pino';
 import { describe, expect, it } from 'vitest';
-import { createLogger } from '../src/common/logging/logger.js';
+import { createLogger, semLogDeAcesso } from '../src/common/logging/logger.js';
 
 function captureLog(fn: (l: Logger) => void): string {
   let out = '';
@@ -47,5 +47,22 @@ describe('logger', () => {
       }),
     );
     for (const s of ['a@b.com', 'fulano', 'segredo', 'Bearer tok']) expect(out).not.toContain(s);
+  });
+  // NPAC-71: cada linha de acesso levava ~1 KB de cabeçalhos e a checagem de saúde (a cada 15 s)
+  // enchia o log; em produção sobravam ~25 minutos, sem as linhas de push.
+  it('resposta vai só com o status, sem cabeçalhos', () => {
+    const out = captureLog((l) =>
+      l.info({
+        res: { statusCode: 200, headers: { 'content-security-policy': "default-src 'self'" } },
+      }),
+    );
+    expect(out).toContain('"statusCode":200');
+    expect(out).not.toContain('content-security-policy');
+  });
+  it('a checagem de saúde fica fora do log de acesso', () => {
+    expect(semLogDeAcesso({ url: '/api/health' })).toBe(true);
+    expect(semLogDeAcesso({ url: '/api/health?x=1' })).toBe(true);
+    expect(semLogDeAcesso({ url: '/api/leads' })).toBe(false);
+    expect(semLogDeAcesso({})).toBe(false);
   });
 });
