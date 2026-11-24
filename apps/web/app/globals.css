@@ -173,19 +173,28 @@ body {
 }
 
 @layer components {
+  /* `-webkit-backdrop-filter` sempre ANTES de `backdrop-filter` (também nos `none`): na ordem
+     contrária o Lightning CSS do build descarta a linha sem prefixo e o Chrome/Android perdem o
+     desfoque (NPAC-69, e2e `vidro.spec.ts`). */
   .glass {
     background: var(--gl);
-    backdrop-filter: var(--blur);
     -webkit-backdrop-filter: var(--blur);
+    backdrop-filter: var(--blur);
     box-shadow: var(--glhi), var(--gld);
   }
   .glass-card {
     position: relative;
     border-radius: 20px;
     background: var(--gl2);
-    backdrop-filter: var(--blur);
     -webkit-backdrop-filter: var(--blur);
+    backdrop-filter: var(--blur);
     box-shadow: var(--glhi), var(--gld);
+  }
+  /* `backdrop-filter` cria um contexto de empilhamento: o menu aberto dentro de um vidro (CSV em
+     `<details>`, "Mais ações" com `aria-expanded`) ficava por baixo do card seguinte. Com menu
+     aberto, o vidro sobe acima dos vizinhos, abaixo das barras fixas (20 e 25) (NPAC-69). */
+  :is(.glass, .glass-card):has(details[open], [aria-expanded='true']) {
+    z-index: 5;
   }
   /* Liquid glass nos cards de conteúdo dentro de `.liquid` (por enquanto, o dashboard). */
   .liquid .glass-card {
@@ -212,8 +221,8 @@ body {
     .glass-card,
     .liquid .glass-card {
       background: var(--gl-solid);
-      backdrop-filter: none;
       -webkit-backdrop-filter: none;
+      backdrop-filter: none;
     }
   }
   .mark {
@@ -1689,8 +1698,8 @@ html[data-nav-pending] .ac > :not(.top, nav, .nav-skeleton) {
   letter-spacing: -0.01em;
   color: var(--bg);
   background: color-mix(in srgb, var(--ink) 90%, transparent);
-  backdrop-filter: var(--blur);
   -webkit-backdrop-filter: var(--blur);
+  backdrop-filter: var(--blur);
   box-shadow:
     0 0 0 0.5px rgba(0, 0, 0, 0.08),
     0 14px 34px -14px rgba(0, 0, 0, 0.5);

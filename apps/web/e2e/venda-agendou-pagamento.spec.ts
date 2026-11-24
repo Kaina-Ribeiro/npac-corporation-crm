@@ -176,6 +176,9 @@ test('sem reunião realizada, a ficha leva a lançar a reunião e depois a marca
 test('a closer do pagamento não marca a venda pelo SDR', async ({ page }) => {
   await login(page, 'ale@npac.com.br');
   const id = await paidLead(page, `Lead pagou closer ${Date.now().toString(36)}`, true);
+  // Sai da tela antes de trocar de usuário: a mudança do lead dispara o aviso ao vivo e a recarga
+  // do Dashboard abortava o `goto('/login')` seguinte (net::ERR_ABORTED no CI).
+  await page.goto('about:blank');
   await page.context().clearCookies();
   await login(page, 'sonia@npac.com.br');
   await page.goto(`/leads/${id}`);

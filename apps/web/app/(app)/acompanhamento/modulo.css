@@ -37,9 +37,13 @@
     position: relative;
     border-radius: 20px;
     background: var(--gl2);
-    backdrop-filter: var(--blur);
     -webkit-backdrop-filter: var(--blur);
+    backdrop-filter: var(--blur);
     box-shadow: var(--glhi), var(--gld);
+  }
+  /* Menu aberto dentro do card fica acima dos vizinhos (ver `.glass` em globals.css, NPAC-69). */
+  .card:has(details[open], [aria-expanded='true']) {
+    z-index: 5;
   }
   .btn {
     height: auto;
@@ -122,8 +126,8 @@
     padding: 6px;
     border-radius: 14px;
     background: var(--gl-solid);
-    backdrop-filter: none;
     -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
   .busca-item {
     display: flex;
@@ -1281,8 +1285,8 @@
     padding: 6px;
     border-radius: 14px;
     background: var(--gl-solid);
-    backdrop-filter: none;
     -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
   .fc-menu button {
     display: flex;
@@ -3298,8 +3302,8 @@
     width: 100%;
     min-width: 0;
     background: var(--gl-solid);
-    backdrop-filter: none;
     -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
   .pn {
     display: flex;
