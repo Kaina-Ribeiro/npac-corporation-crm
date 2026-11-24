@@ -39,3 +39,9 @@ sistema (`btn btn-secondary sm`); a troca de item vira um painel no lugar do ite
 recebeu · não dá para repetir" em grupo separado. Banco no celular em 3 opções (`banco-a/b/c-375-claro.png`), para
 escolher: A = escolha do bloco em lista + menu "⋯" por item; B = blocos em uma linha que rola + "Editar · Esconder"
 escritos em cada item; C = cada item num cartão com ícones de lápis e olho.
+
+## 3ª revisão (24/11, Gabriel: "borda preta péssima, sem padding")
+
+A troca de item no celular em 3 opções (`troca-a/b/c-375-claro.png`, e 1440): A = painel claro dentro do bloco, com
+16 px de respiro e cada opção num fundo cinza suave; B = tela própria por cima da janela, com "‹ Voltar"; C = na
+própria lista, o item atual com contorno dourado ("Trocando este") e as opções como cartões logo abaixo.

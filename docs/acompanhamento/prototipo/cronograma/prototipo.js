@@ -131,6 +131,21 @@
   .ac .cr-bc-h{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13px;color:var(--ink2)}
   .ac .cr-bc-h .ic{display:flex;gap:6px}
   .ac .cr-bc-h .ic button{width:44px;height:44px;border-radius:12px;border:1px solid var(--cr-bd);background:transparent;color:var(--ink);display:inline-flex;align-items:center;justify-content:center}
+  .ac .cr-tA .btn,.ac .cr-tC .btn,.cr-sheet .btn{white-space:normal;text-align:left;height:auto;min-height:36px}
+  .ac .cr-tA{min-width:0;border:1px solid var(--cr-bd);background:var(--cr-surf);border-radius:14px;padding:12px 16px 16px;display:grid;gap:10px}
+  .ac .cr-tA-h{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:15px}
+  .ac .cr-tA-at{font-size:13px;color:var(--ink2);margin:-4px 0 2px}
+  .ac .cr-tA-op{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-radius:12px;background:rgba(120,120,128,.07);font-size:14px;line-height:1.4;color:var(--ink)}
+  .ac .cr-tA-op .btn{flex:none}
+  .ac .cr-tsec{font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--ink2);padding-top:6px}
+  .ac .cr-tja{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:4px 2px;font-size:14px;line-height:1.4;color:var(--ink2)}
+  .ac .cr-tja .cr-st{flex:none}
+  .ac .cr-tC{display:grid;gap:8px;padding:4px 0 0 14px;border-left:2px solid var(--gold-deep);margin-left:2px}
+  .ac .cr-tC-at{box-shadow:inset 0 0 0 1.5px var(--gold-deep)}
+  .ac .cr-tC-tag{display:block;font-size:11.5px!important;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--gold-text)!important;margin:0 0 2px!important}
+  .ac-dialogo.cr-dlg{position:fixed}
+  .ac .cr-sheet,.cr-sheet{position:absolute;inset:0;z-index:5;background:var(--gl-solid);padding:16px 20px 24px;overflow:auto;display:grid;gap:10px;align-content:start;border-radius:inherit}
+  .cr-sheet-h{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:16px;padding-bottom:4px;border-bottom:1px solid var(--cr-bd, rgba(60,60,67,.2));margin:0 -20px 4px;padding:0 20px 10px}
   .ac .cr-tile.cr-acao{box-shadow:inset 0 0 0 1.5px var(--ink)}
   .ac .cr-tile.cr-acao .rev{font-size:12.5px;font-weight:700;color:var(--ink);text-decoration:underline}
   .cr-dlg .cr-rodape{position:sticky;bottom:-24px;margin:4px -24px -24px;padding:12px 24px 16px;background:var(--gl-solid);border-top:1px solid var(--line);justify-content:space-between!important;align-items:center;z-index:2}
@@ -196,20 +211,36 @@
         )
         .join('');
       const troca = trocar && b === 'DESAFIO';
-      const busca = troca
-        ? `<div class="cr-troca"><div class="cr-troca-h"><span>Trocar o desafio</span><button type="button" class="btn btn-ghost sm">Cancelar</button></div>
-            <div class="cr-troca-at">No lugar de: Passar 24 horas em jejum, ingerindo apenas água.</div>
-            <div class="q">${svg(BUSCA, 'cr-s')} Buscar desafio</div>
-            <div class="cr-op"><span>Durante 7 dias, beber pelo menos 3 litros de água por dia.</span><span class="esc">Escolher</span></div>
-            <div class="cr-op"><span>Fazer 100 agachamentos em um único dia.</span><span class="esc">Escolher</span></div>
-            <div class="cr-op"><span>Durante 7 dias, fazer pelo menos um elogio sincero por dia para alguém.</span><span class="esc">Escolher</span></div>
-            <div class="cr-op-sec">Já recebeu · não dá para repetir</div>
-            <div class="cr-op off"><span>Durante 3 dias colocar despertador no celular de uma em uma hora…</span><span class="cr-st">1º PME</span></div>
-            <div class="cr-op off"><span>Dormir no chão durante uma noite.</span><span class="cr-st">RDV</span></div>
-            <button type="button" class="cr-op novo">${svg(MAIS, 'cr-s')}Escrever um desafio só para esta pessoa</button></div>`
-        : '';
-      return `<div class="cr-grupo"><div class="cr-grupo-h"><span style="display:flex;align-items:center;gap:6px">${svg(ICON[b])}${PLURAL[b]}</span><span class="cr-ok">${SUG[b].length} de ${MODELO[b]}</span></div>${troca ? busca : itens}${
-        trocar && b === 'DESAFIO' ? '' : `<button type="button" class="btn btn-secondary sm" style="justify-self:start">${svg(MAIS, 'cr-s')}Adicionar ${b === 'EAP' ? 'EAP' : NOME[b].toLowerCase()}</button>`
+      const v = trocar === true ? 'A' : trocar;
+      const OPS = [
+        'Durante 7 dias, beber pelo menos 3 litros de água por dia.',
+        'Fazer 100 agachamentos em um único dia.',
+        'Durante 7 dias, fazer pelo menos um elogio sincero por dia para alguém.',
+      ];
+      const JA = [
+        ['Durante 3 dias colocar despertador no celular de uma em uma hora…', '1º PME'],
+        ['Dormir no chão durante uma noite.', 'RDV'],
+      ];
+      const escolher = '<button type="button" class="btn btn-secondary sm">Escolher</button>';
+      const novo = `<button type="button" class="btn btn-secondary sm" style="justify-self:start">${svg(MAIS, 'cr-s')}Escrever um desafio só para esta pessoa</button>`;
+      const buscaQ = `<div class="cr-q" style="max-width:none;height:44px">${svg(BUSCA, 'cr-s')} Buscar desafio</div>`;
+      const jaRec = `<div class="cr-tsec">Já recebeu · não dá para repetir</div>${JA.map(([t, q]) => `<div class="cr-tja"><span>${t}</span><span class="cr-st">${q}</span></div>`).join('')}`;
+      let busca = '';
+      if (troca && v === 'A') {
+        busca = `<div class="cr-tA"><div class="cr-tA-h"><b>Trocar o desafio</b><button type="button" class="btn btn-ghost sm">Cancelar</button></div>
+          <p class="cr-tA-at">No lugar de: Passar 24 horas em jejum, ingerindo apenas água.</p>
+          ${buscaQ}
+          ${OPS.map((t) => `<div class="cr-tA-op"><span>${t}</span>${escolher}</div>`).join('')}
+          ${jaRec}
+          ${novo}</div>`;
+      } else if (troca && v === 'C') {
+        busca = `<div class="cr-item cr-tC-at"><div class="cr-tx"><small class="cr-tC-tag">Trocando este</small>Passar 24 horas em jejum, ingerindo apenas água. (Ao iniciar e ao finalizar o jejum, envie uma foto com o horário no grupo.)</div><div class="cr-acts"><button type="button" class="btn btn-secondary sm">Cancelar</button></div></div>
+          <div class="cr-tC"><span class="cr-tsec" style="padding:0">Escolha outro desafio</span>${buscaQ}
+          ${OPS.map((t) => `<div class="cr-item"><div class="cr-tx">${t}</div><div class="cr-acts">${escolher}</div></div>`).join('')}
+          ${jaRec}${novo}</div>`;
+      }
+      return `<div class="cr-grupo"><div class="cr-grupo-h"><span style="display:flex;align-items:center;gap:6px">${svg(ICON[b])}${PLURAL[b]}</span><span class="cr-ok">${SUG[b].length} de ${MODELO[b]}</span></div>${troca && v !== 'B' ? busca : itens}${
+        troca && v !== 'B' ? '' : `<button type="button" class="btn btn-secondary sm" style="justify-self:start">${svg(MAIS, 'cr-s')}Adicionar ${b === 'EAP' ? 'EAP' : NOME[b].toLowerCase()}</button>`
       }</div>`;
     }).join('');
     const sec = document.createElement('div');
@@ -222,7 +253,26 @@
     (aviso || rodape).before(sec);
     rodape.classList.add('cr-rodape');
     rodape.insertAdjacentHTML('afterbegin', '<span class="cr-cont">8 itens do cronograma</span>');
-    if (trocar) {
+    if (trocar === 'B') {
+      const JA = [
+        ['Durante 3 dias colocar despertador no celular de uma em uma hora…', '1º PME'],
+        ['Dormir no chão durante uma noite.', 'RDV'],
+      ];
+      const ops = [
+        'Durante 7 dias, beber pelo menos 3 litros de água por dia.',
+        'Fazer 100 agachamentos em um único dia.',
+        'Durante 7 dias, fazer pelo menos um elogio sincero por dia para alguém.',
+      ];
+      const sheet = document.createElement('div');
+      sheet.className = 'cr-sheet';
+      sheet.innerHTML = `<div class="cr-sheet-h"><button type="button" class="btn btn-ghost sm">‹ Voltar</button><b>Trocar o desafio</b><span style="width:64px"></span></div>
+        <p class="cr-tA-at" style="margin:0">No lugar de: Passar 24 horas em jejum, ingerindo apenas água.</p>
+        <div class="cr-q" style="max-width:none;height:44px">${svg(BUSCA, 'cr-s')} Buscar desafio</div>
+        ${ops.map((t) => `<div class="cr-item"><div class="cr-tx">${t}</div><div class="cr-acts"><button type="button" class="btn btn-secondary sm">Escolher</button></div></div>`).join('')}
+        <div class="cr-tsec">Já recebeu · não dá para repetir</div>${JA.map(([t, q]) => `<div class="cr-tja"><span>${t}</span><span class="cr-st">${q}</span></div>`).join('')}
+        <button type="button" class="btn btn-secondary sm" style="justify-self:start">${svg(MAIS, 'cr-s')}Escrever um desafio só para esta pessoa</button>`;
+      dl.appendChild(sheet);
+    } else if (trocar) {
       const g = [...sec.querySelectorAll('.cr-grupo')][1];
       g.scrollIntoView({ block: 'start' });
     }
