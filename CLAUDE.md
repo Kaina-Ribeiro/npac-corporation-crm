@@ -114,7 +114,7 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   nunca IDR); Fila do dia `fila.*` (0053: `mentoria_fila(agora)` calcula na leitura, SECURITY INVOKER;
   0064: sem função por linha que releia tabela, porque cada uma reavalia a RLS (era 0,6–1 s); o mês da
   jornada e os dias parados repetem a conta de `mentoria_mes_jornada`/`mentoria_dias_pausados`: mudou
-  uma delas, mude a Fila; `db/test/fila-equivalencia.test.ts` compara com a versão da 0053; quem vê cada item `sh/mentoria/fila.ts` `itemVisivel`; `mentoria_fila_feitos` conclui o que não tem estado;
+  uma delas, mude a Fila e `api/mentoria/contas-lista.ts`; `db/test/fila-equivalencia.test.ts` compara com a versão da 0053; quem vê cada item `sh/mentoria/fila.ts` `itemVisivel`; `mentoria_fila_feitos` conclui o que não tem estado;
   relógio `MENTORIA_CLOCK` em `relogio.ts`); mensagens-modelo `mensagens.controller.ts` + `sh/mentoria/mensagens.ts`
   (0054; `{nome}`/`{nomes}`, WhatsApp copia e abre `wa.me/<número>` sem texto); push da Fila `avisos.scheduler.ts`
   (0055: um timer, `mentoria_aviso_proximo`/`_reclamar`, `mentoria_avisos_enviados`; `AvisosRearme` no
@@ -839,6 +839,13 @@ protótipo no canvas "Meu perfil". Gabriel aprovou com "1A, 2A, 3A".
   Dashboard do SDR levava 20 s. O teste-guarda de `db/test/rls-por-consulta.test.ts` varre `pg_policies`
   (única exceção: `mentoria_midia_leitura`). INSERT/UPDATE com `mentoria_edita*` seguem por linha.
   Tabela nova do módulo: política de leitura nesse formato e caso no teste de equivalência.
+- **Lista sem função por linha** (NPAC-69, 24/11/2026): `mentoria_mes_jornada`, `mentoria_onboarding_base` e
+  `mentoria_semaforo` são `LANGUAGE sql` com `SET search_path` (o Postgres não embute) e relêem tabelas sob a RLS a
+  cada chamada; numa lista (e pior, no WHERE de um filtro) custavam 0,2–0,5 s. Em consulta de lista: o mês e a base
+  da etapa vêm dos fragmentos de `api/mentoria/contas-lista.ts` (`mesJornadaJoin`, `RETOMADA_JOIN` + `BASE_ETAPA`,
+  usados pela lista de Mentorados e pelo painel do Onboarding) e o semáforo de `left join mentoria_semaforo_lote(dia)`
+  (uma conta para a consulta). A ficha (uma linha) segue com as funções. `api/test/mentoria-listas-equivalencia.e2e.test.ts`
+  compara com as funções por cargo (Diretoria, Admin, Acompanhamento, Operação, "só a carteira", Especialista).
 - Valor novo de enum não vale na mesma transação da migration (compare como texto). Num banco novo
   todas as migrations rodam numa transação só: em função `LANGUAGE sql` (o corpo é conferido ao criar),
   nada de `'ACOMPANHAMENTO'::role` ou `'DIRETOR'::role`; leia o valor como texto e converta na execução.
