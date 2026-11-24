@@ -190,6 +190,12 @@ body {
     backdrop-filter: var(--blur);
     box-shadow: var(--glhi), var(--gld);
   }
+  /* `backdrop-filter` cria um contexto de empilhamento: o menu aberto dentro de um vidro (CSV em
+     `<details>`, "Mais ações" com `aria-expanded`) ficava por baixo do card seguinte. Com menu
+     aberto, o vidro sobe acima dos vizinhos, abaixo das barras fixas (20 e 25) (NPAC-69). */
+  :is(.glass, .glass-card):has(details[open], [aria-expanded='true']) {
+    z-index: 5;
+  }
   /* Liquid glass nos cards de conteúdo dentro de `.liquid` (por enquanto, o dashboard). */
   .liquid .glass-card {
     background: var(--sheen), var(--gl-liquid);

@@ -41,6 +41,10 @@
     backdrop-filter: var(--blur);
     box-shadow: var(--glhi), var(--gld);
   }
+  /* Menu aberto dentro do card fica acima dos vizinhos (ver `.glass` em globals.css, NPAC-69). */
+  .card:has(details[open], [aria-expanded='true']) {
+    z-index: 5;
+  }
   .btn {
     height: auto;
     min-height: 38px;
