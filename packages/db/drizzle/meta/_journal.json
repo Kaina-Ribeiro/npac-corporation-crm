@@ -589,6 +589,13 @@
       "when": 1795528122671,
       "tag": "0083_push_recomecar",
       "breakpoints": true
+    },
+    {
+      "idx": 84,
+      "version": "7",
+      "when": 1795528182671,
+      "tag": "0084_excluir_contato_anotacao",
+      "breakpoints": true
     }
   ]
 }

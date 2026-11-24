@@ -73,6 +73,8 @@ const TITULOS: Record<string, string> = {
   'checkin.lancado': 'Check-in lançado',
   'checkin.editado': 'Alteração no check-in',
   'evolucao.editada': 'Alteração na evolução',
+  'contato.excluido': 'Contato excluído',
+  'anotacao.excluida': 'Anotação excluída',
   'evolucao.foto': 'Foto da evolução',
   'conquista.adicionada': 'Conquista adicionada',
   'conquista.removida': 'Conquista removida',
@@ -244,7 +246,21 @@ function Reuniao({ r }: { r: ReuniaoItem }) {
   );
 }
 
-function Contato({ c }: { c: ContatoDTO }) {
+/** NPAC-70: só a Admin (e a Diretoria) vê; a API confere de novo. */
+function BotaoExcluir({ rotulo, onClick }: { rotulo: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      className={`${quietButton} sm toque ev-excluir`}
+      aria-label={rotulo}
+      onClick={onClick}
+    >
+      Excluir
+    </button>
+  );
+}
+
+function Contato({ c, onExcluir }: { c: ContatoDTO; onExcluir?: () => void }) {
   const resposta =
     c.respondeu === null
       ? null
@@ -252,7 +268,7 @@ function Contato({ c }: { c: ContatoDTO }) {
         ? `Respondeu${c.tempoRespostaMin != null ? ` em ${c.tempoRespostaMin} min` : ''}`
         : 'Não respondeu';
   return (
-    <div className="ev">
+    <div className={onExcluir ? 'ev com-acao' : 'ev'}>
       <span className="i">
         <Icone d={c.canal === 'WHATSAPP' ? ICONES.whatsapp : ICONES.sino} />
       </span>
@@ -264,6 +280,7 @@ function Contato({ c }: { c: ContatoDTO }) {
         {c.observacao && <p>{c.observacao}</p>}
         <time dateTime={c.quando}>{diaHoraBR(c.quando)}</time>
       </div>
+      {onExcluir && <BotaoExcluir rotulo="Excluir contato" onClick={onExcluir} />}
     </div>
   );
 }
@@ -343,10 +360,11 @@ function NovoContato({ ficha, onFechar }: { ficha: FichaDTO; onFechar: () => voi
   );
 }
 
-function Evento({ e }: { e: HistoricoItem }) {
+function Evento({ e, onExcluir }: { e: HistoricoItem; onExcluir?: () => void }) {
   const anotacao = e.tipo === 'anotacao';
+  const excluir = anotacao ? onExcluir : undefined;
   return (
-    <div className="ev">
+    <div className={excluir ? 'ev com-acao' : 'ev'}>
       <span className="i">
         <Icone d={anotacao ? ICONES.ficha : ICONES.config} />
       </span>
@@ -358,9 +376,12 @@ function Evento({ e }: { e: HistoricoItem }) {
         {!anotacao && e.campos.length > 0 && <p>Campos: {e.campos.map(nomeCampo).join(', ')}.</p>}
         <time dateTime={e.quando}>{quando(e.quando)}</time>
       </div>
+      {excluir && <BotaoExcluir rotulo="Excluir anotação" onClick={excluir} />}
     </div>
   );
 }
+
+type Excluindo = { tipo: 'contato' | 'anotacao'; id: string };
 
 /** Aba Histórico: alterações (só nomes de campos) e anotações. */
 export function HistoricoLista({
@@ -387,6 +408,9 @@ export function HistoricoLista({
   const [anotando, setAnotando] = useState(false);
   const [contato, setContato] = useState(false);
   const [texto, setTexto] = useState('');
+  const [excluindo, setExcluindo] = useState<Excluindo | null>(null);
+  const router = useRouter();
+  const podeExcluir = ficha.pode.admin;
   const url = `/api/mentoria/inscricoes/${ficha.id}`;
 
   const carregar = useCallback(
@@ -465,10 +489,44 @@ export function HistoricoLista({
         x.tipo === 'reuniao' ? (
           <Reuniao key={`r${x.r.id}`} r={x.r} />
         ) : x.tipo === 'contato' ? (
-          <Contato key={`c${x.c.id}`} c={x.c} />
+          <Contato
+            key={`c${x.c.id}`}
+            c={x.c}
+            onExcluir={
+              podeExcluir ? () => setExcluindo({ tipo: 'contato', id: x.c.id }) : undefined
+            }
+          />
         ) : (
-          <Evento key={x.e.id} e={x.e} />
+          <Evento
+            key={x.e.id}
+            e={x.e}
+            onExcluir={
+              podeExcluir ? () => setExcluindo({ tipo: 'anotacao', id: x.e.id }) : undefined
+            }
+          />
         ),
+      )}
+      {excluindo && (
+        <Dialogo
+          titulo={excluindo.tipo === 'contato' ? 'Excluir contato?' : 'Excluir anotação?'}
+          texto={
+            excluindo.tipo === 'contato'
+              ? 'Ele sai do Histórico e não conta mais como último contato. Não dá para desfazer.'
+              : 'Ela sai do Histórico. Não dá para desfazer.'
+          }
+          rotulo={excluindo.tipo === 'contato' ? 'Excluir contato' : 'Excluir anotação'}
+          perigo
+          onConfirmar={async () => {
+            await clientApi(
+              `/api/mentoria/${excluindo.tipo === 'contato' ? 'contatos' : 'anotacoes'}/${excluindo.id}`,
+              'DELETE',
+            );
+            await carregar();
+            // O contato vem da ficha (servidor): recarrega para sumir da lista e do último contato.
+            if (excluindo.tipo === 'contato') router.refresh();
+          }}
+          onFechar={() => setExcluindo(null)}
+        />
       )}
       {contato && <NovoContato ficha={ficha} onFechar={() => setContato(false)} />}
       {anotando && (
