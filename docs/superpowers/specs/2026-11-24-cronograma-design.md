@@ -1,6 +1,6 @@
 # NPAC-60 — Cronograma do PME dentro do sistema (desenho)
 
-Status: **rascunho para o Gabriel aprovar** (24/11/2026). Pedido da Eduarda (vídeo de 20/11 + duas rodadas de
+Status: **aprovado pelo Gabriel** (24/11/2026: desenho e protótipo versão 2, "Aprovo, constrói"). Pedido da Eduarda (vídeo de 20/11 + duas rodadas de
 respostas). Caixa: `docs/pedidos/caixa.md`, NPAC-60.
 
 ## 1. Por quê
@@ -104,7 +104,7 @@ Dela: R1–R8 (seção 1). **Minhas** (marcadas para o Gabriel conferir):
 | C14 | Casar coluna com inscrição: automático **só** quando há uma única candidata; várias (inclusive RDV e 2M da mesma pessoa) ou nenhuma = dúvida, e a Admin escolhe na prévia (com mentoria, status, PME atual e o maior mês da coluna lado a lado) ou deixa "Ignorar" (padrão) | 30 colunas só com o primeiro nome; o mês da planilha vale para uma inscrição só: ligar a coluna do RDV à 2M faria o 2º mês do RDV virar tarefa do 2º PME da 2M |
 | C15 | Duas colunas na mesma inscrição (nome repetido) ou item repetido (3 EAP): junta; fica o **menor** mês | o que a pessoa recebeu primeiro é o que vale para não repetir |
 
-## 6. Modelo de dados (migration 0084, SQL manual onde o Drizzle não cobre)
+## 6. Modelo de dados (migration 0085, SQL manual onde o Drizzle não cobre)
 
 **`mentoria_cronograma_itens`** (catálogo; sem dado pessoal; não cifrado)
 - `id uuid`, `bloco text` CHECK in (`EXPERIENCIA`, `DESAFIO`, `FILME`, `LIVRO`, `EAP`), `texto text` (1–2000),
@@ -193,20 +193,36 @@ Semáforo não muda (só olha tarefas da reunião). `fila-equivalencia` ganha o 
    não muda nada.
 6. **Resultado**: os números do que entrou e do que ficou de fora; nada de nome em log.
 
-## 9. Telas (protótipo para aprovar antes do código)
+## 9. Telas (protótipo aprovado: `docs/acompanhamento/prototipo/cronograma/`, versão 2)
 
-1. **Configurações > Cronograma** (Admin): 5 seções com contador; cada item com o texto (link clicável no EAP), "usado
-   N vezes", "Esconder/Mostrar" e editar texto; "Novo item" por bloco.
-2. **Configurações > Importação**: card "Cronograma" abaixo do da carteira: arquivo → prévia → decisões → Importar →
-   resultado.
-3. **Janela "Enviar o Nº PME"** (ficha e Fila): data (como hoje) + "Cronograma deste PME" com os 5 blocos, cada um com
-   as sugestões (C4) e "Trocar"/"Tirar"/"Adicionar" (busca no banco entre o que a pessoa ainda não recebeu) e "Item só
-   desta pessoa"; o modelo aparece como "EAP 2 de 3". Celular: blocos empilhados, toques de 44 px.
-4. **Card "PME atual"** (Jornada): as tarefas do cronograma agrupadas por bloco, com o mesmo marcar de hoje; "Montar o
-   cronograma" quando não há nenhuma.
-5. **Aba "Cronograma" da ficha** (depois de Evolução): PME a PME (mais recente em cima), cada item com o bloco e o
-   resultado; "Já tinha antes" e "Recebido no RDV (outra inscrição)" em seções próprias; por bloco, "Ainda não recebeu:
-   N" que abre a lista.
+Peças do sistema, sem componente visual novo: lista `.pl-lista`/`.pl-mod` (como Configurações → PMEs), seletor `.seg`
+(como Envios), título de seção "Nome N" (`.ob-h`), `.tag`, `.btn`; escala de letra 13/15/17; nada de cartão dentro de
+cartão. As capturas `*-1440-claro.png` e `*-375-claro.png` são a referência de cada tela.
+
+1. **Janela "Enviar o Nº PME"** (card da ficha e Fila `ENVIAR_PME`; `envio-*.png`): data + "Cronograma deste PME N" e
+   o modelo da planilha; uma lista com cabeçalho por bloco ("Desafios · 1 de 1", contador dourado), cada item uma linha
+   com ›; **tocar no item abre a troca**; "+ Adicionar <bloco>" é uma linha discreta no fim de cada bloco; rodapé fixo
+   "N itens do cronograma · Cancelar · Enviar o Nº PME".
+2. **Troca** (`envio-trocar-*.png`): no computador (≥ 768 px), caixa suspensa presa ao item: busca primeiro ("Trocar por
+   outro <bloco>…"), "Ainda não recebeu · N" (tocar escolhe), "Já recebeu · não dá para repetir" apagado com "1º PME"/
+   "RDV", rodapé "Tirar do PME" e "Escrever só para ele". No celular, tela própria por cima da janela, com "‹ Voltar",
+   "No lugar de: …", busca, as mesmas listas em linhas tocáveis e os dois botões fixos embaixo. "+ Adicionar" abre a
+   mesma tela sem "No lugar de".
+3. **Card "PME atual"** (Jornada; `card-*.png`): depois das extras, "CRONOGRAMA DESTE PME · N de M feitos" e as tarefas
+   com o mesmo marcar de hoje (o comprovante só aparece em Feita/Parcial); "Montar o cronograma" quando o ciclo aberto
+   não tem nenhum item.
+4. **Aba "Cronograma" da ficha** (depois de Evolução; `aba-*.png`): título + "N itens recebidos, contando o RDV" e o
+   seletor "Todos · Experiências N · …"; grupos "2º PME · 3 de 8 feitos · enviado em DD/MM/AAAA" (linha: ícone do bloco,
+   texto em 2 linhas, nome do bloco, etiqueta Feita/Não feita/Parcial/Pendente), "1º PME · antes do sistema · da
+   planilha" (etiqueta só em "Não fez"), "No RDV · N · outra inscrição" (2 linhas + "Ver os N itens do RDV ›") e "Já
+   tinha antes".
+5. **Configurações → Cronograma** (Admin; `banco-*.png`): seletor dos 5 blocos com contagem, busca, "Novo <bloco>"; lista
+   igual a Configurações → PMEs (número, texto em 2 linhas, "N envios"/"Nunca enviado"/"Escondido · N envios", ›);
+   tocar abre a edição (texto, Esconder/Mostrar).
+6. **Configurações → Importação** (Admin; `importacao-*.png`): card "Planilha do cronograma" depois do da carteira, em 3
+   passos (Arquivo → Revisar colunas → Importar); no passo 2, o arquivo numa linha, "Para revisar N" com o seletor "Em
+   dúvida N · Sem ficha N" e uma linha por coluna com a escolha da ficha (e a dica azul no caso RDV × 2M); no passo 3, os
+   números do que entra e "Importar".
 
 ## 10. Quem faz o quê
 
