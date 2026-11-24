@@ -3,7 +3,7 @@ import { LoggerModule } from 'nestjs-pino';
 import { AuditModule } from './audit/audit.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { DbModule } from './common/db/db.module.js';
-import { loggerOptions } from './common/logging/logger.js';
+import { loggerOptions, semLogDeAcesso } from './common/logging/logger.js';
 import { HealthController } from './health/health.controller.js';
 import { LeadsModule } from './leads/leads.module.js';
 import { MeController } from './me/me.controller.js';
@@ -22,7 +22,9 @@ import { ContaModule } from './conta/conta.module.js';
 
 @Module({
   imports: [
-    LoggerModule.forRoot({ pinoHttp: loggerOptions }),
+    LoggerModule.forRoot({
+      pinoHttp: { ...loggerOptions, autoLogging: { ignore: semLogDeAcesso } },
+    }),
     DbModule,
     PushModule,
     MailModule,

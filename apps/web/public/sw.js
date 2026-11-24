@@ -3,6 +3,20 @@
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
 
+/**
+ * Safari (iPhone, iPad, Mac): todo push tem de mostrar um aviso. Push sem aviso conta como
+ * "silencioso" e o sistema cancela a inscrição: os avisos param até a pessoa ligar de novo
+ * (NPAC-71). Sem conseguir ler a inscrição, mostra: o pior caso é um aviso a mais.
+ */
+async function avisoObrigatorio() {
+  try {
+    const sub = await self.registration.pushManager.getSubscription();
+    return !sub || new URL(sub.endpoint).hostname.endsWith('push.apple.com');
+  } catch {
+    return true;
+  }
+}
+
 self.addEventListener('push', (event) => {
   let data = {};
   try {
@@ -14,12 +28,13 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     (async () => {
       const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-      // Quem está com o chat aberto e em foco já vê a mensagem: sem alerta do sistema.
+      // Quem está com o chat aberto e em foco já vê a mensagem: sem alerta do sistema. No Safari
+      // o alerta sai mesmo assim (ver `avisoObrigatorio`).
       const watching = windows.some(
         (w) =>
           w.focused && w.visibilityState === 'visible' && new URL(w.url).pathname.startsWith(url),
       );
-      if (data.tag === 'chat' && watching) return;
+      if (data.tag === 'chat' && watching && !(await avisoObrigatorio())) return;
       await self.registration.showNotification(data.title || 'NPAC CRM', {
         body: data.body || undefined,
         tag: data.tag || undefined,

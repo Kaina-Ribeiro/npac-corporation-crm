@@ -11,6 +11,9 @@ export const loggerOptions: LoggerOptions = {
       method: req.method,
       url: req.url?.split('?')[0],
     }),
+    // Só o status: os cabeçalhos de resposta (~1 KB por linha) enchiam o log e as linhas de push
+    // sumiam em minutos (NPAC-71).
+    res: (res: { statusCode?: number }) => ({ statusCode: res.statusCode }),
     // Exceções de drivers podem conter SQL e parâmetros com dados pessoais.
     err: (err: { name?: string }) => ({ type: err.name ?? 'Error' }),
   },
@@ -26,6 +29,12 @@ export const loggerOptions: LoggerOptions = {
     censor: '[redacted]',
   },
 };
+
+/**
+ * Pedidos que não entram no log de acesso: a checagem de saúde roda a cada poucos segundos e não
+ * diz nada (NPAC-71). Erro dela continua aparecendo no log de erro do Nest.
+ */
+export const semLogDeAcesso = (req: { url?: string }) => req.url?.split('?')[0] === '/api/health';
 
 export function createLogger(destination?: DestinationStream): Logger {
   return destination ? pino(loggerOptions, destination) : pino(loggerOptions);
