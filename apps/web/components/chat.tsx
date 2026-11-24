@@ -1,6 +1,13 @@
 'use client';
 import Link from 'next/link';
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type FormEvent,
+} from 'react';
 import { readPrefs, writePrefs } from '@npac/shared/screen-prefs';
 import { rememberPrefs } from '@/lib/screen-prefs';
 import { useLatestPrefs } from '@/lib/use-latest-prefs';
@@ -38,7 +45,26 @@ const time = (at: string) =>
     minute: '2-digit',
   });
 
-/** Geral + DMs. O stream só avisa que algo mudou; aqui refazemos as consultas autorizadas. */
+/** A partir daqui (o `md` do Tailwind) a lista e a conversa ficam lado a lado. */
+const LADO_A_LADO = '(min-width: 48rem)';
+const aoMudarLargura = (avisar: () => void) => {
+  const media = window.matchMedia(LADO_A_LADO);
+  media.addEventListener('change', avisar);
+  return () => media.removeEventListener('change', avisar);
+};
+const ladoALado = () => window.matchMedia(LADO_A_LADO).matches;
+
+/** Horário da mensagem mais nova da página: o mesmo valor que a lista traz em `lastMessageAt`. */
+const maisNova = (list: Message[]) =>
+  list.reduce<string | null>((at, m) => (at && at > m.createdAt ? at : m.createdAt), null);
+
+/**
+ * Geral + DMs. O stream só avisa que algo mudou; aqui refazemos as consultas autorizadas.
+ *
+ * NPAC-72: a conversa só carrega e só marca como lida quando está na tela (no celular a lista e a
+ * conversa são telas separadas). O aviso ao vivo vale para qualquer escrita do CRM, então ele
+ * confere a lista de conversas e só busca as mensagens se a conversa aberta mudou.
+ */
 export function Chat({
   initial,
   users,
@@ -91,30 +117,52 @@ export function Chat({
   const bottom = useRef<HTMLDivElement>(null);
   const current = channels.find((c) => c.id === active);
 
-  const loadChannels = useCallback(
-    async () => setChannels(await clientApi<Channel[]>('/api/chat/channels')),
-    [],
-  );
-  const loadMessages = useCallback(async (id: string) => {
+  // No celular a conversa só está na tela depois do toque; no computador, sempre.
+  const largo = useSyncExternalStore(aoMudarLargura, ladoALado, () => false);
+  const naTela = largo || open;
+  /** Estado mais recente para o que roda depois de um `await`. */
+  const agora = useRef({ active, channels });
+  useEffect(() => {
+    agora.current = { active, channels };
+  });
+  /** Por conversa: horário da mensagem mais nova já mostrada. */
+  const vistoAte = useRef<Record<string, string | null>>({});
+
+  const loadChannels = useCallback(async () => {
+    const list = await clientApi<Channel[]>('/api/chat/channels');
+    setChannels(list);
+    return list;
+  }, []);
+  /** `marcar`: há não lidas nesta conversa, então grava o "lido até" (só com ela na tela). */
+  const loadMessages = useCallback(async (id: string, marcar: boolean) => {
     const page = await clientApi<{ messages: Message[] }>(`/api/chat/channels/${id}/messages`);
+    // Resposta de uma conversa que a pessoa já trocou não entra na que está aberta.
+    if (agora.current.active !== id) return;
     setMessages((prev) => [...page.messages, ...prev.filter((m) => m.failed)]);
+    vistoAte.current[id] = maisNova(page.messages);
     const last = page.messages.at(-1)?.id;
-    if (last) {
+    if (marcar && last) {
       await clientApi(`/api/chat/channels/${id}/read`, 'POST', { lastReadId: last });
       setChannels((list) => list.map((c) => (c.id === id ? { ...c, unread: 0 } : c)));
     }
   }, []);
 
   useEffect(() => {
-    if (active) void loadMessages(active).catch((e: Error) => setError(e.message));
-  }, [active, loadMessages]);
+    if (!active || !naTela) return;
+    const unread = agora.current.channels.find((c) => c.id === active)?.unread ?? 0;
+    void loadMessages(active, unread > 0).catch((e: Error) => setError(e.message));
+  }, [active, naTela, loadMessages]);
   useEffect(() => {
     // Chromium devolve uma Promise aqui; não pode virar o cleanup do efeito.
     void bottom.current?.scrollIntoView({ block: 'end' });
   }, [messages.length]);
   useCrmRefresh(async () => {
-    await loadChannels();
-    if (active) await loadMessages(active);
+    const list = await loadChannels();
+    if (!active || !naTela) return;
+    const atual = list.find((c) => c.id === active);
+    // Sem não lidas e com a mesma mensagem mais nova: a escrita foi em outro lugar do CRM.
+    if (!atual || (atual.unread === 0 && atual.lastMessageAt === vistoAte.current[active])) return;
+    await loadMessages(active, atual.unread > 0);
   });
 
   async function send(e: FormEvent<HTMLFormElement>) {
@@ -139,7 +187,8 @@ export function Chat({
         ...(draft.lead ? { leadId: draft.lead.id } : {}),
       });
       setMessages((m) => m.filter((x) => x.id !== draft.id));
-      await loadMessages(active);
+      // O envio já grava o "lido até" no servidor.
+      await loadMessages(active, false);
     } catch (err) {
       setMessages((m) => m.map((x) => (x.id === draft.id ? { ...x, failed: true } : x)));
       setError((err as Error).message);
@@ -202,9 +251,11 @@ export function Chat({
               type="button"
               aria-current={c.id === active ? 'true' : undefined}
               onClick={() => {
+                // Só esvazia ao trocar de conversa: a mesma conversa não é buscada de novo
+                // pela troca, e ficava vazia no celular.
+                if (c.id !== active) setMessages([]);
                 setActive(c.id);
                 setOpen(true);
-                setMessages([]);
               }}
               className={`flex min-h-12 items-center justify-between rounded-xl px-3 text-left font-semibold ${
                 c.id === active ? 'bg-black/5 dark:bg-white/10' : ''

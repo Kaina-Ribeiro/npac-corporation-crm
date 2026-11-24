@@ -772,6 +772,12 @@ protótipo no canvas "Meu perfil". Gabriel aprovou com "1A, 2A, 3A".
 
 - Chat: selo de não lidas (`chatUnread` em `/notifications`) e `(N)` no título, pelo SSE. Push sem
   texto: "Nova mensagem no Chat" (Geral → todos menos o autor) ou "de <nome>" (DM → destinatário).
+- **Chat só carrega o que está na tela** (NPAC-72, Igor 24/11/2026: "pesado no iPhone"; `components/chat.tsx`): abaixo
+  de 768 px a lista e a conversa são telas separadas, e a conversa só busca as mensagens e só grava o "lido até" quando
+  está na tela (`naTela`), e só grava havendo não lidas. Tocar na conversa já selecionada não a esvazia. O aviso ao
+  vivo (qualquer escrita do CRM) confere a lista (`GET /chat/channels`) e só rebusca as mensagens se a conversa aberta
+  tem não lidas ou outra mensagem mais nova (`lastMessageAt` × `vistoAte`). e2e `e2e/chat-celular.spec.ts`; capturas
+  em `docs/capturas/npac-72/`. Redesign do Chat: pedido à parte.
 - Lembretes do dono do lead (`leads.sdr_id`): `H1` (60 min) e `M15` (15 min) com
   "Confirmação enviada" (`POST /meetings/:id/confirm`, `meeting_confirmations` por horário, timeline
   `meeting.confirmed`); `M1` só aviso. Etapa vigente calculada no navegador (`sh/reminders.ts`).
