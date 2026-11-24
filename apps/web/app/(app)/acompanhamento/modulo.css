@@ -37,8 +37,8 @@
     position: relative;
     border-radius: 20px;
     background: var(--gl2);
-    backdrop-filter: var(--blur);
     -webkit-backdrop-filter: var(--blur);
+    backdrop-filter: var(--blur);
     box-shadow: var(--glhi), var(--gld);
   }
   .btn {
@@ -122,8 +122,8 @@
     padding: 6px;
     border-radius: 14px;
     background: var(--gl-solid);
-    backdrop-filter: none;
     -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
   .busca-item {
     display: flex;
@@ -1281,8 +1281,8 @@
     padding: 6px;
     border-radius: 14px;
     background: var(--gl-solid);
-    backdrop-filter: none;
     -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
   .fc-menu button {
     display: flex;
@@ -3298,8 +3298,8 @@
     width: 100%;
     min-width: 0;
     background: var(--gl-solid);
-    backdrop-filter: none;
     -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
   .pn {
     display: flex;
