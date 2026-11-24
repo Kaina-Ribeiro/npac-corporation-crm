@@ -18,6 +18,7 @@ import type { CampoEvolucao } from './evolucao.js';
 import type { Engajamento, PainelEngajamento } from './engajamento.js';
 import type { Pilar } from './metas.js';
 import type { CicloStatus, TarefaOrigem, TarefaStatus } from './pmes.js';
+import type { Bloco, ItemBanco, Recebido } from './cronograma.js';
 import type { MetaStatus, SemaforoCor, SemaforoMotivo } from './semaforo.js';
 
 /** `GET mentoria/eu`: o perfil operacional e o selo de Admin de quem está logado. */
@@ -459,6 +460,8 @@ export type FichaDTO = {
     segundaChance: boolean;
     /** Aba Evolução aparece (Admin, Acompanhamento com a carteira, Operação; NPAC-57). */
     verEvolucao: boolean;
+    /** Aba Cronograma aparece (Admin, Acompanhamento, Operação; NPAC-60). */
+    verCronograma: boolean;
     /** Edita a aba Evolução: cartões, momentos, fotos e conquistas (Admin, Acompanhamento). */
     evolucao: boolean;
     /** Trocar o responsável: quem edita a inscrição, menos quem tem "só a carteira" (Fase 3B, e). */
@@ -507,7 +510,29 @@ export type TarefaDTO = {
   /** Reunião onde foi combinada (ISO em UTC) e o tipo dela. */
   reuniaoInicio: string | null;
   reuniaoTipo: ReuniaoTipo | null;
+  /** Bloco do item do cronograma (NPAC-60); só na origem PME. */
+  cronogramaBloco: Bloco | null;
+  /** Item do banco; nulo = "só desta pessoa" ou fora do cronograma. */
+  cronogramaItemId: string | null;
   podeEditar: boolean;
+};
+
+/** Item do banco do cronograma na tela da Admin, com quantas tarefas o usam. */
+export type ItemBancoDTO = ItemBanco & { version: number; envios: number };
+
+/**
+ * Dados da janela de envio e da aba Cronograma (NPAC-60): o banco inteiro (~300 itens, também os
+ * escondidos, para dar nome ao que já foi), o que a pessoa já tem (desta e das outras inscrições dela),
+ * o próximo número de PME (nulo quando não dá para enviar) e a sugestão do modelo para ele.
+ */
+export type CronogramaDTO = {
+  banco: ItemBanco[];
+  recebidos: Recebido[];
+  proximo: number | null;
+  sugestao: Record<Bloco, ItemBanco[]>;
+  semCronograma: boolean;
+  /** Pode escolher os itens do PME (quem envia PME: Admin, Acompanhamento, Operação). */
+  podeEscolher: boolean;
 };
 
 /** Meta (Parte 2). `pessoaId` nulo = do casal ou do individual. `status` nulo = sem marcação (E10). */
