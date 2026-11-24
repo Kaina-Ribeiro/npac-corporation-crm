@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page, type Response } from '@playwright/test';
 import { closeTestConnections, ownerSql } from '@npac/db/testing';
 import { E2E_DB, E2E_PASSWORD } from './env.js';
 import { naConversa } from './chat-helpers.js';
@@ -129,4 +129,85 @@ test('escrita que não é do Chat não rebusca as mensagens; mensagem nova chega
   await page.waitForTimeout(3000);
   expect(pedidos.filter((p) => p === MENSAGENS)).toHaveLength(1);
   expect(pedidos.filter((p) => p === LIDA)).toHaveLength(1);
+});
+
+// Gabriel, 24/11/2026: "quando enviamos uma mensagem, ela dá um glitch estranho" e "o gesto de
+// voltar do iPhone, ao invés de voltar aos chats, vai para o Hoje".
+test.describe('no celular, envio e voltar', () => {
+  test.use({ viewport: { width: 375, height: 812 }, hasTouch: true });
+
+  test('a mensagem enviada não some enquanto a conversa recarrega', async ({ page }) => {
+    await login(page, 'ale');
+    await page.goto('/chat');
+    const mensagens = (metodo: string) => (r: Response) =>
+      r.request().method() === metodo &&
+      /\/api\/chat\/channels\/[^/]+\/messages$/.test(new URL(r.url()).pathname);
+    const abriu = page.waitForResponse(mensagens('GET'));
+    await geral(page).click();
+    await abriu;
+    const campo = page.getByRole('textbox', { name: 'Mensagem' });
+    await expect(campo).toBeVisible();
+
+    // A busca que vem depois do envio demora (como na rede de verdade).
+    let enviou = false;
+    await page.route('**/api/chat/channels/*/messages', async (route) => {
+      if (route.request().method() === 'POST') enviou = true;
+      else if (enviou) await new Promise((r) => setTimeout(r, 800));
+      await route.continue();
+    });
+    const texto = `Sem piscar ${Date.now()}`;
+    await page.evaluate((t) => {
+      const w = window as unknown as { viu: boolean; sumiu: boolean };
+      w.viu = false;
+      w.sumiu = false;
+      new MutationObserver(() => {
+        const tem = [...document.querySelectorAll('.ch-b')].some((b) => b.textContent?.includes(t));
+        if (tem) w.viu = true;
+        else if (w.viu) w.sumiu = true;
+      }).observe(document.querySelector('.ch-conv')!, {
+        subtree: true,
+        childList: true,
+        characterData: true,
+      });
+    }, texto);
+
+    // A busca de depois do envio (a que demora), não uma de antes.
+    const recarregou = page
+      .waitForResponse(mensagens('POST'))
+      .then(() => page.waitForResponse(mensagens('GET')));
+    await campo.fill(texto);
+    await campo.press('Enter');
+    await recarregou;
+    await expect(naConversa(page, texto)).toHaveCount(1);
+    const visto = await page.evaluate(() => {
+      const w = window as unknown as { viu: boolean; sumiu: boolean };
+      return { viu: w.viu, sumiu: w.sumiu };
+    });
+    expect(visto).toEqual({ viu: true, sumiu: false });
+  });
+
+  test('o voltar do aparelho fecha a conversa e só depois sai do Chat', async ({ page }) => {
+    await login(page, 'ale');
+    // Chega ao Chat pela barra de baixo, vindo de outra tela (como o Igor, vindo do Hoje).
+    await page.getByRole('link', { name: 'Hoje' }).filter({ visible: true }).click();
+    await page.waitForURL(/\/hoje/);
+    await page.getByRole('link', { name: /^Chat/ }).filter({ visible: true }).click();
+    await page.waitForURL(/\/chat/);
+    const ch = page.locator('.ch');
+
+    await geral(page).click();
+    await expect(ch).toHaveAttribute('data-conversa', 'true');
+    await page.goBack();
+    await expect(page).toHaveURL(/\/chat$/);
+    await expect(ch).not.toHaveAttribute('data-conversa');
+    await expect(page.getByRole('navigation', { name: 'Conversas' })).toBeVisible();
+
+    // O botão de voltar da tela não deixa passo sobrando: o próximo voltar já sai do Chat.
+    await geral(page).click();
+    await expect(ch).toHaveAttribute('data-conversa', 'true');
+    await page.getByRole('button', { name: 'Conversas' }).click();
+    await expect(ch).not.toHaveAttribute('data-conversa');
+    await page.goBack();
+    await page.waitForURL(/\/hoje/);
+  });
 });
