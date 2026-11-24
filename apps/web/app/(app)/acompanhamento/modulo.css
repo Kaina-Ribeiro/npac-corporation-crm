@@ -691,6 +691,18 @@
     font-size: 12px;
     color: var(--ink3);
   }
+  /* NPAC-70: "Excluir" da Admin no contato e na anotação; discreto na lista, vermelho só no foco. */
+  .ev.com-acao {
+    grid-template-columns: 28px 1fr auto;
+  }
+  .ev-excluir {
+    align-self: start;
+    color: var(--ink2);
+  }
+  .ev-excluir:hover,
+  .ev-excluir:focus-visible {
+    color: var(--tag-bad);
+  }
   .hf {
     display: flex;
     gap: 4px;

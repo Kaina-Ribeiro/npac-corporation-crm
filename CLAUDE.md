@@ -432,6 +432,13 @@ alcance)` (5 argumentos; a de 4 mantém o alcance), por convite, aprovação, `P
   Admin transferir. CSV do módulo: Admin e perfil Acompanhamento, auditado
   (`mentoria.csv`), contato só para Admin, nunca dor, sonho, meta, anotações ou textos de reunião. Excluir e
   anonimizar (LGPD) só Admin, pela ficha; anonimizar mantém inscrição, reuniões e ações para as contagens.
+  **Excluir contato e anotação** (NPAC-70, Duda 24/11/2026, "1A, 2C"): só a Admin do módulo e a Diretoria, pelo
+  "Excluir" de cada item na ficha > Histórico (janelinha de confirmação). `DELETE mentoria/contatos/:id` e
+  `DELETE mentoria/anotacoes/:id` (`@SoAdmin`, demais 404) chamam `mentoria_contato_excluir`/`mentoria_anotacao_excluir`
+  (0084, SECURITY DEFINER; o `npac_app` segue sem DELETE nas duas tabelas), que gravam `contato.excluido`/
+  `anotacao.excluida` no histórico, sem o texto. Contato excluído sai do "último contato" e, se fechava um degrau
+  do "PME atrasado", o item volta à Fila. Testes: `db/test/mentoria-excluir-registro.test.ts`,
+  `api/test/mentoria-v2-excluir-registro.e2e.test.ts`, `e2e/acompanhamento-excluir-registro.spec.ts`.
   Salvar ao sair do campo: em 409 a fila reaplica se o outro não mexeu naquele campo; se mexeu, avisa e mantém o dele (`resolverConflito`).
   Datas (18/11/2026, print da Eduarda): campo de data do módulo leva `min={DATA_MIN}`/`max={DATA_MAX}` (`sh/mentoria/datas.ts`,
   1900 a 2999, a faixa da API); sem eles o Chrome aceita ano "25" (0025) ou de 6 dígitos e a API recusava. `CampoPr` de data

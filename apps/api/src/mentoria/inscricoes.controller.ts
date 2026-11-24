@@ -121,6 +121,21 @@ export class InscricoesController {
     return this.ficha.anotar(u, entityId(id), validate(anotacaoSchema, body).texto);
   }
 
+  /** NPAC-70: anotação e contato saem do Histórico só pela Admin (e a Diretoria). */
+  @Delete('anotacoes/:id')
+  @HttpCode(204)
+  @SoAdmin()
+  async excluirAnotacao(@CurrentUser() u: SessionUser, @Param('id') id: string) {
+    await this.ficha.excluirAnotacao(u, entityId(id));
+  }
+
+  @Delete('contatos/:id')
+  @HttpCode(204)
+  @SoAdmin()
+  async excluirContato(@CurrentUser() u: SessionUser, @Param('id') id: string) {
+    await this.ficha.excluirContato(u, entityId(id));
+  }
+
   @Post('inscricoes/:id/pausar')
   @HttpCode(200)
   @Perfis('ACOMPANHAMENTO')
