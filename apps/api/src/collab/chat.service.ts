@@ -6,6 +6,8 @@ import { DB } from '../common/db/db.module.js';
 import { PushService } from '../push/push.service.js';
 
 const PAGE = 50;
+/** Prévia da lista de conversas: cabe em 2 linhas no celular. */
+const PREVIEW = 120;
 
 export type ChatMessageDTO = {
   id: number;
@@ -25,6 +27,10 @@ export class ChatService {
     private readonly push: PushService,
   ) {}
 
+  /**
+   * Conversas da pessoa (RLS: Geral e as DMs dela) com a prévia da última mensagem: o começo do
+   * texto numa linha, cortado no banco. A prévia nunca vai para log, URL ou auditoria.
+   */
   channels(u: AuthUser) {
     return withUser(this.db, u.id, async (tx) => {
       const rows = await tx.execute<{
@@ -33,6 +39,9 @@ export class ChatService {
         name: string | null;
         unread: number;
         last_at: Date | null;
+        last_author_id: string | null;
+        last_author_name: string | null;
+        last_text: string | null;
       }>(sql`
         select c.id, c.kind,
           (select ou.name from chat_members om join "user" ou on ou.id = om.user_id
@@ -40,8 +49,14 @@ export class ChatService {
           (select count(*)::int from chat_messages m where m.channel_id = c.id and m.author_id <> ${u.id}
             and m.id > coalesce((select r.last_read_id from chat_reads r
               where r.channel_id = c.id and r.user_id = ${u.id}), 0)) as unread,
-          (select max(m.created_at) from chat_messages m where m.channel_id = c.id) as last_at
+          last.created_at as last_at, last.author_id as last_author_id,
+          (select a.name from "user" a where a.id = last.author_id) as last_author_name,
+          left(regexp_replace(btrim(last.body), '\\s+', ' ', 'g'), ${PREVIEW + 1}) as last_text
         from chat_channels c
+        left join lateral (
+          select m.author_id, m.body, m.created_at from chat_messages m
+          where m.channel_id = c.id order by m.id desc limit 1
+        ) last on true
         order by c.kind = 'GENERAL' desc, last_at desc nulls last, c.created_at`);
       return rows.map((r) => ({
         id: r.id,
@@ -49,6 +64,17 @@ export class ChatService {
         name: r.kind === 'GENERAL' ? 'Geral' : (r.name ?? 'Conversa'),
         unread: r.unread,
         lastMessageAt: r.last_at ? new Date(r.last_at).toISOString() : null,
+        lastMessage:
+          r.last_author_id && r.last_text !== null
+            ? {
+                authorId: r.last_author_id,
+                authorName: r.last_author_name ?? '',
+                text:
+                  r.last_text.length > PREVIEW
+                    ? `${r.last_text.slice(0, PREVIEW - 1).trimEnd()}…`
+                    : r.last_text,
+              }
+            : null,
       }));
     });
   }

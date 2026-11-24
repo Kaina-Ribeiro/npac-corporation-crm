@@ -19,7 +19,14 @@ const TEXTO: Record<Exclude<Estado, null>, string> = {
  * Convite para ativar os avisos fora do CRM (pedido do Igor, 16/11/2026: a equipe não sabia que dava).
  * Aparece só quando dá para ligar e ainda não está ligado neste aparelho; "Agora não" esconde por 7 dias.
  */
-export function PushInvite({ className = '' }: { className?: string }) {
+export function PushInvite({
+  className = '',
+  variante,
+}: {
+  className?: string;
+  /** Chat (redesign A1): cartão de vidro sem título, sino dourado e botões em cápsula. */
+  variante?: 'chat';
+}) {
   const [estado, setEstado] = useState<Estado>(null);
   const [busy, setBusy] = useState(false);
   const [erro, setErro] = useState('');
@@ -57,6 +64,42 @@ export function PushInvite({ className = '' }: { className?: string }) {
     }
   }
 
+  const chat = variante === 'chat';
+  const ativa = chat ? 'ch-cap ink toque' : button;
+  const quieta = chat ? 'ch-cap quieta toque' : quietButton;
+  const botoes =
+    estado === 'off' ? (
+      <>
+        <button type="button" className={ativa} disabled={busy} onClick={() => void ativar()}>
+          Ativar avisos
+        </button>
+        <button type="button" className={quieta} onClick={fechar}>
+          Agora não
+        </button>
+      </>
+    ) : (
+      <button type="button" className={quieta} onClick={fechar}>
+        Entendi
+      </button>
+    );
+  const falha = erro && (
+    <p role="alert" className="mt-2 text-[13px] font-medium text-danger">
+      {erro}
+    </p>
+  );
+
+  if (chat)
+    return (
+      <section aria-label="Avisos neste aparelho" className={`ch-vidro ${className}`}>
+        <span aria-hidden="true" className="ch-canal">
+          {bell}
+        </span>
+        <p>{TEXTO[estado]}</p>
+        {falha}
+        <div className="ch-bt">{botoes}</div>
+      </section>
+    );
+
   return (
     <section
       aria-label="Avisos neste aparelho"
@@ -73,32 +116,8 @@ export function PushInvite({ className = '' }: { className?: string }) {
           Ative os avisos neste aparelho
         </h2>
         <p className="mt-1 text-[13px] leading-snug text-ink2">{TEXTO[estado]}</p>
-        {erro && (
-          <p role="alert" className="mt-2 text-[13px] font-medium text-danger">
-            {erro}
-          </p>
-        )}
-        <div className="mt-3 flex flex-wrap gap-2">
-          {estado === 'off' ? (
-            <>
-              <button
-                type="button"
-                className={button}
-                disabled={busy}
-                onClick={() => void ativar()}
-              >
-                Ativar avisos
-              </button>
-              <button type="button" className={quietButton} onClick={fechar}>
-                Agora não
-              </button>
-            </>
-          ) : (
-            <button type="button" className={quietButton} onClick={fechar}>
-              Entendi
-            </button>
-          )}
-        </div>
+        {falha}
+        <div className="mt-3 flex flex-wrap gap-2">{botoes}</div>
       </div>
     </section>
   );

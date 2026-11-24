@@ -6,6 +6,7 @@ import { apiGet } from '@/lib/api';
 import { prefsCookie } from '@/lib/screen-prefs';
 import { getSession } from '@/lib/session';
 import { getTeamPhotos } from '@/lib/team-photos';
+import './chat.css';
 
 export const metadata = { title: 'Chat' };
 export default async function ChatPage() {

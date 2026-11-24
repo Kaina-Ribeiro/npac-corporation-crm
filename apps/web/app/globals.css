@@ -106,6 +106,47 @@
     radial-gradient(70% 40% at 0% 100%, rgba(110, 145, 255, 0.12), transparent 70%);
 }
 
+/* Chat, redesign A1 (24/11/2026, `docs/prototipos/chat-redesign/`): fundo sólido da conversa,
+   bolhas (cinza para os outros, degradê de tinta para as suas), cartão da menção, seleção dourada
+   (dourado = seleção) e o vidro dos controles que flutuam. Textos sobre eles passam de 4,5:1. CSS
+   da tela em `app/(app)/(comercial)/chat/chat.css`. */
+:root {
+  --chat-fundo: #fbfbfd;
+  --chat-bolha: #ececef;
+  --chat-bolha-eu: linear-gradient(180deg, #3d3d43 0%, #232326 100%);
+  --chat-bolha-eu-fim: #232326;
+  --chat-bolha-eu-txt: #f5f5f7;
+  --chat-bolha-eu-txt2: rgba(245, 245, 247, 0.72);
+  --chat-cartao: rgba(60, 60, 67, 0.07);
+  --chat-cartao-eu: rgba(255, 255, 255, 0.11);
+  --chat-suave: rgba(60, 60, 67, 0.07);
+  --chat-selecao: rgba(226, 187, 102, 0.2);
+  --chat-lista: var(--gl2);
+  --chat-vidro: rgba(246, 246, 249, 0.62);
+  --chat-vidro-solido: #ffffff;
+  --chat-vidro-sombra:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85), inset 0 0 0 0.5px rgba(255, 255, 255, 0.6),
+    0 0 0 0.5px rgba(0, 0, 0, 0.07), 0 10px 28px -12px rgba(0, 0, 0, 0.25);
+}
+.dark {
+  --chat-fundo: #0b0b0d;
+  --chat-bolha: #26262a;
+  --chat-bolha-eu: linear-gradient(180deg, #ffffff 0%, #e4e4e8 100%);
+  --chat-bolha-eu-fim: #e4e4e8;
+  --chat-bolha-eu-txt: #232326;
+  --chat-bolha-eu-txt2: #5f5f64;
+  --chat-cartao: rgba(255, 255, 255, 0.07);
+  --chat-cartao-eu: rgba(0, 0, 0, 0.06);
+  --chat-suave: rgba(235, 235, 245, 0.09);
+  --chat-selecao: rgba(226, 187, 102, 0.15);
+  --chat-lista: rgba(24, 24, 27, 0.85);
+  --chat-vidro: rgba(44, 44, 49, 0.58);
+  --chat-vidro-solido: #2c2c31;
+  --chat-vidro-sombra:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 0 0 0.5px rgba(255, 255, 255, 0.07),
+    0 10px 28px -12px rgba(0, 0, 0, 0.7);
+}
+
 @theme inline {
   /* Telas largas: 3xl ≈ 1792 px (monitores 1920), 4xl = 2400 px (ultrawide/2560+). */
   --breakpoint-3xl: 112rem;
@@ -1422,6 +1463,40 @@ html[data-nav-pending] .ac > :not(.top, nav, .nav-skeleton) {
     opacity: 0;
   }
 }
+/* Tablet em pé (768 a 1023 px, decisão 4A do redesign do Chat): a sidebar já sai recolhida no
+   primeiro desenho, antes do JS (o servidor não sabe a largura); depois o SidebarShell põe
+   `data-side="collapsed"`, e aberta (o botão abre) vira `data-side="open"`, fora desta regra.
+   Repete o essencial do trilho. */
+@media (min-width: 48rem) and (max-width: 63.98rem) {
+  .shell[data-side='expanded'] {
+    --side-w: 56px;
+  }
+  .shell[data-side='expanded'] :is(.side-label, .side-hide, .side-search > :not(svg)) {
+    opacity: 0;
+  }
+  .shell[data-side='expanded'] .side-hide {
+    visibility: hidden;
+  }
+  .shell[data-side='expanded'] :is(.side-fold, .side-parent + .side-sub) {
+    grid-template-rows: 0fr;
+    opacity: 0;
+    visibility: hidden;
+  }
+  .shell[data-side='expanded'] :is(.side-foot, .side-who) {
+    padding-inline: 0;
+  }
+  .shell[data-side='expanded'] .side-head {
+    padding-inline: 2px;
+  }
+  .shell[data-side='expanded'] .side-toggle {
+    position: absolute;
+    top: 4px;
+    left: 2px;
+    width: 32px;
+    height: 32px;
+    opacity: 0;
+  }
+}
 /* Tooltip dos itens no trilho (um só, posicionado pelo SidebarShell). */
 .side-tip {
   position: fixed;
@@ -1945,7 +2020,7 @@ html[data-nav-pending] .ac > :not(.top, nav, .nav-skeleton) {
     ),
     select,
     textarea
-  ):not(.text-2xl, .pl input) {
+  ):not(.text-2xl, .pl input, .ch-campo) {
     font-size: 16px !important;
   }
 }
