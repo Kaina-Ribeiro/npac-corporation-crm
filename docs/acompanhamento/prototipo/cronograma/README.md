@@ -24,3 +24,10 @@ Refazer (dev no ar na porta 3000, na raiz do repositório):
 ```sh
 node docs/acompanhamento/prototipo/cronograma/capturar.mjs [envio|envio-trocar|card|aba|banco|importacao]
 ```
+
+## Revisão de design (24/11)
+
+Depois da crítica: rodapé fixo com "Enviar" e a contagem de itens na janela; "Adicionar" em cada bloco (com
+"escrever um … só para esta pessoa" dentro da busca); comprovante só em quem marcou Feita, no card; etiqueta "Não fez"
+no próprio item da planilha e texto inteiro (sem cortar) na aba; "Escondido" como etiqueta no banco; "Para você
+decidir" destacado na importação; toque de 44 px no celular e cinza médio nas linhas apagadas (contraste).

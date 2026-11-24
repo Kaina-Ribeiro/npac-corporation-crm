@@ -40,9 +40,9 @@
   .ac .cr-grupo-h{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--ink2)}
   .ac .cr-grupo-h .cr-ok{color:var(--gold-text);text-transform:none;letter-spacing:0;font-weight:600}
   .ac .cr-grupo-h .cr-falta{color:var(--ink3);text-transform:none;letter-spacing:0;font-weight:600}
-  .ac .cr-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--gl2, rgba(255,255,255,.5));font-size:14px;line-height:1.4}
+  .ac .cr-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--gl2, rgba(255,255,255,.5));font-size:14px;line-height:1.4}
   .ac .cr-item .cr-tx{flex:1;min-width:0}
-  .ac .cr-item .cr-tx small{display:block;color:var(--ink3);font-size:12px;margin-top:2px}
+  .ac .cr-item .cr-tx small{display:block;color:var(--ink2);font-size:12px;margin-top:2px}
   .ac .cr-item .cr-acts{display:flex;gap:4px;flex:none}
   .ac .cr-ib{display:inline-flex;align-items:center;justify-content:center;gap:4px;height:30px;min-width:30px;padding:0 8px;border-radius:9px;border:1px solid var(--line);background:transparent;color:var(--ink2);font-size:12.5px;font-weight:600;cursor:pointer}
   .ac .cr-add{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:10px;border:1px dashed var(--line);background:transparent;color:var(--ink2);font-size:13px;font-weight:600;justify-self:start;cursor:pointer}
@@ -51,7 +51,9 @@
   .ac .cr-busca .q{display:flex;align-items:center;gap:8px;height:36px;padding:0 10px;border-radius:9px;background:rgba(120,120,128,.1);color:var(--ink3);font-size:14px}
   .ac .cr-op{display:flex;justify-content:space-between;gap:10px;padding:8px 10px;border-radius:9px;font-size:13.5px}
   .ac .cr-op:hover{background:rgba(120,120,128,.08)}
-  .ac .cr-op.off{color:var(--ink3)}
+  .ac .cr-op.off{color:var(--ink2)}
+  .ac .cr-op.off small{color:var(--ink2)}
+  .ac .cr-op.novo{border:0;background:transparent;font:inherit;font-weight:600;color:var(--ink);text-align:left;display:flex;align-items:center;gap:6px;justify-content:flex-start;border-top:1px solid var(--line);border-radius:0;margin-top:4px;padding-top:10px;cursor:pointer}
   .ac .cr-op.off small{white-space:nowrap}
   .ac .cr-op small{color:var(--ink3);font-size:12px}
   .ac .cr-st{display:inline-flex;align-items:center;height:24px;padding:0 9px;border-radius:8px;font-size:12px;font-weight:600;white-space:nowrap;background:rgba(120,120,128,.14);color:var(--tag-neutro)}
@@ -73,7 +75,9 @@
   .ac .cr-chips{display:flex;flex-wrap:wrap;gap:6px}
   .ac .cr-chip{display:inline-flex;align-items:center;gap:6px;max-width:100%;padding:5px 9px;border-radius:9px;background:rgba(120,120,128,.1);font-size:13px;color:var(--ink)}
   .ac .cr-chip .cr-i{color:var(--ink3);width:13px;height:13px}
-  .ac .cr-chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:320px}
+  .ac .cr-chip{text-align:left;line-height:1.35}
+  .ac .cr-chip.nao{background:var(--tag-bad-bg);box-shadow:inset 0 0 0 1px var(--tag-bad)}
+  .ac .cr-chip.nao em{font-style:normal;font-weight:700;color:var(--tag-bad);white-space:nowrap}
   .ac .cr-seg{display:flex;flex-wrap:wrap;gap:6px}
   .ac .cr-seg button{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:10px;border:1px solid var(--line);background:transparent;font-size:13px;font-weight:600;color:var(--ink2)}
   .ac .cr-seg button.on{background:var(--ink);color:var(--bg, #fff);border-color:var(--ink)}
@@ -96,13 +100,25 @@
   .ac .cr-arq b{font-weight:600}
   .ac .cr-nota{font-size:13px;color:var(--ink2);margin:0}
   .ac .cr-cta{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:12px;border:1px dashed var(--line);border-radius:12px;font-size:13.5px;color:var(--ink2)}
+  .ac .cr-tile.cr-acao{box-shadow:inset 0 0 0 1.5px var(--ink)}
+  .ac .cr-tile.cr-acao .rev{font-size:12.5px;font-weight:700;color:var(--ink);text-decoration:underline}
+  .cr-dlg .cr-rodape{position:sticky;bottom:-24px;margin:4px -24px -24px;padding:12px 24px 16px;background:var(--gl-solid);border-top:1px solid var(--line);justify-content:space-between!important;align-items:center;z-index:2}
+  .cr-dlg .cr-rodape .cr-cont{font-size:13px;color:var(--ink2);margin-right:auto}
+  @media (max-width:640px),(pointer:coarse){.ac .cr-ib,.ac .cr-add,.ac .cr-seg button,.ac .cr-op.novo{min-height:44px}.ac .cr-ib{min-width:44px}}
   .ac-dialogo.cr-dlg{width:min(680px,calc(100vw - 24px));max-height:calc(100dvh - 32px)}
   .ac-dialogo.cr-dlg form{max-height:calc(100dvh - 32px);overflow:auto}
   @media (max-width:640px){
     .ac .cr-col{grid-template-columns:1fr}
     .ac .cr-col .dica{grid-column:1}
-    .ac .cr-item .cr-acts .rot{display:none}
-    .ac .cr-chip span{max-width:240px}
+    .ac .cr-item{flex-wrap:wrap}
+    .ac .cr-item .cr-acts{width:100%;justify-content:flex-end}
+    .ac .cr-col select{font-size:16px}
+    .ac .cr-op.off{flex-wrap:wrap}
+    .ac .cr-op.off small{width:100%}
+  }
+  @media (max-width:640px){
+    .cr-dlg .cr-rodape .cr-cont{width:100%}
+    .cr-dlg .cr-rodape .btn{flex:1}
     .ac .cr-bi{grid-template-columns:22px 1fr}
     .ac .cr-bi .cr-acts{grid-column:2}
     .ac .cr-linha{display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center}
@@ -155,20 +171,23 @@
             <div class="cr-op"><span>Fazer 100 agachamentos em um único dia.</span></div>
             <div class="cr-op"><span>Durante 7 dias, fazer pelo menos um elogio sincero por dia para alguém.</span></div>
             <div class="cr-op off"><span>Durante 3 dias colocar despertador no celular de uma em uma hora…</span><small>Já recebeu no 1º PME</small></div>
-            <div class="cr-op off"><span>Dormir no chão durante uma noite.</span><small>Já recebeu no RDV</small></div></div>`
+            <div class="cr-op off"><span>Dormir no chão durante uma noite.</span><small>Já recebeu no RDV</small></div>
+            <button type="button" class="cr-op novo">${svg(MAIS, 'cr-s')}Escrever um desafio só para esta pessoa</button></div>`
           : '';
       return `<div class="cr-grupo"><div class="cr-grupo-h"><span style="display:flex;align-items:center;gap:6px">${svg(ICON[b])}${PLURAL[b]}</span><span class="cr-ok">${SUG[b].length} de ${MODELO[b]}</span></div>${itens}${busca}${
-        b === 'EAP' ? `<button type="button" class="cr-add">${svg(MAIS, 'cr-s')}Adicionar EAP</button>` : ''
+        trocar && b === 'DESAFIO' ? '' : `<button type="button" class="cr-add">${svg(MAIS, 'cr-s')}Adicionar ${b === 'EAP' ? 'EAP' : NOME[b].toLowerCase()}</button>`
       }</div>`;
     }).join('');
     const sec = document.createElement('div');
     sec.className = 'cr-sec';
     sec.innerHTML = `<div class="cr-sec-h"><h3>Cronograma deste PME</h3><span class="cr-modelo">Modelo da planilha: 3 EAP · 1 experiência · 1 desafio · 2 filmes · 1 livro</span></div>
-      <p class="cr-nota">Sugerimos os primeiros itens que Mentorado Fictício 01 ainda não recebeu, nem no RDV. Troque o que quiser.</p>
-      ${blocos}
-      <button type="button" class="cr-add">${svg(MAIS, 'cr-s')}Item só desta pessoa</button>`;
+      <p class="cr-nota">Sugerimos os primeiros itens que Mentorado Fictício 01 ainda não recebeu, nem no RDV. Troque o que quiser; em "Adicionar" dá para escrever um item só para esta pessoa.</p>
+      ${blocos}`;
     const aviso = form.querySelector('.pme-aviso');
-    (aviso || form.querySelector('.flex.flex-wrap.justify-end')).before(sec);
+    const rodape = form.querySelector('.flex.flex-wrap.justify-end');
+    (aviso || rodape).before(sec);
+    rodape.classList.add('cr-rodape');
+    rodape.insertAdjacentHTML('afterbegin', '<span class="cr-cont">8 itens do cronograma</span>');
     if (trocar) {
       const g = [...sec.querySelectorAll('.cr-grupo')][1];
       g.scrollIntoView({ block: 'start' });
@@ -212,6 +231,7 @@
       [...sel.options].forEach((o, i) => (o.selected = i === (st === 'feita' ? 1 : st === 'nao_feita' ? 3 : 0)));
       meta.textContent =
         st === 'feita' ? 'Feita em 30/11/2026, Duda · prazo 24/12/2026' : st === 'nao_feita' ? 'Não feita: viajou a trabalho · prazo 24/12/2026' : 'Prazo 24/12/2026';
+      if (st !== 'feita') li.querySelector('.pme-comp')?.remove();
       enc.before(li);
     }
     const ciclo = document.querySelector('.pme-ciclo.atual');
@@ -252,7 +272,7 @@
     const chip = (b, t) => `<span class="cr-chip">${svg(ICON[b])}<span>${t}</span></span>`;
     const tiles = ORDEM.map(
       (b, i) =>
-        `<div class="cr-tile"><span>${svg(ICON[b])}${PLURAL[b]}</span><b>${[14, 14, 28, 14, 42][i]}</b><small>recebidos · faltam ${[34, 89, 7, 13, 36][i]}</small></div>`,
+        `<div class="cr-tile"><span>${svg(ICON[b])}${PLURAL[b]}</span><b>${[14, 14, 28, 14, 42][i]}</b><small>recebidos</small><small>${[34, 89, 7, 13, 36][i]} novos para ele</small></div>`,
     ).join('');
     painel.innerHTML = `
       <div class="cr-sec-h" style="margin-bottom:4px"><h2 style="font-size:17px;font-weight:700;margin:0">Cronograma</h2><span class="cr-modelo">Nada se repete, nem da inscrição anterior</span></div>
@@ -270,8 +290,7 @@
           ${linha('EAP', 'O QUE TODA PESSOA PRECISA APRENDER PARA CRESCER https://www.youtube.com/watch?v=x', '', 'Pendente')}
         </div></div>
         <div class="cr-pme"><div class="cr-pme-h"><b>1º PME</b><span>Antes do sistema · da planilha</span></div>
-          <div class="cr-chips">${chip('EXPERIENCIA', 'Fazer um quadro do sonhos com recortes de imagens em uma cartolina')}${chip('DESAFIO', 'Durante 3 dias colocar despertador no celular de uma em uma hora')}${chip('FILME', 'Um sonho possível')}${chip('FILME', 'Coach Carter')}${chip('LIVRO', 'Comece pelo Porquê')}${chip('EAP', 'É MELHOR SER CLT DO QUE EMPREENDER')}${chip('EAP', 'VENDER É MAIS IMPORTANTE QUE APRENDER A LER')}${chip('EAP', 'FÓRMULA DA RIQUEZA FINANCEIRA')}</div>
-          <span class="cr-st nao" style="justify-self:start">1 não fez (planilha): o quadro dos sonhos</span>
+          <div class="cr-chips"><span class="cr-chip nao">${svg(ICON.EXPERIENCIA)}<span>Fazer um quadro do sonhos com recortes de imagens em uma cartolina</span><em>Não fez</em></span>${chip('DESAFIO', 'Durante 3 dias colocar despertador no celular de uma em uma hora')}${chip('FILME', 'Um sonho possível')}${chip('FILME', 'Coach Carter')}${chip('LIVRO', 'Comece pelo Porquê')}${chip('EAP', 'É MELHOR SER CLT DO QUE EMPREENDER')}${chip('EAP', 'VENDER É MAIS IMPORTANTE QUE APRENDER A LER')}${chip('EAP', 'FÓRMULA DA RIQUEZA FINANCEIRA')}</div>
         </div>
         <div class="cr-pme"><div class="cr-pme-h"><b>No RDV</b><span>Outra inscrição · concluída em 10/2026 · 12 PMEs</span></div>
           <div class="cr-chips">${chip('EXPERIENCIA', 'A partir das 19h, apagar as luzes e deixá-las desligadas')}${chip('DESAFIO', 'Dormir no chão durante uma noite')}${chip('FILME', 'Até o Último Homem')}${chip('LIVRO', 'O Homem Mais Rico da Babilônia')}${chip('EAP', 'COLOQUE SEU TRABALHO ACIMA DO SEU RELACIONAMENTO')}<span class="cr-chip" style="background:transparent;border:1px dashed var(--line)"><span>e mais 91 itens</span></span></div>
@@ -302,14 +321,14 @@
     const itens = [
       ['Durante 3 dias colocar despertador no celular de uma em uma hora com a escrita: isso que estou prestes a fazer está me aproximando ou distanciando dos meus sonhos?', 'Enviado 43 vezes', false],
       ['Passar 24 horas em jejum, ingerindo apenas água. (Ao iniciar e ao finalizar o jejum, envie uma foto com o horário no grupo.)<small style="font-style:italic">“Grande parte do sofrimento vem da dificuldade em lidar com pequenos desconfortos…”</small>', 'Enviado 10 vezes', false],
-      ['Fazer 100 agachamentos em um único dia. (Grave um pequeno vídeo realizando parte dos agachamentos ou envie uma foto ao concluir.)', 'Enviado 6 vezes', false],
-      ['Guardar o máximo de dinheiro que conseguir', 'Enviado 8 vezes · escondido: não aparece nas sugestões', true],
-      ['Dormir no chão durante uma noite. (Envie uma foto do local onde dormiu.)', 'Enviado 5 vezes', false],
-      ['Durante 7 dias, beber pelo menos 3 litros de água por dia. (Envie uma foto da garrafa utilizada ou um registro diário da quantidade consumida.)', 'Nunca enviado', false],
+      ['Fazer 100 agachamentos em um único dia. (Grave um pequeno vídeo realizando parte dos agachamentos ou envie uma foto ao concluir.)<small style="font-style:italic">“Seu corpo é capaz de muito mais do que você imagina…”</small>', 'Enviado 6 vezes', false],
+      ['Guardar o máximo de dinheiro que conseguir', 'Enviado 8 vezes · não aparece nas sugestões', true],
+      ['Dormir no chão durante uma noite. (Envie uma foto do local onde dormiu.)<small style="font-style:italic">“Quando escolhemos abrir mão do conforto por um curto período, passamos a valorizá-lo muito mais…”</small>', 'Enviado 5 vezes', false],
+      ['Durante 7 dias, beber pelo menos 3 litros de água por dia. (Envie uma foto da garrafa utilizada ou um registro diário da quantidade consumida.)<small style="font-style:italic">“Disciplina também é cuidar do próprio corpo…”</small>', 'Nunca enviado', false],
       ['Durante 30 dias, manter sua cama arrumada antes de sair do quarto. (Envie uma foto da cama arrumada no primeiro e no último dia do desafio.)', 'Nunca enviado', false],
     ]
       .map(
-        ([t, m, esc], i) => `<div class="cr-bi ${esc ? 'esc' : ''}"><span class="n">${i + 1}</span><div class="cr-tx">${t}<small>${m}</small></div><div class="cr-acts"><button type="button" class="cr-ib">Editar</button><button type="button" class="cr-ib">${esc ? 'Mostrar' : 'Esconder'}</button></div></div>`,
+        ([t, m, esc], i) => `<div class="cr-bi ${esc ? 'esc' : ''}"><span class="n">${i + 1}</span><div class="cr-tx">${t}<small>${esc ? '<span class="cr-st" style="height:20px;margin-right:6px">Escondido</span>' : ''}${m}</small></div><div class="cr-acts"><button type="button" class="cr-ib">Editar</button><button type="button" class="cr-ib">${esc ? 'Mostrar' : 'Esconder'}</button></div></div>`,
       )
       .join('');
     corpo.innerHTML = `<section class="card sec">
@@ -345,9 +364,9 @@
       <div class="cr-resumo" style="margin-bottom:16px">
         <div class="cr-tile"><span>Itens do banco</span><b>293</b><small>5 blocos · 3 repetidos juntados</small></div>
         <div class="cr-tile"><span>Colunas ligadas</span><b>196</b><small>de 249 · 19 sem marcação</small></div>
-        <div class="cr-tile"><span>Para você decidir</span><b>34</b><small>25 em dúvida · 9 sem ficha</small></div>
+        <div class="cr-tile cr-acao"><span>Para você decidir</span><b>34</b><small>25 em dúvida · 9 sem ficha</small><span class="rev">Revisar ↓</span></div>
         <div class="cr-tile"><span>Viram tarefa do PME aberto</span><b>312</b><small>o mês atual de cada um</small></div>
-        <div class="cr-tile"><span>Histórico</span><b>7.640</b><small>+ 88 planejados · 113 já tinha · 6 não fez</small></div>
+        <div class="cr-tile"><span>De PMEs antigos</span><b>7.640</b><small>+ 88 marcados para PMEs que ainda não saíram · 113 já tinha antes · 6 não fez</small></div>
       </div>
       <div class="cr-sec" style="margin-bottom:6px"><div class="cr-sec-h"><h3>Em dúvida (25)</h3><span class="cr-modelo">Escolha a ficha de cada coluna. Sem escolha, a coluna fica de fora.</span></div>
         <div>
