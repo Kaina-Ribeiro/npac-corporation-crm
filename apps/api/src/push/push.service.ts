@@ -5,6 +5,7 @@ import webpush from 'web-push';
 import type { Env } from '../config/env.js';
 import { DB } from '../common/db/db.module.js';
 import { FieldCrypto } from '../common/crypto/field-crypto.js';
+import { TelegramService } from '../telegram/telegram.service.js';
 
 /**
  * O que vai no push: só título curto, link interno e tag. Nunca texto de mensagem do chat,
@@ -120,6 +121,7 @@ export class PushService {
     @Inject(DB) private readonly db: Db,
     @Inject(PUSH_SENDER) private readonly sender: PushSender,
     private readonly crypto: FieldCrypto,
+    private readonly telegram: TelegramService,
   ) {}
 
   publicKey() {
@@ -156,6 +158,12 @@ export class PushService {
    * com a transação aberta, um aparelho lento atrasava os outros e segurava uma conexão do banco.
    */
   async notify(userIds: string[], payload: PushPayload): Promise<void> {
+    // Telegram (NPAC-74) junto, para quem conectou, em paralelo e com o mesmo teto de 10 s: erro
+    // nele nunca derruba o push.
+    await Promise.all([this.pushTo(userIds, payload), this.telegram.notify(userIds, payload)]);
+  }
+
+  private async pushTo(userIds: string[], payload: PushPayload): Promise<void> {
     await Promise.all(
       [...new Set(userIds)].map(async (uid) => {
         try {

@@ -19,6 +19,7 @@ import { PushModule } from './push/push.module.js';
 import { FormsModule } from './forms/forms.module.js';
 import { MailModule } from './mail/mail.module.js';
 import { ContaModule } from './conta/conta.module.js';
+import { TelegramModule } from './telegram/telegram.module.js';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { ContaModule } from './conta/conta.module.js';
     }),
     DbModule,
     PushModule,
+    TelegramModule,
     MailModule,
     AuditModule,
     AuthModule,

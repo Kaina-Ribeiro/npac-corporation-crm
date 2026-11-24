@@ -848,6 +848,27 @@ protótipo no canvas "Meu perfil". Gabriel aprovou com "1A, 2A, 3A".
   no servidor (limpeza, 404/410, aparelho que passou para outra pessoa) deixava o aparelho "ligado", sem receber e sem
   convite. "Ativar avisos" reaproveita a inscrição do navegador e registra de novo, sem pedir a permissão outra vez.
   Se a consulta falhar, não convida. e2e em `avisos-no-celular.spec.ts`.
+- **Avisos pelo Telegram** (NPAC-74, Igor 24/11/2026: "igual o bot que ele fez no Telegram"; spec
+  `docs/superpowers/specs/2026-11-24-avisos-telegram-design.md`): cada pessoa conecta o próprio Telegram no Meu perfil
+  (seção "Avisos pelo Telegram", `components/conta/telegram.tsx`; peças comuns do perfil em `conta/perfil-ui.tsx`) e
+  recebe lá **os mesmos avisos do push**, além do push (S2). "Conectar Telegram" → `POST /api/me/telegram/code` (32 bytes
+  base64url, uso único, 10 min, só o SHA-256 em `telegram_codigos` por `telegram_codigo`) → abre `t.me/<bot>?start=<código>`
+  → "Começar" → `POST /api/webhooks/telegram` (`@Public`, cabeçalho `X-Telegram-Bot-Api-Secret-Token` comparado em tempo
+  constante; errado ou sem as variáveis, 404; só `/start` em chat privado, nada do que chega vai para log) →
+  `telegram_conectar` (0085, SECURITY DEFINER, **só sem sessão**: grava `telegram_vinculos` com o chat cifrado e índice cego
+  único, um Telegram por pessoa, conta desativada não conecta) → o bot responde. A tela confere `GET /api/me/telegram` a
+  cada 4 s e ao voltar para a aba, até o código vencer. `telegram_vinculos`: cada um vê e apaga só o seu (RLS), ninguém
+  grava direto; `push_purge_user` (desativar) apaga vínculo e código. **Envio**: `PushService.notify` chama
+  `TelegramService.notify` (`api/telegram/*`) junto com o push: `<b>title</b>` + `body` e o botão "Abrir no CRM"
+  (`WEB_ORIGIN` + `url`, só `https:`), lido como a pessoa, fora da transação, em paralelo, 10 s de limite; 403 (bloqueou o
+  bot) apaga o vínculo. Texto igual ao do push, com o nome do lead (S1, sem o sim do Gabriel; `TELEGRAM_SEM_NOME` em
+  `telegram/telegram.ts` troca por "Novo aviso no CRM"). Log só `telegram enviado|recusado|sem resposta: <status> <host>`.
+  Variáveis `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`, `TELEGRAM_WEBHOOK_SECRET` (juntas; sem elas `telegram: null` no
+  `GET /api/me/profile`, a seção some e as rotas dão 404); `TELEGRAM_API_URL` só nos testes. O webhook é registrado
+  sozinho ao subir (`setWebhook`, com `WEB_ORIGIN` `https:`). Bots: `npac_itodev_bot` (ITODEV) e `npac_oficial_bot` (prod).
+  Testes: `db/test/telegram.test.ts`, `api/test/telegram.e2e.test.ts` (`MemoryTelegramSender`), `telegram-sender.test.ts`,
+  `e2e/telegram.spec.ts` (a caixa falsa, `scripts/caixa-falsa.mts`, também finge a Bot API em `/bot*/<método>` e lista em
+  `/telegram`).
 - **Convite para ativar** (NPAC-48, pedido do Igor 16/11/2026: a equipe não sabia que dava):
   `components/push-invite.tsx` no topo do Dashboard, Hoje, Chat (dentro da coluna, para o campo não sair
   da tela) e Fila do Acompanhamento; fora do layout para não pesar no JS de `/leads`. Só aparece se dá
@@ -909,7 +930,7 @@ protótipo no canvas "Meu perfil". Gabriel aprovou com "1A, 2A, 3A".
   Função SQL grande nova do módulo: mesma linha, e tabela de uma linha lida como valor único (`(select … )`).
 - Aplicar no dev: `pnpm --filter @npac/db build && pnpm --filter @npac/db migrate`.
   psql: `docker exec npac-corporation-postgres-1 psql -U npac_owner -d npac`.
-- Apagar lead/usuário à mão (a foto `user_photos` e os vínculos `area_membros` saem em cascata): FKs em `form_responses`, `sdr_sale_marks`, `chat_reads`, `chat_*`, `payments`, `deals`, `lead_notes`,
+- Apagar lead/usuário à mão (a foto `user_photos`, os vínculos `area_membros` e o Telegram `telegram_vinculos`/`telegram_codigos` saem em cascata): FKs em `form_responses`, `sdr_sale_marks`, `chat_reads`, `chat_*`, `payments`, `deals`, `lead_notes`,
   `lead_tasks`, `notifications`, `lead_timeline`, `meetings` (`meeting_confirmations` e
   `meeting_reminders_sent` em cascata), `lgpd_requests` (usuário: também `session`, `account`,
   `push_subscriptions`). `truncate` de `meetings` nos testes lista as duas tabelas de lembretes.

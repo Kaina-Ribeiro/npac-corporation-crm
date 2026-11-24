@@ -7,6 +7,7 @@ import { AllRoles } from '../auth/all-roles.decorator.js';
 import { CurrentUser, type SessionUser } from '../auth/current-user.decorator.js';
 import { DB } from '../common/db/db.module.js';
 import { MAIL_SENDER, type MailSender } from '../mail/mail.js';
+import { TelegramService } from '../telegram/telegram.service.js';
 import { photoUrl } from './photo-url.js';
 
 /** Meu perfil (NPAC-53): a própria conta. `user` não tem RLS; a guarda é a sessão. */
@@ -17,6 +18,7 @@ export class PerfilController {
     @Inject(DB) private readonly db: Db,
     @Inject(MAIL_SENDER) private readonly mail: MailSender,
     private readonly audit: AuditService,
+    private readonly telegram: TelegramService,
   ) {}
 
   @Get()
@@ -31,6 +33,7 @@ export class PerfilController {
       email: row!.email,
       photo: photoUrl(u.id, row!.image),
       mailEnabled: this.mail.enabled,
+      telegram: await this.telegram.profile(u.id),
     };
   }
 
