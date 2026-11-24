@@ -49,6 +49,8 @@ type Message = {
   createdAt: string;
   lead: { id: string; name: string | null } | null;
   failed?: boolean;
+  /** Rascunho já gravado: o ID que a API devolveu (sai quando a mensagem real chega). */
+  gravada?: number;
 };
 type LeadHit = { id: string; name: string };
 type Pagina = { messages: Message[]; hasMore: boolean };
@@ -61,6 +63,24 @@ const aoMudarLargura = (avisar: () => void) => {
   return () => media.removeEventListener('change', avisar);
 };
 const ladoALado = () => window.matchMedia(LADO_A_LADO).matches;
+
+/**
+ * Marca do passo do histórico da conversa aberta no celular: o "voltar" do aparelho (gesto do
+ * iPhone, botão do Android) fecha a conversa em vez de sair do Chat. Mesmo endereço, sem o canal.
+ */
+const PASSO_CONVERSA = 'npacChatConversa';
+const noPassoDaConversa = () =>
+  !!(window.history.state as Record<string, unknown> | null)?.[PASSO_CONVERSA];
+
+/**
+ * Rascunhos que ficam ao chegar a página do servidor: os que falharam, os que ainda estão indo e os
+ * gravados que a página ainda não trouxe. Assim a mensagem enviada nunca some e volta.
+ */
+const rascunhosQueFicam = (prev: Message[], page: Message[]) =>
+  prev.filter(
+    (m) =>
+      m.id < 0 && (m.failed || m.gravada === undefined || !page.some((p) => p.id === m.gravada)),
+  );
 
 /** Horário da mensagem mais nova da página: o mesmo valor que a lista traz em `lastMessageAt`. */
 const maisNova = (list: Message[]) =>
@@ -190,6 +210,25 @@ export function Chat({
     campo.current?.focus();
   }, [buscando]);
 
+  /** Abre a conversa; no celular, ganha um passo no histórico para o "voltar" do aparelho. */
+  const abrirConversa = () => {
+    setOpen(true);
+    if (!ladoALado() && !noPassoDaConversa())
+      window.history.pushState({ [PASSO_CONVERSA]: true }, '');
+  };
+  /** Botão de voltar da tela: desfaz o passo (o `popstate` fecha) ou só fecha. */
+  const fecharConversa = () => {
+    if (noPassoDaConversa()) window.history.back();
+    else setOpen(false);
+  };
+  useEffect(() => {
+    // Voltou para o Chat pelo histórico no passo da conversa: ela reabre (no celular).
+    if (noPassoDaConversa() && !ladoALado()) setOpen(true);
+    const aoVoltar = () => setOpen(noPassoDaConversa());
+    window.addEventListener('popstate', aoVoltar);
+    return () => window.removeEventListener('popstate', aoVoltar);
+  }, []);
+
   const loadChannels = useCallback(async () => {
     const list = await clientApi<Channel[]>('/api/chat/channels');
     setChannels(list);
@@ -207,7 +246,7 @@ export function Chat({
         ? prev.messages.filter((m) => m.id > 0 && !m.failed && m.id < primeira)
         : [];
       return {
-        messages: [...antes, ...page.messages, ...prev.messages.filter((m) => m.failed)],
+        messages: [...antes, ...page.messages, ...rascunhosQueFicam(prev.messages, page.messages)],
         hasMore: antes.length ? prev.hasMore : page.hasMore,
       };
     });
@@ -348,11 +387,20 @@ export function Chat({
     setMention(null);
     requestAnimationFrame(ajustarAltura);
     try {
-      await clientApi(`/api/chat/channels/${active}/messages`, 'POST', {
-        body,
-        ...(draft.lead ? { leadId: draft.lead.id } : {}),
-      });
-      setPagina((p) => ({ ...p, messages: p.messages.filter((x) => x.id !== draft.id) }));
+      const { id } = await clientApi<{ id: number }>(
+        `/api/chat/channels/${active}/messages`,
+        'POST',
+        {
+          body,
+          ...(draft.lead ? { leadId: draft.lead.id } : {}),
+        },
+      );
+      // O rascunho fica na tela até a mensagem real chegar e tomar o lugar dele, na mesma troca
+      // (antes ele saía aqui e a mensagem sumia até a busca voltar).
+      setPagina((p) => ({
+        ...p,
+        messages: p.messages.map((x) => (x.id === draft.id ? { ...x, gravada: id } : x)),
+      }));
       // O envio já grava o "lido até" no servidor.
       await loadMessages(active, false);
     } catch (err) {
@@ -410,7 +458,7 @@ export function Chat({
       await loadChannels();
       if (id !== active) setPagina(VAZIA);
       setActive(id);
-      setOpen(true);
+      abrirConversa();
       setNova(false);
     } catch (err) {
       setError((err as Error).message);
@@ -461,7 +509,7 @@ export function Chat({
                     // pela troca, e ficava vazia no celular.
                     if (c.id !== active) setPagina(VAZIA);
                     setActive(c.id);
-                    setOpen(true);
+                    abrirConversa();
                   }}
                 >
                   {c.kind === 'GENERAL' ? (
@@ -598,7 +646,7 @@ export function Chat({
             type="button"
             className="ch-circ ch-vidro ch-voltar"
             aria-label="Conversas"
-            onClick={() => setOpen(false)}
+            onClick={fecharConversa}
           >
             {icVoltar}
           </button>
