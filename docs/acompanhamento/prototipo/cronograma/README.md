@@ -25,30 +25,12 @@ Refazer (dev no ar na porta 3000, na raiz do repositório):
 node docs/acompanhamento/prototipo/cronograma/capturar.mjs [envio|envio-trocar|card|aba|banco|importacao]
 ```
 
-## Revisão de design (24/11)
+## Versão 2 (24/11, depois da crítica de designer)
 
-Depois da crítica: rodapé fixo com "Enviar" e a contagem de itens na janela; "Adicionar" em cada bloco (com
-"escrever um … só para esta pessoa" dentro da busca); comprovante só em quem marcou Feita, no card; etiqueta "Não fez"
-no próprio item da planilha e texto inteiro (sem cortar) na aba; "Escondido" como etiqueta no banco; "Para você
-decidir" destacado na importação; toque de 44 px no celular e cinza médio nas linhas apagadas (contraste).
-
-## 2ª revisão (24/11, Gabriel: contraste, troca quebrada, banco feio no celular)
-
-Cartões, quadros de números e linhas com fundo sólido (branco no claro) e borda mais forte; botões com as classes do
-sistema (`btn btn-secondary sm`); a troca de item vira um painel no lugar do item, com "Escolher" em cada opção e "Já
-recebeu · não dá para repetir" em grupo separado. Banco no celular em 3 opções (`banco-a/b/c-375-claro.png`), para
-escolher: A = escolha do bloco em lista + menu "⋯" por item; B = blocos em uma linha que rola + "Editar · Esconder"
-escritos em cada item; C = cada item num cartão com ícones de lápis e olho.
-
-## 3ª revisão (24/11, Gabriel: "borda preta péssima, sem padding")
-
-A troca de item no celular em 3 opções (`troca-a/b/c-375-claro.png`, e 1440): A = painel claro dentro do bloco, com
-16 px de respiro e cada opção num fundo cinza suave; B = tela própria por cima da janela, com "‹ Voltar"; C = na
-própria lista, o item atual com contorno dourado ("Trocando este") e as opções como cartões logo abaixo.
-
-## 4ª revisão (24/11, Gabriel: "mistura B com C e refina")
-
-`troca-d-*.png`: tela própria por cima da janela (do B), com "‹ Voltar" fixo no topo, o item atual em destaque dourado
-"Trocando este" (do C), busca, "Ainda não recebeu" em cartões com "Escolher" ao lado, "Já recebeu · não dá para
-repetir" agrupado e apagado, e "Escrever um desafio só para esta pessoa" fixo embaixo. `banco-d-375-claro.png`: a
-mesma mistura no banco, cada item num cartão (C) com "Editar · Esconder" escritos (B) e "Escondido" no topo do cartão.
+Achatada no padrão que o sistema já usa, como Linear e Attio: uma caixa com linhas separadas por fio fino
+(`.pl-lista`/`.pl-mod`, de Configurações → PMEs), o seletor cinza `.seg` (de Envios), títulos "Nome N" (`.ob-h`) e a
+escala de letra 13/15/17. A janela de envio é uma lista: tocar no item troca, "+ Adicionar" é uma linha discreta por
+bloco. A troca no computador é uma caixa suspensa presa ao item, com a busca primeiro (como o menu de status do
+Linear); no celular, tela própria com "Voltar" e linhas tocáveis, sem botão "Escolher". A aba "Cronograma" é uma lista
+agrupada por PME, sem quadros de números. O banco é igual a Configurações → PMEs (número, texto, "43 envios", ›). A
+importação vem em 3 passos (Arquivo → Revisar colunas → Importar). As revisões anteriores ficam no histórico do git.

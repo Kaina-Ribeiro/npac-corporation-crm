@@ -24,17 +24,9 @@ const TELAS = {
     rodar: '__cr.envio({ trocar: true })',
     inteira: false,
   },
-  'troca-a': { url: `${FICHA}?aba=jornada`, abrir: 'Registrar envio do 2º PME', rodar: "__cr.envio({ trocar: 'A' })", inteira: false, larguras: [375, 1440] },
-  'troca-b': { url: `${FICHA}?aba=jornada`, abrir: 'Registrar envio do 2º PME', rodar: "__cr.envio({ trocar: 'B' })", inteira: false, larguras: [375, 1440] },
-  'troca-c': { url: `${FICHA}?aba=jornada`, abrir: 'Registrar envio do 2º PME', rodar: "__cr.envio({ trocar: 'C' })", inteira: false, larguras: [375, 1440] },
-  'troca-d': { url: `${FICHA}?aba=jornada`, abrir: 'Registrar envio do 2º PME', rodar: "__cr.envio({ trocar: 'D' })", inteira: false, larguras: [375, 1440] },
-  'banco-d': { url: '/acompanhamento/configuracoes?aba=pmes', rodar: "__cr.banco('D')", inteira: true, larguras: [375] },
   card: { url: `${FICHA}?aba=jornada`, rodar: '__cr.card()', inteira: false },
   aba: { url: `${FICHA}?aba=historico`, rodar: '__cr.aba()', inteira: true },
-  banco: { url: '/acompanhamento/configuracoes?aba=pmes', rodar: '__cr.banco()', inteira: true, larguras: [1440, 1024, 768] },
-  'banco-a': { url: '/acompanhamento/configuracoes?aba=pmes', rodar: "__cr.banco('A')", inteira: true, larguras: [375] },
-  'banco-b': { url: '/acompanhamento/configuracoes?aba=pmes', rodar: "__cr.banco('B')", inteira: true, larguras: [375] },
-  'banco-c': { url: '/acompanhamento/configuracoes?aba=pmes', rodar: "__cr.banco('C')", inteira: true, larguras: [375] },
+  banco: { url: '/acompanhamento/configuracoes?aba=pmes', rodar: '__cr.banco()', inteira: true },
   importacao: { url: '/acompanhamento/configuracoes?aba=importacao', rodar: '__cr.importacao()', inteira: true },
 };
 const LARGURAS = [
