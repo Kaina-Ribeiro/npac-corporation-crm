@@ -58,4 +58,22 @@ describe('loadEnv', () => {
   });
   it('MENTORADO_ENCRYPTION_KEY precisa ser distinta de FIELD_ENCRYPTION_KEY', () =>
     expect(() => loadEnv({ ...validEnv, MENTORADO_ENCRYPTION_KEY: key })).toThrow(/distinta/));
+  it('Telegram: as três variáveis juntas, nome sem @ e API só por https fora da máquina', () => {
+    const tg = {
+      TELEGRAM_BOT_TOKEN: '123456:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+      TELEGRAM_BOT_USERNAME: '@npac_itodev_bot',
+      TELEGRAM_WEBHOOK_SECRET: 'a'.repeat(64),
+    };
+    expect(loadEnv({ ...validEnv, ...tg }).TELEGRAM_BOT_USERNAME).toBe('npac_itodev_bot');
+    expect(() => loadEnv({ ...validEnv, ...tg, TELEGRAM_WEBHOOK_SECRET: undefined })).toThrow(
+      /vêm juntas/,
+    );
+    expect(() => loadEnv({ ...validEnv, ...tg, TELEGRAM_BOT_TOKEN: 'token-errado' })).toThrow();
+    expect(() => loadEnv({ ...validEnv, TELEGRAM_API_URL: 'http://telegram.exemplo.com' })).toThrow(
+      /https/,
+    );
+    expect(
+      loadEnv({ ...validEnv, TELEGRAM_API_URL: 'http://127.0.0.1:4196' }).TELEGRAM_API_URL,
+    ).toBe('http://127.0.0.1:4196');
+  });
 });

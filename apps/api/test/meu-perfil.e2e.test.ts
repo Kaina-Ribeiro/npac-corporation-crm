@@ -46,6 +46,7 @@ describe('Meu perfil', () => {
       email: ANA,
       photo: null,
       mailEnabled: true,
+      telegram: null,
     });
     mail.enabled = false;
     expect((await h.get('/api/me/profile', ana)).body.mailEnabled).toBe(false);
