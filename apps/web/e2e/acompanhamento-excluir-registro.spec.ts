@@ -70,6 +70,16 @@ test('a Admin registra e exclui contato e anotação; o histórico guarda só o 
   await expect(p.getByText('Anotação de teste 70')).toBeVisible();
 
   await page.screenshot({ path: 'test-results/npac-70-historico-admin.png', fullPage: true });
+  // No celular o botão fica ao lado do texto, sem rolagem lateral.
+  for (const width of [375, 768, 1024]) {
+    await page.setViewportSize({ width, height: 800 });
+    await expect(p.getByRole('button', { name: 'Excluir anotação' })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+      width,
+    );
+    await page.screenshot({ path: `test-results/npac-70-historico-${width}.png`, fullPage: true });
+  }
+  await page.setViewportSize({ width: 1280, height: 720 });
 
   // Cancelar não exclui.
   await p.getByRole('button', { name: 'Excluir contato' }).click();
@@ -77,6 +87,8 @@ test('a Admin registra e exclui contato e anotação; o histórico guarda só o 
   await expect(dlgExcluir.getByText('Não dá para desfazer.', { exact: false })).toBeVisible();
   await page.screenshot({ path: 'test-results/npac-70-confirmar.png' });
   await dlgExcluir.getByRole('button', { name: 'Cancelar' }).click();
+  // A janelinha sai com animação: espera fechar antes de abrir de novo.
+  await expect(dlgExcluir).toBeHidden();
   await expect(p.getByText('Contato de teste 70')).toBeVisible();
 
   await p.getByRole('button', { name: 'Excluir contato' }).click();
