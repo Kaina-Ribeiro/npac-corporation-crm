@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { closeTestConnections, ownerSql } from '@npac/db/testing';
 import { E2E_DB, E2E_PASSWORD } from './env.js';
+import { naConversa } from './chat-helpers.js';
 
 // NPAC-72 (Igor, 24/11/2026: "o Chat está pesado no iPhone"). No celular a lista e a conversa são
 // telas separadas: a conversa só carrega e só marca como lida quando está na tela.
@@ -59,7 +60,7 @@ function pedidosDoChat(page: Page) {
 
 const MENSAGENS = 'GET /api/chat/channels/:id/messages';
 const LIDA = 'POST /api/chat/channels/:id/read';
-const geral = (page: Page) => page.getByRole('button', { name: /^# Geral/ });
+const geral = (page: Page) => page.getByRole('button', { name: /^Geral/ });
 
 test.describe('no celular', () => {
   test.use({ viewport: { width: 375, height: 812 }, hasTouch: true });
@@ -73,7 +74,7 @@ test.describe('no celular', () => {
     await expect(page.getByRole('navigation', { name: 'Conversas' })).toBeVisible();
 
     await geral(page).click();
-    await expect(page.getByText(texto)).toBeVisible();
+    await expect(naConversa(page, texto)).toBeVisible();
   });
 
   test('a lista não busca nem marca como lida a conversa que está escondida', async ({ page }) => {
@@ -94,9 +95,9 @@ test.describe('no celular', () => {
 
     // Abriu a conversa: aparece e passa a contar como lida.
     await geral(page).click();
-    await expect(page.getByText(texto)).toBeVisible();
+    await expect(naConversa(page, texto)).toBeVisible();
     await expect.poll(() => lidoAte('ale')).toBe(id);
-    await page.getByRole('button', { name: '‹ Conversas' }).click();
+    await page.getByRole('button', { name: 'Conversas', exact: true }).click();
     await expect(geral(page).getByLabel(/não lidas/)).toHaveCount(0);
   });
 });
@@ -122,7 +123,7 @@ test('escrita que não é do Chat não rebusca as mensagens; mensagem nova chega
   // Mensagem nova de outra pessoa: aparece sem recarregar e é marcada como lida uma vez só.
   const texto = `Chegou agora ${Date.now()}`;
   const id = await mensagemNoGeral('murilo', texto);
-  await expect(page.getByText(texto)).toBeVisible({ timeout: 10_000 });
+  await expect(naConversa(page, texto)).toBeVisible({ timeout: 10_000 });
   await expect.poll(() => lidoAte('ale')).toBe(id);
   // A própria marcação avisa as abas de novo: essa segunda rodada só confere a lista.
   await page.waitForTimeout(3000);

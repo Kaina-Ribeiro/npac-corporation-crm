@@ -2,6 +2,7 @@ import { crc32, deflateSync } from 'node:zlib';
 import { test, type Page } from '@playwright/test';
 import { closeTestConnections, ownerSql } from '@npac/db/testing';
 import { E2E_DB, E2E_PASSWORD } from './env.js';
+import { novaConversa } from './chat-helpers.js';
 
 // Capturas do Meu perfil (NPAC-53) e das telas que ganharam foto, para comparar com o protótipo.
 // Só roda com CAPTURAS=<pasta>: pnpm --filter @npac/web e2e e2e/capturas-perfil.spec.ts
@@ -142,7 +143,7 @@ for (const t of ['light', 'dark'] as const) {
       await foto(page, `${nome}-${t}`, [375, 1440]);
     }
     await page.goto('/chat');
-    await page.getByLabel('Nova conversa').selectOption({ label: igor!.name });
+    await novaConversa(page, igor!.name);
     await foto(page, `chat-${t}`, [375, 1440], false);
     await page.context().clearCookies();
     await entrar(page, 'ronaldo');

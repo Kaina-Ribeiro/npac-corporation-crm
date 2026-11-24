@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { closeTestConnections, ownerSql } from '@npac/db/testing';
 import { E2E_DB, E2E_PASSWORD } from './env.js';
+import { novaConversa } from './chat-helpers.js';
 
 // NPAC-53 (3A): a foto da pessoa aparece onde hoje aparece a inicial, e também no Chat e no Admin.
 const owner = ownerSql(E2E_DB);
@@ -49,7 +50,7 @@ test('Equipe mostra a foto de quem tem e a inicial de quem não tem', async ({ p
 test('Chat mostra a foto na conversa com a pessoa', async ({ page }) => {
   await entrar(page);
   await page.goto('/chat');
-  await page.getByLabel('Nova conversa').selectOption({ label: igorNome });
+  await novaConversa(page, igorNome);
   const conversas = page.getByRole('navigation', { name: 'Conversas' });
   await expect(conversas.locator(`img[src^="/api/users/${igorId}/photo"]`)).toHaveCount(1);
 });

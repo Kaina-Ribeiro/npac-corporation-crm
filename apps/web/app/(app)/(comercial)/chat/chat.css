@@ -1,0 +1,1042 @@
+/* Chat, redesign A1 com vidro (Gabriel, 24/11/2026; protótipo `docs/prototipos/chat-redesign/`).
+   Tokens `--chat-*` em globals.css. Vidro (desfoque) só nos controles que flutuam: voltar, nome do
+   canal, botão `#`, cápsula de escrever e o menu da menção; a lista de mensagens rola sobre fundo
+   sólido e as bordas somem num degradê sem desfoque (pesado no iPhone antigo, NPAC-72).
+   `-webkit-backdrop-filter` sempre antes de `backdrop-filter` (NPAC-69).
+   Celular (< 768 px): lista e conversa são telas separadas; a conversa cobre a tela inteira e a
+   barra de baixo flutua por cima. A partir de 768 px: um painel com a lista e a conversa. */
+
+.ch-vidro {
+  background: var(--chat-vidro);
+  -webkit-backdrop-filter: blur(18px) saturate(1.8);
+  backdrop-filter: blur(18px) saturate(1.8);
+  box-shadow: var(--chat-vidro-sombra);
+}
+@media (prefers-reduced-transparency: reduce) {
+  .ch-vidro {
+    background: var(--chat-vidro-solido);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+.ch-circ {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 22px;
+  color: var(--ink);
+}
+.ch-circ svg {
+  width: 20px;
+  height: 20px;
+}
+.ch-circ:active {
+  scale: 0.94;
+}
+/* Ícone do canal (Geral) e da menção: tinta com o # dourado, como a marca. */
+.ch-canal {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(160deg, #2a2926, #050506);
+  color: var(--gold);
+  font-weight: 700;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.08);
+}
+.ch-canal svg {
+  width: 55%;
+  height: 55%;
+}
+
+/* ---------- Lista de conversas ---------- */
+.ch-lista {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.ch-topo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-direction: column-reverse;
+}
+.ch-topo h1 {
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 41px;
+  letter-spacing: -0.04em;
+  padding: 0 2px 10px;
+}
+.ch-topo .ch-circ {
+  align-self: flex-end;
+  margin: -4px -4px 0 0;
+}
+.ch-convite {
+  margin: 4px -2px 10px;
+}
+.ch-linhas {
+  display: flex;
+  flex-direction: column;
+  margin: 0 -16px;
+}
+.ch-linha {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 14px 10px 16px;
+  text-align: left;
+}
+.ch-linha + .ch-linha::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 80px;
+  right: 0;
+  height: 0.5px;
+  background: var(--line);
+}
+.ch-linha :is(.ch-av, .ch-canal) {
+  width: 52px;
+  height: 52px;
+}
+.ch-linha .ch-av {
+  font-size: 22px;
+}
+.ch-linha .ch-canal {
+  border-radius: 16px;
+  font-size: 24px;
+}
+.ch-meio {
+  flex: 1;
+  min-width: 0;
+}
+.ch-l1 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ch-nm {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ch-qd {
+  font-size: 15px;
+  color: var(--ink3);
+}
+.ch-l1 > svg {
+  width: 13px;
+  height: 13px;
+  flex: none;
+  color: var(--ink3);
+  opacity: 0.7;
+}
+.ch-linha[data-nova] .ch-qd {
+  color: var(--gold-text);
+  font-weight: 600;
+}
+.ch-l2 {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 2px;
+}
+.ch-pv {
+  display: -webkit-box;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 15px;
+  line-height: 20px;
+  color: var(--ink2);
+  overflow-wrap: anywhere;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.ch-selo {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  margin-top: 4px;
+  padding: 0 7px;
+  border-radius: 11px;
+  background: var(--gold);
+  color: #000;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ---------- Conversa ---------- */
+/* Celular: a conversa cobre a tela (o `top`/`height` seguem a área visível quando o teclado abre,
+   pelo `visualViewport` em chat.tsx); a barra de baixo (z 20) fica por cima. */
+.ch-conv {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  overflow: hidden;
+  background: var(--chat-fundo);
+  --ch-pt: calc(env(safe-area-inset-top) + 104px);
+  --ch-eb: calc(max(16px, env(safe-area-inset-bottom)) + 80px);
+}
+/* Teclado aberto: a barra de baixo some (globals.css) e a cápsula desce. */
+.ch-conv:has(:is(input, textarea):focus) {
+  --ch-eb: 8px;
+}
+.ch-rola {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--ch-pt) 14px calc(var(--ch-eb) + var(--ch-escreve, 44px) + 18px);
+  scrollbar-width: thin;
+}
+.ch-coluna {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 760px;
+  margin: auto auto 0;
+}
+.ch-borda {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+.ch-borda.topo {
+  top: 0;
+  height: calc(var(--ch-pt) + 14px);
+  background: linear-gradient(var(--chat-fundo) 55%, transparent);
+}
+.ch-borda.base {
+  bottom: 0;
+  height: calc(var(--ch-eb) + var(--ch-escreve, 44px) + 40px);
+  background: linear-gradient(transparent, var(--chat-fundo) 62%);
+}
+
+/* Topo no estilo do iMessage: voltar à esquerda, foto e nome no meio. */
+.ch-cab {
+  position: absolute;
+  top: calc(env(safe-area-inset-top) + 8px);
+  left: 10px;
+  right: 10px;
+  z-index: 6;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+.ch-cab > * {
+  pointer-events: auto;
+}
+.ch-cab .ch-voltar {
+  position: absolute;
+  top: 6px;
+  left: 0;
+}
+.ch-quem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  max-width: calc(100% - 120px);
+}
+.ch-quem .ch-av,
+.ch-quem .ch-canal {
+  width: 44px;
+  height: 44px;
+  font-size: 19px;
+}
+.ch-quem .ch-canal {
+  border-radius: 13px;
+}
+.ch-nome {
+  display: inline-block;
+  max-width: 100%;
+  height: 24px;
+  padding: 0 10px;
+  overflow: hidden;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 24px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ch-dia {
+  align-self: center;
+  margin: 18px 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink3);
+}
+.ch-antigas {
+  display: inline-flex;
+  align-self: center;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  margin: 0 0 4px;
+  padding: 0 14px;
+  border-radius: 18px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink2);
+}
+.ch-antigas svg {
+  width: 16px;
+  height: 16px;
+}
+.ch-antigas[aria-busy='true'] {
+  opacity: 0.6;
+}
+
+.ch-grupo {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  margin-top: 14px;
+}
+.ch-grupo > .ch-av {
+  width: 28px;
+  height: 28px;
+  margin-bottom: 22px;
+  font-size: 12px;
+}
+.ch-grupo[data-eu] {
+  flex-direction: row-reverse;
+}
+.ch-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-width: 80%;
+}
+.ch-col ol {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.ch-grupo[data-eu] :is(.ch-col, .ch-col ol) {
+  align-items: flex-end;
+}
+.ch-grupo:not([data-eu]) .ch-col ol {
+  align-items: flex-start;
+}
+.ch-autor {
+  margin: 0 0 1px 14px;
+  font-size: 12px;
+  color: var(--ink3);
+}
+.ch-hora {
+  margin: 3px 14px 0;
+  font-size: 11px;
+  color: var(--ink3);
+}
+.ch-b {
+  position: relative;
+  max-width: 100%;
+  padding: 8px 14px 9px;
+  border-radius: 20px;
+  background: var(--chat-bolha);
+  font-size: 17px;
+  line-height: 22px;
+  letter-spacing: -0.022em;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.ch-grupo[data-eu] .ch-b {
+  background: var(--chat-bolha-eu);
+  color: var(--chat-bolha-eu-txt);
+}
+/* Rabinho do iMessage na última bolha do bloco (o recorte usa a cor sólida do fundo). */
+.ch-b.cauda::before,
+.ch-b.cauda::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  height: 20px;
+}
+.ch-grupo:not([data-eu]) .ch-b.cauda::before {
+  left: -7px;
+  width: 20px;
+  border-bottom-right-radius: 16px 14px;
+  background: var(--chat-bolha);
+}
+.ch-grupo:not([data-eu]) .ch-b.cauda::after {
+  left: -10px;
+  width: 10px;
+  border-bottom-right-radius: 10px;
+  background: var(--chat-fundo);
+}
+.ch-grupo[data-eu] .ch-b.cauda::before {
+  right: -7px;
+  width: 20px;
+  border-bottom-left-radius: 16px 14px;
+  background: var(--chat-bolha-eu-fim);
+}
+.ch-grupo[data-eu] .ch-b.cauda::after {
+  right: -10px;
+  width: 10px;
+  border-bottom-left-radius: 10px;
+  background: var(--chat-fundo);
+}
+.ch-falhou {
+  margin: 3px 14px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--danger);
+}
+
+/* Menção como prévia de link colado no iMessage. */
+.ch-cartao {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: min(232px, 100%);
+  margin: 8px -1px 2px;
+  padding: 8px 10px 8px 8px;
+  border-radius: 14px;
+  background: var(--chat-cartao);
+  color: inherit;
+  white-space: normal;
+}
+.ch-grupo[data-eu] .ch-cartao {
+  background: var(--chat-cartao-eu);
+}
+.ch-cartao .ch-canal {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  font-size: 17px;
+}
+.ch-cartao .ch-tx {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+.ch-cartao .ch-tx b {
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 19px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ch-cartao .ch-tx span {
+  font-size: 13px;
+  line-height: 17px;
+  color: var(--ink2);
+}
+.ch-grupo[data-eu] .ch-cartao .ch-tx span {
+  color: var(--chat-bolha-eu-txt2);
+}
+.ch-cartao > svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  opacity: 0.45;
+}
+.ch-cartao.restrito .ch-canal {
+  background: var(--chat-suave);
+  color: var(--ink3);
+  box-shadow: none;
+}
+.ch-cartao.restrito .ch-canal svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Caixa de escrever em cápsula. */
+.ch-escreve {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: var(--ch-eb);
+  z-index: 6;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+.ch-capsula {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 5px 0 16px;
+  border-radius: 22px;
+}
+.ch-capsula[data-anexo] {
+  border-radius: 24px;
+}
+.ch-capsula .ch-lin {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+}
+.ch-capsula :is(textarea, input) {
+  flex: 1;
+  min-width: 0;
+  max-height: 132px;
+  padding: 11px 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 17px;
+  line-height: 22px;
+  letter-spacing: -0.02em;
+  resize: none;
+  outline: none;
+  caret-color: var(--gold-deep);
+}
+.ch-capsula :is(textarea, input)::placeholder {
+  color: var(--placeholder);
+  opacity: 1;
+}
+.ch-capsula .ch-lupa {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  color: var(--ink3);
+}
+.ch-dica {
+  display: none;
+  padding-right: 10px;
+  font-size: 12px;
+  color: var(--ink3);
+  white-space: nowrap;
+}
+.ch-enviar {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 17px;
+  background: var(--ink);
+  color: var(--bg);
+}
+.ch-enviar svg {
+  width: 18px;
+  height: 18px;
+}
+.ch-anexo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: max-content;
+  max-width: 100%;
+  margin: 6px 0 0 -10px;
+  padding: 5px 6px 5px 5px;
+  border-radius: 14px;
+  background: var(--chat-cartao);
+}
+.ch-anexo .ch-canal {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+.ch-anexo b {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ch-anexo button {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 13px;
+  background: var(--chat-suave);
+}
+.ch-anexo button svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* Busca de menção: cartão de vidro acima da cápsula. */
+.ch-menu {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: calc(var(--ch-eb) + var(--ch-escreve, 44px) + 10px);
+  z-index: 7;
+  padding: 8px;
+  border-radius: 24px;
+}
+.ch-menu h3 {
+  padding: 6px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink3);
+}
+.ch-menu ul {
+  display: flex;
+  flex-direction: column;
+}
+.ch-menu li button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  height: 50px;
+  padding: 0 10px;
+  border-radius: 14px;
+  font-size: 17px;
+  text-align: left;
+}
+.ch-menu li button[data-foco] {
+  background: var(--chat-selecao);
+}
+.ch-menu li .ch-canal {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  font-size: 15px;
+}
+.ch-menu mark {
+  background: none;
+  color: inherit;
+  font-weight: 700;
+}
+.ch-menu p {
+  padding: 4px 10px 10px;
+  font-size: 15px;
+  color: var(--ink2);
+}
+
+/* ---------- Nova conversa (folha) ---------- */
+.ch-folha {
+  position: fixed;
+  inset: auto 8px max(8px, env(safe-area-inset-bottom));
+  top: calc(env(safe-area-inset-top) + 58px);
+  width: auto;
+  max-width: none;
+  height: auto;
+  max-height: none;
+  margin: 0;
+  padding: 10px 0 0;
+  overflow: hidden;
+  border-radius: 34px;
+  background: var(--chat-fundo);
+  color: var(--ink);
+  box-shadow: 0 -10px 40px -10px rgba(0, 0, 0, 0.3);
+}
+.ch-folha[open] {
+  display: flex;
+  flex-direction: column;
+}
+.ch-folha::backdrop {
+  background: rgba(0, 0, 0, 0.28);
+}
+.ch-folha .ch-fc {
+  position: relative;
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  height: 52px;
+}
+.ch-folha .ch-fc .ch-circ {
+  position: absolute;
+  left: 10px;
+}
+.ch-folha h2 {
+  font-size: 17px;
+  font-weight: 600;
+}
+.ch-busca {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  margin: 6px 16px 14px;
+  padding: 0 14px;
+  border-radius: 22px;
+  background: var(--chat-suave);
+}
+.ch-busca:focus-within {
+  box-shadow: 0 0 0 2px var(--gold-ring);
+}
+.ch-busca svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  color: var(--ink3);
+}
+.ch-busca input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 17px;
+  outline: none;
+}
+.ch-busca input::placeholder {
+  color: var(--placeholder);
+  opacity: 1;
+}
+.ch-pessoas {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 16px 16px;
+}
+.ch-pessoas ul {
+  overflow: hidden;
+  border-radius: 20px;
+  background: var(--chat-bolha);
+}
+.dark .ch-pessoas ul {
+  background: #1c1c20;
+}
+.ch-pessoa {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  height: 58px;
+  padding: 0 16px;
+  font-size: 17px;
+  text-align: left;
+}
+.ch-pessoas li + li .ch-pessoa::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 64px;
+  right: 0;
+  height: 0.5px;
+  background: var(--line);
+}
+.ch-pessoa:hover {
+  background: var(--chat-suave);
+}
+.ch-pessoa .ch-av {
+  width: 36px;
+  height: 36px;
+  font-size: 15px;
+}
+.ch-pessoa .ch-nm {
+  font-weight: 400;
+}
+.ch-pessoas p {
+  padding: 12px 4px;
+  font-size: 15px;
+  color: var(--ink2);
+}
+
+/* ---------- Celular: lista e conversa alternam ---------- */
+@media (max-width: 47.99rem) {
+  .ch[data-conversa] .ch-lista,
+  .ch:not([data-conversa]) .ch-conv {
+    display: none;
+  }
+  .ch-rola {
+    scrollbar-width: none;
+  }
+  /* No celular o vidro fica só na pílula do nome, não em volta da foto. */
+  .ch-quem.ch-vidro {
+    background: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: none;
+  }
+}
+
+/* ---------- Tablet e computador: um painel, lista e conversa lado a lado ---------- */
+@media (min-width: 48rem) {
+  .ch {
+    --lw: 292px;
+    display: grid;
+    grid-template-columns: var(--lw) minmax(0, 1fr);
+    /* O painel vai a 10 px das bordas (o <main> tem 32/24/40 px de respiro). */
+    height: calc(100dvh - 20px);
+    margin: -14px -22px -30px;
+    overflow: hidden;
+    border-radius: 26px;
+    box-shadow:
+      var(--gld),
+      0 0 0 0.5px var(--line);
+  }
+  .ch-lista {
+    overflow: hidden;
+    border-right: 0.5px solid var(--line);
+    background: var(--chat-lista);
+    -webkit-backdrop-filter: var(--blur);
+    backdrop-filter: var(--blur);
+  }
+  .ch-topo {
+    flex-direction: row;
+    align-items: center;
+    padding: 16px 12px 8px 20px;
+  }
+  .ch-topo h1 {
+    padding: 0;
+    font-size: 26px;
+    line-height: 1.2;
+    letter-spacing: -0.035em;
+  }
+  .ch-topo .ch-circ {
+    align-self: auto;
+    width: 38px;
+    height: 38px;
+    margin: 0;
+  }
+  .ch-topo .ch-circ svg {
+    width: 18px;
+    height: 18px;
+  }
+  .ch-convite {
+    margin: 4px 12px 8px;
+  }
+  .ch-rolalista {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+  .ch-linhas {
+    gap: 2px;
+    margin: 0;
+    padding: 0 8px 8px;
+  }
+  .ch-linha {
+    padding: 9px 10px;
+    border-radius: 14px;
+  }
+  .ch-linha::before {
+    display: none;
+  }
+  .ch-linha:hover {
+    background: var(--chat-suave);
+  }
+  .ch-linha[aria-current] {
+    background: var(--chat-selecao);
+  }
+  .ch-linha :is(.ch-av, .ch-canal) {
+    width: 44px;
+    height: 44px;
+  }
+  .ch-linha .ch-av {
+    font-size: 19px;
+  }
+  .ch-linha .ch-canal {
+    border-radius: 13px;
+    font-size: 21px;
+  }
+  .ch-nm {
+    font-size: 15px;
+  }
+  .ch-qd {
+    font-size: 13px;
+  }
+  .ch-pv {
+    font-size: 13.5px;
+    line-height: 18px;
+  }
+  .ch-conv {
+    position: relative;
+    inset: auto;
+    z-index: auto;
+    min-height: 0;
+    --ch-pt: 84px;
+    --ch-eb: 18px;
+  }
+  .ch-conv:has(:is(input, textarea):focus) {
+    --ch-eb: 18px;
+  }
+  .ch-cab {
+    top: 14px;
+  }
+  .ch-voltar {
+    display: none !important;
+  }
+  .ch-quem {
+    flex-direction: row;
+    gap: 8px;
+    height: 44px;
+    padding: 0 16px 0 7px;
+    border-radius: 22px;
+  }
+  .ch-quem .ch-av,
+  .ch-quem .ch-canal {
+    width: 30px;
+    height: 30px;
+    font-size: 14px;
+  }
+  .ch-quem .ch-canal {
+    border-radius: 9px;
+  }
+  .ch-nome {
+    height: auto;
+    padding: 0;
+    background: none;
+    box-shadow: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    font-size: 15px;
+    line-height: 20px;
+  }
+  .ch-escreve,
+  .ch-menu {
+    left: 0;
+    right: 0;
+    width: min(100% - 40px, 760px);
+    margin: 0 auto;
+  }
+  /* Nova conversa no tablet e no computador: janela no meio da tela. */
+  .ch-folha {
+    inset: 0;
+    width: min(440px, calc(100vw - 32px));
+    height: min(640px, calc(100dvh - 64px));
+    margin: auto;
+    box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.45);
+  }
+}
+@media (min-width: 62.5rem) {
+  .ch {
+    --lw: 300px;
+  }
+}
+@media (min-width: 75rem) {
+  .ch {
+    --lw: 340px;
+  }
+  .ch-b {
+    padding: 8px 13px;
+    font-size: 15px;
+    line-height: 21px;
+  }
+  .ch-cartao .ch-tx b {
+    font-size: 14px;
+  }
+  .ch-cartao .ch-tx span {
+    font-size: 12px;
+  }
+  .ch-col {
+    max-width: 66%;
+  }
+  .ch-capsula:not([data-texto]) .ch-dica {
+    display: inline;
+  }
+}
+/* Campos de 17 px ficam fora da regra dos 16 px na tela de toque (`.ch-campo`, globals.css); no
+   computador largo descem para 15 px, como as bolhas. */
+@media (min-width: 75rem) and (pointer: fine) {
+  .ch-capsula :is(textarea, input) {
+    font-size: 15px;
+  }
+}
+
+/* Convite de avisos (`PushInvite variante="chat"`): cartão de vidro com o sino dourado. */
+.ch-convite {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  column-gap: 12px;
+  padding: 14px 14px 12px;
+  border-radius: 22px;
+}
+.ch-convite > .ch-canal {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+}
+.ch-convite > .ch-canal svg {
+  width: 18px;
+  height: 18px;
+}
+.ch-convite > p {
+  font-size: 14px;
+  line-height: 19px;
+  color: var(--ink2);
+}
+.ch-convite > [role='alert'] {
+  grid-column: 2;
+}
+.ch-convite .ch-bt {
+  display: flex;
+  flex-wrap: wrap;
+  grid-column: 2;
+  gap: 2px;
+  margin-top: 10px;
+}
+.ch-cap {
+  display: inline-flex;
+  align-items: center;
+  height: 44px;
+  padding: 0 18px;
+  border-radius: 22px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.ch-cap.ink {
+  background: var(--ink);
+  color: var(--bg);
+}
+.ch-cap.quieta {
+  color: var(--ink2);
+}
+.ch-cap:active {
+  scale: 0.97;
+}
+@media (min-width: 48rem) {
+  .ch-convite {
+    grid-template-columns: 30px minmax(0, 1fr);
+    column-gap: 10px;
+    padding: 12px;
+    border-radius: 18px;
+  }
+  .ch-convite > .ch-canal {
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+  }
+  .ch-convite > p {
+    font-size: 12.5px;
+    line-height: 17px;
+  }
+  .ch-convite .ch-cap {
+    height: 34px;
+    padding: 0 14px;
+    border-radius: 17px;
+    font-size: 13px;
+  }
+}

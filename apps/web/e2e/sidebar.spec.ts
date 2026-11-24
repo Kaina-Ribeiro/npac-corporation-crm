@@ -131,11 +131,30 @@ test('Diretoria: grupo abre dentro do módulo e fecha fora', async ({ page }) =>
   await expect(item).toBeHidden();
 });
 
+test('tablet em pé: a sidebar começa recolhida, um clique abre e escolher uma tela recolhe', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 768, height: 1024 });
+  await login(page, 'ale@npac.com.br');
+  // Já no primeiro desenho (antes do JS), sem mexer no cookie da escolha do computador.
+  await page.goto('/hoje');
+  expect(await sideWidth(page)).toBe(56);
+  await page.getByRole('button', { name: 'Expandir barra lateral' }).click();
+  await expect.poll(() => sideWidth(page)).toBe(236);
+  await lateral(page).getByRole('link', { name: 'Leads', exact: true }).click();
+  await page.waitForURL(/\/leads/);
+  await expect.poll(() => sideWidth(page)).toBe(56);
+  // Acima de 1024 px nada muda: aberta como a pessoa deixou.
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await expect.poll(() => sideWidth(page)).toBe(236);
+});
+
 test('tablet 768: sub-itens não estouram a sidebar', async ({ page }) => {
   await page.setViewportSize({ width: 768, height: 1024 });
   await login(page, 'diretor@npac.com.br');
-  await lateral(page).getByRole('link', { name: 'Acompanhamento', exact: true }).click();
-  await page.waitForURL(/\/acompanhamento\/fila/);
+  await page.goto('/acompanhamento/fila');
+  await page.getByRole('button', { name: 'Expandir barra lateral' }).click();
+  await expect.poll(() => sideWidth(page)).toBe(236);
   const item = lateral(page).locator('a', { hasText: LONGO });
   await expect(item).toBeVisible();
   const m = await page.locator('.side-nav').evaluate((el) => ({

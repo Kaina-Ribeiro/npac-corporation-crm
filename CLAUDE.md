@@ -50,7 +50,10 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   sidebar e do Ctrl+K, grupos e sub-itens do Acompanhamento: `shell/nav-menu.tsx`, só servidor, para
   não pesar no JS; `nav-items.tsx` também fica no servidor, a barra inferior é componente de servidor) · na sidebar só o
   miolo rola (`.side-scroll`: navegação + filtros salvos); topo e rodapé com o Sair ficam fixos, e a carga direta rola até o
-  item ativo (`sidebar-shell.tsx`) · Sair no celular (17/11/2026): o mesmo cartão `shell/conta-card.tsx` (foto, nome, cargo,
+  item ativo (`sidebar-shell.tsx`) · **tablet em pé (768 a 1023 px, NPAC-73, 4A):** a sidebar sai recolhida em trilho sem
+  mexer no cookie da escolha do computador (antes do JS pelo CSS `.shell[data-side='expanded']` na media do tablet em
+  `globals.css`; depois o `SidebarShell` põe `collapsed`); o botão abre (`data-side="open"`) e escolher uma tela recolhe.
+  Acima de 1024 px nada muda. O JS de `/leads` ficou no teto (149,99 KB): código novo na casca pesa contra o limite · Sair no celular (17/11/2026): o mesmo cartão `shell/conta-card.tsx` (foto, nome, cargo,
   Meu perfil, Sair) no topo do `/mais` e do `/acompanhamento/mais`; nada de outro Sair nessas telas (e2e `e2e/sair.spec.ts`) · classes de botão `lib/button.ts` · dropdown (todos os `<select>`) com o visual do CRM só por CSS
   (`appearance: base-select` + `::picker(select)` no fim de `globals.css`; Safari fica com o do
   sistema; Lightning CSS não aceita pseudo-classe depois de `::picker`, use `select:open::picker(select)`) · vidro (`.glass`, `.glass-card`, `.ac .card`): `-webkit-backdrop-filter` sempre **antes** de `backdrop-filter`, também nos `none`; na ordem contrária o Lightning CSS do build descarta a linha sem prefixo e o Chrome/Android ficam sem desfoque (NPAC-69, e2e `e2e/vidro.spec.ts` lê o valor calculado no build); o vidro também cria contexto de empilhamento e é a referência de `position: fixed` dos filhos: menu aberto dentro dele (`details[open]`, `aria-expanded`) sobe o card com `z-index: 5` (`globals.css`, `modulo.css`), e popup novo dentro de vidro usa `<dialog>`/popover ou essa regra · login,
@@ -65,6 +68,22 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   `web/lib/session.ts` · UI base (`Field`, `button`, `StageOptions`) `components/crm-ui.tsx` ·
   cargo (`ROLE_LABEL`, `RoleTag`, `CargoTag`) `components/role-tag.tsx` · campo Cargo (select agrupado,
   dica, caixas/selo) `components/cargo-field.tsx` · tokens/`.tier-*`/`.role-*` `web/app/globals.css`
+- **Chat** (redesign A1 com vidro, NPAC-73, 24/11/2026; protótipo `docs/prototipos/chat-redesign/`, Gabriel "1A, 2A, 3A,
+  4A"): `components/chat.tsx` (estado, rolagem, menção, cápsula), `chat-nova.tsx` (folha "Nova conversa" com "Buscar
+  pessoa", filtro só na tela), `chat-icons.tsx`, datas e grupos `lib/chat-format.ts` (hora curta, "Hoje"/"Ontem"/"Segunda,
+  23 de nov.", bolhas do mesmo autor juntas até 5 min); CSS só da tela em `app/(app)/(comercial)/chat/chat.css` (classes
+  `.ch-*`) e tokens `--chat-*` em `globals.css` (fundo, bolhas, cartão da menção, seleção dourada, vidro; claro e
+  escuro). Vidro só nos controles que flutuam (voltar, nome, `#`, cápsula, menu da menção; `.ch-vidro`, sólido com
+  `prefers-reduced-transparency`); as mensagens rolam sobre fundo sólido e as bordas somem num degradê **sem** desfoque
+  (iPhone antigo). Celular: lista e conversa alternam (`naTela`, NPAC-72); a conversa cobre a tela (`position: fixed`) e
+  segue o `visualViewport` com o teclado; a barra de baixo fica por cima e some com o teclado. Botões da cápsula e da busca
+  não tiram o foco do campo (`manterFoco`). Antigas (1A): o botão "Ver mensagens anteriores" no topo é observado
+  (`IntersectionObserver`) e busca `?before=` sozinho, mantendo o ponto de leitura; o aviso ao vivo não descarta as já
+  carregadas. Prévia (2A): `GET /chat/channels` traz `lastMessage` (`authorId`, `authorName`, `text` cortado em 120
+  caracteres numa linha, no SQL, sob a RLS; nunca em log, URL ou auditoria). Convite de avisos com `PushInvite
+variante="chat"`. Campos de 17 px ficam fora da regra dos 16 px com `.ch-campo`. e2e `chat-redesign.spec.ts`,
+  `chat-celular.spec.ts`, ajudantes `e2e/chat-helpers.ts` (`novaConversa`, `buscarLead`, `naConversa`); capturas
+  `CAPTURAS=<pasta> … e2e/capturas-chat.spec.ts` (mesmas telas do protótipo)
 - **Telas:** leads `components/leads-browser.tsx`, `lead-filters.tsx` · ficha/venda `lead-detail.tsx`,
   `sale-flow.tsx`, `finance-panel.tsx` · `pipeline.tsx`, `today.tsx`, `reports.tsx`, `dashboard-*.tsx`
   (cards reordenáveis: `dashboard-board.tsx`, `lib/dashboard-layout.ts`, `lib/board-motion.ts`) ·
@@ -941,7 +960,7 @@ VARREDURA_URL=http://localhost:3150 VARREDURA_SENHA=senha-do-e2e-123 VARREDURA_O
   (SDR), sonia (CLOSER), carla (Acompanhamento sem perfil), duda (Acompanhamento + Admin), operacao, manu, leo, maria (Envios), `@npac.com.br`; teste que troca papel: `update "user" set role = …` e restaurar.
 - Playwright: `filter({ visible: true })`/`exact: true` (layout mobile oculto duplica controles);
   `role=alert` também pega o anunciador de rotas do Next; nada de `networkidle` (SSE).
-- JS de `/leads` < 150 KB gzip (teste; hoje ~149,7, com a release em 150,0 antes da Fase 2 do desempenho). Sem libs pesadas no cliente, nem zod; prefira server components.
+- JS de `/leads` < 150 KB gzip (teste; hoje 149,99 KB depois da sidebar do tablet, NPAC-73: não cabe mais nada na casca sem tirar algo). Sem libs pesadas no cliente, nem zod; prefira server components.
 - Capturas dos e2e: `apps/web/test-results/*.png`.
 
 ## Não commitar
