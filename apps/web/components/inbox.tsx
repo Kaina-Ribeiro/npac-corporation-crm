@@ -24,7 +24,7 @@ export const bell = (
  * Quantos avisos pedem atenção: não lidos + reuniões das próximas 2h + lembretes de
  * confirmação vigentes. Atualiza ao vivo (SSE) e pelo relógio, sem polling.
  */
-function usePending() {
+export function usePending() {
   const alerts = useAlerts();
   const reminders = usePendingReminders();
   return alerts ? alerts.unread + alerts.soon.length + reminders.length : 0;
@@ -66,7 +66,7 @@ export function TabTitle() {
   return null;
 }
 
-function Badge({ n }: { n: number }) {
+export function Badge({ n }: { n: number }) {
   if (!n) return null;
   return (
     <span className="nav-badge ml-auto min-w-5 rounded-full bg-danger px-1.5 text-center text-[11px] leading-5 font-semibold text-white tabular-nums">
@@ -106,20 +106,5 @@ export function InboxDot() {
       aria-hidden="true"
       className="absolute top-2 right-[calc(50%-18px)] size-2.5 rounded-full bg-danger ring-2 ring-[var(--bg)]"
     />
-  );
-}
-
-/** Cartão "Avisos" da tela Mais. */
-export function InboxCard() {
-  const n = usePending();
-  return (
-    <Link
-      href="/avisos"
-      className="glass-card flex min-h-12 items-center gap-3 px-4 text-sm font-medium [&_svg]:size-5"
-    >
-      {bell}
-      <span className="flex-1">Avisos</span>
-      <Badge n={n} />
-    </Link>
   );
 }

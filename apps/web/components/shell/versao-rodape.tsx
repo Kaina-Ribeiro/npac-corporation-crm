@@ -6,7 +6,8 @@ import type { Me } from '@/lib/session';
  * linha própria no rodapé da sidebar (some com a barra recolhida, dentro do `.side-fold`) e no
  * cartão da conta do Mais. Componente de servidor: o arquivo das novidades não vai para o JS do
  * navegador (teto do `/leads`). O ponto dourado aparece enquanto há novidade que a pessoa não viu.
- * A janela das novidades (Fase 2) liga o botão pelo `data-novidades`.
+ * O clique abre a janela no modo histórico (`Novidades`, pelo `data-novidades`); o "já vi" esconde
+ * o ponto sem recarregar (`html[data-novidades-vistas]`).
  */
 export function VersaoRodape({
   me,
@@ -30,7 +31,13 @@ export function VersaoRodape({
           : 'mt-1.5 flex w-full items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-left text-xs font-medium text-ink3 transition-colors hover:bg-black/5 hover:text-ink dark:hover:bg-white/10'
       }
     >
-      {novo && <span aria-hidden="true" className="size-1.5 flex-none rounded-full bg-gold-deep" />}
+      {novo && (
+        <span
+          aria-hidden="true"
+          data-novidades-ponto=""
+          className="size-1.5 flex-none rounded-full bg-gold-deep"
+        />
+      )}
       <span className="tabular-nums">Versão {versao}</span>
       <span className="ml-auto font-semibold text-gold-text">O que mudou{mais ? ' ›' : ''}</span>
     </button>
