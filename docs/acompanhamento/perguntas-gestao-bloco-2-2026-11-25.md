@@ -4,71 +4,106 @@ Ordem da gestão (spec do bloco 1): 1 Envios físicos + venda vira mentorado ✅
 painel de gestão** → 3 Eventos e agenda → 4 Linha do tempo e conquistas + painel do Leo. A área do mentorado fica por
 último.
 
-⭐ = sugestão nossa.
+⭐ = sugestão nossa. Pergunta sem ⭐ = não temos como saber; só ela responde.
 
 **Respostas da Eduarda:** ⏳ aguardando.
 
 ## Já respondido (não perguntar)
 
-Pelo PDF de 07/11 (aba 11, tabela das 12 ações, reuniões e banco):
-- A aba 11 é a "visão da liderança": mentorados que chegam ao 12º mês nos próximos 60 dias, status da conversa de
-  renovação e indicadores gerais.
-- A conversa é a reunião "Linha do tempo e renovação", no 12º mês depois do último PME, conduzida pela Duda; termina com
-  "reunião registrada, resultado da renovação". O campo "Interesse em renovar" só existe nessa reunião e é interno.
-- Status da inscrição: em onboarding, ativo, pausado, cancelado, concluído, renovado.
-- O Acompanhamento edita as renovações.
+Pelo PDF de 07/11:
+- Aba 11 = "visão da liderança": mentorados que chegam ao 12º mês nos próximos 60 dias, status da conversa de renovação
+  e indicadores gerais.
+- A conversa é a reunião "Linha do tempo e renovação", no 12º mês depois do último PME, com a Duda; termina com "reunião
+  registrada, resultado da renovação". "Interesse em renovar" só existe nessa reunião e é interno.
+- Status da inscrição: em onboarding, ativo, pausado, cancelado, concluído, renovado. O Acompanhamento edita renovações.
 
-Pelo que o sistema já tem:
-- A reunião do tipo "Renovação" com o campo "Quer renovar?" (sim/não) já existe no registro da reunião.
-- O término previsto é o início da jornada + 12 meses para toda mentoria (`inscricoes.service.ts`).
-- Os status "Concluído" e "Renovado" já existem e a Duda já pode trocá-los à mão na ficha.
-- Indicadores que já estão prontos: Dashboard (engajamento e funil do onboarding, NPAC-75), Reuniões > Controle mensal
-  (quem fez a reunião do mês, quem falta, comparecimento), Reuniões > Agenda da semana e "Sem reunião há mais de 30 dias",
-  PMEs e ciclos (status e % de tarefas).
-- Uma venda nova no comercial de quem já é mentorado cria outra inscrição (bloco 1, M3), e a Fila já mostra "Já tem
-  inscrição: RDV, Ativo".
+Pelo que o sistema já tem (`release/v0.26`, conferido no código em 25/11):
+- **A ação do 12º mês já existe** no plano do RDV (0050): "Celebração e renovação", reunião do tipo RENOVACAO,
+  checklist "Reunião registrada" e "Resultado da renovação", gatilho fim do PME. Na Fila ela aparece em "Plano" como
+  "Ação do plano: Celebração e renovação. Prevista para…" quando o 12º PME fecha, ou no 25º dia do 12º mês se o 12º PME
+  não foi registrado (`mentoria_acao_data`, 0070); a reunião de Renovação realizada a conclui sozinha.
+- O registro da reunião de Renovação já tem "Quer renovar?" (sim/não, `interesse_renovar`).
+- "Concluído" e "Renovado" já existem e são trocados à mão na ficha (design v2, §6: "mudar o status para
+  CONCLUIDO/RENOVADO é manual"). A ficha mostra "jornada concluída" depois do 12º mês.
+- RDV, 2M e 6M duram 12 meses no sistema: término = início + 12 meses, editável, empurrado pelas pausas
+  (`inscricoes.service.ts`, 0051). 6M tem reunião mensal do 1º ao 12º mês; 2M, trimestral nos meses 1, 4, 7, 10 e 13;
+  pulseiras da 2M e da 6M nos meses 1, 7 e 13, e as de 19, 25, 37 e 61 "nascem com a renovação" (0050, D17).
+- **Não há produto de renovação no comercial**: os produtos que viram mentorado são só Mentoria RDV, 2M e 6M (0077).
+- **Hoje, uma venda de RDV, 2M ou 6M de quem já é mentorado abre outra ficha, com o onboarding inteiro** (Caixa, IDR;
+  bloco 1, M3), e a Fila "Nova inscrição" mostra "Já tem inscrição: RDV, Ativo".
+- Indicadores prontos: Dashboard (engajamento e funil do onboarding, NPAC-75), Reuniões > Controle mensal (quem fez a
+  reunião do mês, quem falta, comparecimento), Agenda da semana, "Sem reunião há mais de 30 dias" e PMEs e ciclos.
+
+## Assumido sem perguntar (vai na spec; ela corrige se quiser)
+
+- Lista: quem **começa o 12º mês nos próximos 60 dias** (texto do PDF) **e** quem já passou do começo do 12º mês e ainda
+  não está "Renovado", "Concluído" ou "Cancelado". O mês conta como no resto do sistema (descontando pausas).
+- Quem terminou e não renovou: a Duda marca "Concluído" na ficha, como já é hoje; enquanto não marca, a pessoa continua
+  na lista.
+
+## Notas para a spec (não vão para a Duda)
+
+- O design v2 (§11, Fase 4) previa `renovacoes` mudando o `termino_previsto` da mesma inscrição; o bloco 1 (M3) cria
+  inscrição nova a cada venda. As perguntas 2 a 4 decidem qual dos dois vale.
+- Se a renovação abrir ficha nova e a antiga ficar RENOVADO, o Total do Dashboard (NPAC-75, `FORA_DO_TOTAL` =
+  CANCELADO e CONCLUIDO) conta a pessoa duas vezes: RENOVADO precisa sair do Total, ou a regra muda.
+- Ciclos de PME vão de 1 a 12 por inscrição; renovação na mesma ficha exigiria PME 13 em diante.
+- A % de renovação só tem base a partir do que for registrado no sistema (a importação não trouxe renovações:
+  `STATUS_IMPORTACAO` = ATIVO, CANCELADO, CONCLUIDO).
 
 ## Mensagem (pronta para o WhatsApp)
 
 ```
 Oi Duda! Tudo bem? 😊
 
-Os Envios físicos e a venda virando mentorado já estão no ar. Agora vem o *bloco 2 da gestão: Renovações*.
+Os Envios físicos e a venda virando mentorado já estão no ar. Agora vem o *bloco 2 da gestão: a aba Renovações*.
 
-Já temos no sistema: a reunião de Renovação com "Quer renovar?", os status Concluído e Renovado, e os números do Dashboard e do Controle mensal. Faltam só as decisões abaixo.
+O que já existe no sistema:
+• No fim do 12º mês (quando o 12º PME fecha), a Fila do dia já mostra a ação "Celebração e renovação"
+• A reunião de Renovação tem o campo "Quer renovar?"
+• Você já pode marcar "Concluído" ou "Renovado" na ficha
+
+A aba vai mostrar, como no seu PDF, quem chega ao 12º mês nos próximos 60 dias e em que pé está a conversa de cada um. Para montar, preciso destas respostas.
 
 É só responder com número e letra, tipo "1A, 2B…". Onde tem ⭐ é a nossa sugestão.
 
-*1. A lista "chegando na renovação" mostra quem:*
-A) Entra no 12º mês nos próximos 60 dias, em qualquer mentoria (hoje o sistema conta 12 meses para todas) ⭐
+*1. Quem entra na lista de renovação?*
+A) RDV, 2M e 6M (no sistema hoje as três duram 12 meses) ⭐
 B) Só o RDV
-C) A 2M e a 6M duram outro tempo (me fala quantos meses cada uma)
+C) A 2M ou a 6M dura outro tempo (me fala quanto)
 
-*2. Em que pé está a conversa de renovação de cada um (o sistema mostra sozinho pelo que a equipe já registra):*
-A) Sem reunião → Reunião marcada → Quer renovar / Não quer → Renovou ⭐
+*2. Quando alguém renova, ele renova para:*
+A) A mesma mentoria (RDV renova para RDV)
+B) Outra mentoria (por exemplo, do RDV para a 2M ou a 6M)
+C) As duas coisas acontecem
+
+*3. A renovação passa pelo comercial, com o closer registrando a venda no CRM?*
+A) Sim, sempre
+B) Não, é combinada direto com você
+C) Às vezes sim, às vezes não
+
+*4. Depois que a pessoa renova, como fica no sistema?*
+(Hoje, se o closer registrar uma venda para quem já é mentorado, abre uma ficha nova com o onboarding inteiro, com Caixa e IDR de novo.)
+A) Abre uma ficha nova para os próximos 12 meses, já como "Ativo", sem Caixa e sem IDR. A ficha antiga fica "Renovado", com todo o histórico, e as duas ficam ligadas ⭐
+B) Continua na mesma ficha, com mais 12 meses (do 13º ao 24º mês)
+C) Ficha nova com o onboarding inteiro, como acontece hoje
+
+*5. Em que pé está a conversa de renovação? O sistema mostra sozinho, pelo que a equipe já registra:*
+A) Sem reunião → Reunião marcada → Quer renovar / Não quer renovar → Renovou ⭐
 B) Prefiro escolher à mão numa lista na ficha (me fala as opções)
 
-*3. Quando a pessoa renova, a venda da renovação passa pelo comercial (closer registra)?*
-A) Sim. Quando a venda entra, a mentoria antiga vira "Renovado" sozinha e a nova já nasce no Acompanhamento ⭐
-B) Não, a renovação é combinada direto com você. Você marca "Renovado" e o sistema abre os próximos 12 meses
-C) Depende (me explica)
-
-*4. Quem chegou ao fim e não renovou:*
-A) Você marca "Concluído" na ficha quando encerrar ⭐
-B) Vira "Concluído" sozinho no dia do término, se não renovou
-
-*5. Aviso na Fila do dia:*
-A) "Conversa de renovação" entra na Fila da responsável quando faltam 60 dias, e sai quando a reunião de renovação é marcada ⭐
-B) Sem aviso, só a lista na aba
+*6. Aviso na Fila do dia:*
+A) Só a ação "Celebração e renovação" que já existe. A lista dos 60 dias fica na aba ⭐
+B) Também um aviso na Fila da responsável quando faltarem 60 dias
 C) Outro prazo (me fala)
 
-*6. Quem vê a aba Renovações:*
-A) Você (Admin) e quem é do Acompanhamento; quem tem "só a carteira" vê só os dela ⭐
+*7. Quem vê a aba Renovações?*
+A) Você (Admin) e o Acompanhamento; quem vê só a carteira vê só os mentorados dela ⭐
 B) Só você (Admin)
 C) Também a Operação
 
-*7. Números no topo da aba:*
-A) Só da renovação: quantos chegam nos 60 dias, quantos já conversaram, quantos renovaram e a % de renovação dos últimos 12 meses ⭐ (os outros números já estão no Dashboard e no Controle mensal)
+*8. Números no topo da aba:*
+A) Quantos chegam nos próximos 60 dias, quantos já tiveram a reunião, quantos renovaram, quantos não renovaram e a % de renovação ⭐ (os outros números já estão no Dashboard e em Reuniões > Controle mensal)
 B) Esses e também cancelamentos e pausas do mês
 C) Outros (me fala quais)
 ```
