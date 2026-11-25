@@ -297,6 +297,8 @@ export class InscricoesService {
   atualizar(u: AuthUser, id: string, b: InscricaoPatch) {
     return withUser(this.db, u.id, async (tx) => {
       await exigirEdicao(tx, 'INSCRICAO', id);
+      // Engajamento (NPAC-75): só Admin e Acompanhamento; a Operação edita o resto da inscrição.
+      if (b.engajamento !== undefined) await exigirEdicao(tx, 'ENGAJAMENTO', id);
       const { version, ...campos } = b;
       const [atual] = await tx
         .select({

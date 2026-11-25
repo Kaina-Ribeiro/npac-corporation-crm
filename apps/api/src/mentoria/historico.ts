@@ -27,7 +27,8 @@ export type AreaEdicao =
   | 'PME'
   | 'TAREFA'
   | 'META'
-  | 'EVOLUCAO';
+  | 'EVOLUCAO'
+  | 'ENGAJAMENTO';
 
 /** 404 se a inscrição não existe para quem está logado, ou se ele não edita esta área. */
 export async function exigirEdicao(tx: Tx, area: AreaEdicao, inscricaoId: string): Promise<void> {

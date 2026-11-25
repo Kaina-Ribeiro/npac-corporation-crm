@@ -15,6 +15,7 @@ import type { EnvioStatus, EnvioTipo, Etapa, EtapaStatus } from './onboarding.js
 import type { AcaoStatus, Gatilho, PerfilAcao, ReuniaoTipo } from './plano.js';
 import type { CanalContato, Plataforma, ReuniaoStatus } from './reunioes.js';
 import type { CampoEvolucao } from './evolucao.js';
+import type { Engajamento, PainelEngajamento } from './engajamento.js';
 import type { Pilar } from './metas.js';
 import type { CicloStatus, TarefaOrigem, TarefaStatus } from './pmes.js';
 import type { MetaStatus, SemaforoCor, SemaforoMotivo } from './semaforo.js';
@@ -273,6 +274,8 @@ export type EnviosDTO = {
 
 /** `POST mentoria/onboarding/painel`: a aba Onboarding inteira. */
 export type PainelOnboarding = {
+  /** Bloco Engajamento do Dashboard (NPAC-75): todas que a pessoa vê, menos canceladas e concluídas. */
+  engajamento: PainelEngajamento;
   total: number;
   funil: { etapa: Etapa; total: number; alertas: number; pessoas: PessoaFunil[] }[];
   caixasEmTransito: CaixaPainel[];
@@ -396,6 +399,8 @@ export type FichaDTO = {
    */
   dealId: string | null;
   status: InscricaoStatus;
+  /** Marcado à mão (NPAC-75); nulo = "Sem marcação" ou quem não vê (Especialista). */
+  engajamento: Engajamento | null;
   responsavelId: string | null;
   origem: Origem | null;
   linkPasta: string | null;
@@ -456,6 +461,10 @@ export type FichaDTO = {
     evolucao: boolean;
     /** Trocar o responsável: quem edita a inscrição, menos quem tem "só a carteira" (Fase 3B, e). */
     responsavel: boolean;
+    /** Campo Engajamento aparece (Admin, Acompanhamento, Operação; NPAC-75). */
+    verEngajamento: boolean;
+    /** Marca o engajamento (Admin, Acompanhamento). */
+    engajamento: boolean;
     admin: boolean;
   };
 };

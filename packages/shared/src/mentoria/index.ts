@@ -18,5 +18,6 @@ export * from './pmes.js';
 export * from './metas.js';
 export * from './semaforo.js';
 export * from './evolucao.js';
+export * from './engajamento.js';
 // Pura, sem zod: a ficha grava o telefone já no formato do servidor.
 export { normalizePhoneBR } from '../normalize.js';
