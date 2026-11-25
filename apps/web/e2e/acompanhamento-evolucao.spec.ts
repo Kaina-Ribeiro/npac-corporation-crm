@@ -57,7 +57,7 @@ test.beforeAll(async ({ browser }) => {
       nota_dinheiro, nota_relacionamentos)
     values (${pessoas[0]!.id}, 'PILARES', 'INICIAL', 8, 6, 3, 7),
       (${pessoas[1]!.id}, 'PILARES', 'INICIAL', 6, 8, 4, 9)`;
-  // Dor, sonho e meta são cifrados: entram pela API, como a equipe faria na aba Momento inicial.
+  // Dor, sonho e meta são cifrados: entram pela API (dor e meta são de antes da NPAC-76).
   const page = await browser.newPage();
   await entrar(page, 'duda');
   const r = await page.request.put(`/api/mentoria/inscricoes/${inscricao}/momento`, {
@@ -90,9 +90,11 @@ test('duda edita um cartão só pelo teclado e o texto fica depois de recarregar
   await expect(aba(page).getByText('De R$ 12 mil para R$ 21 mil por mês.')).toBeVisible();
   await page.reload();
   await expect(aba(page).getByText('De R$ 12 mil para R$ 21 mil por mês.')).toBeVisible();
-  // Da aba Momento inicial, só leitura; os pontos de partida vêm dos valores e notas de lá.
+  // Do diagnóstico (aba Pessoas), só leitura; os pontos de partida vêm dos valores e notas de lá.
   await expect(aba(page).getByText('Trabalham muito e nunca sobra nada.')).toBeVisible();
   await expect(aba(page).getByText('Pontos de partida')).toBeVisible();
+  await expect(aba(page).getByText('Do diagnóstico (aba Pessoas)')).toBeVisible();
+  await expect(aba(page).getByText('Renda atual')).toBeVisible();
   await expect(aba(page).getByText('R$ 12.000')).toBeVisible();
 });
 

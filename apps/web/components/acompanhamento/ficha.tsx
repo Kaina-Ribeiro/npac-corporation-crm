@@ -27,7 +27,6 @@ import { CampoPr, DINHEIRO } from './campo';
 import { Dialogo } from './dialogo';
 import { OnboardingFicha } from './etapa-card';
 import { Evolucao } from './evolucao';
-import { FichaMomento } from './ficha-momento';
 import { FichaPessoas } from './ficha-pessoas';
 import { HistoricoLista } from './historico-lista';
 import { IndicadorSalvo } from './indicador-salvo';
@@ -635,7 +634,6 @@ export function Ficha({
     ['jornada', 'Jornada', ''],
     ['inscricao', 'Inscrição', 'so-lado'],
     ['pessoas', ficha.tipo === 'CASAL' ? 'Pessoas' : 'Pessoa', ''],
-    ['momento', 'Momento inicial', ''],
     ...(ficha.pode.verEvolucao ? [['evolucao', 'Evolução', ''] as [Aba, string, string]] : []),
     ['historico', 'Histórico', ''],
   ];
@@ -747,7 +745,6 @@ export function Ficha({
             />
           )}
           {aba === 'pessoas' && <FichaPessoas ficha={ficha} atualizar={atualizar} />}
-          {aba === 'momento' && <FichaMomento ficha={ficha} atualizar={atualizar} />}
           {aba === 'evolucao' && (
             <Evolucao
               ficha={ficha}
@@ -755,7 +752,7 @@ export function Ficha({
                 readPrefs(lembrar.valor, FICHA_REGRAS).vista === 'linha' ? 'linha' : 'lado'
               }
               memoria={lembrar.cookie}
-              irMomento={() => trocarAba('momento')}
+              irMomento={() => trocarAba('pessoas')}
             />
           )}
           {aba === 'historico' && <HistoricoLista ficha={ficha} lembrar={lembrar} />}

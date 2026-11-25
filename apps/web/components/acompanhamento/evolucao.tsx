@@ -131,9 +131,9 @@ export function Evolucao({
               <div className="sec-h">
                 <span className="sec-t">Pontos de partida</span>
                 <small>
-                  Da aba Momento inicial
+                  Do diagnóstico (aba Pessoas)
                   {ev.partida.concluidoEm
-                    ? `, concluída em ${dataBR(diaBR(ev.partida.concluidoEm))}`
+                    ? `, concluído em ${dataBR(diaBR(ev.partida.concluidoEm))}`
                     : ''}
                 </small>
               </div>

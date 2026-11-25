@@ -153,8 +153,8 @@ variante="chat"`. Campos de 17 px ficam fora da regra dos 16 px com `.ch-campo`.
   Parte 4 (0070): itens novos da Fila (`mentoria_fila`, `fila.service.ts`, degraus em `sh/mentoria/fila.ts`), contato do degrau
   (`reunioes.service.ts`), aba 7 `pmes-ciclos.controller.ts` + `web/app/(app)/acompanhamento/pmes`, `components/acompanhamento/pmes-ciclos.tsx`;
   **Evolução** (NPAC-57, 22/11/2026, spec `docs/superpowers/specs/2026-11-21-aba-evolucao-design.md`, plano
-  `docs/plans/npac-57-aba-evolucao.md`, opção A): aba da ficha com cartões antes → hoje, Momento inicial (da aba Momento
-  inicial) × Momento atual com foto e tópicos, Pontos de partida dos 4 pilares, Conquistas e "Baixar PDF". Banco 0076:
+  `docs/plans/npac-57-aba-evolucao.md`, opção A): aba da ficha com cartões antes → hoje, Momento inicial (do diagnóstico
+  da aba Pessoas, NPAC-76) × Momento atual com foto e tópicos, Pontos de partida dos 4 pilares, Conquistas e "Baixar PDF". Banco 0076:
   `mentoria_evolucao` (uma por inscrição, textos cifrados com AAD, `version`; `atual_atualizado_em/por` gravados pelo gatilho
   `mentoria_evolucao_guarda`) e `mentoria_conquistas` (sem UPDATE; sai só por `mentoria_conquista_excluir`), área `EVOLUCAO`
   em `mentoria_edita`. Veem e baixam o PDF Admin, Acompanhamento ("só a carteira": a carteira) e Operação
@@ -233,6 +233,26 @@ variante="chat"`. Campos de 17 px ficam fora da regra dos 16 px com `.ch-campo`.
   alguém ativo nele (`mentoria_tem_envios()`), senão à Operação; push "Tem envio para hoje" às 8h (`envios:<dia>`, a quem é
   Envios, havendo algo a enviar; `ENVIOS_PAYLOAD` no `avisos.scheduler.ts`). Testes: `db/test/mentoria-envios.test.ts`,
   `fila-equivalencia` (bloco Parte 2), `api/test/mentoria-v2-envios.e2e.test.ts`, `e2e/acompanhamento-envios.spec.ts`.
+
+- **Diagnóstico na aba Pessoas** (NPAC-76, 24/11/2026; Gabriel: "uma das partes mais importantes"; spec
+  `docs/superpowers/specs/2026-11-24-npac-76-diagnostico-design.md`, plano `docs/plans/npac-76-diagnostico.md`, desenho no
+  canvas aprovado): a **aba Momento inicial saiu**; a aba Pessoa(s) (`ficha-pessoas.tsx`; **uma só no casal**, sem seletor)
+  tem o cabeçalho com os rostos, o **Diagnóstico** (as 20 perguntas da planilha "Diagnóstico" da Duda, numeradas, na ordem
+  dela) e "Contato e entrega" (WhatsApp, e-mail e pulseira de cada pessoa; endereço, CEP e foto da família, que Envios e Fila
+  usam). Nome e Cidade = pessoa 1 e "Nome do parceiro(a)" = pessoa 2 no casal (área `INSCRICAO`, não travam); no
+  individual o parceiro e o resto vão em `mentoria_momento_inicial` (área `MOMENTO`, travam no "Concluir", Admin destrava).
+  0086: colunas novas com texto cifrado e AAD pela coluna (`COLUNA_TEXTO` em `ficha.service.ts`, `MOMENTO_TEXTOS` em
+  `sh/schemas/mentoria.ts`), `divida_1..3_centavos` e o gatilho `mentoria_momento_dividas_total` (mudou um valor de dívida →
+  `dividas_centavos` = soma e `tem_dividas` = total > 0; as três vazias → nulos; sem mexer nos valores, nada muda, como na
+  importação); a 0086 copiou o total antigo para a Dívida 1. Renda atual/Dinheiro guardado/Custo médio mensal/Sonhos e
+  objetivos são as colunas de antes (`recebe_`, `guardado_`, `custo_centavos`, `sonho`), que a Evolução e o PDF continuam
+  lendo (rótulos novos). Saíram da tela, **com o dado guardado**: Como prefere (as mensagens `{nome}` usam o apelido antigo
+  ou o primeiro nome), Instagram, Nascimento, UF, Profissão, Ocupação, Filhos, Idades, Tecnologia, Melhor horário, Canal,
+  Veio de, Data, Tem dívidas?, dor, meta, Prova e notas dos pilares. `?aba=momento` e cookie com `momento` abrem a aba Pessoas
+  (`abaValida` em `ui.tsx`). Exclusão e LGPD apagam a linha inteira; nada do diagnóstico no CSV. Testes: `db/test/mentoria-v2-rls`
+  (bloco NPAC-76), `api/test/mentoria-v2-base`, `e2e/acompanhamento-diagnostico.spec.ts`; capturas
+  `CAPTURAS=<pasta> … e2e/capturas-diagnostico.spec.ts`. Pré-preencher com o diagnóstico do gerenciador antigo e a aba ACM
+  da planilha ficam para depois.
 
 **Navegação e carregamento** (desempenho, Fase 2, 12/11/2026): o menu usa o `prefetch` padrão do Next
 (rota dinâmica sem `loading.tsx` não pré-carrega a página); `semPrefetch` (Ficha e itens "Em breve")
