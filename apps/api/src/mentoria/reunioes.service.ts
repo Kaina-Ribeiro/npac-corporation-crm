@@ -298,7 +298,10 @@ export class ReunioesService {
         cobrar: texto('cobrar'),
         trava: texto('trava'),
         anotacaoInterna: texto('anotacaoInterna'),
-        gravacao: this.crypto.decifrarOpcional(r.gravacao, aad('mentoria_reunioes', 'gravacao', id)),
+        gravacao: this.crypto.decifrarOpcional(
+          r.gravacao,
+          aad('mentoria_reunioes', 'gravacao', id),
+        ),
         humor: r.humor,
         interesseRenovar: r.interesseRenovar,
       };

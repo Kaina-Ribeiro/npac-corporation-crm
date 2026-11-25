@@ -89,7 +89,8 @@ export const CAMPOS_REUNIAO: readonly {
 /** Gravação da reunião (NPAC-78): só link de arquivo do Google Drive, que toca na própria reunião. */
 export const AVISO_GRAVACAO = 'Cole o link da gravação no Google Drive';
 const DRIVE_ARQUIVO = /^https:\/\/drive\.google\.com\/file\/d\/([A-Za-z0-9_-]{10,})(?:[/?#].*)?$/;
-const DRIVE_ABRIR = /^https:\/\/drive\.google\.com\/open\?(?:[^#]*&)?id=([A-Za-z0-9_-]{10,})(?:[&#].*)?$/;
+const DRIVE_ABRIR =
+  /^https:\/\/drive\.google\.com\/open\?(?:[^#]*&)?id=([A-Za-z0-9_-]{10,})(?:[&#].*)?$/;
 
 /** Id do arquivo num link do Drive (`/file/d/<id>/…` ou `/open?id=<id>`); `null` para qualquer outro link. */
 export function idDoDrive(url: string): string | null {

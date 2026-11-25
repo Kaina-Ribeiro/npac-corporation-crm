@@ -595,7 +595,11 @@ describe('gravação pelo link do Drive (NPAC-78)', () => {
       inicio: await quando(-1),
       conduzidaPor: ids.carla!,
     });
-    const outra = await criarOk(d, { inscricaoId: i, tipo: 'ACOMP_2PME', inicio: await quando(-1) });
+    const outra = await criarOk(d, {
+      inscricaoId: i,
+      tipo: 'ACOMP_2PME',
+      inicio: await quando(-1),
+    });
     const s = await manu();
     expect((await patch(s, dela.id, { version: dela.version, gravacao: LINK })).status).toBe(200);
     expect((await patch(s, outra.id, { version: outra.version, gravacao: LINK })).status).toBe(404);

@@ -134,7 +134,11 @@ variante="chat"`. Campos de 17 px ficam fora da regra dos 16 px com `.ch-campo`.
   atalho "Importar" no topo de Mentorados só para Admin, 18/11/2026); reuniões e contatos `reunioes.*`, `contatos.controller.ts` (0052: estados e
   remarcar/excluir no banco; IDR realizada → `data_idr`/início de Brasília + ATIVO + ações em `iniciarPelaIdr`;
   reunião realizada conclui a ação do mesmo `reuniao_tipo`; Especialista vê só inscrições/reuniões que conduz,
-  nunca IDR); Fila do dia `fila.*` (0053: `mentoria_fila(agora)` calcula na leitura, SECURITY INVOKER;
+  nunca IDR; **gravação** NPAC-78, 0090: na reunião Realizada, card "Gravação" (`reuniao-gravacao.tsx`) com o link do
+  Google Drive colado (`gravacao` no PATCH, cifrado com AAD, só arquivo do Drive por `idDoDrive` em `sh/mentoria/reunioes.ts`,
+  senão 400 "Cole o link da gravação no Google Drive") e o vídeo pela prévia do Drive num `<iframe>` (CSP `frame-src
+  https://drive.google.com` em `proxy.ts`); quem edita o registro cola, quem vê a reunião assiste; fora do CSV, histórico
+  só com o nome do campo, a anonimização apaga; o vídeo não sobe para o sistema); Fila do dia `fila.*` (0053: `mentoria_fila(agora)` calcula na leitura, SECURITY INVOKER;
   0064: sem função por linha que releia tabela, porque cada uma reavalia a RLS (era 0,6–1 s); o mês da
   jornada e os dias parados repetem a conta de `mentoria_mes_jornada`/`mentoria_dias_pausados`: mudou
   uma delas, mude a Fila e `api/mentoria/contas-lista.ts`; `db/test/fila-equivalencia.test.ts` compara com a versão da 0053; quem vê cada item `sh/mentoria/fila.ts` `itemVisivel`; `mentoria_fila_feitos` conclui o que não tem estado;
