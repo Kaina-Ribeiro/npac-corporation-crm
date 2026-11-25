@@ -308,6 +308,29 @@ describe('diagnóstico (NPAC-76)', () => {
     expect(await total()).toEqual({ total: '900000', tem: true });
   });
 
+  it('total gravado sem dívidas detalhadas (importação) vira a Dívida 1 e não se perde', async () => {
+    await withUser(db, DUDA, (tx) =>
+      tx.execute(sql`insert into mentoria_momento_inicial (inscricao_id, criado_por, dividas_centavos, tem_dividas)
+        values (${inscricao}, ${DUDA}, 900000, true)`),
+    );
+    const [d] = await owner<{ d1: string | null }[]>`
+      select divida_1_centavos::text as d1 from mentoria_momento_inicial
+      where inscricao_id = ${inscricao}`;
+    expect(d!.d1).toBe('900000');
+    // Lançar a Dívida 2 soma com a importada, em vez de trocar o total.
+    await gravar(DUDA, sql`divida_2_centavos = 100000`);
+    expect(await total()).toEqual({ total: '1000000', tem: true });
+  });
+
+  it('total gravado direto numa linha sem dívidas detalhadas também vira a Dívida 1', async () => {
+    await momentoEm(DUDA);
+    await gravar(DUDA, sql`dividas_centavos = 50000`);
+    const [d] = await owner<{ d1: string | null; total: string }[]>`
+      select divida_1_centavos::text as d1, dividas_centavos::text as total
+      from mentoria_momento_inicial where inscricao_id = ${inscricao}`;
+    expect(d).toEqual({ d1: '50000', total: '50000' });
+  });
+
   it('diagnóstico travado recusa as respostas novas até destravar', async () => {
     await momentoEm(DUDA);
     await withUser(db, DUDA, (tx) =>

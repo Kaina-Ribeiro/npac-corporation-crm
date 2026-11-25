@@ -43,26 +43,31 @@ UPDATE mentoria_momento_inicial
 --> statement-breakpoint
 
 -- Total das dívidas = soma das dívidas preenchidas, sempre que o valor de alguma muda. As três vazias de
--- novo: total e "tem dívidas" nulos. Sem mexer nos valores (importação, telas antigas), nada muda.
+-- novo (a pessoa apagou): total e "tem dívidas" nulos. Total gravado sem nenhuma dívida detalhada
+-- (importação, que só tem o total, ou PUT antigo com `dividasCentavos`) vira a Dívida 1: assim, lançar
+-- depois a Dívida 2 soma com ele, em vez de trocar o total e perder o valor importado.
 CREATE FUNCTION mentoria_momento_dividas_total() RETURNS trigger
   LANGUAGE plpgsql
   SET search_path = public, pg_temp
 AS $$
+DECLARE
+  vazias boolean := NEW.divida_1_centavos IS NULL AND NEW.divida_2_centavos IS NULL
+    AND NEW.divida_3_centavos IS NULL;
+  mexeu boolean := TG_OP = 'UPDATE' AND (
+    NEW.divida_1_centavos IS DISTINCT FROM OLD.divida_1_centavos
+    OR NEW.divida_2_centavos IS DISTINCT FROM OLD.divida_2_centavos
+    OR NEW.divida_3_centavos IS DISTINCT FROM OLD.divida_3_centavos);
 BEGIN
-  IF TG_OP = 'UPDATE'
-     AND NEW.divida_1_centavos IS NOT DISTINCT FROM OLD.divida_1_centavos
-     AND NEW.divida_2_centavos IS NOT DISTINCT FROM OLD.divida_2_centavos
-     AND NEW.divida_3_centavos IS NOT DISTINCT FROM OLD.divida_3_centavos THEN
-    RETURN NEW;
-  END IF;
-  IF NEW.divida_1_centavos IS NULL AND NEW.divida_2_centavos IS NULL
-     AND NEW.divida_3_centavos IS NULL THEN
-    IF TG_OP = 'UPDATE' THEN
+  IF vazias THEN
+    IF mexeu THEN
       NEW.dividas_centavos := NULL;
       NEW.tem_dividas := NULL;
+    ELSIF NEW.dividas_centavos > 0 THEN
+      NEW.divida_1_centavos := NEW.dividas_centavos;
     END IF;
     RETURN NEW;
   END IF;
+  -- Com alguma dívida detalhada, o total é sempre a soma (nem um PUT antigo com o total o muda).
   NEW.dividas_centavos := coalesce(NEW.divida_1_centavos, 0) + coalesce(NEW.divida_2_centavos, 0)
     + coalesce(NEW.divida_3_centavos, 0);
   NEW.tem_dividas := NEW.dividas_centavos > 0;
