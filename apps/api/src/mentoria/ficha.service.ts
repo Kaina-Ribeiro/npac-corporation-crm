@@ -28,8 +28,10 @@ import {
   type EtapaDTO,
   type FichaDTO,
   type HistoricoItem,
+  MOMENTO_TEXTOS,
   type MomentoDTO,
   type MomentoPut,
+  type MomentoTexto,
   type PessoaDTO,
 } from '@npac/shared';
 import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
@@ -44,6 +46,29 @@ import { PlanoService } from './plano.service.js';
 import { ReunioesService } from './reunioes.service.js';
 
 const LIMITE_HISTORICO = 200;
+
+/** Coluna de cada texto do Momento inicial; vai no AAD, como dor, sonho e meta desde a 0045. */
+const COLUNA_TEXTO: Record<MomentoTexto, string> = {
+  dor: 'dor',
+  sonho: 'sonho',
+  meta: 'meta',
+  idade: 'idade',
+  parceiroNome: 'parceiro_nome',
+  filho1: 'filho_1',
+  filho2: 'filho_2',
+  trabalho: 'trabalho',
+  bem1: 'bem_1',
+  bem2: 'bem_2',
+  investimento1: 'investimento_1',
+  investimento2: 'investimento_2',
+  divida1: 'divida_1',
+  divida2: 'divida_2',
+  divida3: 'divida_3',
+  buscouAjuda: 'buscou_ajuda',
+  anotacoes: 'anotacoes',
+};
+const ehTexto = (k: string): k is MomentoTexto => (MOMENTO_TEXTOS as readonly string[]).includes(k);
+const VALORES_DIVIDA = ['divida1Centavos', 'divida2Centavos', 'divida3Centavos'];
 
 @Injectable()
 export class FichaService {
@@ -192,8 +217,13 @@ export class FichaService {
         }
       : null;
 
-    const texto = (campo: 'dor' | 'sonho' | 'meta') =>
-      this.crypto.decifrarOpcional(momento![campo], aad('mentoria_momento_inicial', campo, id));
+    const textos = (m: NonNullable<typeof momento>) =>
+      Object.fromEntries(
+        MOMENTO_TEXTOS.map((c) => [
+          c,
+          this.crypto.decifrarOpcional(m[c], aad('mentoria_momento_inicial', COLUNA_TEXTO[c], id)),
+        ]),
+      ) as Record<MomentoTexto, string | null>;
     const momentoDto: MomentoDTO | null = momento
       ? {
           version: momento.version,
@@ -203,9 +233,10 @@ export class FichaService {
           temDividas: momento.temDividas,
           dividasCentavos: momento.dividasCentavos,
           guardadoCentavos: momento.guardadoCentavos,
-          dor: texto('dor'),
-          sonho: texto('sonho'),
-          meta: texto('meta'),
+          divida1Centavos: momento.divida1Centavos,
+          divida2Centavos: momento.divida2Centavos,
+          divida3Centavos: momento.divida3Centavos,
+          ...textos(momento),
           travadoEm: momento.travadoEm?.toISOString() ?? null,
           travadoPor: extra?.travado_por ?? null,
         }
@@ -355,17 +386,18 @@ export class FichaService {
   salvarMomento(u: AuthUser, id: string, b: MomentoPut) {
     return withUser(this.db, u.id, async (tx) => {
       await exigirEdicao(tx, 'MOMENTO', id);
-      const { version, dor, sonho, meta, ...numeros } = b;
-      const cifrar = (campo: 'dor' | 'sonho' | 'meta', v: string | null | undefined) =>
-        v === undefined
-          ? {}
-          : { [campo]: this.crypto.cifrarOpcional(v, aad('mentoria_momento_inicial', campo, id)) };
-      const campos = {
-        ...numeros,
-        ...cifrar('dor', dor),
-        ...cifrar('sonho', sonho),
-        ...cifrar('meta', meta),
-      };
+      const { version, ...resto } = b;
+      // Texto vai cifrado com o AAD da própria coluna; número e data vão como vieram.
+      const campos: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(resto)) {
+        if (v === undefined) continue;
+        campos[k] = ehTexto(k)
+          ? this.crypto.cifrarOpcional(
+              v as string | null,
+              aad('mentoria_momento_inicial', COLUNA_TEXTO[k], id),
+            )
+          : v;
+      }
       const [r] =
         version === 0
           ? await tx
@@ -389,9 +421,11 @@ export class FichaService {
               .returning({ version: mentoriaMomentoInicial.version });
       if (!r) throw conflitoDeVersao();
       // Campo preenchido sai da lista "completar a ficha". Sem version: não briga com outro PATCH.
-      const preenchidos = Object.entries(numeros)
-        .filter(([, v]) => v !== null && v !== undefined)
+      const preenchidos = Object.entries(resto)
+        .filter(([k, v]) => !ehTexto(k) && v !== null && v !== undefined)
         .map(([k]) => k);
+      // O valor de uma dívida refaz o total (gatilho da 0086): o total deixa de faltar.
+      if (preenchidos.some((k) => VALORES_DIVIDA.includes(k))) preenchidos.push('dividasCentavos');
       if (preenchidos.length)
         await tx.execute(sql`update mentoria_inscricoes set completar_campos = array(
             select unnest(completar_campos)

@@ -164,6 +164,24 @@ export type MomentoDTO = {
   dor: string | null;
   sonho: string | null;
   meta: string | null;
+  // Diagnóstico (NPAC-76).
+  idade: string | null;
+  parceiroNome: string | null;
+  filho1: string | null;
+  filho2: string | null;
+  trabalho: string | null;
+  bem1: string | null;
+  bem2: string | null;
+  investimento1: string | null;
+  investimento2: string | null;
+  divida1: string | null;
+  divida2: string | null;
+  divida3: string | null;
+  divida1Centavos: number | null;
+  divida2Centavos: number | null;
+  divida3Centavos: number | null;
+  buscouAjuda: string | null;
+  anotacoes: string | null;
   travadoEm: string | null;
   travadoPor: string | null;
 };

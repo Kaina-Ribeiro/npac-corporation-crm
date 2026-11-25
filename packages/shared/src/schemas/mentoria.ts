@@ -165,9 +165,49 @@ export const momentoSchema = z
     dor: texto(20_000),
     sonho: texto(20_000),
     meta: texto(20_000),
+    // Diagnóstico (NPAC-76): respostas curtas até 2 mil caracteres; as longas até 20 mil.
+    idade: texto(2_000),
+    parceiroNome: texto(2_000),
+    filho1: texto(2_000),
+    filho2: texto(2_000),
+    trabalho: texto(2_000),
+    bem1: texto(2_000),
+    bem2: texto(2_000),
+    investimento1: texto(2_000),
+    investimento2: texto(2_000),
+    divida1: texto(2_000),
+    divida2: texto(2_000),
+    divida3: texto(2_000),
+    divida1Centavos: centavos,
+    divida2Centavos: centavos,
+    divida3Centavos: centavos,
+    buscouAjuda: texto(20_000),
+    anotacoes: texto(20_000),
   })
   .strict();
 export type MomentoPut = z.output<typeof momentoSchema>;
+
+/** Campos de texto do Momento inicial/diagnóstico, gravados cifrados (AAD = tabela, coluna, inscrição). */
+export const MOMENTO_TEXTOS = [
+  'dor',
+  'sonho',
+  'meta',
+  'idade',
+  'parceiroNome',
+  'filho1',
+  'filho2',
+  'trabalho',
+  'bem1',
+  'bem2',
+  'investimento1',
+  'investimento2',
+  'divida1',
+  'divida2',
+  'divida3',
+  'buscouAjuda',
+  'anotacoes',
+] as const;
+export type MomentoTexto = (typeof MOMENTO_TEXTOS)[number];
 
 export const avaliacaoSchema = z
   .object({

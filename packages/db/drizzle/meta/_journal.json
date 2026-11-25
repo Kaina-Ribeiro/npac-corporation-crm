@@ -603,6 +603,13 @@
       "when": 1795531944096,
       "tag": "0085_telegram",
       "breakpoints": true
+    },
+    {
+      "idx": 86,
+      "version": "7",
+      "when": 1795570350177,
+      "tag": "0086_diagnostico",
+      "breakpoints": true
     }
   ]
 }

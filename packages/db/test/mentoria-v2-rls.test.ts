@@ -252,6 +252,77 @@ describe('momento inicial', () => {
   });
 });
 
+describe('diagnóstico (NPAC-76)', () => {
+  const total = async () =>
+    (
+      await owner<{ total: string | null; tem: boolean | null }[]>`
+        select dividas_centavos::text as total, tem_dividas as tem
+        from mentoria_momento_inicial where inscricao_id = ${inscricao}`
+    )[0]!;
+  const gravar = (usuario: string, q: ReturnType<typeof sql>) =>
+    withUser(db, usuario, (tx) =>
+      tx.execute(sql`update mentoria_momento_inicial set ${q} where inscricao_id = ${inscricao}`),
+    );
+
+  it('Acompanhamento grava as respostas novas; Operação não', async () => {
+    await momentoEm(DUDA);
+    await gravar(
+      DUDA,
+      sql`idade = 'x', parceiro_nome = 'x', filho_1 = 'x', filho_2 = 'x',
+      trabalho = 'x', bem_1 = 'x', bem_2 = 'x', investimento_1 = 'x', investimento_2 = 'x',
+      divida_1 = 'x', divida_2 = 'x', divida_3 = 'x', buscou_ajuda = 'x', anotacoes = 'x'`,
+    );
+    const [r] = await owner<{ n: number }[]>`
+      select count(*)::int as n from mentoria_momento_inicial
+      where inscricao_id = ${inscricao} and anotacoes = 'x' and buscou_ajuda = 'x'`;
+    expect(r!.n).toBe(1);
+    // A política de UPDATE filtra a linha: Operação não muda nada.
+    await gravar(OPERACAO, sql`idade = 'y'`);
+    const [o] = await owner<{ idade: string }[]>`
+      select idade from mentoria_momento_inicial where inscricao_id = ${inscricao}`;
+    expect(o!.idade).toBe('x');
+  });
+
+  it('total das dívidas é a soma dos valores e acompanha cada mudança', async () => {
+    await momentoEm(DUDA);
+    await gravar(DUDA, sql`divida_1_centavos = 300000`);
+    expect(await total()).toEqual({ total: '300000', tem: true });
+    await gravar(DUDA, sql`divida_2_centavos = 150000, divida_3_centavos = 50`);
+    expect(await total()).toEqual({ total: '450050', tem: true });
+    await gravar(DUDA, sql`divida_1_centavos = 0, divida_2_centavos = 0, divida_3_centavos = 0`);
+    expect(await total()).toEqual({ total: '0', tem: false });
+    await gravar(
+      DUDA,
+      sql`divida_1_centavos = null, divida_2_centavos = null, divida_3_centavos = null`,
+    );
+    expect(await total()).toEqual({ total: null, tem: null });
+  });
+
+  it('sem mexer nos valores das dívidas, o total gravado direto fica', async () => {
+    await withUser(db, DUDA, (tx) =>
+      tx.execute(sql`insert into mentoria_momento_inicial (inscricao_id, criado_por, dividas_centavos, tem_dividas)
+        values (${inscricao}, ${DUDA}, 900000, true)`),
+    );
+    expect(await total()).toEqual({ total: '900000', tem: true });
+    await gravar(DUDA, sql`divida_1 = 'Cartão', recebe_centavos = 10`);
+    expect(await total()).toEqual({ total: '900000', tem: true });
+  });
+
+  it('diagnóstico travado recusa as respostas novas até destravar', async () => {
+    await momentoEm(DUDA);
+    await withUser(db, DUDA, (tx) =>
+      tx.execute(sql`select mentoria_concluir_momento(${inscricao}::uuid)`),
+    );
+    expect((await pgError(gravar(DUDA, sql`divida_1_centavos = 1`))).code).toBe('22023');
+    expect((await pgError(gravar(DUDA, sql`anotacoes = 'z'`))).code).toBe('22023');
+  });
+
+  it('valor de dívida negativo é recusado', async () => {
+    await momentoEm(DUDA);
+    expect((await pgError(gravar(DUDA, sql`divida_2_centavos = -1`))).code).toBe('23514');
+  });
+});
+
 describe('demais tabelas', () => {
   it('remover a pessoa 2 passa o casal a individual, com fila de mídia', async () => {
     await owner`update mentoria_inscricoes set tipo = 'CASAL' where id = ${inscricao}`;

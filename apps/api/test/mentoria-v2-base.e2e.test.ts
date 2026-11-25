@@ -497,6 +497,99 @@ describe('momento inicial, endereço e avaliações', () => {
     );
   });
 
+  it('diagnóstico (NPAC-76): grava as respostas cifradas e a ficha devolve o texto', async () => {
+    const s = await duda();
+    const f = await criar(s);
+    const respostas = {
+      idade: '38 fictícia',
+      parceiroNome: 'Parceiro fictício',
+      filho1: 'Filho fictício, 5',
+      filho2: 'Filha fictícia, 2',
+      trabalho: 'Trabalho fictício',
+      bem1: 'Carro fictício',
+      bem2: 'Casa fictícia',
+      investimento1: 'CDB fictício',
+      investimento2: 'Tesouro fictício',
+      divida1: 'Cartão fictício',
+      divida2: 'Empréstimo fictício',
+      divida3: 'Carnê fictício',
+      buscouAjuda: 'Ajuda fictícia',
+      anotacoes: 'Percepção fictícia',
+    };
+    const r = await put(
+      momento(f.id),
+      {
+        version: 0,
+        ...respostas,
+        recebeCentavos: 500000,
+        guardadoCentavos: 100000,
+        custoCentavos: 400000,
+        divida1Centavos: 300000,
+        divida2Centavos: 200000,
+        sonho: 'Sonho fictício',
+      },
+      s,
+    );
+    expect(r.status, r.text).toBe(200);
+    const m = (await abrir(s, f.id)).momento!;
+    expect(m).toMatchObject({
+      ...respostas,
+      sonho: 'Sonho fictício',
+      divida1Centavos: 300000,
+      divida2Centavos: 200000,
+      divida3Centavos: null,
+      dividasCentavos: 500000,
+      temDividas: true,
+    });
+    const rows = await owner`select * from mentoria_momento_inicial where inscricao_id = ${f.id}`;
+    expect(JSON.stringify(rows)).not.toMatch(/fict/i);
+    // Histórico só com nomes de campo.
+    const hist = await owner<{ campos: string[] }[]>`
+      select campos from mentoria_historico
+      where inscricao_id = ${f.id} and tipo = 'momento.editado'`;
+    expect(hist[0]!.campos).toContain('buscouAjuda');
+    expect(JSON.stringify(hist)).not.toMatch(/fict/i);
+  });
+
+  it('diagnóstico: limpar as três dívidas apaga o total; concluído recusa as respostas', async () => {
+    const s = await duda();
+    const f = await criar(s);
+    await put(momento(f.id), { version: 0, divida1Centavos: 1000 }, s);
+    let m = (await abrir(s, f.id)).momento!;
+    expect(m.dividasCentavos).toBe(1000);
+    expect(
+      (await put(momento(f.id), { version: m.version, divida1Centavos: null }, s)).status,
+    ).toBe(200);
+    m = (await abrir(s, f.id)).momento!;
+    expect(m.dividasCentavos).toBeNull();
+    expect(m.temDividas).toBeNull();
+    expect((await h.post(`${momento(f.id)}/concluir`, {}, s)).status).toBe(200);
+    m = (await abrir(s, f.id)).momento!;
+    expect((await put(momento(f.id), { version: m.version, anotacoes: 'x' }, s)).status).toBe(400);
+    expect((await put(momento(f.id), { version: m.version, divida2Centavos: 5 }, s)).status).toBe(
+      400,
+    );
+  });
+
+  it('diagnóstico: resposta longa demais e valor negativo dão 400; Operação 404', async () => {
+    const s = await duda();
+    const f = await criar(s);
+    expect((await put(momento(f.id), { version: 0, idade: 'x'.repeat(2001) }, s)).status).toBe(400);
+    expect((await put(momento(f.id), { version: 0, divida3Centavos: -1 }, s)).status).toBe(400);
+    expect((await put(momento(f.id), { version: 0, campoQueNaoExiste: 'x' }, s)).status).toBe(400);
+    const op = await comoPerfil('OPERACAO');
+    expect((await put(momento(f.id), { version: 0, anotacoes: 'x' }, op)).status).toBe(404);
+  });
+
+  it('diagnóstico: valor de dívida tira o total da lista "falta completar"', async () => {
+    const s = await duda();
+    const f = await criar(s);
+    await owner`update mentoria_inscricoes set completar_campos = '{dividasCentavos,recebeCentavos}'
+      where id = ${f.id}`;
+    await put(momento(f.id), { version: 0, divida2Centavos: 700 }, s);
+    expect((await abrir(s, f.id)).completarCampos).toEqual(['recebeCentavos']);
+  });
+
   it('inscrição inexistente responde 404', async () => {
     const s = await duda();
     const id = randomUUID();
