@@ -16,7 +16,7 @@ Spec: `docs/superpowers/specs/2026-11-24-npac-75-dashboard-engajamento-design.md
 | 9 | CLAUDE.md ✅; PR, CI, merge, ITODEV, caixa | ⏳ |
 
 Notas:
-- Endereço mantido em `/acompanhamento/onboarding` (cookies, links, e2e). Barra do celular sem mudança (Dashboard pelo Mais).
+- Endereço mantido em `/acompanhamento/onboarding` (cookies, links, e2e). Barra do celular (Gabriel, 25/11): Dashboard · Mentorados · + · Reuniões · Fila · Mais.
 - `/leads` mede 153.596 bytes gzip (limite 153.600), igual com o engajamento dentro ou fora do barril
   `@npac/shared/mentoria`: o teto já vinha da release. Mesmo assim o cliente importa por `@npac/shared/engajamento`.
 - Capturas do build em 375/768/1024/1440 em `docs/acompanhamento/prototipo/npac-75/build-*.png`. Diferenças corrigidas:
