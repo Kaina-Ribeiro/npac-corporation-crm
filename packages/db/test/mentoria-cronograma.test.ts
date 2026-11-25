@@ -102,7 +102,7 @@ beforeEach(async () => {
   cicloDoisM = await ciclo(doisM, 1, hoje());
   await tarefaPme(rdv, cicloRdv, itens.filme!, 'FILME');
   await owner`insert into mentoria_cronograma_anteriores (inscricao_id, item_id, pme_numero, resultado)
-    values (${rdv}, ${itens.livro}, null, 'JA_TINHA'), (${outra}, ${itens.desafio}, 2, 'RECEBIDO')`;
+    values (${rdv}, ${itens.livro!}, null, 'JA_TINHA'), (${outra}, ${itens.desafio!}, 2, 'RECEBIDO')`;
 });
 
 afterAll(async () => {
@@ -150,18 +150,18 @@ describe('banco de itens e histórico da planilha (RLS)', () => {
     expect(criado!.criado_por).toBe(ADMIN);
     const upd = await como(
       OPERACAO,
-      sql`update mentoria_cronograma_itens set ativo = false where id = ${itens.filme} returning id`,
+      sql`update mentoria_cronograma_itens set ativo = false where id = ${itens.filme!} returning id`,
     );
     expect(upd).toHaveLength(0);
     const ok = await como(
       ADMIN,
-      sql`update mentoria_cronograma_itens set ativo = false where id = ${itens.filme} returning id`,
+      sql`update mentoria_cronograma_itens set ativo = false where id = ${itens.filme!} returning id`,
     );
     expect(ok).toHaveLength(1);
     expect(
       (
         await pgError(
-          como(ADMIN, sql`delete from mentoria_cronograma_itens where id = ${itens.filme}`),
+          como(ADMIN, sql`delete from mentoria_cronograma_itens where id = ${itens.filme!}`),
         )
       ).code,
     ).toBe('42501');
@@ -187,7 +187,7 @@ describe('banco de itens e histórico da planilha (RLS)', () => {
         await pgError(
           como(
             ADMIN,
-            sql`insert into mentoria_cronograma_anteriores (inscricao_id, item_id, resultado) values (${doisM}, ${itens.filme}, 'RECEBIDO')`,
+            sql`insert into mentoria_cronograma_anteriores (inscricao_id, item_id, resultado) values (${doisM}, ${itens.filme!}, 'RECEBIDO')`,
           ),
         )
       ).code,
@@ -243,7 +243,7 @@ describe('tarefas do cronograma', () => {
       OPERACAO,
       sql`insert into mentoria_tarefas (inscricao_id, origem, ciclo_id, ordem, descricao, prazo,
           cronograma_bloco, cronograma_item_id)
-        values (${doisM}, 'PME', ${cicloDoisM}, 3, 'cifrado', ${hoje()}::date, 'LIVRO', ${itens.livro})
+        values (${doisM}, 'PME', ${cicloDoisM}, 3, 'cifrado', ${hoje()}::date, 'LIVRO', ${itens.livro!})
         returning id`,
     );
     const marcou = await como(
@@ -335,7 +335,7 @@ describe('mentoria_cronograma_recebidos', () => {
   it('PLANEJADO que já saiu num envio não aparece duas vezes', async () => {
     const t = await tarefaPme(doisM, cicloDoisM, itens.desafio!, 'DESAFIO');
     await owner`insert into mentoria_cronograma_anteriores (inscricao_id, item_id, pme_numero, resultado, tarefa_id)
-      values (${doisM}, ${itens.desafio}, 1, 'PLANEJADO', ${t.id})`;
+      values (${doisM}, ${itens.desafio!}, 1, 'PLANEJADO', ${t.id})`;
     const r = (await recebidos(ADMIN, doisM)).filter((x) => x.bloco === 'DESAFIO');
     expect(r.map((x) => x.resultado)).toEqual(['PENDENTE']);
   });
@@ -360,7 +360,7 @@ describe('mentoria_cronograma_remover', () => {
   it('tira a tarefa pendente, devolve o PLANEJADO e grava o histórico', async () => {
     const t = await tarefaPme(doisM, cicloDoisM, itens.desafio!, 'DESAFIO');
     await owner`insert into mentoria_cronograma_anteriores (inscricao_id, item_id, pme_numero, resultado, tarefa_id)
-      values (${doisM}, ${itens.desafio}, 1, 'PLANEJADO', ${t.id})`;
+      values (${doisM}, ${itens.desafio!}, 1, 'PLANEJADO', ${t.id})`;
     await remover(OPERACAO, t.id, t.version);
     const [n] = await owner<
       { n: number }[]

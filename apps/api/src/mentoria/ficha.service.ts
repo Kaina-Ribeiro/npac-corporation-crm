@@ -140,6 +140,7 @@ export class FichaService {
       checkin: boolean;
       segunda_chance: boolean;
       ver_evolucao: boolean;
+      ver_cronograma: boolean;
       evolucao: boolean;
       ver_engajamento: boolean;
       engajamento: boolean;
@@ -163,6 +164,8 @@ export class FichaService {
         mentoria_edita('CHECKIN', ${id}::uuid) as checkin,
         mentoria_edita('SEGUNDA_CHANCE', ${id}::uuid) as segunda_chance,
         mentoria_ve_evolucao(${id}::uuid) as ver_evolucao,
+        coalesce(mentoria_admin() or mentoria_perfil() in ('ACOMPANHAMENTO', 'OPERACAO'), false)
+          as ver_cronograma,
         mentoria_edita('EVOLUCAO', ${id}::uuid) as evolucao,
         mentoria_ve_engajamento() as ver_engajamento,
         mentoria_edita('ENGAJAMENTO', ${id}::uuid) as engajamento,
@@ -341,6 +344,7 @@ export class FichaService {
         checkin: extra?.checkin === true,
         segundaChance: extra?.segunda_chance === true,
         verEvolucao: extra?.ver_evolucao === true,
+        verCronograma: extra?.ver_cronograma === true,
         evolucao: extra?.ver_evolucao === true && extra?.evolucao === true,
         responsavel: extra?.inscricao === true && extra?.so_carteira !== true,
         verEngajamento: extra?.ver_engajamento === true,

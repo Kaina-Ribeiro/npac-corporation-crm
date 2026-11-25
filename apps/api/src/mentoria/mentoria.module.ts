@@ -23,6 +23,11 @@ import { PlanoController } from './plano.controller.js';
 import { PlanoService } from './plano.service.js';
 import { CiclosController } from './ciclos.controller.js';
 import { CiclosService } from './ciclos.service.js';
+import {
+  CronogramaBancoController,
+  CronogramaController,
+  CronogramaService,
+} from './cronograma.controller.js';
 import { CheckinsController } from './checkins.controller.js';
 import { CheckinsService } from './checkins.service.js';
 import { EvolucaoController } from './evolucao.controller.js';
@@ -48,6 +53,8 @@ import { InscricaoDaVenda } from './venda/inscricao-da-venda.js';
 /** Acompanhamento de mentorados: base à parte do comercial, só Diretoria e Acompanhamento. */
 @Module({
   controllers: [
+    CronogramaController,
+    CronogramaBancoController,
     PerfisController,
     InscricoesController,
     MidiaController,
@@ -94,6 +101,7 @@ import { InscricaoDaVenda } from './venda/inscricao-da-venda.js';
     EvolucaoService,
     EvolucaoLegado,
     CheckinsService,
+    CronogramaService,
     InscricaoDaVenda,
     EnviosService,
     { provide: MENTORIA_CLOCK, useValue: systemClock },

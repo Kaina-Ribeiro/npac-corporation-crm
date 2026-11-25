@@ -1,4 +1,5 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
+import { normalizarItem } from '@npac/shared';
 import type { CicloDTO, CronogramaDTO, FichaDTO, ItemBancoDTO } from '@npac/shared';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { MENTORIA_CLOCK } from '../src/mentoria/relogio.js';
@@ -59,7 +60,7 @@ async function banco(qtd = 4) {
       const texto = `${b} Fictício ${k}`;
       const [r] = await owner<{ id: string }[]>`
         insert into mentoria_cronograma_itens (bloco, texto, texto_norm, ordem)
-        values (${b}, ${texto}, ${texto.toLowerCase()}, ${k}) returning id`;
+        values (${b}, ${texto}, ${normalizarItem(texto)}, ${k}) returning id`;
       itens[b]!.push(r!.id);
     }
   }
@@ -175,20 +176,24 @@ describe('envio do PME com o cronograma', () => {
     });
     const t = c.tarefas.find((x) => x.origem === 'PME')!;
     expect(t).toMatchObject({ cronogramaBloco: 'DESAFIO', descricao: 'Vender o terreno fictício' });
-    const [r] = await owner<{ n: number }[]>`select count(*)::int as n from mentoria_cronograma_itens`;
+    const [r] = await owner<
+      { n: number }[]
+    >`select count(*)::int as n from mentoria_cronograma_itens`;
     expect(r!.n).toBe(20);
   });
 
   it('recusa item escondido, texto vazio, item repetido no envio e mais de 20', async () => {
     const i = await inscricao();
     const s = await operacao();
-    await owner`update mentoria_cronograma_itens set ativo = false where id = ${itens.FILME![3]}`;
+    await owner`update mentoria_cronograma_itens set ativo = false where id = ${itens.FILME![3]!}`;
     const esc = await enviar(s, i, { cronograma: [{ itemId: itens.FILME![3], bloco: 'FILME' }] });
     expect(esc.status).toBe(400);
     expect(esc.body.message).toBe('Esse item está escondido no banco');
     const vazio = await enviar(s, i, { cronograma: [{ bloco: 'FILME', texto: '   ' }] });
     expect(vazio.status).toBe(400);
-    const grande = await enviar(s, i, { cronograma: [{ bloco: 'FILME', texto: 'x'.repeat(2001) }] });
+    const grande = await enviar(s, i, {
+      cronograma: [{ bloco: 'FILME', texto: 'x'.repeat(2001) }],
+    });
     expect(grande.status).toBe(400);
     const dup = await enviar(s, i, {
       cronograma: [
@@ -257,7 +262,7 @@ describe('dados da janela e da aba (GET …/cronograma)', () => {
     const s = await operacao();
     await enviarOk(s, i, { cronograma: [{ itemId: itens.FILME![0], bloco: 'FILME' }] });
     await owner`insert into mentoria_cronograma_anteriores (inscricao_id, item_id, pme_numero, resultado)
-      values (${i}, ${itens.FILME![3]}, 2, 'PLANEJADO'), (${i}, ${itens.LIVRO![0]}, null, 'JA_TINHA')`;
+      values (${i}, ${itens.FILME![3]!}, 2, 'PLANEJADO'), (${i}, ${itens.LIVRO![0]!}, null, 'JA_TINHA')`;
     const cr = await cronograma(s, i);
     expect(cr.proximo).toBe(2);
     expect(cr.semCronograma).toBe(false);
@@ -266,7 +271,11 @@ describe('dados da janela e da aba (GET …/cronograma)', () => {
     expect(cr.sugestao.FILME.map((x) => x.id)).toEqual([itens.FILME![3], itens.FILME![1]]);
     expect(cr.sugestao.LIVRO.map((x) => x.id)).toEqual([itens.LIVRO![1]]);
     expect(cr.sugestao.EAP).toHaveLength(3);
-    expect(cr.recebidos.map((r) => r.resultado).sort()).toEqual(['JA_TINHA', 'PENDENTE', 'PLANEJADO']);
+    expect(cr.recebidos.map((r) => r.resultado).sort()).toEqual([
+      'JA_TINHA',
+      'PENDENTE',
+      'PLANEJADO',
+    ]);
     // Enviar o 2º com o planejado liga a linha da planilha: ela sai dos recebidos.
     await enviarOk(s, i, { cronograma: [{ itemId: itens.FILME![3], bloco: 'FILME' }] });
     const depois = await cronograma(s, i);
@@ -302,14 +311,22 @@ describe('incluir e tirar itens do PME em andamento', () => {
     const c1 = await enviarOk(s, i);
     const inc = await h.post(
       `/api/mentoria/ciclos/${c1.id}/cronograma`,
-      { cronograma: [{ itemId: itens.EAP![0], bloco: 'EAP' }, { bloco: 'EAP', texto: 'Vídeo extra' }] },
+      {
+        cronograma: [
+          { itemId: itens.EAP![0], bloco: 'EAP' },
+          { bloco: 'EAP', texto: 'Vídeo extra' },
+        ],
+      },
       s,
     );
     expect(inc.status, inc.text).toBe(201);
     const c = inc.body as CicloDTO;
     const pme = c.tarefas.filter((t) => t.origem === 'PME');
     expect(pme).toHaveLength(2);
-    expect((await historico(i)).at(-1)).toEqual({ tipo: 'pme.cronograma_incluido', campos: ['EAP'] });
+    expect((await historico(i)).at(-1)).toEqual({
+      tipo: 'pme.cronograma_incluido',
+      campos: ['EAP'],
+    });
     // Repetir o item no mesmo PME.
     const rep = await h.post(
       `/api/mentoria/ciclos/${c1.id}/cronograma`,
@@ -319,11 +336,18 @@ describe('incluir e tirar itens do PME em andamento', () => {
     expect(rep.status).toBe(409);
     expect(rep.body.message).toBe('Esse item já está neste PME');
 
-    const tira = await h.del(`/api/mentoria/tarefas/${pme[0]!.id}/cronograma`, {
-      version: pme[0]!.version,
-    }, s);
+    const tira = await h.del(
+      `/api/mentoria/tarefas/${pme[0]!.id}/cronograma`,
+      {
+        version: pme[0]!.version,
+      },
+      s,
+    );
     expect(tira.status, tira.text).toBe(204);
-    expect((await historico(i)).at(-1)).toEqual({ tipo: 'pme.cronograma_removido', campos: ['EAP'] });
+    expect((await historico(i)).at(-1)).toEqual({
+      tipo: 'pme.cronograma_removido',
+      campos: ['EAP'],
+    });
 
     const sa = await acomp();
     await h.patch(
@@ -331,14 +355,22 @@ describe('incluir e tirar itens do PME em andamento', () => {
       { version: pme[1]!.version, status: 'FEITA' },
       sa,
     );
-    const feita = await h.del(`/api/mentoria/tarefas/${pme[1]!.id}/cronograma`, {
-      version: pme[1]!.version + 1,
-    }, sa);
+    const feita = await h.del(
+      `/api/mentoria/tarefas/${pme[1]!.id}/cronograma`,
+      {
+        version: pme[1]!.version + 1,
+      },
+      sa,
+    );
     expect(feita.status).toBe(400);
     expect(feita.body.message).toBe('Item já marcado ou com comprovante não sai do PME');
-    const velha = await h.del(`/api/mentoria/tarefas/${pme[1]!.id}/cronograma`, {
-      version: pme[1]!.version,
-    }, sa);
+    const velha = await h.del(
+      `/api/mentoria/tarefas/${pme[1]!.id}/cronograma`,
+      {
+        version: pme[1]!.version,
+      },
+      sa,
+    );
     expect(velha.status).toBe(409);
 
     // Ciclo fechado (encerramento feito) não recebe item.
@@ -365,15 +397,34 @@ describe('banco de itens (Configurações → Cronograma, só a Admin)', () => {
       'FILME Fictício 3',
       'FILME Fictício 4',
     ]);
-    const novo = await h.post('/api/mentoria/cronograma/itens', { bloco: 'FILME', texto: ' Filme Novo ' }, s);
+    const novo = await h.post(
+      '/api/mentoria/cronograma/itens',
+      { bloco: 'FILME', texto: ' Filme Novo ' },
+      s,
+    );
     expect(novo.status, novo.text).toBe(201);
     const item = novo.body as ItemBancoDTO;
-    expect(item).toMatchObject({ bloco: 'FILME', texto: 'Filme Novo', ordem: 5, ativo: true, version: 1, envios: 0 });
-    const rep = await h.post('/api/mentoria/cronograma/itens', { bloco: 'FILME', texto: 'filme, NOVO!' }, s);
+    expect(item).toMatchObject({
+      bloco: 'FILME',
+      texto: 'Filme Novo',
+      ordem: 5,
+      ativo: true,
+      version: 1,
+      envios: 0,
+    });
+    const rep = await h.post(
+      '/api/mentoria/cronograma/itens',
+      { bloco: 'FILME', texto: 'filme, NOVO!' },
+      s,
+    );
     expect(rep.status).toBe(409);
     expect(rep.body.message).toBe('Esse item já está no banco');
     // O mesmo texto em outro bloco pode.
-    const outro = await h.post('/api/mentoria/cronograma/itens', { bloco: 'LIVRO', texto: 'Filme Novo' }, s);
+    const outro = await h.post(
+      '/api/mentoria/cronograma/itens',
+      { bloco: 'LIVRO', texto: 'Filme Novo' },
+      s,
+    );
     expect(outro.status).toBe(201);
 
     const ed = await h.patch(
@@ -389,14 +440,27 @@ describe('banco de itens (Configurações → Cronograma, só a Admin)', () => {
       s,
     );
     expect(choca.status).toBe(409);
-    const esc = await h.patch(`/api/mentoria/cronograma/itens/${item.id}`, { version: 2, ativo: false }, s);
+    const esc = await h.patch(
+      `/api/mentoria/cronograma/itens/${item.id}`,
+      { version: 2, ativo: false },
+      s,
+    );
     expect(esc.body).toMatchObject({ ativo: false, version: 3 });
-    const velha = await h.patch(`/api/mentoria/cronograma/itens/${item.id}`, { version: 2, ativo: true }, s);
+    const velha = await h.patch(
+      `/api/mentoria/cronograma/itens/${item.id}`,
+      { version: 2, ativo: true },
+      s,
+    );
     expect(velha.status).toBe(409);
     expect(velha.body.code).toBe('VERSION_CONFLICT');
     expect(
-      (await h.patch(`/api/mentoria/cronograma/itens/${crypto.randomUUID()}`, { version: 1, ativo: true }, s))
-        .status,
+      (
+        await h.patch(
+          `/api/mentoria/cronograma/itens/${crypto.randomUUID()}`,
+          { version: 1, ativo: true },
+          s,
+        )
+      ).status,
     ).toBe(404);
 
     // "envios" conta as tarefas que usam o item.
@@ -420,8 +484,13 @@ describe('banco de itens (Configurações → Cronograma, só a Admin)', () => {
         (await h.post('/api/mentoria/cronograma/itens', { bloco: 'EAP', texto: 'X' }, s)).status,
       ).toBe(404);
       expect(
-        (await h.patch(`/api/mentoria/cronograma/itens/${itens.EAP![0]}`, { version: 1, ativo: false }, s))
-          .status,
+        (
+          await h.patch(
+            `/api/mentoria/cronograma/itens/${itens.EAP![0]!}`,
+            { version: 1, ativo: false },
+            s,
+          )
+        ).status,
       ).toBe(404);
     }
   });
@@ -455,8 +524,13 @@ describe('Especialista: 404 em tudo do cronograma', () => {
       (await h.post('/api/mentoria/cronograma/itens', { bloco: 'EAP', texto: 'X' }, s)).status,
     ).toBe(404);
     expect(
-      (await h.patch(`/api/mentoria/cronograma/itens/${itens.EAP![0]}`, { version: 1, ativo: false }, s))
-        .status,
+      (
+        await h.patch(
+          `/api/mentoria/cronograma/itens/${itens.EAP![0]!}`,
+          { version: 1, ativo: false },
+          s,
+        )
+      ).status,
     ).toBe(404);
     // Na ficha, o card do PME não traz as tarefas do cronograma.
     const ficha = (await h.get(`/api/mentoria/inscricoes/${i}`, s)).body as FichaDTO;

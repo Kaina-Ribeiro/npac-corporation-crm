@@ -82,9 +82,9 @@ export type Recebido = {
 
 /**
  * "Já recebido" (§6): não pode ir de novo. `PLANEJADO` da própria inscrição fica reservado para o PME
- * dele (não conta como recebido); o de outra inscrição conta. `numero` = o PME que está sendo montado.
+ * dele (não conta como recebido); o de outra inscrição conta.
  */
-export function jaRecebido(r: Recebido, _numero: number): boolean {
+export function jaRecebido(r: Recebido): boolean {
   return !(r.resultado === 'PLANEJADO' && r.propria);
 }
 

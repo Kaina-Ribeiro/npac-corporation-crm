@@ -1,11 +1,23 @@
 import { randomUUID } from 'node:crypto';
-import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { mentoriaCiclos, mentoriaTarefas, withUser, type Db, type Tx } from '@npac/db';
 import {
   encerramentoPadrao,
+  jaRecebido,
+  LIMITE_CRONOGRAMA_ENVIO,
+  motivoJaRecebido,
   tarefaPedeMotivo,
   ULTIMO_PME,
   type AuthUser,
+  type Bloco,
+  type CronogramaEscolha,
+  type Recebido,
   type CicloAnterior,
   type CicloDTO,
   type CicloPatch,
@@ -25,6 +37,34 @@ import { MENTORIA_CLOCK, type Clock } from './relogio.js';
 const DIA_BR = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' });
 
 type LinhaCiclo = Omit<CicloDTO, 'tarefas'>;
+
+/** Item do cronograma pronto para virar tarefa (NPAC-60). */
+export type ItemParaTarefa = { bloco: Bloco; itemId: string | null; texto: string };
+
+const STATUS_TAREFA = new Set(['PENDENTE', 'FEITA', 'PARCIAL', 'NAO_FEITA']);
+
+/** O que a pessoa já tem no cronograma, sob a RLS de quem consulta (desta e das outras inscrições dela). */
+export async function lerRecebidos(tx: Tx, inscricaoId: string): Promise<Recebido[]> {
+  const linhas = await tx.execute<{
+    item_id: string;
+    bloco: Bloco;
+    pme_numero: number | null;
+    resultado: Recebido['resultado'];
+    inscricao_id: string;
+    mentoria: string;
+    propria: boolean;
+  }>(sql`select * from mentoria_cronograma_recebidos(${inscricaoId}::uuid)
+    order by propria desc, pme_numero nulls first, bloco, item_id`);
+  return linhas.map((r) => ({
+    itemId: r.item_id,
+    bloco: r.bloco,
+    pmeNumero: r.pme_numero,
+    resultado: r.resultado,
+    inscricaoId: r.inscricao_id,
+    mentoria: r.mentoria,
+    propria: r.propria,
+  }));
+}
 type LinhaTarefa = Omit<TarefaDTO, 'descricao' | 'motivo' | 'reuniaoInicio'> & {
   descricao: string | null;
   motivo: string | null;
@@ -74,7 +114,8 @@ export class CiclosService {
         t.status, t.motivo, t.comprovante_midia_id as "comprovanteMidiaId",
         m.tipo as "comprovanteTipo", t.cobrada_em as "cobradaEm", u.name as "cobradaPor",
         t.meta_id as "metaId", c.numero as "cicloNumero", r.inicio as "reuniaoInicio",
-        r.tipo as "reuniaoTipo",
+        r.tipo as "reuniaoTipo", t.cronograma_bloco as "cronogramaBloco",
+        t.cronograma_item_id as "cronogramaItemId",
         mentoria_edita_tarefa(t.reuniao_id, t.inscricao_id) as "podeEditar"
       from mentoria_tarefas t
       left join mentoria_midia m on m.id = t.comprovante_midia_id
@@ -167,7 +208,79 @@ export class CiclosService {
    * Envio do próximo PME (§3): ciclo do número seguinte com uma tarefa por atividade extra e a de
    * encerramento, todas com o prazo do ciclo. O 1º também preenche `pme1_enviado_em`.
    */
-  async enviarNaTx(tx: Tx, inscricaoId: string, hoje: string, enviadoEm?: string) {
+  /**
+   * Confere os itens do cronograma escolhidos para o PME `numero` (§7): item do banco ativo, que a
+   * pessoa não recebeu (nem em outra inscrição dela, C7) e sem repetir no envio; "só desta pessoa" com
+   * o texto. Chame antes de criar as tarefas: o que já está no ciclo conta como recebido.
+   */
+  async prepararCronograma(
+    tx: Tx,
+    inscricaoId: string,
+    numero: number,
+    escolhas: CronogramaEscolha[],
+  ): Promise<ItemParaTarefa[]> {
+    if (!escolhas.length) return [];
+    const doBanco = escolhas.flatMap((e) => (e.itemId ? [e.itemId] : []));
+    if (new Set(doBanco).size !== doBanco.length)
+      throw new ConflictException('Esse item já está neste PME');
+    const banco = doBanco.length
+      ? [
+          ...(await tx.execute<{ id: string; bloco: Bloco; texto: string; ativo: boolean }>(sql`
+            select id, bloco, texto, ativo from mentoria_cronograma_itens
+            where id = any (${sql.param(doBanco)}::uuid[])`)),
+        ]
+      : [];
+    const recebidos = doBanco.length ? await lerRecebidos(tx, inscricaoId) : [];
+    return escolhas.map((e): ItemParaTarefa => {
+      if (!e.itemId) return { bloco: e.bloco, itemId: null, texto: e.texto! };
+      const item = banco.find((b) => b.id === e.itemId);
+      if (!item) throw new BadRequestException('Item do cronograma não encontrado');
+      if (!item.ativo) throw new BadRequestException('Esse item está escondido no banco');
+      const r = recebidos.find((x) => x.itemId === item.id && jaRecebido(x));
+      if (r) {
+        const nesteCiclo = r.propria && r.pmeNumero === numero && STATUS_TAREFA.has(r.resultado);
+        throw new ConflictException(
+          nesteCiclo ? 'Esse item já está neste PME' : motivoJaRecebido(r),
+        );
+      }
+      return { bloco: item.bloco, itemId: item.id, texto: item.texto };
+    });
+  }
+
+  /** Tarefas de origem PME do cronograma no ciclo, a partir de `ordem`, com o prazo do ciclo. */
+  async inserirCronograma(
+    tx: Tx,
+    inscricaoId: string,
+    ciclo: { id: string; prazo: string },
+    itens: ItemParaTarefa[],
+    ordem: number,
+  ) {
+    if (!itens.length) return;
+    await tx.insert(mentoriaTarefas).values(
+      itens.map((x, k) => {
+        const id = randomUUID();
+        return {
+          id,
+          inscricaoId,
+          origem: 'PME' as const,
+          cicloId: ciclo.id,
+          ordem: ordem + k,
+          descricao: this.crypto.cifrarTexto(x.texto, aad('mentoria_tarefas', 'descricao', id)),
+          prazo: ciclo.prazo,
+          cronogramaBloco: x.bloco,
+          cronogramaItemId: x.itemId,
+        };
+      }),
+    );
+  }
+
+  async enviarNaTx(
+    tx: Tx,
+    inscricaoId: string,
+    hoje: string,
+    enviadoEm?: string,
+    cronograma: CronogramaEscolha[] = [],
+  ) {
     await exigirEdicao(tx, 'PME', inscricaoId);
     const i = await this.estado(tx, inscricaoId);
     if (i.status !== 'ATIVO') throw new BadRequestException('Só mentorado ativo recebe PME');
@@ -181,30 +294,36 @@ export class CiclosService {
         where numero = ${numero} and ativo`,
     );
     if (!pme) throw new BadRequestException(`Cadastre o ${numero}º PME em Configurações`);
+    if (cronograma.length > LIMITE_CRONOGRAMA_ENVIO)
+      throw new BadRequestException(`Até ${LIMITE_CRONOGRAMA_ENVIO} itens do cronograma por PME`);
+    const itens = await this.prepararCronograma(tx, inscricaoId, numero, cronograma);
 
     await this.fecharAberto(tx, i.aberto, data);
     const [c] = await tx
       .insert(mentoriaCiclos)
       .values({ inscricaoId, pmeId: pme.id, numero, enviadoEm: data })
       .returning({ id: mentoriaCiclos.id, prazo: mentoriaCiclos.prazo });
+    // Ordem no card: extras → cronograma → encerramento.
     const textos = [
       ...pme.extras.map((d) => ({ origem: 'EXTRA' as const, d })),
       { origem: 'ENCERRAMENTO' as const, d: pme.encerramento ?? encerramentoPadrao(numero) },
     ];
+    const nExtras = pme.extras.length;
     await tx.insert(mentoriaTarefas).values(
-      textos.map((x, ordem) => {
+      textos.map((x, k) => {
         const id = randomUUID();
         return {
           id,
           inscricaoId,
           origem: x.origem,
           cicloId: c!.id,
-          ordem,
+          ordem: x.origem === 'ENCERRAMENTO' ? nExtras + itens.length : k,
           descricao: this.crypto.cifrarTexto(x.d, aad('mentoria_tarefas', 'descricao', id)),
           prazo: c!.prazo,
         };
       }),
     );
+    await this.inserirCronograma(tx, inscricaoId, c!, itens, nExtras);
     if (numero === 1)
       await tx.execute(sql`update mentoria_inscricoes set pme1_enviado_em = coalesce(
           pme1_enviado_em, ${data}::date::timestamp at time zone 'America/Sao_Paulo'),
@@ -213,11 +332,12 @@ export class CiclosService {
     await registrarHistorico(tx, inscricaoId, 'pme.enviado', [
       `pme_${numero}`,
       ...(i.aberto_numero ? [`pme_${i.aberto_numero}_nao_concluido`] : []),
+      ...(itens.length ? ['cronograma'] : []),
     ]);
     return c!.id;
   }
 
-  private async um(tx: Tx, inscricaoId: string, cicloId: string): Promise<CicloDTO> {
+  async um(tx: Tx, inscricaoId: string, cicloId: string): Promise<CicloDTO> {
     const ciclos = await this.daInscricao(tx, inscricaoId, this.hoje());
     const c = ciclos.find((x) => x.id === cicloId);
     if (!c) throw new NotFoundException();
@@ -227,7 +347,7 @@ export class CiclosService {
   enviar(u: AuthUser, inscricaoId: string, b: EnvioPme): Promise<CicloDTO> {
     const hoje = this.hoje();
     return withUser(this.db, u.id, async (tx) => {
-      const id = await this.enviarNaTx(tx, inscricaoId, hoje, b.enviadoEm);
+      const id = await this.enviarNaTx(tx, inscricaoId, hoje, b.enviadoEm, b.cronograma ?? []);
       return this.um(tx, inscricaoId, id);
     }).catch((e) => erroDoBanco(e, 'Este PME já foi enviado'));
   }

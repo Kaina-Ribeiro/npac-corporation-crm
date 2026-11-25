@@ -21,11 +21,15 @@ cego. A tela reusa as peças do sistema (lista `.pl-mod`, seletor `.seg`, `.ob-h
 
 | Fase | Tarefas | Entrega | Situação |
 |---|---|---|---|
-| 1. Banco de dados, regras e API | 1–3 | envio com itens por API, banco de itens por API, Fila sem cobrança de item | ⏳ |
+| 1. Banco de dados, regras e API | 1–3 | envio com itens por API, banco de itens por API, Fila sem cobrança de item | ✅ 25/11 (0091, PR na `release/v0.26`) |
 | 2. Telas | 4–7 | banco, janela de envio + troca, card do PME, aba da ficha | ⏳ |
 | 3. Importação | 8–10 | prévia e importação da planilha em 3 passos | ⏳ |
 
-**Antes da fase 1:** não há `release/v*` aberta (a v0.22 foi para a `main` em 24/11). Abrir a `release/v0.23` (Actions →
+**Nota da fase 1 (25/11):** enquanto a fase 1 rodava, as releases v0.23 a v0.25 foram para a `main` e a `main` ganhou as
+migrations 0085 a 0090. A migration do cronograma virou **0091** e o PR foi para a `release/v0.26` (branch
+`feat/NPAC-60-cronograma-fase-1`). Onde abaixo diz 0085, leia 0091.
+
+**Antes da fase 1 (histórico):** não há `release/v*` aberta (a v0.22 foi para a `main` em 24/11). Abrir a `release/v0.23` (Actions →
 Release → `cut-release`, `RELEASING.md` passo 3) e refazer a branch `feat/NPAC-60-cronograma` a partir dela (`git rebase
 --onto origin/release/v0.23`): hoje ela só tem o desenho, o protótipo e este plano.
 
@@ -68,7 +72,8 @@ Release → `cut-release`, `RELEASING.md` passo 3) e refazer a branch `feat/NPAC
 
 ### Tarefa 1: regras puras do cronograma (shared)
 
-**Situação:** ⏳
+**Situação:** ✅ 24/11 — `sh/mentoria/cronograma.ts` + 11 testes; além do pedido, `motivoJaRecebido` (frase do 409) e
+`LIMITE_CRONOGRAMA_ENVIO`/`LIMITE_TEXTO_ITEM`. `PLANEJADO` do número entra todo na sugestão (mesmo além do modelo).
 
 **Arquivos:**
 - Criar: `packages/shared/src/mentoria/cronograma.ts` (exportado em `packages/shared/src/mentoria/index.ts`)
@@ -88,17 +93,20 @@ Release → `cut-release`, `RELEASING.md` passo 3) e refazer a branch `feat/NPAC
   ordem que não estão "já recebidos" (definição da seção 6 do desenho), até `MODELO_PME[bloco]`.
 - `jaRecebido(r: Recebido, numero: number): boolean` (a regra da seção 6: `PLANEJADO` próprio não conta)
 
-- [ ] **Passo 1: testes que falham** — `normalizarItem('  Já LEU,  o Pacto!! ')` = `'ja leu o pacto'`;
+- [x] **Passo 1: testes que falham** — `normalizarItem('  Já LEU,  o Pacto!! ')` = `'ja leu o pacto'`;
   `semCronograma('2M sem Cronograma')` = true; `sugerirItens` devolve 1 desafio, 2 filmes e 3 EAP, pula o item recebido
   em outra inscrição, põe o `PLANEJADO` do nº pedido primeiro, ignora item inativo e devolve tudo vazio com `sem = true`.
-- [ ] **Passo 2:** `pnpm --filter @npac/shared test -- cronograma` → falha (módulo não existe).
-- [ ] **Passo 3:** implementar em `cronograma.ts`.
-- [ ] **Passo 4:** `pnpm --filter @npac/shared test` → passa.
-- [ ] **Passo 5:** commit `feat(NPAC-60): regras puras do cronograma`.
+- [x] **Passo 2:** `pnpm --filter @npac/shared test -- cronograma` → falha (módulo não existe).
+- [x] **Passo 3:** implementar em `cronograma.ts`.
+- [x] **Passo 4:** `pnpm --filter @npac/shared test` → passa.
+- [x] **Passo 5:** commit `feat(NPAC-60): regras puras do cronograma`.
 
 ### Tarefa 2: migration 0085 (tabelas, RLS, funções, Fila)
 
-**Situação:** ⏳
+**Situação:** ✅ 25/11 — saiu como **0091** (`0091_cronograma_pme.sql`). Além do pedido: a política
+`mentoria_tarefas_criar` passou a aceitar origem PME pela área `PME` (senão a Operação não criaria); gatilho que põe o
+bloco do item na tarefa; gatilho que liga o `PLANEJADO` ao enviar (`tarefa_id`); CHECK "PME exige ciclo". Testes:
+`mentoria-cronograma.test.ts` (16), bloco NPAC-60 em `fila-equivalencia`, contagens em `rls-por-consulta`.
 
 **Arquivos:**
 - Criar: `packages/db/drizzle/0085_cronograma_pme.sql` + `meta/0085_snapshot.json` + entrada em `_journal.json`
@@ -123,21 +131,24 @@ Release → `cut-release`, `RELEASING.md` passo 3) e refazer a branch `feat/NPAC
 - `mentoria_fila` e `mentoria_avisos_candidatos`: copiar a **última** definição (`grep -l "FUNCTION mentoria_fila("
   packages/db/drizzle/*.sql | tail -1`, idem avisos) e acrescentar `AND t.origem <> 'PME'` no ramo `COBRANCA`/`cobranca:`.
 
-- [ ] **Passo 1: testes que falham** (em `mentoria-cronograma.test.ts`, no padrão de `mentoria-v2-pmes.test.ts`):
+- [x] **Passo 1: testes que falham** (em `mentoria-cronograma.test.ts`, no padrão de `mentoria-v2-pmes.test.ts`):
   Especialista lê 0 itens e 0 anteriores; Operação lê itens e não grava; Acompanhamento "só a carteira" lê anteriores só
   da carteira; `recebidos` da 2M traz o item do RDV de pessoa com mesmo WhatsApp e não traz o de pessoa diferente;
   `remover` recusa tarefa feita, com comprovante ou de ciclo fechado; tarefa `PME` pendente no prazo não aparece em
   `mentoria_fila` nem em `mentoria_avisos_candidatos`, e a `EXTRA` do mesmo ciclo aparece; tarefa com item repetido no
   mesmo ciclo falha no único.
-- [ ] **Passo 2:** `pnpm --filter @npac/db test -- mentoria-cronograma` → falha.
-- [ ] **Passo 3:** escrever a 0085 e o schema; `pnpm --filter @npac/db build && pnpm --filter @npac/db migrate` no dev.
-- [ ] **Passo 4:** `pnpm --filter @npac/db test` → tudo passa (inclui `fila-equivalencia`, `rls-por-consulta`,
+- [x] **Passo 2:** `pnpm --filter @npac/db test -- mentoria-cronograma` → falha.
+- [x] **Passo 3:** escrever a 0085 e o schema; `pnpm --filter @npac/db build && pnpm --filter @npac/db migrate` no dev.
+- [x] **Passo 4:** `pnpm --filter @npac/db test` → tudo passa (inclui `fila-equivalencia`, `rls-por-consulta`,
   `migrations`, `areas-compat`).
-- [ ] **Passo 5:** commit `feat(NPAC-60): tabelas e regras do cronograma no banco`.
+- [x] **Passo 5:** commit `feat(NPAC-60): tabelas e regras do cronograma no banco`.
 
 ### Tarefa 3: API do cronograma (envio, troca, banco)
 
-**Situação:** ⏳
+**Situação:** ✅ 25/11 — `cronograma.controller.ts` (serviço e os dois controllers no mesmo arquivo, como `pmes`),
+`prepararCronograma`/`inserirCronograma`/`lerRecebidos` em `ciclos.service.ts`, `pode.verCronograma` na ficha,
+`cronogramaBloco`/`cronogramaItemId` no `TarefaDTO`. Item repetido no mesmo PME: 409 "Esse item já está neste PME".
+`DELETE …/cronograma` responde 204. Testes: `mentoria-v2-cronograma.e2e.test.ts` (13).
 
 **Arquivos:**
 - Criar: `apps/api/src/mentoria/cronograma.controller.ts`, `cronograma.service.ts` (registrar no `mentoria.module.ts`)
@@ -161,16 +172,16 @@ Release → `cut-release`, `RELEASING.md` passo 3) e refazer a branch `feat/NPAC
   no bloco → 409 "Esse item já está no banco"). Cada item volta com `envios` (quantas tarefas o usam).
 - Marcar resultado das tarefas `PME`: nenhuma rota nova (o `PATCH tarefas/:id` atual serve; Operação continua recusada).
 
-- [ ] **Passo 1: testes que falham:** Operação envia o 2º PME com 8 itens e a % do ciclo passa a contar 8 + extras +
+- [x] **Passo 1: testes que falham:** Operação envia o 2º PME com 8 itens e a % do ciclo passa a contar 8 + extras +
   encerramento; Acompanhamento marca uma `PME` como FEITA e a Operação recebe recusa ao marcar; item do RDV da mesma
   pessoa → 409 com "RDV"; Especialista → 404 em todas as rotas novas; Admin cria, corrige e esconde item, texto repetido
   → 409; Acompanhamento no banco → 404; tirar item pendente funciona e tirar item feito → recusa; envio sem
   `cronograma` continua igual a hoje (teste antigo de `mentoria-v2-pmes.e2e.test.ts` passa).
-- [ ] **Passo 2:** `pnpm --filter @npac/api exec vitest run test/mentoria-v2-cronograma.e2e.test.ts` → falha.
-- [ ] **Passo 3:** implementar (validação por Zod no shared, `withUser`, histórico `pme.enviado` com o campo
+- [x] **Passo 2:** `pnpm --filter @npac/api exec vitest run test/mentoria-v2-cronograma.e2e.test.ts` → falha.
+- [x] **Passo 3:** implementar (validação por Zod no shared, `withUser`, histórico `pme.enviado` com o campo
   `cronograma`, `pme.cronograma_incluido`).
-- [ ] **Passo 4:** `pnpm --filter @npac/api test` e `pnpm lint && pnpm typecheck` → passam.
-- [ ] **Passo 5:** commit; `CLAUDE.md` (seção nova, fase 1); PR `feat(NPAC-60): cronograma do pme no banco e na api` na
+- [x] **Passo 4:** `pnpm --filter @npac/api test` e `pnpm lint && pnpm typecheck` → passam.
+- [x] **Passo 5:** commit; `CLAUDE.md` (seção nova, fase 1); PR `feat(NPAC-60): cronograma do pme no banco e na api` na
   `release/v0.23`; CI verde; ITODEV: enviar um PME com itens pela API e conferir no banco; plano com fase 1 ✅.
 
 ## Fase 2 — telas (iguais ao protótipo versão 2)

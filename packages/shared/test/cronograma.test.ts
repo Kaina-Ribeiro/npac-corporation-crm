@@ -70,27 +70,16 @@ describe('semCronograma (C6)', () => {
 
 describe('jaRecebido (§6)', () => {
   it('tarefa e histórico contam; PLANEJADO só conta se for de outra inscrição', () => {
-    expect(jaRecebido(recebido({ itemId: 'a', bloco: 'FILME' }), 2)).toBe(true);
-    expect(jaRecebido(recebido({ itemId: 'a', bloco: 'FILME', resultado: 'NAO_FEZ' }), 2)).toBe(
-      true,
-    );
+    expect(jaRecebido(recebido({ itemId: 'a', bloco: 'FILME' }))).toBe(true);
+    expect(jaRecebido(recebido({ itemId: 'a', bloco: 'FILME', resultado: 'NAO_FEZ' }))).toBe(true);
     expect(
-      jaRecebido(
-        recebido({ itemId: 'a', bloco: 'LIVRO', resultado: 'JA_TINHA', pmeNumero: null }),
-        2,
-      ),
+      jaRecebido(recebido({ itemId: 'a', bloco: 'LIVRO', resultado: 'JA_TINHA', pmeNumero: null })),
     ).toBe(true);
     expect(
-      jaRecebido(
-        recebido({ itemId: 'a', bloco: 'FILME', resultado: 'PLANEJADO', pmeNumero: 2 }),
-        2,
-      ),
+      jaRecebido(recebido({ itemId: 'a', bloco: 'FILME', resultado: 'PLANEJADO', pmeNumero: 2 })),
     ).toBe(false);
     expect(
-      jaRecebido(
-        recebido({ itemId: 'a', bloco: 'FILME', resultado: 'PLANEJADO', pmeNumero: 5 }),
-        2,
-      ),
+      jaRecebido(recebido({ itemId: 'a', bloco: 'FILME', resultado: 'PLANEJADO', pmeNumero: 5 })),
     ).toBe(false);
     expect(
       jaRecebido(
@@ -101,7 +90,6 @@ describe('jaRecebido (§6)', () => {
           pmeNumero: 5,
           propria: false,
         }),
-        2,
       ),
     ).toBe(true);
   });
