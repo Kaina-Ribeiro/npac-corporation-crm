@@ -21,14 +21,19 @@ async function entrar(page: Page, usuario: string) {
 
 const lateral = (page: Page) => page.getByRole('navigation', { name: 'Navegação lateral' });
 const abrirFunil = async (page: Page) => {
-  await lateral(page).getByRole('link', { name: 'Onboarding', exact: true }).click();
+  await lateral(page).getByRole('link', { name: 'Dashboard', exact: true }).click();
   await page.waitForURL(/\/acompanhamento\/onboarding/);
-  await expect(page.getByRole('heading', { name: 'Onboarding', level: 1 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Dashboard', level: 1 })).toBeVisible();
 };
 const coluna = (page: Page, nome: string) =>
   page.getByRole('button', { name: new RegExp(`^${nome}`) });
 const linha = (page: Page, nome: string) =>
-  page.getByRole('listitem').filter({ hasText: nome }).filter({ visible: true });
+  // Só a lista do funil: desde o NPAC-75 o nome também aparece nas listas do bloco Engajamento, no topo.
+  page
+    .locator('.ob-corpo')
+    .getByRole('listitem')
+    .filter({ hasText: nome })
+    .filter({ visible: true });
 
 async function criar(page: Page, nome: string, mentoria = 'RDV') {
   const r = await page.request.post('/api/mentoria/inscricoes', {
@@ -122,7 +127,7 @@ test('Manu não vê o funil', async ({ page }) => {
   await entrar(page, 'manu');
   await page.waitForURL(/\/acompanhamento\/fila/);
   await page.goto('/acompanhamento/mentorados');
-  await lateral(page).getByRole('link', { name: 'Onboarding', exact: true }).click();
+  await lateral(page).getByRole('link', { name: 'Dashboard', exact: true }).click();
   await page.waitForURL(/\/acompanhamento\/onboarding/);
   await expect(page.getByText('Esta aba é da Operação e do Acompanhamento')).toBeVisible();
   await expect(page.getByRole('group', { name: 'Funil das etapas' })).toHaveCount(0);

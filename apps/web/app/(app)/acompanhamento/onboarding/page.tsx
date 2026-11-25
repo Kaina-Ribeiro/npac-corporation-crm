@@ -6,7 +6,8 @@ import { lerEu, podeCadastrar, sessaoDoModulo } from '@/lib/acompanhamento';
 import { ONBOARDING_REGRAS, acCookie } from '@/lib/acompanhamento-prefs';
 import { apiPost } from '@/lib/api';
 
-export const metadata = { title: 'Onboarding' };
+// A tela se chama Dashboard desde o NPAC-75; o endereço continua /acompanhamento/onboarding (cookies e links).
+export const metadata = { title: 'Dashboard' };
 
 export default async function OnboardingPage() {
   const me = await sessaoDoModulo();
@@ -16,7 +17,7 @@ export default async function OnboardingPage() {
   if (!podeCadastrar(await lerEu()))
     return (
       <section className="view">
-        <h1 className="h1">Onboarding</h1>
+        <h1 className="h1">Dashboard</h1>
         <div className="card vazio">
           <h2>Esta aba é da Operação e do Acompanhamento</h2>
           <p>Seus mentorados e reuniões ficam em Mentorados.</p>

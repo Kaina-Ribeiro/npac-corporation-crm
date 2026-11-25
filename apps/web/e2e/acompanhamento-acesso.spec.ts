@@ -30,7 +30,7 @@ const MODULOS = [
   'Fila do dia',
   'Mentorados',
   'Ficha do mentorado',
-  'Onboarding',
+  'Dashboard',
   'Plano dos 12 meses',
   'Reuniões',
   'PMEs e ciclos',

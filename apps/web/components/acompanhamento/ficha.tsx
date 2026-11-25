@@ -25,6 +25,7 @@ import { filaDeSalvamento, registrarVersion } from '@/lib/acompanhamento-saver';
 import { EVENTO_ULTIMA_FICHA } from '@/lib/ultima-ficha';
 import { CampoPr, DINHEIRO } from './campo';
 import { Dialogo } from './dialogo';
+import { CampoEngajamento, TagEngajamento } from './engajamento';
 import { OnboardingFicha } from './etapa-card';
 import { Evolucao } from './evolucao';
 import { FichaPessoas } from './ficha-pessoas';
@@ -204,6 +205,14 @@ function Inscricao({
         opcoes={opcoesStatus}
         aoSalvar={atualizar}
       />
+      {ficha.pode.verEngajamento && (
+        <CampoEngajamento
+          chave={chave}
+          valor={ficha.engajamento}
+          editavel={ficha.pode.engajamento}
+          aoSalvar={atualizar}
+        />
+      )}
       <CampoPr
         {...base}
         editavel={ed && ficha.pode.responsavel}
@@ -652,6 +661,7 @@ export function Ficha({
               <span className="tag">{ficha.mentoria}</span>
               <span className="tag">{TIPO_INSCRICAO_LABEL[ficha.tipo]}</span>
               <TagStatus status={ficha.status} />
+              {ficha.pode.verEngajamento && <TagEngajamento valor={ficha.engajamento} />}
               {ficha.dealId && ficha.dataCompra && (
                 <span className="tag">Veio da venda de {diaMes(ficha.dataCompra)}</span>
               )}
