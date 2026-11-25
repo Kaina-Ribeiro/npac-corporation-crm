@@ -38,6 +38,9 @@ export const user = pgTable(
     // Última vez que a pessoa usou o sistema ("entrou há X", NPAC-54 D12/M12): gravada pela guarda
     // de sessão no máximo a cada 15 min; o Sair não apaga. `user` fica fora do canal ao vivo.
     ultimoUso: timestamp('ultimo_uso', { withTimezone: true }),
+    // Id da novidade mais nova que a pessoa já viu (NPAC-77, `@npac/shared/novidades`). Vazia: a
+    // primeira leitura de `/api/me` grava a mais nova (conta nova não recebe o histórico).
+    novidadesVista: text('novidades_vista'),
   },
   // Cargos em um passo (0049): SDR, Closer e Acompanhamento têm as caixas definidas pelo cargo;
   // só Head e Diretoria escolhem "Atua como SDR/Closer". Cargo comparado como texto.

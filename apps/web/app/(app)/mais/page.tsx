@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { ACOMPANHAMENTO_ITEM, ADMIN_ITEM, MORE_ITEMS } from '@/components/shell/nav-items';
 import { AbasMobile } from '@/components/acompanhamento/abas-mobile';
-import { ChatBadge, InboxCard } from '@/components/inbox';
+import { ChatBadge } from '@/components/inbox';
+import { InboxCard } from '@/components/inbox-card';
 import { SearchButton } from '@/components/shell/command-palette';
 import { ContaCard } from '@/components/shell/conta-card';
 import { ThemeSwitch } from '@/components/shell/theme-switch';
@@ -46,7 +47,7 @@ export default async function MorePage() {
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-5 pt-2">
       {/* Mesmo cartão do Mais do Acompanhamento: Meu perfil e Sair no topo, sem rolar. */}
-      <ContaCard nome={me.name} foto={me.photo} titulo>
+      <ContaCard me={me} titulo>
         <RoleTag role={me.role} className="h-[22px]" />
         {flags.map((f) => (
           <span

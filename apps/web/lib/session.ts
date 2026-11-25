@@ -21,6 +21,10 @@ export type Me = {
   areas: Vinculo[];
   /** Contador do canal ao vivo no render (ver `LiveUpdates`). */
   revision?: string;
+  /** Versão no ar, "X.Y.Z" ou "dev" (NPAC-77, `versaoNaTela`). */
+  versao?: string;
+  /** Id da novidade mais nova que a pessoa viu (`@npac/shared/novidades`). */
+  novidadesVista?: string | null;
 };
 
 /** Usuário da sessão (via /api/me) ou null se não houver sessão válida. */

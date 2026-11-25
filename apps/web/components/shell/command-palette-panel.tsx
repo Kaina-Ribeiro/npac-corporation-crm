@@ -10,6 +10,9 @@ import type { PaletteItem } from './nav-menu';
 import { useSavedViews } from './saved-views-nav';
 import { startNavProgress } from './nav-progress';
 
+// A janela "O que mudou no CRM" (NPAC-77) vem no mesmo pacote da paleta (ver `command-palette.tsx`).
+export { default as NovidadesJanela } from './novidades-janela';
+
 type Item = {
   id: string;
   label: string;

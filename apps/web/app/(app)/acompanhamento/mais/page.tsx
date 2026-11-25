@@ -86,7 +86,7 @@ export default async function MaisPage() {
     <section className="view">
       <h1 className="h1">Mais</h1>
       {/* Mesmo cartão do Mais do CRM: Meu perfil e Sair no topo, sem rolar. */}
-      <ContaCard nome={me.name} foto={me.photo}>
+      <ContaCard me={me}>
         <CargoTag
           role={me.role}
           perfil={eu?.perfil}
