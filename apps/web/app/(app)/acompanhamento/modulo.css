@@ -5772,7 +5772,7 @@
   }
   .dg-par {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(96px, 34%);
+    grid-template-columns: minmax(0, 1fr) minmax(124px, 36%);
     gap: 6px;
   }
   .dg-par > .dg-v {

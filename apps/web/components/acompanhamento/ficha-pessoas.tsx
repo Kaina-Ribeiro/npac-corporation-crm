@@ -355,29 +355,39 @@ function ContatoEntrega({ ficha, atualizar }: { ficha: FichaDTO; atualizar: () =
     <>
       <h3>Contato e entrega</h3>
       <div className="props">
-        {ficha.pessoas.map((p) => {
-          const base = { chave: `pessoa:${ficha.id}:${p.id}`, editavel: ed };
-          const de = casal ? ` (${primeiroNome(p)})` : '';
-          return (
-            <div key={p.id} className="contents">
+        {/* No casal, campo por campo: os dois WhatsApps lado a lado, depois e-mails e pulseiras. */}
+        {(['whatsapp', 'email', 'pulseira'] as const).flatMap((campo) =>
+          ficha.pessoas.map((p) => {
+            const base = { chave: `pessoa:${ficha.id}:${p.id}`, editavel: ed };
+            const de = casal ? ` (${primeiroNome(p)})` : '';
+            if (campo === 'whatsapp')
+              return (
+                <CampoPr
+                  key={`${campo}-${p.id}`}
+                  {...base}
+                  rotulo={`WhatsApp${de}`}
+                  campo="whatsapp"
+                  valor={p.whatsapp}
+                  inputMode="tel"
+                  conversao={TELEFONE}
+                  aoSalvar={atualizar}
+                />
+              );
+            if (campo === 'email')
+              return (
+                <CampoPr
+                  key={`${campo}-${p.id}`}
+                  {...base}
+                  rotulo={`E-mail${de}`}
+                  campo="email"
+                  valor={p.email}
+                  tipo="email"
+                  conversao={EMAIL}
+                />
+              );
+            return (
               <CampoPr
-                {...base}
-                rotulo={`WhatsApp${de}`}
-                campo="whatsapp"
-                valor={p.whatsapp}
-                inputMode="tel"
-                conversao={TELEFONE}
-                aoSalvar={atualizar}
-              />
-              <CampoPr
-                {...base}
-                rotulo={`E-mail${de}`}
-                campo="email"
-                valor={p.email}
-                tipo="email"
-                conversao={EMAIL}
-              />
-              <CampoPr
+                key={`${campo}-${p.id}`}
                 {...base}
                 rotulo={`Pulseira${de}`}
                 campo="pulseira"
@@ -385,9 +395,9 @@ function ContatoEntrega({ ficha, atualizar }: { ficha: FichaDTO; atualizar: () =
                 tipo="select"
                 opcoes={PULSEIRAS}
               />
-            </div>
-          );
-        })}
+            );
+          }),
+        )}
         <CampoPr
           chave={chaveEnd}
           editavel={ed}

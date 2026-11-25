@@ -98,7 +98,9 @@ test('Duda preenche o diagnóstico, vê o total das dívidas e conclui', async (
 
   await page.reload();
   await expect(painel(page).getByLabel('Idade', { exact: true })).toHaveValue('41');
-  await expect(painel(page).getByLabel('Renda atual', { exact: true })).toHaveValue('R$ 5.000,00');
+  await expect(painel(page).getByLabel('Renda atual', { exact: true })).toHaveValue(
+    /^R\$\s5\.000,00$/,
+  );
   await expect(painel(page).getByLabel('Dívida 1', { exact: true })).toHaveValue('Cartão fictício');
   await expect(painel(page).getByLabel('Já buscou ajuda?', { exact: true })).toHaveValue(
     'Nunca buscou ajuda fictícia.',
