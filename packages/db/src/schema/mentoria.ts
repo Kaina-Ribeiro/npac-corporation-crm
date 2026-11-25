@@ -613,6 +613,8 @@ export const mentoriaReunioes = pgTable(
     cobrar: text('cobrar'),
     trava: text('trava'),
     anotacaoInterna: text('anotacao_interna'),
+    /** NPAC-78: link da gravação no Google Drive, cifrado com AAD (como os textos do registro). */
+    gravacao: text('gravacao'),
     humor: smallint('humor'),
     interesseRenovar: boolean('interesse_renovar'),
     version: integer('version').notNull().default(1),

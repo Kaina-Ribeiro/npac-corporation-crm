@@ -56,7 +56,7 @@ const COLUNA: Record<ReuniaoTexto, string> = {
   anotacaoInterna: 'anotacao_interna',
 };
 const TEM_REGISTRO = sql`num_nonnulls(r.resumo, r.metas, r.combinado, r.cobrar, r.trava,
-  r.anotacao_interna, r.humor, r.interesse_renovar) > 0`;
+  r.anotacao_interna, r.gravacao, r.humor, r.interesse_renovar) > 0`;
 const PESSOAS = sql`(select json_agg(json_build_object('nome', p.nome, 'apelido', p.apelido,
   'fotoMidiaId', p.foto_midia_id) order by p.ordem)
   from mentoria_pessoas p where p.inscricao_id = i.id)`;
@@ -298,6 +298,7 @@ export class ReunioesService {
         cobrar: texto('cobrar'),
         trava: texto('trava'),
         anotacaoInterna: texto('anotacaoInterna'),
+        gravacao: this.crypto.decifrarOpcional(r.gravacao, aad('mentoria_reunioes', 'gravacao', id)),
         humor: r.humor,
         interesseRenovar: r.interesseRenovar,
       };
@@ -317,7 +318,7 @@ export class ReunioesService {
       if (!q?.ok) throw new NotFoundException();
       const tipo = r.tipo as ReuniaoTipo;
 
-      const { version, status, proxima, humor, interesseRenovar, ...resto } = b;
+      const { version, status, proxima, humor, interesseRenovar, gravacao, ...resto } = b;
       if (interesseRenovar !== undefined && interesseRenovar !== null && tipo !== 'RENOVACAO')
         throw new BadRequestException('Interesse em renovar só na reunião de renovação');
       const mudaCondutor =
@@ -345,6 +346,14 @@ export class ReunioesService {
           ...(resto.duracaoMin !== undefined ? { duracaoMin: resto.duracaoMin } : {}),
           ...(resto.plataforma !== undefined ? { plataforma: resto.plataforma } : {}),
           ...(resto.link !== undefined ? { link: resto.link } : {}),
+          ...(gravacao !== undefined
+            ? {
+                gravacao: this.crypto.cifrarOpcional(
+                  gravacao,
+                  aad('mentoria_reunioes', 'gravacao', id),
+                ),
+              }
+            : {}),
           ...(humor !== undefined ? { humor } : {}),
           ...(interesseRenovar !== undefined ? { interesseRenovar } : {}),
           ...(status !== undefined ? { status } : {}),

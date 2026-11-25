@@ -541,3 +541,75 @@ describe('contatos', () => {
     }
   });
 });
+
+describe('gravação pelo link do Drive (NPAC-78)', () => {
+  const LINK = 'https://drive.google.com/file/d/1AbC_dEf-GhIjKlMnOp/view?usp=sharing';
+
+  it('grava cifrado, volta decifrado, apaga com vazio e o histórico só leva o nome do campo', async () => {
+    const s = await duda();
+    const r = await criarOk(s, {
+      inscricaoId: await inscricao(),
+      tipo: 'ACOMP_2PME',
+      inicio: await quando(-1),
+    });
+    const p = await patch(s, r.id, { version: r.version, status: 'REALIZADA', gravacao: LINK });
+    expect(p.status, p.text).toBe(200);
+    const [banco] = await owner<{ gravacao: string }[]>`
+      select gravacao from mentoria_reunioes where id = ${r.id}`;
+    expect(banco!.gravacao).not.toContain('drive.google.com');
+    expect((await abrir(s, r.id)).gravacao).toBe(LINK);
+    const hist = await owner<{ campos: string[] }[]>`
+      select campos from mentoria_historico where tipo like 'reuniao.%'`;
+    expect(hist.some((x) => x.campos.includes('gravacao'))).toBe(true);
+    expect(JSON.stringify(hist)).not.toContain('drive.google.com');
+
+    const v = (p.body as { version: number }).version;
+    expect((await patch(s, r.id, { version: v, gravacao: '' })).status).toBe(200);
+    expect((await abrir(s, r.id)).gravacao).toBeNull();
+  });
+
+  it('outro link → 400 "Cole o link da gravação no Google Drive"', async () => {
+    const s = await duda();
+    const r = await criarOk(s, {
+      inscricaoId: await inscricao(),
+      tipo: 'ACOMP_2PME',
+      inicio: await quando(-1),
+    });
+    for (const gravacao of [
+      'https://youtube.com/watch?v=abc',
+      'https://drive.google.com/drive/folders/1AbC_dEf-GhIjKlMnOp',
+      'https://drive.google.com.evil.com/file/d/1AbC_dEf-GhIjKlMnOp/view',
+    ]) {
+      const p = await patch(s, r.id, { version: r.version, gravacao });
+      expect(p.status, gravacao).toBe(400);
+      expect(p.text).toContain('Cole o link da gravação no Google Drive');
+    }
+  });
+
+  it('Especialista grava na reunião dela e recebe 404 na dos outros', async () => {
+    const d = await h.signIn('diretor@npac.com.br');
+    const i = await inscricao();
+    const dela = await criarOk(d, {
+      inscricaoId: i,
+      tipo: 'POSICIONAMENTO',
+      inicio: await quando(-1),
+      conduzidaPor: ids.carla!,
+    });
+    const outra = await criarOk(d, { inscricaoId: i, tipo: 'ACOMP_2PME', inicio: await quando(-1) });
+    const s = await manu();
+    expect((await patch(s, dela.id, { version: dela.version, gravacao: LINK })).status).toBe(200);
+    expect((await patch(s, outra.id, { version: outra.version, gravacao: LINK })).status).toBe(404);
+  });
+
+  it('anonimizar a inscrição apaga o link', async () => {
+    const s = await duda();
+    const i = await inscricao();
+    const r = await criarOk(s, { inscricaoId: i, tipo: 'ACOMP_2PME', inicio: await quando(-1) });
+    expect((await patch(s, r.id, { version: r.version, gravacao: LINK })).status).toBe(200);
+    const a = await h.post(`/api/mentoria/inscricoes/${i}/anonimizar`, {}, s);
+    expect(a.status, a.text).toBeLessThan(300);
+    const [banco] = await owner<{ gravacao: string | null }[]>`
+      select gravacao from mentoria_reunioes where id = ${r.id}`;
+    expect(banco!.gravacao).toBeNull();
+  });
+});
