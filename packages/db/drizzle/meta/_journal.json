@@ -624,6 +624,13 @@
       "when": 1795609322802,
       "tag": "0088_novidades_vista",
       "breakpoints": true
+    },
+    {
+      "idx": 89,
+      "version": "7",
+      "when": 1795619453928,
+      "tag": "0089_novidades_janela_inicial",
+      "breakpoints": true
     }
   ]
 }

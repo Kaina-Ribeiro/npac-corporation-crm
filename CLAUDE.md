@@ -820,8 +820,9 @@ mock `docs/prototipos/novidades/index.html`. Gabriel: "1A, 2A, 3A, 4A". Fases 1 
 - **Novidades**: `sh/novidades.ts` (`@npac/shared/novidades`, sem zod), a mais nova primeiro. Quem vê: `para` (`todos`, `comercial`, `sdr` = SDR + Head,
   `closer` = Closer + Head, `acompanhamento`, `acompanhamento-admin`) e os recortes opcionais `cargos` (comercial) e `perfis`
   (módulo); a Diretoria vê tudo (`novidadeVisivel`, casos em `shared/test/novidades.test.ts`).
-- **"Já vi"**: `user.novidades_vista` (0088, id da mais nova vista; sem RLS, como o resto de `user`). Vazia (conta nova, subida):
-  o `/api/me` grava a mais nova e nada abre (S2). `POST /api/me/novidades/vista { ate }` (todos os cargos) só avança
+- **"Já vi"**: `user.novidades_vista` (0088, id da mais nova vista; sem RLS, como o resto de `user`). Vazia (conta criada depois):
+  o `/api/me` grava a mais nova e nada abre (S2). Quem já existia na subida: a 0089 gravou `npac-75-dashboard` (logo abaixo
+  de `npac-77-versao`), então a janela abre uma vez só com a própria novidade. `POST /api/me/novidades/vista { ate }` (todos os cargos) só avança
   (`vistaAvanca`); id desconhecido 400; sem auditoria. Não vistas = `naoVistas(pessoa, vista)`; id que saiu do arquivo = tudo visto.
 - **Rodapé** (`components/shell/versao-rodape.tsx`, componente de servidor: o arquivo não vai para o JS): "• Versão X.Y.Z · O que
   mudou" embaixo de Sair/Alternar tema, dentro do `.side-fold` (some com a barra recolhida e no tablet em pé); no celular, no

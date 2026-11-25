@@ -33,3 +33,4 @@ Pronto quando: o rodapé mostra o número do ITODEV (rc sem `-rc`) e "dev" local
 |---|---|---|
 | T9 | Seção "Novidades para a equipe" no modelo de PR; regra no `CLAUDE.md` (mapa, Web, e como escrever uma entrada). | ✅ `.github/pull_request_template.md` |
 | T10 | ITODEV: roteiro por cargo (login → janela → Entendi → outro navegador não abre), senhas de volta a 1234. | ✅ `v0.25.1-rc`, 25/11: Eduarda, Igor, Closer de teste (desativado no fim) e Diretoria; a janela não abre na troca de senha obrigatória. Rodapé "Versão dev" até a release do kit. Nenhuma senha mudou |
+| T11 | Correção (Gabriel no ITODEV: a janela não abriu para a Eduarda): a coluna vazia virava `npac-77-versao` e ninguém via a própria novidade. 0089 põe quem já existia em `npac-75-dashboard` (S2 corrigido na spec). Teste `db/test/novidades-janela-inicial.test.ts`. | ✅ |
