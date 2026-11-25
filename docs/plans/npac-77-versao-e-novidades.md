@@ -22,14 +22,14 @@ Pronto quando: o rodapé mostra o número do ITODEV (rc sem `-rc`) e "dev" local
 
 | # | Tarefa | Status |
 |---|---|---|
-| T5 | Componente da janela (`next/dynamic`): novas por data, "Precisa de você" no topo, histórico, links que fecham e navegam, folha no celular, `closeWithMotion`. | ⏳ |
-| T6 | Abrir sozinha ao carregar com não vista (fora de login, senha obrigatória e impressão); marcar visto em Entendi/X/Esc/fora/link. | ⏳ |
-| T7 | e2e por cargo (Eduarda, Igor, Sônia, Diretoria): vê só o dela, não reabre em outro "aparelho", versão sem nada não abre; `/leads` dentro do teto de JS. | ⏳ |
-| T8 | Capturas 375/768/1024/1440 claro e escuro, lado a lado com o mock. | ⏳ |
+| T5 | Componente da janela (`next/dynamic`): novas por data, "Precisa de você" no topo, histórico, links que fecham e navegam, folha no celular, `closeWithMotion`. | ✅ `shell/novidades-janela.tsx` no pacote do painel do Ctrl+K, gatilho no `CommandPalette` (componente novo na casca não cabia no teto) |
+| T6 | Abrir sozinha ao carregar com não vista (fora de login, senha obrigatória e impressão); marcar visto em Entendi/X/Esc/fora/link. | ✅ |
+| T7 | e2e por cargo (Eduarda, Igor, Sônia, Diretoria): vê só o dela, não reabre em outro "aparelho", versão sem nada não abre; `/leads` dentro do teto de JS. | ✅ `e2e/novidades.spec.ts`; `/leads` 149,93 KB (tela de erro e `InboxCard` liberaram espaço) |
+| T8 | Capturas 375/768/1024/1440 claro e escuro, lado a lado com o mock. | ✅ `docs/capturas/npac-77/janela/` (`e2e/capturas-novidades.spec.ts`) |
 
 ## Fase 3 — processo
 
 | # | Tarefa | Status |
 |---|---|---|
-| T9 | Seção "Novidades para a equipe" no modelo de PR; regra no `CLAUDE.md` (mapa, Web, e como escrever uma entrada). | ⏳ |
+| T9 | Seção "Novidades para a equipe" no modelo de PR; regra no `CLAUDE.md` (mapa, Web, e como escrever uma entrada). | ✅ `.github/pull_request_template.md` |
 | T10 | ITODEV: roteiro por cargo (login → janela → Entendi → outro navegador não abre), senhas de volta a 1234. | ⏳ |

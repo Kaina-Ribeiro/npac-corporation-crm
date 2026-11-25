@@ -88,7 +88,7 @@ variante="chat"`. Campos de 17 px ficam fora da regra dos 16 px com `.ch-campo`.
 - **Telas:** leads `components/leads-browser.tsx`, `lead-filters.tsx` · ficha/venda `lead-detail.tsx`,
   `sale-flow.tsx`, `finance-panel.tsx` · `pipeline.tsx`, `today.tsx`, `reports.tsx`, `dashboard-*.tsx`
   (cards reordenáveis: `dashboard-board.tsx`, `lib/dashboard-layout.ts`, `lib/board-motion.ts`) ·
-  admin `admin.tsx`, `access-requests.tsx`, quadro "Acessos" `acessos-card.tsx`, linha da equipe `lib/equipe.ts` · Ctrl+K `shell/command-palette.tsx` · avisos `inbox.tsx` ·
+  admin `admin.tsx`, `access-requests.tsx`, quadro "Acessos" `acessos-card.tsx`, linha da equipe `lib/equipe.ts` · Ctrl+K `shell/command-palette.tsx` · versão e "O que mudou" `shell/versao-rodape.tsx`, `novidades-janela.tsx` (NPAC-77) · avisos `inbox.tsx` ·
   textos de atividade `lib/activity-text.ts` · campos por etapa `stage-fields.tsx` (+ `lib/stage-fields.ts`,
   `lib/stage-kind.ts`) e janelinha `stage-move-dialog.tsx` (Pipeline, lista, massa) · editor de colunas `pipeline-columns-editor.tsx` · ação
   rápida do Hoje `today-quick-action.tsx` · concluir tarefa com o próximo passo `task-complete-dialog.tsx`
@@ -287,7 +287,7 @@ com ele a carga direta começa a ser enviada antes da página, e `notFound()` sa
 redirecionamento no navegador (quebra o 404 de quem não vê). O esqueleto (`components/shell/page-skeleton.tsx`)
 vem escondido na casca (`main` e `.ac`) e o `NavProgress` marca `data-nav-pending` no `<html>` no clique
 de link para outra tela (CSS `.nav-skeleton` em `globals.css`); sai quando a URL muda. Erro de tela:
-`app/(app)/error.tsx`, "Não foi possível carregar." + "Tentar de novo" (`retry()`, que rebusca;
+`app/(app)/error.tsx` (reexporta `ErroDaTela` de `shell/live-updates.tsx`), "Não foi possível carregar." + "Tentar de novo" (`retry()`, que rebusca;
 `reset()` não). `BottomNav` é componente de servidor (ícones fora do JS). Prova: `e2e/navegacao-leve.spec.ts`.
 
 **Canal ao vivo** (desempenho, Fase 3, D2, 12/11/2026): contador global `app_revision` (0062, uma linha). Gatilho
@@ -812,14 +812,12 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
 ## Versão e novidades (NPAC-77, 25/11/2026)
 
 Spec `docs/superpowers/specs/2026-11-25-npac-77-versao-e-novidades-design.md`, plano `docs/plans/npac-77-versao-e-novidades.md`,
-mock `docs/prototipos/novidades/index.html`. Gabriel: "1A, 2A, 3A, 4A". Fase 1 pronta (número e "já vi"); a janela é a Fase 2.
+mock `docs/prototipos/novidades/index.html`. Gabriel: "1A, 2A, 3A, 4A". Fases 1 e 2 prontas (número, "já vi" e a janela).
 
 - **Número**: o adaptador Cubeship do release-kit grava `APP_VERSION=<tag>` no app a cada deploy (kit PR #17; até a release
   do kit, "dev"). A API lê (`api/config/env.ts`) e `GET /api/me` traz `versao` = `versaoNaTela(tag)`: X.Y.Z sem `-rc`/`-hf`
   (a produção roda a última rc); local e e2e, "dev".
-- **Novidades**: `sh/novidades.ts` (`@npac/shared/novidades`, sem zod), a mais nova primeiro. **PR com mudança que a equipe vê
-  acrescenta uma entrada no topo, no mesmo PR** (português simples, sem contato; `id` único e estável, nunca renomear); PR só
-  interno não mexe (D4: a janela não abre, só o número muda). Quem vê: `para` (`todos`, `comercial`, `sdr` = SDR + Head,
+- **Novidades**: `sh/novidades.ts` (`@npac/shared/novidades`, sem zod), a mais nova primeiro. Quem vê: `para` (`todos`, `comercial`, `sdr` = SDR + Head,
   `closer` = Closer + Head, `acompanhamento`, `acompanhamento-admin`) e os recortes opcionais `cargos` (comercial) e `perfis`
   (módulo); a Diretoria vê tudo (`novidadeVisivel`, casos em `shared/test/novidades.test.ts`).
 - **"Já vi"**: `user.novidades_vista` (0088, id da mais nova vista; sem RLS, como o resto de `user`). Vazia (conta nova, subida):
@@ -827,8 +825,33 @@ mock `docs/prototipos/novidades/index.html`. Gabriel: "1A, 2A, 3A, 4A". Fase 1 p
   (`vistaAvanca`); id desconhecido 400; sem auditoria. Não vistas = `naoVistas(pessoa, vista)`; id que saiu do arquivo = tudo visto.
 - **Rodapé** (`components/shell/versao-rodape.tsx`, componente de servidor: o arquivo não vai para o JS): "• Versão X.Y.Z · O que
   mudou" embaixo de Sair/Alternar tema, dentro do `.side-fold` (some com a barra recolhida e no tablet em pé); no celular, no
-  `ContaCard` do `/mais` e do `/acompanhamento/mais` (`me` inteiro como prop). Ponto dourado com não vista (`data-novo`). O botão
-  leva `data-novidades` e ainda não abre nada (Fase 2). e2e `e2e/versao-rodape.spec.ts`; API `test/novidades.e2e.test.ts`.
+  `ContaCard` do `/mais` e do `/acompanhamento/mais` (`me` inteiro como prop). Ponto dourado com não vista (`data-novo`; o "já vi" põe
+  `html[data-novidades-vistas]` e o CSS esconde o `[data-novidades-ponto]` sem recarregar). e2e `e2e/versao-rodape.spec.ts`;
+  API `test/novidades.e2e.test.ts`.
+- **Janela "O que mudou no CRM"** (Fase 2): o gatilho mora no `CommandPalette` (`shell/command-palette.tsx`, props `novo` e
+  `novidades` = pessoa, vista e versão, vindas do layout de `(app)`), que já tinha o efeito e o carregamento sob demanda: a
+  janela `shell/novidades-janela.tsx` vem no **mesmo pacote** do painel da paleta (`command-palette-panel.tsx` a reexporta),
+  baixado só quando há não vista, no clique em qualquer `[data-novidades]` ou no Ctrl+K. Componente ou `import()` novo na casca
+  não cabia no teto do `/leads`. Abre sozinha
+  uma vez por carga com não vista para a pessoa (D4: sem nada para ela, não abre); nunca no login, na troca de senha obrigatória
+  (o layout redireciona antes) nem na impressão (fora da casca). Novas agrupadas por data ("Atualização de 25/11", S1), as `acao`
+  no topo em "Precisa de você"; "Ver versões anteriores" e o rodapé abrem o histórico ("Todas as atualizações", tudo o que a
+  pessoa vê). Entendi, X, Esc, clique fora, "Ver versões anteriores" e o link de um item marcam "já vi" (`POST …/vista` com a
+  mais nova do arquivo, `keepalive`); o link fecha na hora e navega. `<dialog class="dlg nov">` com `closeWithMotion`; até
+  767 px é folha de baixo. CSS `.nov*` em `globals.css`. e2e `e2e/novidades.spec.ts` (Eduarda, SDR, Sônia, Diretoria, celular);
+  capturas `CAPTURAS=<pasta> … e2e/capturas-novidades.spec.ts`.
+- **Como escrever uma entrada** (D3, regra de todo PR):
+  - Mudança que a equipe **vê** (tela nova, campo, botão, texto, regra que muda o que a pessoa faz, conserto que ela notava):
+    acrescente a entrada **no topo** de `NOVIDADES`, **no mesmo PR**, e cole o texto na seção "Novidades para a equipe" do PR
+    (`.github/pull_request_template.md`); o Gabriel aprova lendo o PR.
+  - Mudança **invisível** (teste, CI, refatoração, desempenho que ninguém nota, só log): nada no arquivo; a seção do PR diz
+    "Nenhuma: só por dentro." (a janela não abre, só o número muda).
+  - `id` = `npac-<N>-<assunto>`, único e estável (é o "já vi" das contas: nunca renomear, reaproveitar nem apagar uma entrada
+    ainda nova). `data` = dia do merge (AAAA-MM-DD, Brasília). `para` o mais estreito que acerta (e `cargos`/`perfis` para
+    recortar); `tipo` `novo`/`melhorou`/`corrigido`, ou `acao` quando a pessoa precisa fazer algo.
+  - Texto em português simples, na voz da tela ("Toque em…", "Agora…"), com os nomes dos botões entre aspas curvas; sem nome de
+    cliente, e-mail, telefone ou termo técnico. `titulo` curto; `texto` em 1 a 3 frases; `onde` em palavras ("Ficha do lead →
+    Reuniões"); `href` só quando há uma tela para abrir. `shared/test/novidades.test.ts` confere ids, datas e textos.
 
 ## Meu perfil (NPAC-53, 18/11/2026)
 
@@ -1056,7 +1079,12 @@ VARREDURA_URL=http://localhost:3150 VARREDURA_SENHA=senha-do-e2e-123 VARREDURA_O
   (SDR), sonia (CLOSER), carla (Acompanhamento sem perfil), duda (Acompanhamento + Admin), operacao, manu, leo, maria (Envios), `@npac.com.br`; teste que troca papel: `update "user" set role = …` e restaurar.
 - Playwright: `filter({ visible: true })`/`exact: true` (layout mobile oculto duplica controles);
   `role=alert` também pega o anunciador de rotas do Next; nada de `networkidle` (SSE).
-- JS de `/leads` < 150 KB gzip (teste; hoje 149,99 KB depois da sidebar do tablet, NPAC-73: não cabe mais nada na casca sem tirar algo). Sem libs pesadas no cliente, nem zod; prefira server components.
+- JS de `/leads` < 150 KB gzip (teste; hoje 149,93 KB com a janela de novidades, NPAC-77: não cabe mais nada na casca sem
+  tirar algo). O que liberou espaço: a tela de erro `(app)/error.tsx` só reexporta `ErroDaTela` de `shell/live-updates.tsx` (um
+  pacote próprio dela baixava em toda carga) e o `InboxCard` do Mais saiu do `inbox.tsx` (`components/inbox-card.tsx`; o
+  empacotador não separa exportações de um mesmo arquivo). Medir sem o e2e: `next build` e somar o gzip dos `entryJSFiles` do
+  `page_client-reference-manifest.js` do `/leads` (menos not-found e global-error) com os `rootMainFiles`. Juntar arquivos não
+  economiza (o gzip já comprime o embrulho). Sem libs pesadas no cliente, nem zod; prefira server components.
 - Capturas dos e2e: `apps/web/test-results/*.png`.
 
 ## Não commitar

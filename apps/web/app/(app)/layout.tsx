@@ -15,6 +15,7 @@ import { Sidebar } from '@/components/shell/sidebar';
 import { SidebarShell } from '@/components/shell/sidebar-shell';
 import { SignOutButton } from '@/components/shell/sign-out-button';
 import { VersaoRodape } from '@/components/shell/versao-rodape';
+import { naoVistas } from '@npac/shared/novidades';
 import { Avatar, AVATAR_EU } from '@/components/avatar';
 import { RoleTag } from '@/components/role-tag';
 import { pendingAccessRequests } from '@/lib/access-requests';
@@ -72,6 +73,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           soEnvios: soEnvios(eu),
         })}
         commercial={commercial}
+        // "O que mudou no CRM" (NPAC-77): abre sozinha com novidade não vista; o texto baixa só aí.
+        novo={naoVistas(me, me.novidadesVista).length > 0}
+        novidades={{
+          mestre: me.mestre,
+          areas: me.areas,
+          vista: me.novidadesVista ?? null,
+          versao: me.versao ?? 'dev',
+        }}
       />
       <Sidebar
         head={isLeader(me.role)}

@@ -1856,6 +1856,342 @@ html[data-nav-pending] .ac > :not(.top, nav, .nav-skeleton) {
   }
 }
 
+/* "O que mudou no CRM" (NPAC-77, protótipo `docs/prototipos/novidades/index.html`): janela no meio
+   no computador e no tablet, folha de baixo no celular. Componente `shell/novidades-janela.tsx`.
+   Cores: dourado = novo (marca), cinza neutro = melhorou/corrigido, tinta = "Faça isso". */
+:root {
+  --nov-gold-soft: rgba(226, 187, 102, 0.22);
+  --nov-neutro: rgba(60, 60, 67, 0.1);
+  --nov-neutro-txt: #4f4f54;
+}
+.dark {
+  --nov-gold-soft: rgba(226, 187, 102, 0.16);
+  --nov-neutro: rgba(235, 235, 245, 0.12);
+  --nov-neutro-txt: #c7c7cc;
+}
+/* O ponto dourado do rodapé some depois do "já vi" (a casca não recarrega entre as telas). */
+html[data-novidades-vistas] [data-novidades-ponto] {
+  display: none;
+}
+@layer components {
+  .nov {
+    width: min(560px, calc(100vw - 32px));
+    max-width: none;
+    max-height: min(720px, calc(100dvh - 48px));
+    /* O reset do Tailwind zera a margem do <dialog>: sem isto a janela vai para o canto. */
+    margin: auto;
+    padding: 0;
+    border: 0;
+    border-radius: 24px;
+    color: var(--ink);
+    background: var(--gl-solid);
+    box-shadow:
+      0 0 0 0.5px rgba(0, 0, 0, 0.08),
+      0 30px 80px -20px rgba(0, 0, 0, 0.45);
+    overflow: hidden;
+    flex-direction: column;
+  }
+  .nov[open] {
+    display: flex;
+  }
+  .dark .nov {
+    box-shadow:
+      0 0 0 0.5px rgba(255, 255, 255, 0.1),
+      0 30px 80px -20px rgba(0, 0, 0, 0.8);
+  }
+  .nov::backdrop {
+    background: rgba(10, 10, 14, 0.38);
+    -webkit-backdrop-filter: blur(3px);
+    backdrop-filter: blur(3px);
+  }
+  .nov-h {
+    position: relative;
+    flex: none;
+    padding: 24px 64px 16px 24px;
+    background: radial-gradient(120% 140% at 100% 0%, rgba(226, 187, 102, 0.32), transparent 60%);
+  }
+  .dark .nov-h {
+    background: radial-gradient(120% 140% at 100% 0%, rgba(226, 187, 102, 0.16), transparent 60%);
+  }
+  .nov-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--gold-text);
+  }
+  .nov-eyebrow svg {
+    width: 14px;
+    height: 14px;
+    fill: currentColor;
+  }
+  .nov-h h2 {
+    margin: 6px 0 4px;
+    font-size: 22px;
+    line-height: 1.25;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .nov-h p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.4;
+    color: var(--ink2);
+  }
+  .nov-x {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    color: var(--ink2);
+    background: rgba(0, 0, 0, 0.06);
+    transition:
+      background-color var(--dur-fast),
+      color var(--dur-fast);
+  }
+  .dark .nov-x {
+    background: rgba(255, 255, 255, 0.1);
+  }
+  .nov-x:hover {
+    color: var(--ink);
+    background: rgba(0, 0, 0, 0.1);
+  }
+  .dark .nov-x:hover {
+    background: rgba(255, 255, 255, 0.16);
+  }
+  .nov-x svg {
+    width: 14px;
+    height: 14px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.4;
+    stroke-linecap: round;
+  }
+  .nov-b {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    padding: 4px 24px 8px;
+  }
+  .nov-vhead {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 14px 0 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink3);
+  }
+  .nov-vhead::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--line);
+  }
+  .nov-item {
+    display: grid;
+    grid-template-columns: 36px 1fr;
+    gap: 12px;
+    padding: 12px 0;
+  }
+  .nov-item + .nov-item {
+    border-top: 1px solid var(--line);
+  }
+  .nov-ic {
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    border-radius: 11px;
+    color: var(--ink2);
+    background: var(--nov-neutro);
+  }
+  .nov-ic svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.9;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .nov-it-t {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 8px;
+  }
+  .nov-it-t h3 {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.35;
+    font-weight: 600;
+  }
+  .nov-tipo {
+    display: inline-flex;
+    padding: 1px 7px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--nov-neutro-txt);
+    background: var(--nov-neutro);
+  }
+  .nov-item[data-tipo='novo'] :is(.nov-ic, .nov-tipo) {
+    color: var(--gold-text);
+    background: var(--nov-gold-soft);
+  }
+  .nov-item[data-tipo='acao'] :is(.nov-ic, .nov-tipo) {
+    color: var(--bg);
+    background: var(--ink);
+  }
+  .nov-item p {
+    margin: 4px 0 0;
+    font-size: 14px;
+    line-height: 1.45;
+    color: var(--ink2);
+  }
+  .nov-onde {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gold-text);
+  }
+  a.nov-onde:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .nov-onde svg {
+    width: 12px;
+    height: 12px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.6;
+    stroke-linecap: round;
+  }
+  /* Sem tela própria para abrir: só diz onde fica, sem cara de link. */
+  .nov-onde-texto {
+    color: var(--ink3);
+  }
+  .nov-vazio {
+    padding: 10px 0 14px;
+    font-size: 14px;
+    color: var(--ink3);
+  }
+  .nov-f {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 24px calc(16px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--line);
+  }
+  .nov-link {
+    padding: 8px 2px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink2);
+    text-decoration: underline;
+    text-decoration-color: var(--line);
+    text-underline-offset: 4px;
+  }
+  .nov-link:hover {
+    color: var(--ink);
+    text-decoration-color: currentColor;
+  }
+  .nov-ok {
+    margin-left: auto;
+    min-height: 40px;
+    padding: 0 20px;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--bg);
+    background: var(--ink);
+    transition:
+      opacity var(--dur-fast),
+      scale var(--dur-press);
+  }
+  .nov-ok:hover {
+    opacity: 0.9;
+  }
+  .nov-ok:active {
+    scale: 0.97;
+  }
+  :is(.nov-ok, .nov-x, .nov-link, .nov-onde):focus-visible {
+    outline: 2px solid var(--gold-ring);
+    outline-offset: 2px;
+  }
+  @media (pointer: coarse) {
+    .nov-ok,
+    .nov-link {
+      min-height: 44px;
+    }
+    .nov-x {
+      width: 44px;
+      height: 44px;
+      top: 8px;
+      right: 8px;
+    }
+  }
+  /* Celular: folha de baixo, sobe 40 px em vez do leve recuo. */
+  @media (max-width: 767px) {
+    .nov {
+      width: 100vw;
+      max-height: 88dvh;
+      margin: auto 0 0;
+      border-radius: 26px 26px 0 0;
+    }
+    .nov:not([open]),
+    .nov[data-closing] {
+      scale: 1;
+      translate: 0 40px;
+    }
+    .nov-h {
+      padding: 22px 60px 14px 18px;
+    }
+    .nov-h::before {
+      content: '';
+      position: absolute;
+      top: 8px;
+      left: 50%;
+      width: 38px;
+      height: 5px;
+      margin-left: -19px;
+      border-radius: 3px;
+      background: var(--line);
+    }
+    .nov-b {
+      padding: 0 18px 8px;
+    }
+    .nov-f {
+      padding: 12px 18px calc(14px + env(safe-area-inset-bottom));
+    }
+    .nov-ok {
+      min-height: 48px;
+      padding: 0 26px;
+    }
+  }
+  @starting-style {
+    @media (max-width: 767px) {
+      .nov[open] {
+        scale: 1;
+        translate: 0 40px;
+      }
+    }
+  }
+}
+
 /* Dropdown com o visual do CRM (NPAC-39): select nativo personalizável (`appearance:
    base-select`, Chrome/Edge 135+). Só CSS, nenhum JS: teclado, leitor de tela e formulário
    continuam os do select nativo. Navegador sem suporte (Safari, iPhone) mantém o seletor do
