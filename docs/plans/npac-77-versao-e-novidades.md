@@ -32,4 +32,4 @@ Pronto quando: o rodapé mostra o número do ITODEV (rc sem `-rc`) e "dev" local
 | # | Tarefa | Status |
 |---|---|---|
 | T9 | Seção "Novidades para a equipe" no modelo de PR; regra no `CLAUDE.md` (mapa, Web, e como escrever uma entrada). | ✅ `.github/pull_request_template.md` |
-| T10 | ITODEV: roteiro por cargo (login → janela → Entendi → outro navegador não abre), senhas de volta a 1234. | ⏳ |
+| T10 | ITODEV: roteiro por cargo (login → janela → Entendi → outro navegador não abre), senhas de volta a 1234. | ✅ `v0.25.1-rc`, 25/11: Eduarda, Igor, Closer de teste (desativado no fim) e Diretoria; a janela não abre na troca de senha obrigatória. Rodapé "Versão dev" até a release do kit. Nenhuma senha mudou |
