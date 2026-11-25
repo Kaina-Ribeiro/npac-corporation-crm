@@ -56,16 +56,11 @@ Pelo que o sistema já tem (`release/v0.26`, conferido no código em 25/11):
 ```
 Oi Duda! Tudo bem? 😊
 
-Os Envios físicos e a venda virando mentorado já estão no ar. Agora vem o *bloco 2 da gestão: a aba Renovações*.
+Agora vamos fazer a aba *Renovações*: a lista de quem chega ao 12º mês nos próximos 60 dias e em que pé está a conversa de renovação de cada um, como está no seu PDF.
 
-O que já existe no sistema:
-• No fim do 12º mês (quando o 12º PME fecha), a Fila do dia já mostra a ação "Celebração e renovação"
-• A reunião de Renovação tem o campo "Quer renovar?"
-• Você já pode marcar "Concluído" ou "Renovado" na ficha
+Vou aproveitar o que já funciona: a ação "Celebração e renovação" que aparece na Fila do dia no fim do 12º mês, o campo "Quer renovar?" da reunião de Renovação e os status "Concluído" e "Renovado" da ficha.
 
-A aba vai mostrar, como no seu PDF, quem chega ao 12º mês nos próximos 60 dias e em que pé está a conversa de cada um. Para montar, preciso destas respostas.
-
-É só responder com número e letra, tipo "1A, 2B…". Onde tem ⭐ é a nossa sugestão.
+Para montar o resto, preciso de 8 respostas. É só responder com número e letra, tipo "1A, 2B…". Onde tem ⭐ é a nossa sugestão.
 
 *1. Quem entra na lista de renovação?*
 A) RDV, 2M e 6M (no sistema hoje as três duram 12 meses) ⭐
