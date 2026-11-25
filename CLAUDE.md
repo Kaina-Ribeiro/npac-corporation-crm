@@ -838,7 +838,7 @@ mock `docs/prototipos/novidades/index.html`. Gabriel: "1A, 2A, 3A, 4A". Fases 1 
   no topo em "Precisa de você"; "Ver versões anteriores" e o rodapé abrem o histórico ("Todas as atualizações", tudo o que a
   pessoa vê). Entendi, X, Esc, clique fora, "Ver versões anteriores" e o link de um item marcam "já vi" (`POST …/vista` com a
   mais nova do arquivo, `keepalive`); o link fecha na hora e navega. `<dialog class="dlg nov">` com `closeWithMotion`; até
-  767 px é folha de baixo. CSS `.nov*` em `globals.css`. e2e `e2e/novidades.spec.ts` (Eduarda, Igor, Sônia, Diretoria, celular);
+  767 px é folha de baixo. CSS `.nov*` em `globals.css`. e2e `e2e/novidades.spec.ts` (Eduarda, SDR, Sônia, Diretoria, celular);
   capturas `CAPTURAS=<pasta> … e2e/capturas-novidades.spec.ts`.
 - **Como escrever uma entrada** (D3, regra de todo PR):
   - Mudança que a equipe **vê** (tela nova, campo, botão, texto, regra que muda o que a pessoa faz, conserto que ela notava):

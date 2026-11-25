@@ -1878,6 +1878,8 @@ html[data-novidades-vistas] [data-novidades-ponto] {
     width: min(560px, calc(100vw - 32px));
     max-width: none;
     max-height: min(720px, calc(100dvh - 48px));
+    /* O reset do Tailwind zera a margem do <dialog>: sem isto a janela vai para o canto. */
+    margin: auto;
     padding: 0;
     border: 0;
     border-radius: 24px;

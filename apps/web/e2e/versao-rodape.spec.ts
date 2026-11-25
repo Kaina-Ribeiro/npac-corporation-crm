@@ -78,7 +78,7 @@ test('com novidade não vista: ponto dourado na sidebar e no Mais dos dois módu
     await expect(l).toHaveAttribute('data-novo', '');
     await expect(l).toHaveText(/Versão dev\s*O que mudou ›/);
     const caixa = await l.boundingBox();
-    expect(caixa!.height).toBeGreaterThanOrEqual(44);
+    expect(Math.round(caixa!.height)).toBeGreaterThanOrEqual(44); // subpixel: 43,99998
     await cel.ctx.close();
   }
 });

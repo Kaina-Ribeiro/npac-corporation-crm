@@ -10,7 +10,8 @@ import { E2E_DB, E2E_PASSWORD } from './env.js';
 const owner = ownerSql(E2E_DB);
 const ANTIGA = NOVIDADES[NOVIDADES.length - 1]!.id;
 const MAIS_NOVA = NOVIDADES[0]!.id;
-const USUARIOS = ['duda', 'igor', 'sonia', 'diretor'];
+// SDR = ale: o `login.spec.ts` troca a senha do igor e não restaura.
+const USUARIOS = ['duda', 'ale', 'sonia', 'diretor'];
 const DESKTOP = { width: 1440, height: 900 };
 
 test.beforeEach(async () => {
@@ -95,8 +96,8 @@ test('Acompanhamento (Admin): vê só o do módulo; Entendi marca na conta', asy
 });
 
 test('SDR: "Faça isso" primeiro, só o do SDR; o link fecha e abre a tela', async ({ browser }) => {
-  await owner`update "user" set novidades_vista = ${ANTIGA} where username = 'igor'`;
-  const { ctx, page } = await entrar(browser, 'igor');
+  await owner`update "user" set novidades_vista = ${ANTIGA} where username = 'ale'`;
+  const { ctx, page } = await entrar(browser, 'ale');
   const j = janela(page);
   await expect(j).toBeVisible();
   const primeiro = j.locator('section').first();
@@ -114,9 +115,9 @@ test('SDR: "Faça isso" primeiro, só o do SDR; o link fecha e abre a tela', asy
   await j.getByRole('link', { name: 'Meu perfil → Avisos neste aparelho' }).click();
   await page.waitForURL(/\/conta\/perfil/);
   await expect(j).toBeHidden();
-  await expect.poll(() => vistaDe('igor')).toBe(MAIS_NOVA);
+  await expect.poll(() => vistaDe('ale')).toBe(MAIS_NOVA);
   await ctx.close();
-  await naoAbreDeNovo(browser, 'igor');
+  await naoAbreDeNovo(browser, 'ale');
 });
 
 test('Closer: só o do closer; Esc marca como visto', async ({ browser }) => {
@@ -176,8 +177,8 @@ test('Diretoria vê tudo; clique fora marca; X fecha o histórico', async ({ bro
 });
 
 test('sem nada novo, a janela não abre', async ({ browser }) => {
-  await owner`update "user" set novidades_vista = ${MAIS_NOVA} where username = 'igor'`;
-  await naoAbreDeNovo(browser, 'igor');
+  await owner`update "user" set novidades_vista = ${MAIS_NOVA} where username = 'ale'`;
+  await naoAbreDeNovo(browser, 'ale');
 });
 
 test('celular: folha de baixo e "O que mudou" no Mais abre o histórico', async ({ browser }) => {
