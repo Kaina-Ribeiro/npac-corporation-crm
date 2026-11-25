@@ -2641,8 +2641,9 @@
       display: block;
       margin-top: 46px;
     }
+    /* 35 px (campos de 32): com a linha do Engajamento (NPAC-75) a ficha ainda cabe em 1440×900 (e2e base). */
     .fc-lado .pr {
-      min-height: 36px;
+      min-height: 35px;
       grid-template-columns: 104px minmax(0, 1fr);
     }
     .fc-lado .pr:last-child {
@@ -5831,6 +5832,450 @@
     }
     .dg-total {
       padding-left: 232px;
+    }
+  }
+}
+
+/*
+ * Dashboard (antes Onboarding) e campo Engajamento da ficha (NPAC-75, protótipo opção A). Cores do semáforo: verde
+ * `--tag-ok`/`--sem-verde`, amarelo `--tag-warn`/`--sem-amarelo`, vermelho `--tag-bad`/`--sem-vermelho`; "Sem marcação"
+ * em cinza neutro. Texto >= 4,5:1 nos dois temas (o número do grupo usa a cor do texto da etiqueta).
+ */
+.ac {
+  --eg-neutro: #a3a2a9;
+}
+.dark .ac {
+  --eg-neutro: #8e8e95;
+}
+.ac {
+  .tag.eg-tag i,
+  .eg-sel i,
+  .eg-k .lb i,
+  .eg-col h3 i {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex: none;
+  }
+  :is(.eg-tag, .eg-sel).verde > i,
+  .eg-k.verde .lb i,
+  :is(.eg-col, .eg-barra) i.verde {
+    background: var(--sem-verde);
+  }
+  :is(.eg-tag, .eg-sel).amarelo > i,
+  .eg-k.amarelo .lb i,
+  :is(.eg-col, .eg-barra) i.amarelo {
+    background: var(--sem-amarelo);
+  }
+  :is(.eg-tag, .eg-sel).vermelho > i,
+  .eg-k.vermelho .lb i,
+  :is(.eg-col, .eg-barra) i.vermelho {
+    background: var(--sem-vermelho);
+  }
+  :is(.eg-tag, .eg-sel).neutro > i,
+  .eg-k.neutro .lb i,
+  :is(.eg-col, .eg-barra) i.neutro {
+    background: var(--eg-neutro);
+  }
+  .tag.eg-tag.verde {
+    background: var(--tag-ok-bg);
+    color: var(--tag-ok);
+  }
+  .tag.eg-tag.amarelo {
+    background: var(--tag-warn-bg);
+    color: var(--tag-warn);
+  }
+  .tag.eg-tag.vermelho {
+    background: var(--tag-bad-bg);
+    color: var(--tag-bad);
+  }
+
+  /* Campo da ficha: pílula com a cor do valor; o select ocupa a pílula inteira. */
+  .eg-campo .eg-sel {
+    justify-self: start;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 100%;
+    height: 32px;
+    padding: 0 4px 0 12px;
+    border-radius: 99px;
+    background: rgba(120, 120, 128, 0.14);
+    color: var(--tag-neutro);
+  }
+  .eg-campo .eg-sel.verde {
+    background: var(--tag-ok-bg);
+    color: var(--tag-ok);
+  }
+  .eg-campo .eg-sel.amarelo {
+    background: var(--tag-warn-bg);
+    color: var(--tag-warn);
+  }
+  .eg-campo .eg-sel.vermelho {
+    background: var(--tag-bad-bg);
+    color: var(--tag-bad);
+  }
+  .eg-campo select {
+    min-width: 0;
+    height: 32px;
+    padding: 0 6px 0 0;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    color: inherit;
+    cursor: pointer;
+  }
+  .eg-campo select:disabled {
+    cursor: default;
+    opacity: 1;
+  }
+  .eg-campo select:focus-visible {
+    outline: 2px solid var(--gold-deep);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  /* Bloco do Dashboard. */
+  .eg-bloco {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+  }
+  .eg-cab {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 2px 16px;
+  }
+  .eg-cab h2 {
+    font-size: 17px;
+    line-height: 22px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .eg-cab p {
+    font-size: 13px;
+    line-height: 18px;
+    color: var(--ink2);
+  }
+  .eg-kpis {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .eg-k {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    min-width: 0;
+    padding: 12px 14px;
+    border: 0;
+    border-radius: 16px;
+    background: var(--fill);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.5),
+      0 0 0 0.5px var(--fill-line);
+    font: inherit;
+    color: var(--ink);
+    text-align: left;
+  }
+  button.eg-k {
+    cursor: pointer;
+  }
+  .eg-k .lb {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 600;
+    color: var(--ink2);
+  }
+  .eg-k b {
+    font-size: 28px;
+    line-height: 34px;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    font-variant-numeric: tabular-nums;
+  }
+  .eg-k small {
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--ink3);
+  }
+  .eg-k.verde b {
+    color: var(--tag-ok);
+  }
+  .eg-k.amarelo b {
+    color: var(--tag-warn);
+  }
+  .eg-k.vermelho b {
+    color: var(--tag-bad);
+  }
+  .eg-k.neutro b {
+    color: var(--tag-neutro);
+  }
+  .eg-k.total {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--ink);
+    color: var(--bg);
+    box-shadow: none;
+  }
+  .eg-k.total .lb,
+  .eg-k.total small {
+    color: var(--bg);
+    opacity: 0.78;
+  }
+  .eg-k.total small {
+    display: none;
+  }
+  .eg-barra {
+    display: flex;
+    gap: 2px;
+    height: 8px;
+    border-radius: 99px;
+    overflow: hidden;
+    background: rgba(120, 120, 128, 0.12);
+  }
+  .eg-barra i {
+    display: block;
+    height: 100%;
+    min-width: 4px;
+  }
+  .eg-listas {
+    display: none;
+  }
+  .eg-col {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    border-radius: 16px;
+    background: var(--fill);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.5),
+      0 0 0 0.5px var(--fill-line);
+    overflow: hidden;
+  }
+  .eg-col h3,
+  .eg-cel h3,
+  .eg-tipos h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    line-height: 18px;
+    font-weight: 700;
+  }
+  .eg-col h3 {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--line);
+  }
+  .eg-col h3 span {
+    font-weight: 600;
+    color: var(--ink2);
+  }
+  .eg-bloco ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .eg-col ul {
+    padding: 4px;
+    max-height: 292px;
+    overflow: auto;
+  }
+  .eg-p {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    padding: 7px 10px;
+    border-radius: 12px;
+    color: var(--ink);
+  }
+  .eg-p:hover {
+    background: var(--fill);
+  }
+  .eg-p .ava {
+    width: 30px;
+    height: 30px;
+    font-size: 12px;
+  }
+  .eg-p .pair {
+    width: 50px;
+  }
+  .eg-p .pair .ava.b {
+    margin-left: -10px;
+  }
+  .eg-p .nm {
+    min-width: 0;
+    font-weight: 600;
+    line-height: 18px;
+    overflow-wrap: anywhere;
+  }
+  .eg-p .nm small {
+    display: block;
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 400;
+    color: var(--ink2);
+  }
+  .eg-vazia {
+    padding: 14px;
+    font-size: 13px;
+    color: var(--ink2);
+  }
+  .eg-cel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .eg-lista {
+    border-radius: 16px;
+    background: var(--fill);
+    box-shadow: 0 0 0 0.5px var(--fill-line);
+    overflow: hidden;
+  }
+  .eg-lista .eg-p {
+    min-height: 56px;
+    padding: 6px 14px;
+    border-radius: 0;
+    border-top: 1px solid var(--line);
+  }
+  .eg-lista li:first-child .eg-p {
+    border-top: 0;
+  }
+  .eg-lista .eg-p .ava {
+    width: 32px;
+    height: 32px;
+  }
+  .eg-mais {
+    align-self: center;
+    min-height: 44px;
+    padding: 0 12px;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gold-text);
+    cursor: pointer;
+  }
+  .eg-tipos {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .eg-tipos ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .eg-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 99px;
+    background: var(--fill);
+    box-shadow: 0 0 0 0.5px var(--fill-line);
+    font-size: 13px;
+    color: var(--ink2);
+  }
+  .eg-chip b {
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .ob-titulo {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 2px 8px;
+    margin-top: 6px;
+  }
+  .ob-titulo h2 {
+    font-size: 20px;
+    line-height: 26px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .ob-titulo p {
+    font-size: 13px;
+    color: var(--ink2);
+  }
+  @media (max-width: 767.98px) {
+    .eg-k.on {
+      background: var(--gl-solid);
+      box-shadow:
+        0 0 0 2px var(--ink),
+        0 6px 16px -8px rgba(0, 0, 0, 0.25);
+    }
+  }
+  /* Listas lado a lado ou a do grupo tocado: pela tela (toque). As colunas: pela largura do bloco. */
+  @media (min-width: 768px) {
+    .eg-bloco {
+      container: eg / inline-size;
+      padding: 18px 20px 20px;
+    }
+    .eg-k {
+      padding: 14px 16px;
+      gap: 4px;
+    }
+    button.eg-k {
+      cursor: default;
+    }
+    .eg-k b {
+      font-size: 32px;
+      line-height: 38px;
+    }
+    .eg-listas {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .eg-cel {
+      display: none;
+    }
+    .eg-tipos ul {
+      gap: 8px;
+    }
+    .eg-chip {
+      padding: 6px 12px;
+    }
+  }
+  /* Bloco médio (tablet, 1024 com a sidebar): Total numa faixa e os quatro grupos em uma linha. */
+  @container eg (min-width: 520px) {
+    .eg-kpis {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+  }
+  /* Bloco largo: os cinco cartões e as quatro listas lado a lado, como no protótipo. */
+  @container eg (min-width: 900px) {
+    .eg-kpis {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+    .eg-k.total {
+      grid-column: auto;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: flex-start;
+    }
+    .eg-k.total small {
+      display: block;
+    }
+    .eg-listas {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
     }
   }
 }

@@ -30,6 +30,10 @@
       "types": "./dist/mentoria/index.d.ts",
       "default": "./dist/mentoria/index.js"
     },
+    "./engajamento": {
+      "types": "./dist/mentoria/engajamento.d.ts",
+      "default": "./dist/mentoria/engajamento.js"
+    },
     "./permissions": {
       "types": "./dist/permissions.d.ts",
       "default": "./dist/permissions.js"

@@ -90,6 +90,12 @@ export const mentoriaInscricoes = pgTable(
      * `mentoria_inscricoes_venda_guarda`), e a FK impediria o `truncate deals` dos testes.
      */
     dealId: uuid('deal_id'),
+    /**
+     * Engajamento marcado à mão na ficha (NPAC-75): ENGAJADO, EM_ATENCAO, EM_RISCO; nulo = "Sem marcação". Só Admin e
+     * Acompanhamento mudam (gatilho `mentoria_inscricoes_engajamento_guarda`); a Especialista não lê (API pela
+     * `mentoria_ve_engajamento()`).
+     */
+    engajamento: text('engajamento'),
     version: integer('version').notNull().default(1),
     ...autoria,
   },
@@ -112,6 +118,10 @@ export const mentoriaInscricoes = pgTable(
     check(
       'mentoria_inscricoes_status',
       sql`${t.status} in ('ONBOARDING', 'ATIVO', 'PAUSADO', 'CANCELADO', 'CONCLUIDO', 'RENOVADO')`,
+    ),
+    check(
+      'mentoria_inscricoes_engajamento',
+      sql`${t.engajamento} in ('ENGAJADO', 'EM_ATENCAO', 'EM_RISCO')`,
     ),
     check(
       'mentoria_inscricoes_origem',

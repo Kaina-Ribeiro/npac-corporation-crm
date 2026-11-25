@@ -6,6 +6,9 @@ import { lerEu, podeCadastrar, sessaoDoModulo, soEnvios, ultimaFicha } from '@/l
 
 export const metadata = { title: 'Mais' };
 
+// Fora de ICONES (`ui.tsx`), que a barra do celular leva a todas as telas: o JS de /leads está no teto (NPAC-75).
+const ICONE_DASHBOARD = 'M4 4h7v9H4zM13 4h7v5h-7zM13 11h7v9h-7zM4 15h7v5H4z';
+
 type Item = {
   rotulo: string;
   icone: string;
@@ -105,8 +108,8 @@ export default async function MaisPage() {
             ...(podeCadastrar(eu)
               ? [
                   {
-                    rotulo: 'Onboarding',
-                    icone: ICONES.onboarding,
+                    rotulo: 'Dashboard',
+                    icone: ICONE_DASHBOARD,
                     href: '/acompanhamento/onboarding',
                   },
                 ]

@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Onboarding no celular</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:#7a560f}a:hover{color:#5c400a}
+.cel{position:relative;width:390px;height:1500px;box-sizing:border-box;padding:20px 16px 96px;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Inter,system-ui,sans-serif;font-size:14px;line-height:20px;color:#232326;background:radial-gradient(90% 30% at 100% 0%,rgba(226,187,102,.38),transparent 70%),radial-gradient(80% 30% at 0% 100%,rgba(110,145,255,.22),transparent 70%),#e1e0e4;display:flex;flex-direction:column;gap:16px;overflow:hidden}
+.glass{background:rgba(255,255,255,.46);border-radius:20px;box-shadow:inset 0 1.5px 0 rgba(255,255,255,.8),inset 0 -1px 2px rgba(255,255,255,.45),inset 0 0 0 .5px rgba(255,255,255,.75),0 0 0 .5px rgba(0,0,0,.04),0 14px 34px -14px rgba(0,0,0,.18)}
+.h1{margin:0;font-size:26px;line-height:32px;font-weight:700;letter-spacing:-.02em}
+.sub{margin:2px 0 0;color:#5f5f64}
+.sec{padding:16px;display:flex;flex-direction:column;gap:14px}
+.sec h2{margin:0;font-size:17px;line-height:22px;font-weight:700}
+.sec .exp{margin:2px 0 0;font-size:12px;line-height:16px;color:#5f5f64}
+.kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.kpi{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:12px 14px;border:0;border-radius:16px;background:rgba(255,255,255,.55);box-shadow:inset 0 1px 0 rgba(255,255,255,.85),0 0 0 .5px rgba(0,0,0,.05);font:inherit;color:#232326;text-align:left;cursor:pointer}
+.kpi.on{background:#fff;box-shadow:0 0 0 2px #232326,0 6px 16px -8px rgba(0,0,0,.25)}
+.kpi .lb{display:flex;align-items:center;gap:7px;font-size:12px;line-height:16px;font-weight:600;color:#5f5f64}
+.kpi b{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.025em}
+.kpi small{font-size:12px;color:#6a6a6f}
+.kpi.total{grid-column:1 / -1;background:#232326;color:#f5f5f7;flex-direction:row;align-items:center;justify-content:space-between}
+.kpi.total .lb,.kpi.total small{color:rgba(245,245,247,.75)}
+.dot{width:9px;height:9px;border-radius:50%;flex:none}
+.barra{display:flex;height:8px;border-radius:99px;overflow:hidden;gap:2px;background:rgba(60,60,67,.08)}
+.barra i{display:block;height:100%}
+.seg{display:flex;gap:4px;padding:4px;border-radius:14px;background:rgba(118,118,128,.12);overflow-x:auto}
+.seg button{flex:none;display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 12px;border:0;border-radius:11px;background:transparent;font:inherit;font-size:13px;font-weight:600;color:#3d3d42;cursor:pointer}
+.seg button.on{background:#fff;color:#232326;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.lista{list-style:none;margin:0;padding:0;border-radius:16px;background:rgba(255,255,255,.55);box-shadow:inset 0 1px 0 rgba(255,255,255,.85),0 0 0 .5px rgba(0,0,0,.05);overflow:hidden}
+.pess{display:flex;align-items:center;gap:10px;min-height:56px;padding:6px 14px;border-top:1px solid rgba(60,60,67,.08);text-decoration:none;color:#232326}
+li:first-child .pess{border-top:0}
+.pess .nm{min-width:0;font-weight:600;line-height:18px}
+.pess .nm small{display:block;font-weight:400;font-size:12px;line-height:16px;color:#5f5f64}
+.rostos{display:flex;flex:none}
+.ava{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;color:#3d3d42;box-shadow:0 0 0 2px rgba(255,255,255,.9)}
+.ava.b{margin-left:-10px}
+.g1{background:#e9e1d0}.g2{background:#dfe3ea}.g3{background:#e6dde3}.g4{background:#dde6e0}.g5{background:#e7e2da}.g6{background:#e0dfe8}
+.mais{display:block;text-align:center;font-size:13px;font-weight:600;padding:12px 0 2px;text-decoration:none}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:99px;background:rgba(255,255,255,.6);box-shadow:0 0 0 .5px rgba(60,60,67,.18);font-size:13px;color:#3d3d42}
+.chip b{color:#232326}
+.fun{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.fun-t{display:flex;flex-direction:column;gap:2px;min-height:88px;padding:10px 12px;border:0;border-radius:14px;background:rgba(255,255,255,.46);box-shadow:inset 0 1.5px 0 rgba(255,255,255,.8),0 0 0 .5px rgba(0,0,0,.04);color:#232326;font:inherit;text-align:left}
+.fun-t .lb{font-size:12px;line-height:15px;font-weight:600;color:#5f5f64;min-height:30px}
+.fun-t b{font-size:22px;line-height:26px;font-weight:700}
+.fun-t .al{font-size:12px;color:#6a6a6f}
+.fun-t.on{background:#232326;color:#e1e0e4}
+.fun-t.on .lb,.fun-t.on .al{color:#e1e0e4;opacity:.78}
+.barra-cel{position:absolute;left:12px;right:12px;bottom:14px;display:flex;justify-content:space-around;padding:6px;border-radius:24px}
+.barra-cel a{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:64px;min-height:44px;justify-content:center;font-size:11px;font-weight:600;color:#5f5f64;text-decoration:none;border-radius:16px}
+.barra-cel a.on{color:#232326;background:rgba(255,255,255,.7)}
+</style>
+</helmet>
+<div class="cel">
+  <div>
+    <h1 class="h1">Dashboard</h1>
+    <p class="sub">182 mentorados, 12 em onboarding.</p>
+  </div>
+
+  <section class="glass sec" aria-labelledby="eng-c">
+    <div>
+      <h2 id="eng-c">Engajamento</h2>
+      <p class="exp">Marcado na ficha de cada mentorado. Conta todos, menos cancelados e concluídos.</p>
+    </div>
+    <div class="kpis">
+      <div class="kpi total"><span class="lb">Total de mentorados</span><b>182</b></div>
+      <sc-for list="{{ grupos }}" as="k" hint-placeholder-count="4">
+        <button type="button" class="kpi {{ k.classe }}" aria-pressed="{{ k.sel }}" onClick="{{ k.pick }}">
+          <span class="lb"><i class="dot" style="background: {{ k.cor }}"></i>{{ k.rotulo }}</span>
+          <b style="color: {{ k.texto }}">{{ k.n }}</b>
+          <small>{{ k.pct }}</small>
+        </button>
+      </sc-for>
+    </div>
+    <div class="barra" role="img" aria-label="Engajados 96, Em atenção 31, Em risco 9, Sem marcação 46">
+      <sc-for list="{{ grupos }}" as="k" hint-placeholder-count="4"><i style="flex: {{ k.n }}; background: {{ k.cor }}"></i></sc-for>
+    </div>
+
+    <h3 style="margin: 0; font-size: 13px; font-weight: 700">{{ titulo }}</h3>
+    <ul class="lista">
+      <sc-for list="{{ pessoas }}" as="p" hint-placeholder-count="5">
+        <li>
+          <a class="pess" href="Ficha.dc.html">
+            <span class="rostos" aria-hidden="true">
+              <span class="ava {{ p.g1 }}">{{ p.i1 }}</span>
+              <sc-if value="{{ p.casal }}" hint-placeholder-val="{{ false }}"><span class="ava b {{ p.g2 }}">{{ p.i2 }}</span></sc-if>
+            </span>
+            <span class="nm">{{ p.nome }}<small>{{ p.sub }}</small></span>
+          </a>
+        </li>
+      </sc-for>
+    </ul>
+    <a class="mais" href="#">{{ verTodos }}</a>
+
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <h3 style="margin: 0; font-size: 13px; font-weight: 700">Tipos de mentoria</h3>
+      <div class="chips">
+        <span class="chip"><b>60</b>2M</span>
+        <span class="chip"><b>30</b>RDV</span>
+        <span class="chip"><b>27</b>2M / sem encontro</span>
+        <span class="chip"><b>22</b>2M / 2 encontros</span>
+        <span class="chip"><b>17</b>2M / 6 meses</span>
+        <span class="chip"><b>13</b>2M / 1 botão</span>
+        <span class="chip"><b>10</b>6M</span>
+        <span class="chip"><b>2</b>2M / 5 encontros</span>
+        <span class="chip"><b>1</b>2M / 3 encontros</span>
+      </div>
+    </div>
+  </section>
+
+  <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px">
+    <h2 style="margin: 0; font-size: 20px; line-height: 26px; font-weight: 700">Onboarding</h2>
+    <span style="font-size: 13px; color: #5f5f64">12 em onboarding.</span>
+  </div>
+  <div class="fun" role="group" aria-label="Funil das etapas">
+    <button class="fun-t on" type="button" aria-pressed="true"><span class="lb">Boas-vindas</span><b>3</b><span class="al">Etapa 1</span></button>
+    <button class="fun-t" type="button"><span class="lb">Grupos de WhatsApp</span><b>2</b><span class="al">Etapa 2</span></button>
+    <button class="fun-t" type="button"><span class="lb">Aquecimento da Riqueza</span><b>4</b><span class="al">Etapa 3</span></button>
+    <button class="fun-t" type="button"><span class="lb">PME de aquecimento</span><b>1</b><span class="al">Etapa 4</span></button>
+    <button class="fun-t" type="button"><span class="lb">Caixa da Verdadeira Riqueza</span><b>1</b><span class="al">Etapa 5</span></button>
+    <button class="fun-t" type="button"><span class="lb">Reunião de IDR</span><b>1</b><span class="al">Etapa 6</span></button>
+  </div>
+
+  <nav class="glass barra-cel" aria-label="Acompanhamento">
+    <a href="#"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"></path></svg>Fila</a>
+    <a href="#"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"></path></svg>Mentorados</a>
+    <a class="on" href="#" aria-current="page"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="9" rx="2"></rect><rect x="13.5" y="3.5" width="7" height="5" rx="2"></rect><rect x="13.5" y="11.5" width="7" height="9" rx="2"></rect><rect x="3.5" y="15.5" width="7" height="5" rx="2"></rect></svg>Dashboard</a>
+    <a href="#"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="5" cy="12" r="1.5"></circle><circle cx="12" cy="12" r="1.5"></circle><circle cx="19" cy="12" r="1.5"></circle></svg>Mais</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1500}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { grupo: 0 };
+  }
+  renderVals() {
+    var self = this;
+    var g = ['g1', 'g2', 'g3', 'g4', 'g5', 'g6'];
+    var pessoa = function (x, k) {
+      var partes = x[0].split(' e ');
+      var casal = partes.length > 1;
+      return { nome: x[0], sub: x[1], casal: casal, i1: partes[0].charAt(0), i2: casal ? partes[1].charAt(0) : '', g1: g[k % 6], g2: g[(k + 3) % 6] };
+    };
+    var dados = [
+      { rotulo: 'Engajados', curto: 'Engajados', n: 96, cor: '#1f9d6f', texto: '#11704f', lista: [['Rafael e Camila Teixeira', 'Casal, 2M / 2 encontros'], ['Bruno Saldanha', 'Individual, RDV'], ['Patrícia e Leandro Moura', 'Casal, 2M'], ['Henrique Vasconcelos', 'Individual, 6M'], ['Juliana e Otávio Prado', 'Casal, 2M / sem encontro']] },
+      { rotulo: 'Em atenção', curto: 'Em atenção', n: 31, cor: '#d99a00', texto: '#6f4a00', lista: [['Eduardo e Priscila Lima', 'Casal, 2M / sem encontro'], ['Vanessa Toledo', 'Individual, 2M'], ['Rodrigo e Bianca Siqueira', 'Casal, RDV'], ['Márcia Peixoto', 'Individual, 2M / 2 encontros'], ['André e Tatiane Correia', 'Casal, 2M']] },
+      { rotulo: 'Em risco', curto: 'Em risco', n: 9, cor: '#c01f40', texto: '#b3203f', lista: [['Felipe e Daniela Antunes', 'Casal, 2M'], ['Rogério Pacheco', 'Individual, 2M / sem encontro'], ['Karina e Mauro Bastos', 'Casal, RDV'], ['Sérgio Leal', 'Individual, 2M / 1 botão'], ['Natália e Vítor Couto', 'Casal, 2M']] },
+      { rotulo: 'Sem marcação', curto: 'Sem marcação', n: 46, cor: '#a3a2a9', texto: '#4f4f54', lista: [['Ricardo e Paula Menezes', 'Casal, 2M'], ['Adriana Lopes', 'Individual, RDV'], ['Hugo e Beatriz Moraes', 'Casal, 2M / sem encontro'], ['Elaine Furtado', 'Individual, 2M'], ['Roberta Guimarães', 'Individual, 2M / 2 encontros']] }
+    ];
+    var atual = dados[this.state.grupo];
+    return {
+      grupos: dados.map(function (d, i) {
+        var on = i === self.state.grupo;
+        return {
+          rotulo: d.rotulo, curto: d.curto, n: d.n, cor: d.cor, texto: d.texto,
+          pct: Math.round((d.n / 182) * 100) + '% do total',
+          classe: on ? 'on' : '', sel: on ? 'true' : 'false',
+          pick: function () { self.setState({ grupo: i }); }
+        };
+      }),
+      pessoas: atual.lista.map(pessoa),
+      titulo: atual.rotulo + ' (' + atual.n + ')',
+      verTodos: 'Ver todos os ' + atual.n
+    };
+  }
+}
+</script>
+</body>
+</html>

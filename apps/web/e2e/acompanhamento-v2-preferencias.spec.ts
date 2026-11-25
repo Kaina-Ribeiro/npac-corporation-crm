@@ -214,7 +214,7 @@ test.describe('filtros lembrados: onboarding', () => {
   test.use({ viewport: { width: 1024, height: 800 } });
   test('onboarding lembra etapa e painel', async ({ page, context }) => {
     await entrar(page, 'duda');
-    const onboarding = () => menu(page, 'Onboarding', /\/acompanhamento\/onboarding/);
+    const onboarding = () => menu(page, 'Dashboard', /\/acompanhamento\/onboarding/);
     await onboarding();
     const grupos = page.getByRole('button', { name: /Grupos de WhatsApp/ });
     const caixas = page.getByRole('tab', { name: /^Caixas em trânsito/ });

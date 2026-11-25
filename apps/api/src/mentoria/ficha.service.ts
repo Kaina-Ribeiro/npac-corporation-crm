@@ -141,6 +141,8 @@ export class FichaService {
       segunda_chance: boolean;
       ver_evolucao: boolean;
       evolucao: boolean;
+      ver_engajamento: boolean;
+      engajamento: boolean;
       so_carteira: boolean;
       admin: boolean;
       travado_por: string | null;
@@ -162,6 +164,8 @@ export class FichaService {
         mentoria_edita('SEGUNDA_CHANCE', ${id}::uuid) as segunda_chance,
         mentoria_ve_evolucao(${id}::uuid) as ver_evolucao,
         mentoria_edita('EVOLUCAO', ${id}::uuid) as evolucao,
+        mentoria_ve_engajamento() as ver_engajamento,
+        mentoria_edita('ENGAJAMENTO', ${id}::uuid) as engajamento,
         mentoria_admin() as admin,
         mentoria_so_carteira() as so_carteira,
         mentoria_status_financeiro(${id}::uuid) as financeiro,
@@ -261,6 +265,9 @@ export class FichaService {
       statusFinanceiro: (extra?.financeiro ?? null) as FichaDTO['statusFinanceiro'],
       dealId: i.dealId,
       status: i.status as FichaDTO['status'],
+      // A coluna sai só para quem vê o engajamento (NPAC-75): a Especialista recebe nulo.
+      engajamento:
+        extra?.ver_engajamento === true ? (i.engajamento as FichaDTO['engajamento']) : null,
       responsavelId: i.responsavelId,
       origem: i.origem as FichaDTO['origem'],
       linkPasta: i.linkPasta,
@@ -336,6 +343,8 @@ export class FichaService {
         verEvolucao: extra?.ver_evolucao === true,
         evolucao: extra?.ver_evolucao === true && extra?.evolucao === true,
         responsavel: extra?.inscricao === true && extra?.so_carteira !== true,
+        verEngajamento: extra?.ver_engajamento === true,
+        engajamento: extra?.ver_engajamento === true && extra?.engajamento === true,
         admin: extra?.admin === true,
       },
     };

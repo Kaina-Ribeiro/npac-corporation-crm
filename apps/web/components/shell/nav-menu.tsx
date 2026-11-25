@@ -24,7 +24,8 @@ const ACOMPANHAMENTO_ABAS: NavItem[] = [
     'M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7M22 19v-1a4 4 0 0 0-3-3.8M16 3.2a3.5 3.5 0 0 1 0 6.6',
   ),
   { ...item('ficha', 'Ficha do mentorado', 'M6 3h9l4 4v14H6zM9 12h7M9 16h7'), semPrefetch: true },
-  item('onboarding', 'Onboarding', 'M4 5h16l-6 7v6l-4 2v-8z'),
+  // NPAC-75: a tela Onboarding virou Dashboard (indicadores no topo, funil embaixo); o endereço é o mesmo.
+  item('onboarding', 'Dashboard', 'M4 4h7v9H4zM13 4h7v5h-7zM13 11h7v9h-7zM4 15h7v5H4z'),
   item('plano', 'Plano dos 12 meses', 'M4 6h16v15H4zM4 10h16M9 3v4M15 3v4'),
   item('reunioes', 'Reuniões', 'M3 7h13v10H3zM16 11l5-3v8l-5-3'),
   item('pmes', 'PMEs e ciclos', 'M12 3a9 9 0 1 0 9 9M12 7v5l3 2'),

@@ -18,6 +18,7 @@ import {
   TIPOS_AVALIACAO,
   TIPOS_INSCRICAO,
 } from '../mentoria/enums.js';
+import { ENGAJAMENTOS } from '../mentoria/engajamento.js';
 import { STATUS_IMPORTACAO } from '../mentoria/importacao.js';
 import { linkPermitido } from '../mentoria/links.js';
 import { DEGRAUS_ATRASO, FILA_TIPOS } from '../mentoria/fila.js';
@@ -115,6 +116,8 @@ export const inscricaoPatchSchema = z
     version,
     mentoria: z.enum(MENTORIAS).optional(),
     status: z.enum(INSCRICAO_STATUS).optional(),
+    /** NPAC-75: nulo = "Sem marcação". Só Admin e Acompanhamento (área ENGAJAMENTO). */
+    engajamento: opc(z.enum(ENGAJAMENTOS)),
     ...camposInscricao,
   })
   .strict();

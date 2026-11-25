@@ -28,6 +28,8 @@ import {
   type PessoaResumo,
   type TipoInscricao,
   type Mentoria,
+  type PessoaEngajamento,
+  montarEngajamento,
 } from '@npac/shared';
 import { and, eq, sql } from 'drizzle-orm';
 import { DB } from '../common/db/db.module.js';
@@ -54,6 +56,7 @@ type LinhaPainel = {
   inscricao_id: string;
   tipo: TipoInscricao;
   mentoria: Mentoria;
+  variante: string | null;
   criado_em: Date;
   pessoas: PessoaResumo[];
   etapas: {
@@ -312,7 +315,7 @@ export class OnboardingService {
   painel(u: AuthUser): Promise<PainelOnboarding> {
     return withUser(this.db, u.id, async (tx) => {
       const linhas = await tx.execute<LinhaPainel>(sql`
-        select i.id as inscricao_id, i.tipo, i.mentoria, i.criado_em,
+        select i.id as inscricao_id, i.tipo, i.mentoria, i.mentoria_variante as variante, i.criado_em,
           (select json_agg(json_build_object('nome', p.nome, 'apelido', p.apelido,
              'fotoMidiaId', p.foto_midia_id) order by p.ordem)
            from mentoria_pessoas p where p.inscricao_id = i.id) as pessoas,
@@ -362,6 +365,7 @@ export class OnboardingService {
             nome,
             tipo: l.tipo,
             mentoria: l.mentoria,
+            variante: l.variante,
             pessoas: l.pessoas,
             etapaId: e.id,
             version: e.version,
@@ -395,8 +399,50 @@ export class OnboardingService {
       }
       for (const c of funil) c.pessoas.sort((a, b) => b.dias - a.dias);
       caixasEmTransito.sort((a, b) => b.dias - a.dias);
-      return { total, funil, caixasEmTransito, idrsAAgendar };
+      return {
+        engajamento: await this.engajamento(tx),
+        total,
+        funil,
+        caixasEmTransito,
+        idrsAAgendar,
+      };
     });
+  }
+
+  /**
+   * Bloco Engajamento do Dashboard (NPAC-75): todas as inscrições que a pessoa vê (a RLS recorta "só a carteira"),
+   * menos canceladas e concluídas (3C), na ordem dos nomes. A rota é só de Admin, Acompanhamento e Operação; a coluna
+   * ainda passa por `mentoria_ve_engajamento()`.
+   */
+  private async engajamento(tx: Tx) {
+    const linhas = await tx.execute<{
+      inscricao_id: string;
+      tipo: TipoInscricao;
+      mentoria: Mentoria;
+      variante: string | null;
+      engajamento: PessoaEngajamento['engajamento'];
+      pessoas: PessoaResumo[];
+    }>(sql`
+      select i.id as inscricao_id, i.tipo, i.mentoria, i.mentoria_variante as variante,
+        case when (select mentoria_ve_engajamento()) then i.engajamento end as engajamento,
+        (select json_agg(json_build_object('nome', p.nome, 'apelido', p.apelido,
+           'fotoMidiaId', p.foto_midia_id) order by p.ordem)
+         from mentoria_pessoas p where p.inscricao_id = i.id) as pessoas
+      from mentoria_inscricoes i
+      join mentoria_pessoas p1 on p1.inscricao_id = i.id and p1.ordem = 1
+      where i.status not in ('CANCELADO', 'CONCLUIDO')
+      order by p1.nome_norm, i.id`);
+    return montarEngajamento(
+      [...linhas].map((l) => ({
+        inscricaoId: l.inscricao_id,
+        nome: l.pessoas.map((p) => p.nome).join(' e '),
+        tipo: l.tipo,
+        mentoria: l.mentoria,
+        variante: l.variante,
+        engajamento: l.engajamento,
+        pessoas: l.pessoas,
+      })),
+    );
   }
 
   /**

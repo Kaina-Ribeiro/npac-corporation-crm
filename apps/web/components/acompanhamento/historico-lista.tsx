@@ -89,6 +89,7 @@ const CAMPOS: Record<string, string> = {
   proximoPasso: 'Próximo passo',
   mentoria: 'Mentoria',
   mentoriaVariante: 'Variante',
+  engajamento: 'Engajamento',
   status: 'Status',
   responsavelId: 'Responsável',
   origem: 'Origem',
