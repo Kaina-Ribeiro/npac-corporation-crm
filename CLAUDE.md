@@ -137,7 +137,7 @@ variante="chat"`. Campos de 17 px ficam fora da regra dos 16 px com `.ch-campo`.
   nunca IDR; **gravação** NPAC-78, 0090: na reunião Realizada, card "Gravação" (`reuniao-gravacao.tsx`) com o link do
   Google Drive colado (`gravacao` no PATCH, cifrado com AAD, só arquivo do Drive por `idDoDrive` em `sh/mentoria/reunioes.ts`,
   senão 400 "Cole o link da gravação no Google Drive") e o vídeo pela prévia do Drive num `<iframe>` (CSP `frame-src
-https://drive.google.com` em `proxy.ts`); quem edita o registro cola, quem vê a reunião assiste; fora do CSV, histórico
+  https://drive.google.com` em `proxy.ts`); quem edita o registro cola, quem vê a reunião assiste; fora do CSV, histórico
   só com o nome do campo, a anonimização apaga; o vídeo não sobe para o sistema); Fila do dia `fila.*` (0053: `mentoria_fila(agora)` calcula na leitura, SECURITY INVOKER;
   0064: sem função por linha que releia tabela, porque cada uma reavalia a RLS (era 0,6–1 s); o mês da
   jornada e os dias parados repetem a conta de `mentoria_mes_jornada`/`mentoria_dias_pausados`: mudou
