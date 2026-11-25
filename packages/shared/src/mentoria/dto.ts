@@ -637,6 +637,8 @@ export type ReuniaoDTO = ReuniaoItem & {
   cobrar: string | null;
   trava: string | null;
   anotacaoInterna: string | null;
+  /** NPAC-78: link da gravação no Google Drive (decifrado). */
+  gravacao: string | null;
   humor: number | null;
   interesseRenovar: boolean | null;
   /** Tarefas da semana combinadas nesta reunião (até 3). */

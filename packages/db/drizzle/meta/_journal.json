@@ -631,6 +631,13 @@
       "when": 1795619453928,
       "tag": "0089_novidades_janela_inicial",
       "breakpoints": true
+    },
+    {
+      "idx": 90,
+      "version": "7",
+      "when": 1795622227427,
+      "tag": "0090_reuniao_gravacao",
+      "breakpoints": true
     }
   ]
 }

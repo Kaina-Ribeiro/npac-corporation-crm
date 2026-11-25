@@ -19,6 +19,8 @@ function csp(nonce: string): string {
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${dev ? " 'unsafe-eval'" : ''}`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data:",
+    // Player da gravação da reunião (NPAC-78): só a prévia do Google Drive.
+    'frame-src https://drive.google.com',
     "font-src 'self'",
     "connect-src 'self'",
     "object-src 'none'",

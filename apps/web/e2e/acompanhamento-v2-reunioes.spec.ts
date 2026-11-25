@@ -172,3 +172,68 @@ test('campos internos ficam marcados como internos', async ({ page }) => {
   const [t] = await owner<{ trava: string }[]>`select trava from mentoria_reunioes where id = ${r}`;
   expect(t!.trava).not.toContain('fictícia');
 });
+
+test('gravação: cola o link do Drive e o vídeo toca na reunião (NPAC-78)', async ({ page }) => {
+  const id = await inscricao('Mentorado Fictício 86');
+  const [r] = await owner<{ id: string }[]>`
+    insert into mentoria_reunioes (inscricao_id, tipo, conduzida_por, inicio, status)
+    values (${id}, 'ACOMP_EMERGENCIA', ${await idDe('duda')}, now() - interval '2 hours', 'REALIZADA')
+    returning id`;
+  const agendada = await owner<{ id: string }[]>`
+    insert into mentoria_reunioes (inscricao_id, tipo, conduzida_por, inicio)
+    values (${id}, 'ACOMP_EMERGENCIA', ${await idDe('duda')}, now() + interval '2 days')
+    returning id`;
+  await entrar(page, 'duda');
+  await page.waitForURL(/\/acompanhamento\/fila/);
+  await page.goto('/acompanhamento/mentorados');
+
+  // Reunião ainda não realizada: sem o card.
+  await page.goto(`/acompanhamento/reunioes/${agendada[0]!.id}`);
+  await expect(page.getByRole('heading', { name: 'Agenda' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Gravação' })).toHaveCount(0);
+
+  const res = await page.goto(`/acompanhamento/reunioes/${r!.id}`);
+  expect(res?.headers()['content-security-policy']).toContain('frame-src https://drive.google.com');
+  const card = page.locator('section.rn-gravacao');
+  await expect(card).toBeVisible();
+  await expect(
+    card.getByText('Quem for assistir precisa ter acesso ao arquivo no Drive.'),
+  ).toBeVisible();
+  const campo = card.getByLabel('Link da gravação (Google Drive)');
+  const gravado = async () =>
+    (
+      await owner<
+        { g: string | null }[]
+      >`select gravacao as g from mentoria_reunioes where id = ${r!.id}`
+    )[0]!.g;
+
+  // Link que não é do Drive: avisa e não vai para a API.
+  await campo.fill('https://youtube.com/watch?v=abc');
+  await card.getByRole('heading', { name: 'Gravação' }).click();
+  await expect(page.getByText('Cole o link da gravação no Google Drive')).toBeVisible();
+  expect(await gravado()).toBeNull();
+
+  const link = 'https://drive.google.com/file/d/1AbC_dEf-GhIjKlMnOp/view?usp=sharing';
+  await campo.fill(link);
+  await card.getByRole('heading', { name: 'Gravação' }).click();
+  await expect(card.locator('iframe[title="Gravação da reunião"]')).toHaveAttribute(
+    'src',
+    'https://drive.google.com/file/d/1AbC_dEf-GhIjKlMnOp/preview',
+  );
+  await expect(card.getByRole('link', { name: 'Abrir no Drive' })).toHaveAttribute('href', link);
+  await expect.poll(gravado).not.toBeNull();
+  expect(await gravado()).not.toContain('drive.google.com');
+  await page.screenshot({ path: 'test-results/reuniao-gravacao.png', fullPage: true });
+
+  // Celular e tablet: o player cabe na tela, sem rolagem para o lado.
+  for (const largura of [375, 768, 1024]) {
+    await page.setViewportSize({ width: largura, height: 900 });
+    await card.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: `test-results/reuniao-gravacao-${largura}.png` });
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    ).toBe(true);
+    const caixa = await card.locator('.rn-player').boundingBox();
+    expect(caixa!.x + caixa!.width).toBeLessThanOrEqual(largura);
+  }
+});

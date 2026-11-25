@@ -76,6 +76,19 @@ export type PessoaNovidades = {
 /** A mais nova primeiro. */
 export const NOVIDADES: readonly Novidade[] = [
   {
+    id: 'npac-78-gravacao',
+    data: '2026-11-25',
+    para: ['acompanhamento'],
+    perfis: ['ACOMPANHAMENTO', 'OPERACAO', 'ESPECIALISTA'],
+    tipo: 'novo',
+    icone: 'calendar',
+    titulo: 'Gravação da reunião',
+    texto:
+      'Na reunião realizada, cole o link da gravação no Google Drive. O vídeo passa a tocar ali mesmo, com “Abrir no Drive” embaixo. Quem for assistir precisa ter acesso ao arquivo no Drive.',
+    onde: 'Acompanhamento → Reuniões → abra a reunião',
+    href: '/acompanhamento/reunioes',
+  },
+  {
     id: 'npac-77-versao',
     data: '2026-11-25',
     para: ['todos'],

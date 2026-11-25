@@ -24,6 +24,7 @@ import { CampoPr, INTEIRO, useCampo } from './campo';
 import { Dialogo } from './dialogo';
 import { IndicadorSalvo } from './indicador-salvo';
 import { Metas } from './metas';
+import { ReuniaoGravacao } from './reuniao-gravacao';
 import { CobrancaAnterior, TarefasSemana } from './tarefas-reuniao';
 import { diaHoraBR, ICONES, Icone, paraCampoBR, TagInterno, TagReuniao } from './ui';
 
@@ -338,6 +339,10 @@ export function ReuniaoRegistro({
             Campos com <TagInterno /> nunca aparecem para o mentorado.
           </p>
         </section>
+
+        {r.status === 'REALIZADA' && (
+          <ReuniaoGravacao chave={chave} link={r.gravacao} editavel={ed} aoSalvar={atualizar} />
+        )}
 
         {ed && r.status !== 'REMARCADA' && (
           <section className="card pa rn-proxima">
