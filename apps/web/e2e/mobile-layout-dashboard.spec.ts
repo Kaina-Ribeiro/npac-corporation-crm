@@ -43,6 +43,22 @@ test('Dashboard no iPhone: sem rolagem lateral, funil em 3 colunas, grupo tocado
   await page.goto('/acompanhamento/onboarding');
   await expect(page.getByRole('heading', { name: 'Dashboard', level: 1 })).toBeVisible();
 
+  // Barra de baixo: todos os atalhos de antes mais o Dashboard, marcado nesta tela, tudo dentro da tela.
+  const barra = page.getByRole('navigation', { name: 'Abas do acompanhamento' });
+  const nomes = await barra
+    .getByRole('link')
+    .evaluateAll((ls) => ls.map((l) => l.getAttribute('aria-label') ?? l.textContent?.trim()));
+  expect(nomes).toEqual(['Dashboard', 'Mentorados', 'Nova inscrição', 'Reuniões', 'Fila', 'Mais']);
+  await expect(barra.getByRole('link', { name: 'Dashboard', exact: true })).toHaveAttribute(
+    'aria-current',
+    'page',
+  );
+  for (const link of await barra.getByRole('link').all()) {
+    const b = (await link.boundingBox())!;
+    expect(b.x).toBeGreaterThanOrEqual(0);
+    expect(b.x + b.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+  }
+
   const largura = await page.evaluate(() => [
     document.documentElement.scrollWidth,
     window.innerWidth,

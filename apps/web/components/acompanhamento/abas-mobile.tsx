@@ -10,6 +10,12 @@ const ABAS = [
   { href: '/acompanhamento/mais', label: 'Mais', icone: 'M5 12h.01M12 12h.01M19 12h.01' },
 ];
 const ENVIOS = { href: '/acompanhamento/envios', label: 'Envios', icone: ICONES.envios };
+/** NPAC-75: o Dashboard (antes Onboarding) entra na barra sem tirar nenhum atalho; só para quem o vê. */
+const DASHBOARD = {
+  href: '/acompanhamento/onboarding',
+  label: 'Dashboard',
+  icone: 'M4 4h7v9H4zM13 4h7v5h-7zM13 11h7v9h-7zM4 15h7v5H4z',
+};
 
 /** Qual aba do rodapé fica marcada: a ficha é da lista; o resto do módulo vive no Mais. */
 function abaAtual(path: string): string | null {
@@ -17,6 +23,7 @@ function abaAtual(path: string): string | null {
   if (path.startsWith('/acompanhamento/fila')) return 'Fila';
   if (path.startsWith('/acompanhamento/envios')) return 'Envios';
   if (path.startsWith('/acompanhamento/reunioes')) return 'Reuniões';
+  if (path.startsWith('/acompanhamento/onboarding')) return 'Dashboard';
   if (path.startsWith('/acompanhamento/mentorados') || path.startsWith('/acompanhamento/ficha'))
     return 'Mentorados';
   return 'Mais';
@@ -29,8 +36,8 @@ function abaAtual(path: string): string | null {
 const SEM_RODAPE = ['/acompanhamento/mentorados/nova', '/acompanhamento/reunioes/nova'];
 
 /**
- * Celular (abaixo de 768 px): Fila · Mentorados · + · Reuniões · Mais. O "+" abre a Nova inscrição
- * e não aparece para quem não cadastra; os formulários de `SEM_RODAPE` escondem o rodapé.
+ * Celular (abaixo de 768 px): Dashboard · Mentorados · + · Reuniões · Fila · Mais (Gabriel, 25/11/2026). Quem
+ * não cadastra (Especialista, Mentor) não tem o "+" nem o Dashboard: Fila · Mentorados · Reuniões · Mais; o "+" abre a Nova inscrição; os formulários de `SEM_RODAPE` escondem o rodapé.
  */
 export function AbasMobile({
   podeCriar = false,
@@ -78,10 +85,10 @@ export function AbasMobile({
     <nav
       aria-label="Abas do acompanhamento"
       className={`barra-celular glass fixed right-3.5 bottom-[max(16px,env(safe-area-inset-bottom))] left-3.5 z-20 grid h-[68px] rounded-[34px] p-1.5 md:hidden ${
-        podeCriar ? 'grid-cols-5' : 'grid-cols-4'
+        podeCriar ? 'grid-cols-6' : 'grid-cols-4'
       }`}
     >
-      {item(ABAS[0]!)}
+      {item(podeCriar ? DASHBOARD : ABAS[0]!)}
       {item(ABAS[1]!)}
       {podeCriar && (
         <Link
@@ -93,6 +100,7 @@ export function AbasMobile({
         </Link>
       )}
       {item(ABAS[2]!)}
+      {podeCriar && item(ABAS[0]!)}
       {item(ABAS[3]!)}
     </nav>
   );
