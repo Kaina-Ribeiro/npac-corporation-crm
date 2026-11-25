@@ -29,8 +29,10 @@ import { PILARES } from '../mentoria/metas.js';
 import { META_STATUS, SEMAFORO_CORES } from '../mentoria/semaforo.js';
 import { CICLO_STATUS, TAREFA_STATUS } from '../mentoria/pmes.js';
 import {
+  AVISO_GRAVACAO,
   CANAIS_CONTATO,
   dataHoraValida,
+  idDoDrive,
   mesValido,
   PLATAFORMAS,
   REUNIAO_STATUS,
@@ -488,6 +490,14 @@ const linkReuniao = opc(
 );
 const usuarioId = z.string().min(1).max(100);
 const textoReuniao = texto(20_000);
+/** NPAC-78: link de arquivo do Google Drive; vazio apaga. */
+const gravacaoReuniao = opc(
+  z
+    .string()
+    .trim()
+    .max(2000, AVISO_GRAVACAO)
+    .refine((v) => idDoDrive(v) !== null, AVISO_GRAVACAO),
+);
 
 export const reuniaoCriarSchema = z
   .object({
@@ -512,6 +522,7 @@ export const reuniaoPatchSchema = z
     duracaoMin: z.number().int().min(5).max(480).optional(),
     plataforma: opc(z.enum(PLATAFORMAS)),
     link: linkReuniao,
+    gravacao: gravacaoReuniao,
     resumo: textoReuniao,
     metas: textoReuniao,
     combinado: textoReuniao,
