@@ -256,7 +256,9 @@ variante="chat"`. Campos de 17 px ficam fora da regra dos 16 px com `.ch-campo`.
 - **Dashboard e engajamento** (NPAC-75, Duda 24/11/2026, "1A, 2B, 3C, 4B" + opção A; spec
   `docs/superpowers/specs/2026-11-24-npac-75-dashboard-engajamento-design.md`, fontes do protótipo em
   `docs/acompanhamento/prototipo/npac-75/`): a tela Onboarding se chama **Dashboard** (menu, Ctrl+K, Mais, título); o
-  endereço continua `/acompanhamento/onboarding` (cookies `npac_f_ac_onb` e links). No topo, o bloco Engajamento
+  endereço continua `/acompanhamento/onboarding` (cookies `npac_f_ac_onb` e links). Barra do celular (Gabriel,
+  25/11/2026): Dashboard · Mentorados · + · Reuniões · Fila · Mais (`abas-mobile.tsx`); sem o + (Especialista, Mentor),
+  Fila · Mentorados · Reuniões · Mais. No topo, o bloco Engajamento
   (`components/acompanhamento/dashboard-engajamento.tsx`): Total (status ≠ CANCELADO e CONCLUIDO, 3C), Engajados, Em
   atenção, Em risco e Sem marcação com "N% do total", barra, listas com o nome (abre a ficha) e "Tipos de mentoria"
   (mentoria + variante, sem diferença de maiúsculas e espaços; `montarEngajamento` em `sh/mentoria/engajamento.ts`, no cliente por `@npac/shared/engajamento`, fora do barril que pesa em `/leads`); no
