@@ -2641,8 +2641,9 @@
       display: block;
       margin-top: 46px;
     }
+    /* 35 px (campos de 32): com a linha do Engajamento (NPAC-75) a ficha ainda cabe em 1440×900 (e2e base). */
     .fc-lado .pr {
-      min-height: 36px;
+      min-height: 35px;
       grid-template-columns: 104px minmax(0, 1fr);
     }
     .fc-lado .pr:last-child {
