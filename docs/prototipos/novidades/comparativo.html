@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Novidades · as 4 decisões</title>
+<style>
+:root { --bg: #e9e8ec; --card: #fbfbfc; --ink: #232326; --ink2: #5f5f64; --ink3: #6a6a6f; --line: rgba(60,60,67,.14);
+  --gold: #e2bb66; --gold-deep: #a87818; --gold-text: #7a560f; --gold-soft: rgba(226,187,102,.22); --code: #f3f2f5; }
+@media (prefers-color-scheme: dark) { :root { --bg: #0e0e10; --card: #1a1a1d; --ink: #f5f5f7; --ink2: #a1a1a6; --ink3: #9a9aa0; --line: rgba(235,235,245,.14); --gold-text: #e2bb66; --gold-soft: rgba(226,187,102,.16); --code: #232327; } }
+* { box-sizing: border-box; }
+body { margin: 0; background: radial-gradient(70% 30% at 100% 0%, rgba(226,187,102,.25), transparent 70%), var(--bg); color: var(--ink);
+  font: 15px/1.5 -apple-system, BlinkMacSystemFont, 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif; letter-spacing: -.01em; -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 40px 24px 80px; }
+header.top h1 { margin: 0 0 6px; font-size: 32px; letter-spacing: -.025em; }
+header.top p { margin: 0; color: var(--ink2); max-width: 680px; }
+.resumo { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.resumo a { text-decoration: none; color: var(--ink); background: var(--card); border-radius: 999px; padding: 6px 14px; font-size: 14px; font-weight: 600; box-shadow: 0 0 0 1px var(--line); }
+.resumo a b { color: var(--gold-text); }
+section { margin-top: 48px; }
+.sh { display: flex; gap: 14px; align-items: flex-start; }
+.num { flex: none; width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; font-weight: 800; background: var(--ink); color: var(--bg); }
+.sh h2 { margin: 2px 0 4px; font-size: 22px; letter-spacing: -.02em; }
+.sh p { margin: 0; color: var(--ink2); max-width: 760px; }
+.duas { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 18px; }
+.op { background: var(--card); border-radius: 20px; padding: 18px; box-shadow: 0 0 0 1px var(--line), 0 14px 34px -18px rgba(0,0,0,.2); display: flex; flex-direction: column; gap: 12px; }
+.op.rec { box-shadow: 0 0 0 2px var(--gold-deep), 0 14px 34px -18px rgba(0,0,0,.2); }
+.op-h { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.letra { font-size: 20px; font-weight: 800; }
+.op-h b { font-size: 16px; }
+.selo { margin-left: auto; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: var(--gold-soft); color: var(--gold-text); }
+.op img { width: 100%; height: auto; display: block; border-radius: 14px; box-shadow: 0 0 0 1px var(--line); background: #ddd; }
+.op img.pequena { max-width: 300px; margin: 0 auto; }
+.op img.cel { max-width: 260px; margin: 0 auto; }
+.op .bom, .op .ruim { margin: 0; font-size: 14px; display: flex; gap: 8px; }
+.op .bom::before { content: '✅'; } .op .ruim::before { content: '⚠️'; }
+.fluxo { margin-top: 18px; background: var(--card); border-radius: 20px; padding: 18px; box-shadow: 0 0 0 1px var(--line); display: grid; grid-template-columns: 1.4fr 1fr; gap: 18px; align-items: center; }
+.fluxo img { width: 100%; border-radius: 14px; box-shadow: 0 0 0 1px var(--line); }
+.passo { font-size: 13px; font-weight: 700; color: var(--ink3); text-transform: uppercase; letter-spacing: .04em; }
+.fluxo h3 { margin: 4px 0 6px; font-size: 18px; }
+.fluxo p { margin: 0; color: var(--ink2); }
+.seta { text-align: center; color: var(--ink3); font-size: 13px; font-weight: 600; margin: 14px 0 -4px; }
+/* Decisão 3: o PR e o arquivo */
+.pr { border-radius: 14px; box-shadow: 0 0 0 1px var(--line); overflow: hidden; font-size: 14px; }
+.pr-h { padding: 10px 14px; background: var(--code); display: flex; gap: 8px; align-items: center; font-weight: 600; }
+.pr-h .st { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: #1f883d; color: #fff; }
+.pr-b { padding: 12px 14px; }
+.pr-b h4 { margin: 0 0 8px; font-size: 14px; }
+.pr-b ul { margin: 0; padding-left: 18px; color: var(--ink2); }
+.pr-b li + li { margin-top: 6px; }
+.pr-b li b { color: var(--ink); }
+.who { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; color: var(--ink2); margin-top: 10px; }
+.av { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 700; color: #fff; background: #2f6fd6; }
+.av.g { background: linear-gradient(160deg, #f3d48d, #c8962f); color: #3d2a00; }
+.aprov { display: flex; gap: 8px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--line); font-size: 13px; color: var(--ink2); }
+.aprov b { color: #1f883d; }
+pre { margin: 0; padding: 12px 14px; background: var(--code); border-radius: 14px; font: 12.5px/1.6 ui-monospace, 'Cascadia Code', Consolas, monospace; white-space: pre-wrap; color: var(--ink2); box-shadow: 0 0 0 1px var(--line); }
+pre .c { color: var(--ink3); } pre .v { color: var(--gold-text); } pre .vazio { background: var(--gold-soft); color: var(--gold-text); border-radius: 4px; padding: 0 4px; }
+.passos { margin: 0; padding-left: 20px; color: var(--ink2); font-size: 14px; }
+.passos li + li { margin-top: 4px; }
+footer.fim { margin-top: 56px; padding: 20px; border-radius: 20px; background: var(--ink); color: var(--bg); display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+footer.fim b { font-size: 18px; }
+footer.fim code { background: rgba(255,255,255,.14); padding: 4px 10px; border-radius: 8px; font-size: 16px; font-weight: 700; color: var(--gold); }
+@media (prefers-color-scheme: dark) { footer.fim code { background: rgba(0,0,0,.12); color: var(--gold-text); } }
+@media (max-width: 760px) {
+  .wrap { padding: 28px 16px 60px; }
+  header.top h1 { font-size: 26px; }
+  .duas, .fluxo { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Versão e novidades: as 4 decisões</h1>
+    <p>Cada decisão tem a opção A (a que eu recomendo, com a borda dourada) e a B. As imagens saíram do protótipo, com as mudanças reais de 25/11.</p>
+    <nav class="resumo" aria-label="Atalhos">
+      <a href="#d1">1 · Onde fica o número <b>→ A</b></a>
+      <a href="#d2">2 · Onde guarda o “já vi” <b>→ A</b></a>
+      <a href="#d3">3 · Quem escreve <b>→ A</b></a>
+      <a href="#d4">4 · Versão sem nada visível <b>→ A</b></a>
+    </nav>
+  </header>
+
+  <!-- 1 -->
+  <section id="d1">
+    <div class="sh"><span class="num">1</span><div>
+      <h2>Onde fica o número da versão</h2>
+      <p>No computador, embaixo da barra lateral, perto do Sair. Clicar no número abre o histórico de novidades.</p>
+    </div></div>
+    <div class="duas">
+      <div class="op rec">
+        <div class="op-h"><span class="letra">A</span><b>Linha própria, embaixo do Sair</b><span class="selo">Recomendo</span></div>
+        <img class="pequena" src="comparativo/d1-A.png" alt="Rodapé com Sair e Alternar tema numa linha e, embaixo, Versão 0.24.1 e O que mudou" />
+        <p class="bom">Tudo cabe numa linha e o “O que mudou” deixa claro que dá para clicar.</p>
+      </div>
+      <div class="op">
+        <div class="op-h"><span class="letra">B</span><b>Na mesma linha do Sair</b></div>
+        <img class="pequena" src="comparativo/d1-B.png" alt="Rodapé com Sair, Alternar tema quebrado em duas linhas e v0.24.1" />
+        <p class="ruim">Não cabe: o “Alternar tema” quebra em duas linhas. E “v0.24.1” sozinho não diz que é clicável.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 -->
+  <section id="d2">
+    <div class="sh"><span class="num">2</span><div>
+      <h2>Onde o sistema guarda que a pessoa já viu</h2>
+      <p>A dúvida é o que acontece quando a mesma pessoa abre o CRM em outro aparelho. Exemplo com a Eduarda:</p>
+    </div></div>
+    <div class="fluxo">
+      <img src="comparativo/d2-pc.png" alt="Janela de novidades aberta no computador" />
+      <div>
+        <span class="passo">Passo 1 · no computador, de manhã</span>
+        <h3>A Eduarda lê e clica em “Entendi”</h3>
+        <p>É a janela do update de hoje (0.24.1), com 3 mudanças do Acompanhamento.</p>
+      </div>
+    </div>
+    <p class="seta">↓ Passo 2 · à tarde, ela abre o CRM no celular</p>
+    <div class="duas">
+      <div class="op rec">
+        <div class="op-h"><span class="letra">A</span><b>Guardado na conta</b><span class="selo">Recomendo</span></div>
+        <img class="cel" src="comparativo/d2-A.png" alt="Celular na tela Mais, sem janela, versão 0.24.1 no cartão da conta" />
+        <p class="bom">O celular já sabe que ela viu e abre direto, sem janela. Se ela quiser, toca em “O que mudou”.</p>
+      </div>
+      <div class="op">
+        <div class="op-h"><span class="letra">B</span><b>Guardado só no aparelho</b></div>
+        <img class="cel" src="comparativo/d2-B.png" alt="Celular com a mesma janela de novidades aberta de novo" />
+        <p class="ruim">A mesma janela aparece de novo, e de novo no tablet. Quem usa 2 ou 3 aparelhos lê o mesmo texto várias vezes.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 -->
+  <section id="d3">
+    <div class="sh"><span class="num">3</span><div>
+      <h2>Quem escreve o texto das novidades</h2>
+      <p>As notas do GitHub são técnicas. O texto que a equipe lê fica num arquivo do projeto, uma linha por mudança. A dúvida é quem preenche esse arquivo.</p>
+    </div></div>
+    <div class="duas">
+      <div class="op rec">
+        <div class="op-h"><span class="letra">A</span><b>Eu escrevo, você aprova no PR</b><span class="selo">Recomendo</span></div>
+        <div class="pr">
+          <div class="pr-h"><span class="st">Aberto</span>feat(NPAC-75): dashboard de engajamento</div>
+          <div class="pr-b">
+            <h4>Novidades para a equipe (aparece no CRM)</h4>
+            <ul>
+              <li><b>Onboarding agora é Dashboard, com engajamento</b>, para o Acompanhamento</li>
+              <li><b>Engajamento na ficha</b>, para o Acompanhamento</li>
+              <li><b>Barra do celular começa pelo Dashboard</b>, para o Acompanhamento</li>
+            </ul>
+            <span class="who"><span class="av">C</span>escrito pelo Claude junto do código</span>
+          </div>
+          <div class="aprov"><span class="av g">G</span>Você lê e muda uma palavra se quiser → <b>Aprovado</b> → entra no ar com o texto</div>
+        </div>
+        <p class="bom">Você só revisa. O texto nunca fica para depois, porque o PR já chega com ele.</p>
+      </div>
+      <div class="op">
+        <div class="op-h"><span class="letra">B</span><b>Você escreve</b></div>
+        <pre><span class="c">// novidades.ts · versão 0.24.1</span>
+{
+  titulo: <span class="vazio">'…você escreve…'</span>,
+  texto: <span class="vazio">'…você escreve…'</span>,
+  para: <span class="v">'Acompanhamento'</span>,
+  onde: <span class="vazio">'…você escreve…'</span>,
+}</pre>
+        <ol class="passos">
+          <li>O PR entra sem o texto.</li>
+          <li>Você abre o arquivo e escreve cada mudança.</li>
+          <li>Sem texto, a versão sai sem janela de novidades.</li>
+        </ol>
+        <p class="ruim">Mais uma tarefa por versão para você. Em dia corrido, a janela sai vazia.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 -->
+  <section id="d4">
+    <div class="sh"><span class="num">4</span><div>
+      <h2>Versão que só mexe por dentro</h2>
+      <p>Exemplo: amanhã sai a 0.24.2, que só deixa o banco mais rápido. Nada muda na tela de ninguém. A janela abre ou não?</p>
+    </div></div>
+    <div class="duas">
+      <div class="op rec">
+        <div class="op-h"><span class="letra">A</span><b>Não abre, só o número muda</b><span class="selo">Recomendo</span></div>
+        <img class="pequena" src="comparativo/d4-A-rodape.png" alt="Rodapé mostrando Versão 0.24.2, sem janela aberta" />
+        <p class="bom">A Eduarda entra e trabalha normal. O rodapé passa a mostrar 0.24.2.</p>
+        <p class="bom">Assim, quando a janela aparece, é porque tem algo para ela ler.</p>
+      </div>
+      <div class="op">
+        <div class="op-h"><span class="letra">B</span><b>Abre sempre</b></div>
+        <img src="comparativo/d4-B.png" alt="Janela de novidades aberta dizendo que nada muda na tela" />
+        <p class="ruim">Um clique a mais para ler “nada mudou”. Com o tempo, a equipe passa a fechar sem ler, inclusive quando tem novidade de verdade.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="fim">
+    <b>Concorda com as recomendações?</b> Responda <code>1A, 2A, 3A, 4A</code> ou troque a letra da que quiser diferente.
+  </footer>
+</div>
+</body>
+</html>

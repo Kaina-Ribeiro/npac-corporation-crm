@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Protótipo · Versão e novidades</title>
+<style>
+:root {
+  --bg: #e1e0e4; --ink: #232326; --ink2: #5f5f64; --ink3: #6a6a6f;
+  --line: rgba(60, 60, 67, 0.14);
+  --gl: rgba(255, 255, 255, 0.4); --gl2: rgba(255, 255, 255, 0.46); --gl-solid: #f1f0f3;
+  --glhi: inset 0 1.5px 0 rgba(255,255,255,.8), inset 0 -1px 2px rgba(255,255,255,.45), inset 0 0 0 .5px rgba(255,255,255,.75);
+  --gld: 0 0 0 .5px rgba(0,0,0,.04), 0 14px 34px -14px rgba(0,0,0,.18);
+  --blur: blur(30px) saturate(2.1);
+  --gold: #e2bb66; --gold-deep: #a87818; --gold-text: #7a560f;
+  --gold-soft: rgba(226, 187, 102, 0.22);
+  --neutral-soft: rgba(60, 60, 67, 0.1); --neutral-fg: #4f4f54;
+  --wash:
+    radial-gradient(80% 38% at 100% 0%, rgba(226,187,102,.38), transparent 70%),
+    radial-gradient(70% 40% at 0% 100%, rgba(110,145,255,.22), transparent 70%),
+    radial-gradient(50% 30% at 25% 48%, rgba(255,140,165,.1), transparent 70%);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  color-scheme: light;
+}
+.dark {
+  --bg: #0b0b0d; --ink: #f5f5f7; --ink2: #a1a1a6; --ink3: #9a9aa0;
+  --line: rgba(235, 235, 245, 0.14);
+  --gl: rgba(28, 28, 32, 0.6); --gl2: rgba(36, 36, 40, 0.66); --gl-solid: #1c1c20;
+  --glhi: inset 0 1px 0 rgba(255,255,255,.1), inset 0 0 0 .5px rgba(255,255,255,.08);
+  --gld: 0 14px 34px -14px rgba(0,0,0,.6);
+  --gold-text: var(--gold); --gold-soft: rgba(226, 187, 102, 0.16);
+  --neutral-soft: rgba(235, 235, 245, 0.12); --neutral-fg: #c7c7cc;
+  --wash:
+    radial-gradient(80% 38% at 100% 0%, rgba(226,187,102,.18), transparent 70%),
+    radial-gradient(70% 40% at 0% 100%, rgba(110,145,255,.12), transparent 70%);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; background: var(--wash), var(--bg); background-attachment: fixed; color: var(--ink); }
+body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif; letter-spacing: -0.012em; -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
+button { font: inherit; color: inherit; }
+a { color: inherit; }
+
+/* ===== Barra do protótipo (fora do app) ===== */
+.proto { position: sticky; top: 0; z-index: 40; display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; padding: 8px 16px; font-size: 12px; background: #1d1d20; color: #e8e8ec; }
+.proto b { color: var(--gold); font-weight: 700; letter-spacing: .02em; }
+.proto label { display: flex; gap: 6px; align-items: center; color: #b8b8be; }
+.proto select, .proto button { background: #2c2c31; color: #f2f2f5; border: 1px solid #3a3a40; border-radius: 7px; padding: 4px 8px; font-size: 12px; }
+.proto button { cursor: pointer; }
+.proto button:hover { background: #38383e; }
+
+/* ===== App ===== */
+.glass { background: var(--gl); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); box-shadow: var(--glhi), var(--gld); }
+.app { display: flex; min-height: calc(100dvh - 44px); }
+.side { position: sticky; top: 52px; margin: 8px 0 8px 8px; width: 236px; height: calc(100dvh - 60px); flex: none; border-radius: 22px; display: flex; flex-direction: column; gap: 14px; padding: 14px 12px 12px; }
+.brand { display: flex; align-items: center; gap: 9px; padding: 2px 6px; }
+.mark { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; font: 800 15px/1 Impact, 'Anton', sans-serif; color: #3d2a00; background: linear-gradient(160deg, #f3d48d, #c8962f); box-shadow: inset 0 0 0 1px rgba(0,0,0,.12); }
+.brand b { font-size: 15px; font-weight: 600; }
+.search { display: flex; align-items: center; gap: 9px; height: 34px; padding: 0 10px; border-radius: 9px; font-size: 14px; font-weight: 500; color: var(--ink2); background: rgba(255,255,255,.6); box-shadow: inset 0 0 0 .5px rgba(60,60,67,.2); }
+.dark .search { background: rgba(255,255,255,.06); box-shadow: inset 0 0 0 .5px rgba(235,235,245,.14); }
+.search kbd { margin-left: auto; font: 500 11px/1 inherit; color: var(--ink3); }
+.nav { flex: 1; overflow: auto; display: flex; flex-direction: column; gap: 1px; margin: 0 -4px; padding: 0 4px; }
+.nav .grp { margin: 12px 8px 4px; font-size: 11px; font-weight: 600; color: var(--ink3); text-transform: uppercase; letter-spacing: .04em; }
+.nav a { display: flex; align-items: center; gap: 10px; padding: 7px 9px; border-radius: 9px; font-size: 14px; font-weight: 500; color: var(--ink2); text-decoration: none; }
+.nav a:hover { background: rgba(0,0,0,.05); color: var(--ink); }
+.dark .nav a:hover { background: rgba(255,255,255,.08); }
+.nav a[aria-current] { background: rgba(255,255,255,.75); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.06), inset 0 0 0 .5px rgba(0,0,0,.05); }
+.dark .nav a[aria-current] { background: rgba(255,255,255,.12); }
+.nav a i { width: 16px; height: 16px; border-radius: 5px; border: 1.6px solid currentColor; opacity: .7; flex: none; }
+
+.foot { border-top: 1px solid var(--line); padding: 12px 4px 0; }
+.who { display: flex; align-items: center; gap: 10px; padding: 6px; margin: 0 -2px; border-radius: 12px; text-decoration: none; }
+.who:hover { background: rgba(0,0,0,.05); }
+.dark .who:hover { background: rgba(255,255,255,.1); }
+.av { width: 34px; height: 34px; border-radius: 50%; flex: none; display: grid; place-items: center; font-weight: 700; font-size: 14px; color: #fff; background: linear-gradient(160deg, #4cc497, #239c72); }
+.av.sdr { background: linear-gradient(160deg, #6aa6ff, #2f6fd6); }
+.av.closer { background: linear-gradient(160deg, #f08bb0, #c23d72); }
+.av.dir { background: linear-gradient(160deg, #f3d48d, #c8962f); color: #3d2a00; }
+.who-t { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.who-t b { font-size: 14px; font-weight: 600; }
+.who-t small { font-size: 12px; color: var(--ink2); }
+.role { align-self: flex-start; display: inline-flex; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: .01em; background: var(--rb); color: var(--rf); }
+.role.ACOMPANHAMENTO { --rb: #dcf3ea; --rf: #11704f; }
+.role.SDR { --rb: #e3efff; --rf: #0a5ab8; }
+.role.CLOSER { --rb: #fbe4ec; --rf: #a8285a; }
+.role.DIRETOR { --rb: #e2bb66; --rf: #3d2a00; }
+.row { display: flex; align-items: center; gap: 4px; padding-top: 8px; }
+.qbtn { border: 0; background: transparent; padding: 6px 10px; border-radius: 9px; font-size: 14px; font-weight: 500; color: var(--ink2); cursor: pointer; }
+.qbtn:hover { background: rgba(0,0,0,.05); color: var(--ink); }
+.dark .qbtn:hover { background: rgba(255,255,255,.1); }
+
+/* Versão no rodapé (variante A: linha própria embaixo; B: na mesma linha do Sair) */
+.ver { display: inline-flex; align-items: center; gap: 6px; border: 0; background: transparent; cursor: pointer; border-radius: 8px; color: var(--ink3); font-size: 12px; font-weight: 500; }
+.ver:hover { color: var(--ink); background: rgba(0,0,0,.05); }
+.dark .ver:hover { background: rgba(255,255,255,.08); }
+.ver .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold-deep); display: none; }
+.ver[data-novo] .dot { display: inline-block; }
+.ver-a { display: flex; margin: 6px 0 0; padding: 5px 10px; width: 100%; }
+.ver-a .what { margin-left: auto; color: var(--gold-text); font-weight: 600; }
+.ver-b { margin-left: auto; padding: 5px 8px; font-variant-numeric: tabular-nums; }
+.foot[data-var="A"] .ver-b, .foot[data-var="B"] .ver-a { display: none; }
+
+main { flex: 1; min-width: 0; padding: 26px 32px 60px; }
+.page-h { display: flex; align-items: baseline; gap: 12px; margin-bottom: 18px; }
+.page-h h1 { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -.02em; }
+.page-h span { color: var(--ink3); font-size: 14px; }
+.ghost-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.gcard { border-radius: 20px; min-height: 108px; padding: 16px; background: var(--gl2); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); box-shadow: var(--glhi), var(--gld); }
+.gcard.wide { grid-column: span 4; min-height: 260px; }
+.gcard .l { height: 10px; width: 46%; border-radius: 6px; background: var(--line); }
+.gcard .n { height: 26px; width: 34%; margin-top: 14px; border-radius: 8px; background: var(--line); }
+.note { margin-top: 18px; font-size: 13px; color: var(--ink2); max-width: 640px; line-height: 1.5; }
+
+/* Celular: tela Mais */
+.mais { display: none; }
+.bottom { display: none; }
+
+/* ===== Janela de novidades ===== */
+dialog.nov { width: min(560px, calc(100vw - 32px)); max-height: min(720px, calc(100dvh - 48px)); padding: 0; border: 0; border-radius: 24px; color: var(--ink); background: var(--gl-solid); box-shadow: 0 0 0 .5px rgba(0,0,0,.08), 0 30px 80px -20px rgba(0,0,0,.45); overflow: hidden; display: none; flex-direction: column;
+  transition: opacity 220ms var(--ease-out), scale 220ms var(--ease-out), translate 220ms var(--ease-out), overlay 220ms allow-discrete, display 220ms allow-discrete; }
+dialog.nov[open] { display: flex; }
+dialog.nov:not([open]) { opacity: 0; scale: .97; translate: 0 8px; }
+@starting-style { dialog.nov[open] { opacity: 0; scale: .97; translate: 0 8px; } }
+dialog.nov::backdrop { background: rgba(10, 10, 14, .38); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+.dark dialog.nov { box-shadow: 0 0 0 .5px rgba(255,255,255,.1), 0 30px 80px -20px rgba(0,0,0,.8); }
+.nov-h { position: relative; padding: 24px 24px 16px; background:
+  radial-gradient(120% 140% at 100% 0%, rgba(226,187,102,.32), transparent 60%); }
+.dark .nov-h { background: radial-gradient(120% 140% at 100% 0%, rgba(226,187,102,.16), transparent 60%); }
+.eyebrow { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--gold-text); letter-spacing: .02em; }
+.eyebrow svg { width: 14px; height: 14px; }
+.nov-h h2 { margin: 6px 0 4px; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
+.nov-h p { margin: 0; font-size: 14px; color: var(--ink2); }
+.x { position: absolute; top: 14px; right: 14px; width: 32px; height: 32px; border-radius: 50%; border: 0; background: rgba(0,0,0,.06); cursor: pointer; display: grid; place-items: center; color: var(--ink2); }
+.dark .x { background: rgba(255,255,255,.1); }
+.x:hover { color: var(--ink); background: rgba(0,0,0,.1); }
+.x svg { width: 14px; height: 14px; }
+.nov-b { overflow: auto; padding: 4px 24px 8px; overscroll-behavior: contain; }
+.vhead { display: flex; align-items: center; gap: 10px; margin: 14px 0 6px; font-size: 12px; font-weight: 600; color: var(--ink3); }
+.vhead::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+.item { display: grid; grid-template-columns: 36px 1fr; gap: 12px; padding: 12px 0; }
+.item + .item { border-top: 1px solid var(--line); }
+.ic { width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center; background: var(--neutral-soft); color: var(--ink2); }
+.ic svg { width: 18px; height: 18px; }
+.item[data-k="novo"] .ic { background: var(--gold-soft); color: var(--gold-text); }
+.it-t { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.it-t b { font-size: 15px; font-weight: 600; }
+.kind { display: inline-flex; padding: 1px 7px; border-radius: 999px; font-size: 11px; font-weight: 700; background: var(--neutral-soft); color: var(--neutral-fg); }
+.item[data-k="novo"] .kind { background: var(--gold-soft); color: var(--gold-text); }
+.item[data-k="acao"] .kind { background: var(--ink); color: var(--bg); }
+.item[data-k="acao"] .ic { background: var(--ink); color: var(--bg); }
+.item p { margin: 4px 0 0; font-size: 14px; line-height: 1.45; color: var(--ink2); }
+.onde { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 13px; font-weight: 600; color: var(--gold-text); text-decoration: none; border-radius: 6px; }
+.onde:hover { text-decoration: underline; text-underline-offset: 3px; }
+.onde svg { width: 12px; height: 12px; }
+.vazio { padding: 10px 0 14px; font-size: 14px; color: var(--ink3); }
+.nov-f { display: flex; align-items: center; gap: 12px; padding: 14px 24px calc(16px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); }
+.link { border: 0; background: none; padding: 8px 2px; font-size: 14px; font-weight: 500; color: var(--ink2); cursor: pointer; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 4px; }
+.link:hover { color: var(--ink); text-decoration-color: currentColor; }
+.btn { margin-left: auto; min-height: 40px; padding: 0 20px; border: 0; border-radius: 12px; font-size: 15px; font-weight: 600; background: var(--ink); color: var(--bg); cursor: pointer; transition: transform 80ms, opacity 120ms; }
+.btn:hover { opacity: .9; } .btn:active { transform: scale(.97); }
+.btn:focus-visible, .x:focus-visible, .link:focus-visible, .onde:focus-visible { outline: 2px solid rgba(194, 146, 46, .75); outline-offset: 2px; }
+.x:focus:not(:focus-visible) { outline: none; }
+
+/* ===== Celular (≤ 767 px) ===== */
+@media (max-width: 767px) {
+  .side { display: none; }
+  main { padding: 18px 16px 120px; }
+  .desk { display: none; }
+  .mais { display: block; }
+  .bottom { display: flex; position: fixed; left: 12px; right: 12px; bottom: calc(10px + env(safe-area-inset-bottom)); z-index: 20; height: 60px; border-radius: 22px; justify-content: space-around; align-items: center; }
+  .bottom a { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10.5px; font-weight: 600; color: var(--ink3); text-decoration: none; min-width: 44px; }
+  .bottom a i { width: 20px; height: 20px; border-radius: 6px; border: 1.8px solid currentColor; opacity: .75; }
+  .bottom a[aria-current] { color: var(--ink); }
+  .bottom .plus { width: 44px; height: 44px; border-radius: 50%; background: var(--ink); color: var(--bg); display: grid; place-items: center; font-size: 22px; font-weight: 400; }
+  .card { border-radius: 20px; padding: 14px; background: var(--gl2); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); box-shadow: var(--glhi), var(--gld); }
+  .card + .card { margin-top: 12px; }
+  .conta { display: flex; align-items: center; gap: 12px; }
+  .conta .av { width: 44px; height: 44px; font-size: 17px; }
+  .conta .who-t b { font-size: 16px; }
+  .conta-acts { display: flex; gap: 8px; margin-top: 12px; }
+  .conta-acts a, .conta-acts button { flex: 1; min-height: 44px; border-radius: 12px; border: 0; background: rgba(0,0,0,.05); font-size: 15px; font-weight: 600; text-decoration: none; display: grid; place-items: center; cursor: pointer; }
+  .dark .conta-acts a, .dark .conta-acts button { background: rgba(255,255,255,.08); }
+  .ver-m { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; margin-top: 10px; padding: 0 4px; border: 0; border-top: 1px solid var(--line); background: none; cursor: pointer; font-size: 14px; color: var(--ink3); }
+  .ver-m .what { margin-left: auto; color: var(--gold-text); font-weight: 600; }
+  .lista a { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 4px; font-size: 16px; font-weight: 500; text-decoration: none; }
+  .lista a + a { border-top: 1px solid var(--line); }
+  .lista a i { width: 20px; height: 20px; border-radius: 6px; border: 1.8px solid currentColor; opacity: .6; }
+  .mais h1 { margin: 6px 4px 14px; font-size: 28px; font-weight: 700; letter-spacing: -.02em; }
+  /* A janela vira folha de baixo */
+  dialog.nov { width: 100vw; max-width: 100vw; max-height: 88dvh; margin: auto 0 0; border-radius: 26px 26px 0 0; }
+  dialog.nov:not([open]) { translate: 0 40px; scale: 1; }
+  @starting-style { dialog.nov[open] { translate: 0 40px; scale: 1; } }
+  .nov-h { padding: 22px 18px 14px; }
+  .nov-h::before { content: ''; position: absolute; top: 8px; left: 50%; width: 38px; height: 5px; margin-left: -19px; border-radius: 3px; background: var(--line); }
+  .nov-b { padding: 0 18px 8px; }
+  .nov-f { padding: 12px 18px calc(14px + env(safe-area-inset-bottom)); }
+  .btn { min-height: 48px; padding: 0 26px; }
+}
+@media (min-width: 768px) and (max-width: 1023px) {
+  .ghost-grid { grid-template-columns: repeat(2, 1fr); }
+  .gcard.wide { grid-column: span 2; }
+}
+@media (prefers-reduced-motion: reduce) { dialog.nov, dialog.nov::backdrop { transition: none; } }
+</style>
+</head>
+<body>
+
+<div class="proto" role="region" aria-label="Controles do protótipo">
+  <b>PROTÓTIPO</b>
+  <label>Pessoa
+    <select id="pPessoa">
+      <option value="eduarda">Eduarda (Acompanhamento)</option>
+      <option value="igor">Igor (SDR)</option>
+      <option value="sonia">Sônia (Closer)</option>
+      <option value="diretor">Diretoria</option>
+    </select>
+  </label>
+  <label>Última versão que a pessoa viu
+    <select id="pVista">
+      <option value="0.24.1">0.24.1 (já viu tudo)</option>
+      <option value="0.23.3" selected>0.23.3 (madrugada de 25/11)</option>
+      <option value="0.22.7">0.22.7 (24/11, tarde)</option>
+      <option value="0.22.6">0.22.6 (24/11)</option>
+      <option value="0.21.6">0.21.6 (23/11, noite)</option>
+      <option value="0.20.10">0.20.10 (23/11)</option>
+      <option value="0.19.16">0.19.16 (19/11)</option>
+    </select>
+  </label>
+  <label>Rodapé
+    <select id="pVar">
+      <option value="A">A · linha própria</option>
+      <option value="B">B · ao lado do Sair</option>
+    </select>
+  </label>
+  <button type="button" id="pTema">Alternar tema</button>
+  <button type="button" id="pAbrir">Simular entrada após o deploy</button>
+</div>
+
+<div class="app">
+  <aside class="side glass" aria-label="Barra lateral">
+    <div class="brand"><span class="mark">N</span><b>NPAC Corporation</b></div>
+    <div class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5" stroke-linecap="round"/></svg>Buscar<kbd>Ctrl K</kbd></div>
+    <nav class="nav" id="nav" aria-label="Navegação lateral"></nav>
+    <div class="foot" id="foot" data-var="A">
+      <a class="who" href="#perfil">
+        <span class="av" id="av">E</span>
+        <span class="who-t"><b id="nome">Eduarda</b><span class="role ACOMPANHAMENTO" id="cargo">Acompanhamento</span><small>Meu perfil</small></span>
+      </a>
+      <div class="row">
+        <button class="qbtn" type="button">Sair</button>
+        <button class="qbtn" type="button" id="tema2">Alternar tema</button>
+        <button class="ver ver-b" type="button" data-abre aria-label="Versão 0.24.1. Ver o que mudou">v0.24.1</button>
+      </div>
+      <button class="ver ver-a" type="button" data-abre aria-label="Versão 0.24.1. Ver o que mudou"><span class="dot"></span>Versão 0.24.1<span class="what">O que mudou</span></button>
+    </div>
+  </aside>
+
+  <main>
+    <div class="desk">
+      <div class="page-h"><h1 id="titulo">Dashboard</h1><span>tela de fundo, só para dar contexto</span></div>
+      <div class="ghost-grid">
+        <div class="gcard"><div class="l"></div><div class="n"></div></div>
+        <div class="gcard"><div class="l"></div><div class="n"></div></div>
+        <div class="gcard"><div class="l"></div><div class="n"></div></div>
+        <div class="gcard"><div class="l"></div><div class="n"></div></div>
+        <div class="gcard wide"><div class="l"></div></div>
+      </div>
+      <p class="note">A versão fica no rodapé da barra lateral, embaixo do Sair. Clicar nela reabre a janela de novidades com o histórico. Na barra recolhida (só ícones) ela some, como o nome e o Sair.</p>
+    </div>
+
+    <div class="mais">
+      <h1>Mais</h1>
+      <div class="card">
+        <div class="conta">
+          <span class="av" id="avM">E</span>
+          <span class="who-t"><b id="nomeM">Eduarda</b><span class="role ACOMPANHAMENTO" id="cargoM">Acompanhamento</span></span>
+        </div>
+        <div class="conta-acts"><a href="#perfil">Meu perfil</a><button type="button">Sair</button></div>
+        <button class="ver-m" type="button" data-abre><span class="ver" style="pointer-events:none"><span class="dot"></span></span>Versão 0.24.1<span class="what">O que mudou ›</span></button>
+      </div>
+      <div class="card lista" id="listaM"></div>
+    </div>
+  </main>
+</div>
+
+<nav class="bottom glass" id="bottom" aria-label="Barra de baixo"></nav>
+
+<dialog class="nov" id="nov" aria-labelledby="novT">
+  <header class="nov-h">
+    <span class="eyebrow"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.9 5.6L19.5 9.5l-5.6 1.9L12 17l-1.9-5.6L4.5 9.5l5.6-1.9z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg><span id="novEy">Novidades</span></span>
+    <h2 id="novT">O que mudou no CRM</h2>
+    <p id="novS"></p>
+    <button class="x" type="button" id="novX" aria-label="Fechar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+  </header>
+  <div class="nov-b" id="novB"></div>
+  <footer class="nov-f">
+    <button class="link" type="button" id="novHist">Ver versões anteriores</button>
+    <button class="btn" type="button" id="novOk" autofocus>Entendi</button>
+  </footer>
+</dialog>
+
+<script>
+// Mudanças reais das releases estáveis (tags do GitHub), só o que aparece na tela.
+// Áreas: todos · acomp · acompAdmin (Admin do Acompanhamento e Diretoria) · comercial · sdr · closer · lider
+const VERSOES = [
+  { v: '0.24.1', dia: '25/11', itens: [
+    { a: 'acomp', k: 'novo', ic: 'chart', t: 'Onboarding agora é Dashboard, com engajamento', p: 'No topo: total de mentorados e quantos estão Engajados, Em atenção, Em risco ou Sem marcação, com a % e os nomes de cada grupo (toque no grupo para abrir). O funil das 6 etapas do onboarding continua logo embaixo.', onde: 'Acompanhamento → Dashboard' },
+    { a: 'acomp', k: 'novo', ic: 'tag', t: 'Engajamento na ficha', p: 'Depois do Status, o campo Engajamento: Engajado, Em atenção, Em risco ou Sem marcação. Salva ao escolher e vira etiqueta no topo da ficha. Todos começam sem marcação.', onde: 'Ficha do mentorado → Inscrição' },
+    { a: 'acomp', k: 'melhorou', ic: 'phone', t: 'Barra do celular começa pelo Dashboard', p: 'Agora: Dashboard · Mentorados · + · Reuniões · Fila · Mais. Nenhum atalho saiu.', onde: 'Barra de baixo do celular' },
+  ]},
+  { v: '0.23.3', dia: '25/11', itens: [
+    { a: 'todos', k: 'novo', ic: 'send', t: 'Avisos pelo Telegram', p: 'Toque em “Conectar Telegram”, depois em “Começar” no bot, e pronto. Os mesmos avisos do celular (lembrete de reunião, sino, Chat, Fila) chegam também no Telegram. Dá para mandar um aviso de teste e desconectar quando quiser.', onde: 'Meu perfil → Avisos pelo Telegram' },
+    { a: 'acomp', k: 'melhorou', ic: 'list', t: 'Diagnóstico na aba Pessoas', p: 'As 20 perguntas da planilha de diagnóstico, na mesma ordem, com até 3 dívidas e o valor de cada (o total soma sozinho). Embaixo, contato e entrega: WhatsApp, e-mail, pulseira, endereço e foto da família. A aba Momento inicial saiu; nada foi apagado.', onde: 'Ficha do mentorado → Pessoas' },
+  ]},
+  { v: '0.22.7', dia: '24/11', itens: [
+    { a: 'comercial', k: 'corrigido', ic: 'chat', t: 'Chat: mensagem não pisca ao enviar', p: 'A mensagem enviada não some e volta mais. No iPhone, deslizar para voltar fecha a conversa e volta para a lista, em vez de sair do Chat.', onde: 'Chat' },
+  ]},
+  { v: '0.22.6', dia: '24/11', itens: [
+    { a: 'todos', k: 'acao', ic: 'bell', t: 'Ative os avisos de novo neste aparelho', p: 'Os avisos do iPhone atrasavam ou sumiam. Consertamos e, para começar do zero, desligamos todos os aparelhos. Toque em “Ativar avisos” no convite que aparece no topo da tela.', onde: 'Meu perfil → Avisos neste aparelho' },
+    { a: 'comercial', k: 'novo', ic: 'chat', t: 'Chat de cara nova', p: 'Balões como no iMessage, separação por dia (Hoje, Ontem), prévia da última mensagem na lista e mensagens antigas que carregam ao rolar para cima. “Nova conversa” busca a pessoa pelo nome. Lead citado vira um cartão “Abrir ficha”.', onde: 'Chat' },
+    { a: 'comercial', k: 'corrigido', ic: 'phone', t: 'Chat no celular abre com as mensagens', p: 'A conversa às vezes abria vazia e as não lidas sumiam sozinhas. Agora abre com as mensagens e só marca como lida o que você viu.', onde: 'Chat' },
+    { a: 'acompAdmin', k: 'novo', ic: 'trash', t: 'Excluir contato e anotação', p: 'Na aba Histórico, cada contato e anotação tem “Excluir”, com confirmação. Só a Admin vê o botão. O histórico guarda “Anotação excluída por …”, sem o texto.', onde: 'Ficha do mentorado → Histórico' },
+    { a: 'acomp', k: 'melhorou', ic: 'bolt', t: 'Onboarding e Mentorados mais rápidos', p: 'O painel do Onboarding e os filtros de mês e semáforo em Mentorados abrem em menos de 0,1 segundo (antes, até meio segundo).', onde: 'Acompanhamento → Mentorados' },
+    { a: 'todos', k: 'melhorou', ic: 'tablet', t: 'Tablet em pé: barra lateral em ícones', p: 'Entre 768 e 1023 px a barra lateral fica recolhida, só com os ícones. Um toque abre; escolher a tela recolhe de novo.', onde: 'Barra lateral' },
+  ]},
+  { v: '0.21.6', dia: '23/11', itens: [
+    { a: 'sdr', k: 'novo', ic: 'cash', t: 'Venda direta', p: 'Vendeu sem reunião, à vista, no cartão ou no boleto? Use “Venda direta” ao lado de “Mover para”: escolha o closer e o produto. A renda extra entra para você; o closer põe o valor.', onde: 'Ficha do lead' },
+    { a: 'sdr', k: 'novo', ic: 'check', t: 'Você marca a venda de quem pagou', p: 'Em Agendou Pagamento, “Marcar venda” fica ao lado de “Mover para”, já com o produto. Sem esperar o closer.', onde: 'Ficha do lead → Agendou Pagamento' },
+    { a: 'closer', k: 'novo', ic: 'cash', t: 'Vendas que o SDR marcou chegam para você', p: 'Venda direta ou marcada em Agendou Pagamento vira “Venda a registrar” com o seu nome: você recebe o aviso e põe o valor na ficha. Venda direta é só à vista, cartão ou boleto.', onde: 'Hoje → Vendas a registrar' },
+    { a: 'sdrLider', k: 'novo', ic: 'check', t: 'Concluir tarefa pede o próximo passo', p: 'Ao concluir, conte o que aconteceu e escolha: Agendou reunião, Novo follow-up ou Ligar para a pessoa. O lead já anda sozinho para a etapa certa.', onde: 'Hoje e ficha do lead → Tarefas' },
+    { a: 'sdrLider', k: 'melhorou', ic: 'calendar', t: 'Agendou Pagamento com a reunião que já aconteceu', p: 'Sem reunião realizada? Informe ali mesmo quando foi e com qual closer, ao mover ou ao cadastrar.', onde: 'Pipeline, lista e ficha do lead' },
+    { a: 'comercial', k: 'melhorou', ic: 'search', t: 'Busca enquanto você digita', p: 'Leads e Pipeline buscam enquanto você digita, sem Enter. Apagar o texto traz a lista de volta. Telefone e e-mail continuam só completos.', onde: 'Leads e Pipeline' },
+    { a: 'comercial', k: 'corrigido', ic: 'search', t: 'Pipeline acha leads em coluna oculta', p: 'Com texto buscado, a coluna oculta que tem resultado aparece, marcada “Oculta”.', onde: 'Pipeline' },
+    { a: 'sdr', k: 'melhorou', ic: 'filter', t: 'Filtro de SDR fica no seu nome', p: 'Em Relatórios, Leads e Pipeline, o filtro de SDR mostra só você.', onde: 'Relatórios, Leads e Pipeline' },
+  ]},
+  { v: '0.20.10', dia: '23/11', itens: [
+    { a: 'acomp', k: 'novo', ic: 'user', t: 'Venda vira mentorado sozinha', p: 'Venda de RDV, 2M ou 6M no comercial cria o mentorado em Onboarding, com nome e contato. Ele aparece na Fila da Admin para escolher a responsável. Estorno da venda cancela a inscrição.', onde: 'Acompanhamento → Fila' },
+    { a: 'acomp', k: 'novo', ic: 'growth', t: 'Aba Evolução', p: 'Antes → hoje em cartões, Momento inicial × Momento atual com foto, os 4 pilares e as conquistas. “Baixar PDF” gera o relatório para entregar.', onde: 'Ficha do mentorado → Evolução' },
+    { a: 'acomp', k: 'novo', ic: 'box', t: 'Envios físicos', p: 'Caixa, presente da família, kit e certificado numa lista só, do pedido à entrega. A Caixa entregue conclui a etapa do onboarding sozinha.', onde: 'Acompanhamento → Envios' },
+    { a: 'sdrLider', k: 'novo', ic: 'calendar', t: 'Lançar reunião que já aconteceu', p: '“A reunião já aconteceu” na ficha registra uma reunião passada. O valor por reunião conta no dia em que ela aconteceu.', onde: 'Ficha do lead → Reuniões' },
+    { a: 'comercial', k: 'melhorou', ic: 'calendar', t: 'Agendou Pagamento só depois da reunião', p: 'Para pôr em Agendou Pagamento, a reunião precisa estar marcada como realizada. Ordem: cadastrou → reunião → realizada → agendou pagamento → pagou.', onde: 'Pipeline e ficha do lead' },
+    { a: 'sdr', k: 'corrigido', ic: 'cash', t: 'Renda extra da venda de Agendou Pagamento', p: 'A venda registrada a partir de Agendou Pagamento passa a contar como venda sua, com a renda extra do produto (vendas desde 17/11 foram acertadas).', onde: 'Dashboard → Valor a receber por venda feita' },
+  ]},
+];
+const PESSOAS = {
+  eduarda: { nome: 'Eduarda', ini: 'E', av: '', cargo: 'Acompanhamento', rc: 'ACOMPANHAMENTO', areas: ['todos', 'acomp', 'acompAdmin'],
+    nav: [['Dashboard', 1], ['Fila'], ['Mentorados'], ['Reuniões'], ['Plano'], ['PMEs e ciclos'], ['Envios'], ['Configurações']],
+    bottom: ['Dashboard', 'Mentorados', '+', 'Reuniões', 'Fila', 'Mais'] },
+  igor: { nome: 'Igor', ini: 'I', av: 'sdr', cargo: 'SDR', rc: 'SDR', areas: ['todos', 'comercial', 'sdr', 'sdrLider'],
+    nav: [['Dashboard', 1], ['Hoje'], ['Leads'], ['Pipeline'], ['Relatórios'], ['Chat']],
+    bottom: ['Dashboard', 'Hoje', 'Pipeline', 'Chat', 'Mais'] },
+  sonia: { nome: 'Sônia', ini: 'S', av: 'closer', cargo: 'Closer', rc: 'CLOSER', areas: ['todos', 'comercial', 'closer'],
+    nav: [['Dashboard', 1], ['Hoje'], ['Leads'], ['Pipeline'], ['Relatórios'], ['Chat']],
+    bottom: ['Dashboard', 'Hoje', 'Pipeline', 'Chat', 'Mais'] },
+  diretor: { nome: 'Diretoria', ini: 'D', av: 'dir', cargo: 'Diretoria', rc: 'DIRETOR', areas: ['todos', 'acomp', 'acompAdmin', 'comercial', 'sdrLider', 'closer'],
+    nav: [['Dashboard', 1], ['Hoje'], ['Leads'], ['Pipeline'], ['Relatórios'], ['Chat'], ['Admin'], ['#Acompanhamento'], ['Fila'], ['Mentorados'], ['Reuniões']],
+    bottom: ['Dashboard', 'Hoje', 'Pipeline', 'Chat', 'Mais'] },
+};
+const ICONES = {
+  chart: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>', tag: '<path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8" r="1.4"/>',
+  phone: '<rect x="6" y="2.5" width="12" height="19" rx="3"/><path d="M10.5 18.5h3"/>', send: '<path d="M21 3 3 10.5l7 2.5 2.5 7z"/><path d="m10 13 4.5-4.5"/>',
+  list: '<path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/>', chat: '<path d="M4 5h16v11H9l-5 4z"/>',
+  bell: '<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/>', cash: '<rect x="2.5" y="6" width="19" height="12" rx="2.5"/><circle cx="12" cy="12" r="2.6"/>',
+  check: '<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>', trash: '<path d="M4 7h16M10 7V4h4v3M6 7l1 13h10l1-13"/>',
+  bolt: '<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>', tablet: '<rect x="4" y="2.5" width="16" height="19" rx="2.5"/><path d="M9 6v12"/>',
+  calendar: '<rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4"/>', search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+  filter: '<path d="M3 5h18l-7 8v6l-4 2v-8z"/>', user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>',
+  growth: '<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/>', box: '<path d="M3 7.5 12 3l9 4.5v9L12 21l-9-4.5z"/><path d="M3 7.5 12 12l9-4.5M12 12v9"/>',
+};
+const KIND = { novo: 'Novo', melhorou: 'Melhorou', corrigido: 'Corrigido', acao: 'Faça isso' };
+const Q0 = new URLSearchParams(location.search);
+if (Q0.get('interno')) VERSOES.unshift({ v: '0.24.2', dia: '26/11', itens: [] });
+const SEMPRE = Q0.get('sempre') === '1';
+const ATUAL = VERSOES[0].v;
+document.querySelectorAll('[data-abre]').forEach((b) => { b.innerHTML = b.innerHTML.replace('0.24.1', ATUAL); b.setAttribute('aria-label', `Versão ${ATUAL}. Ver o que mudou`); });
+const cmp = (a, b) => { const x = a.split('.').map(Number), y = b.split('.').map(Number); for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] - y[i]; return 0; };
+const $ = (s) => document.querySelector(s);
+const nov = $('#nov');
+let pessoa = PESSOAS.eduarda;
+
+function itensPara(v) { return v.itens.filter((i) => pessoa.areas.includes(i.a)); }
+function itemHTML(i) {
+  return `<article class="item" data-k="${i.k}">
+    <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${ICONES[i.ic]}</svg></span>
+    <div><div class="it-t"><b>${i.t}</b><span class="kind">${KIND[i.k]}</span></div>
+    <p>${i.p}</p>
+    <a class="onde" href="#">${i.onde}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div>
+  </article>`;
+}
+function render(modo) {
+  // modo 'novas' = só o que saiu depois da última vista; 'todas' = histórico inteiro
+  const vista = $('#pVista').value;
+  const lista = modo === 'todas' ? VERSOES : VERSOES.filter((v) => cmp(v.v, vista) > 0);
+  const comItens = lista.filter((v) => itensPara(v).length);
+  const total = comItens.reduce((n, v) => n + itensPara(v).length, 0);
+  $('#novEy').textContent = modo === 'todas' ? 'Histórico' : 'Novidades';
+  $('#novT').textContent = modo === 'todas' ? 'Todas as versões' : 'O que mudou no CRM';
+  $('#novS').textContent = modo === 'todas'
+    ? `Você está na versão ${ATUAL}. Aqui aparece só o que mexe no seu trabalho.`
+    : comItens.length > 1
+      ? `${total} mudanças em ${comItens.length} atualizações desde a sua última visita.`
+      : total === 0
+        ? `Versão ${ATUAL} · ${VERSOES[0].dia}.`
+        : `Versão ${ATUAL} · ${VERSOES[0].dia}. ${total === 1 ? '1 mudança' : total + ' mudanças'} no seu trabalho.`;
+  const multi = modo === 'todas' || comItens.length > 1;
+  // Na janela automática, o que pede uma ação da pessoa ("Faça isso") sobe para o topo.
+  const acoes = modo === 'todas' ? [] : comItens.flatMap((v) => itensPara(v).filter((i) => i.k === 'acao'));
+  const topo = acoes.length ? `<div class="vhead">Precisa de você</div>${acoes.map(itemHTML).join('')}` : '';
+  $('#novB').innerHTML = topo + (modo === 'todas' ? lista : comItens).map((v) => {
+    const it = itensPara(v).filter((i) => !acoes.includes(i));
+    if (!it.length && modo !== 'todas') return '';
+    const head = multi || acoes.length ? `<div class="vhead">Versão ${v.v} · ${v.dia}${v.v === ATUAL ? ' · atual' : ''}</div>` : '';
+    return head + (it.length ? it.map(itemHTML).join('') : '<p class="vazio">Só ajustes internos, nada muda na sua tela.</p>');
+  }).join('');
+  $('#novHist').hidden = modo === 'todas';
+  $('#novOk').textContent = modo === 'todas' ? 'Fechar' : 'Entendi';
+  return total;
+}
+function abrir(modo) { render(modo); if (!nov.open) nov.showModal(); $('#novB').scrollTop = 0; }
+function fechar() { nov.close(); }
+function marcarVisto() { $('#pVista').value = ATUAL; pontos(); }
+function pontos() {
+  // Ponto dourado na versão só enquanto houver novidade não vista (ex.: fechou sem ler, outra aba)
+  const pend = VERSOES.some((v) => cmp(v.v, $('#pVista').value) > 0 && itensPara(v).length);
+  document.querySelectorAll('.ver').forEach((b) => b.toggleAttribute('data-novo', pend));
+}
+function entrar() {
+  // Entrou depois do deploy: abre sozinha só se há novidade para a área da pessoa.
+  if (render('novas') > 0) abrir('novas');
+  else if (SEMPRE) { abrir('novas'); $('#novB').innerHTML = '<p class="vazio">Nesta versão só mudaram coisas por dentro do sistema. Nada muda na sua tela.</p>'; }
+  else { pontos(); aviso('Nada novo para esta pessoa: a janela não abre, só o número da versão muda.'); }
+}
+function aviso(t) {
+  let el = $('#toast'); if (!el) { el = document.createElement('div'); el.id = 'toast'; el.style.cssText = 'position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:60;background:#1d1d20;color:#fff;padding:10px 16px;border-radius:12px;font-size:13px;max-width:90vw;box-shadow:0 10px 30px rgba(0,0,0,.3)'; document.body.append(el); }
+  el.textContent = t; el.hidden = false; clearTimeout(el._t); el._t = setTimeout(() => (el.hidden = true), 3200);
+}
+function montarPessoa() {
+  pessoa = PESSOAS[$('#pPessoa').value];
+  for (const [id, m] of [['', ''], ['M', 'M']]) {
+    const av = $('#av' + m); av.textContent = pessoa.ini; av.className = 'av ' + pessoa.av;
+    $('#nome' + m).textContent = pessoa.nome;
+    const c = $('#cargo' + m); c.textContent = pessoa.cargo; c.className = 'role ' + pessoa.rc;
+  }
+  $('#nav').innerHTML = pessoa.nav.map(([n, on]) => n.startsWith('#') ? `<div class="grp">${n.slice(1)}</div>` : `<a href="#"${on ? ' aria-current="page"' : ''}><i></i>${n}</a>`).join('');
+  $('#bottom').innerHTML = pessoa.bottom.map((n) => n === '+' ? '<a href="#" aria-label="Novo"><span class="plus">+</span></a>' : `<a href="#"${n === 'Mais' ? ' aria-current="page"' : ''}><i></i>${n}</a>`).join('');
+  $('#listaM').innerHTML = pessoa.nav.filter(([n]) => !n.startsWith('#')).slice(0, 5).map(([n]) => `<a href="#"><i></i>${n}</a>`).join('');
+  pontos();
+}
+const tema = () => document.documentElement.classList.toggle('dark');
+$('#pTema').onclick = tema; $('#tema2').onclick = tema;
+$('#pVar').onchange = () => ($('#foot').dataset.var = $('#pVar').value);
+$('#pPessoa').onchange = montarPessoa;
+$('#pVista').onchange = pontos;
+$('#pAbrir').onclick = entrar;
+document.querySelectorAll('[data-abre]').forEach((b) => (b.onclick = () => abrir('todas')));
+$('#novHist').onclick = () => { marcarVisto(); render('todas'); $('#novB').scrollTop = 0; };
+$('#novOk').onclick = () => { marcarVisto(); fechar(); };
+$('#novX').onclick = () => { marcarVisto(); fechar(); };
+nov.addEventListener('cancel', marcarVisto);
+nov.addEventListener('click', (e) => { if (e.target === nov) { marcarVisto(); fechar(); } });
+document.addEventListener('click', (e) => { if (e.target.closest('.onde')) { e.preventDefault(); marcarVisto(); fechar(); aviso('Levaria à tela: ' + e.target.closest('.onde').textContent.trim()); } });
+const q = new URLSearchParams(location.search);
+if (q.get('pessoa')) $('#pPessoa').value = q.get('pessoa');
+if (q.get('vista')) $('#pVista').value = q.get('vista');
+if (q.get('var')) { $('#pVar').value = q.get('var'); $('#foot').dataset.var = q.get('var'); }
+if (q.get('tema') === 'escuro') tema();
+montarPessoa();
+if (q.get('abrir') === 'todas') abrir('todas'); else if (q.get('abrir') !== 'nao') entrar();
+</script>
+</body>
+</html>

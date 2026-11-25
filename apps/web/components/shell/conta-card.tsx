@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { Avatar, AVATAR_EU } from '@/components/avatar';
+import type { Me } from '@/lib/session';
 import { SignOutButton } from './sign-out-button';
+import { VersaoRodape } from './versao-rodape';
 
 // Classes só do Tailwind (sem `.btn`): o módulo redefine `.btn` sob `.ac` e o cartão tem de sair
 // igual nos dois Mais.
@@ -29,19 +31,18 @@ function Icone({ d }: { d: string }) {
  * também abrem o Meu perfil (NPAC-53). `children` = etiquetas do cargo, que cada Mais monta.
  */
 export function ContaCard({
-  nome,
-  foto,
+  me,
   titulo = false,
   children,
 }: {
-  nome: string;
-  /** URL da foto do perfil, ou null (fica a inicial). */
-  foto: string | null;
+  /** Nome, foto e o que a linha da versão usa (NPAC-77). */
+  me: Pick<Me, 'name' | 'photo' | 'versao' | 'novidadesVista' | 'mestre' | 'areas'>;
   /** h1 quando a tela não tem outro título (Mais do CRM). */
   titulo?: boolean;
   children: React.ReactNode;
 }) {
   const Nome = titulo ? 'h1' : 'h2';
+  const { name: nome, photo: foto } = me;
   return (
     <section aria-label="Sua conta" className="glass-card flex flex-col gap-4 p-4">
       <div className="flex items-center gap-3.5">
@@ -76,6 +77,7 @@ export function ContaCard({
           Sair
         </SignOutButton>
       </div>
+      <VersaoRodape me={me} variante="mais" />
     </section>
   );
 }

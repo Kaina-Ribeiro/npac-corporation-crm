@@ -54,6 +54,10 @@
       "types": "./dist/profile.d.ts",
       "default": "./dist/profile.js"
     },
+    "./novidades": {
+      "types": "./dist/novidades.d.ts",
+      "default": "./dist/novidades.js"
+    },
     "./areas": {
       "types": "./dist/areas.d.ts",
       "default": "./dist/areas.js"
