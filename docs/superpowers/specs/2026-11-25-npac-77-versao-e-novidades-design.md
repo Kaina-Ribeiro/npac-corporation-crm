@@ -67,9 +67,12 @@ atualização, uma janela "como no Cubeship" com as novidades em português simp
 - Coluna `user.novidades_vista text` (id da mais nova que a pessoa viu). Sem RLS, como o resto de `user`.
 - Não vistas = as entradas visíveis acima desse id. Id que sumiu do arquivo = tudo visto (não despeja
   histórico).
-- **Conta nova ou coluna vazia** (S2): a primeira leitura grava a mais nova e não abre janela; o
-  histórico fica em "Ver versões anteriores". Na subida desta mudança todo mundo começa assim, então a
-  primeira janela que a equipe vê é a da própria novidade (entrada `npac-77-versao`).
+- **Quem já existia na subida** (S2, corrigido em 25/11/2026: o ITODEV mostrou que a primeira metade anulava a
+  segunda): a 0089 grava `npac-75-dashboard` (a entrada logo abaixo de `npac-77-versao`) em toda conta com a coluna
+  vazia, e no ITODEV também em quem já tinha `npac-77-versao`. A primeira janela da equipe é só a da própria
+  novidade, uma vez; nada mais antigo.
+- **Conta criada depois** (coluna vazia): a primeira leitura grava a mais nova e não abre janela; o histórico fica em
+  "Ver versões anteriores".
 - `POST /api/me/novidades/vista { ate: id }` (`@AllRoles()`), chamada por "Entendi", pelo X, pelo Esc,
   por clicar fora e pelo link "Abrir" de um item. Só avança (id mais novo que o atual). Sem auditoria.
 - `user` não está no canal ao vivo: outra aba aberta continua com a janela até recarregar (aceito).
@@ -97,7 +100,7 @@ atualização, uma janela "como no Cubeship" com as novidades em português simp
 ## Suposições (confirmadas pelo Gabriel, 25/11: "Sim, começa")
 
 - **S1** Agrupar por data ("Atualização de 25/11") em vez de "Versão 0.24.1 · 25/11", como estava no protótipo.
-- **S2** Na subida e para conta nova, ninguém recebe o histórico antigo de uma vez; a primeira janela é a desta novidade.
+- **S2** Na subida e para conta nova, ninguém recebe o histórico antigo de uma vez; a primeira janela é a desta novidade (quem já existia: 0089; conta criada depois: vazia → a mais nova).
 - **S3** As entradas de 23 a 25/11 do mock entram no arquivo como histórico.
 
 ## Fora do escopo

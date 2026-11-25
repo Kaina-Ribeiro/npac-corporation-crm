@@ -73,7 +73,7 @@ export class MeController {
   }
 }
 
-/** Coluna vazia (conta nova, subida do NPAC-77): grava a mais nova e não abre nada (S2). */
+/** Coluna vazia (conta criada depois da subida; quem já existia ganhou a vista pela 0089): grava a mais nova e não abre nada (S2). */
 // Lê antes: /api/me roda a cada tela, e um UPDATE por render gravaria a linha sem mudar nada.
 async function lerVista(tx: Tx, id: string): Promise<string> {
   const [row] = await tx.execute<{ vista: string | null }>(
