@@ -217,6 +217,8 @@ export type PessoaFunil = {
   nome: string;
   tipo: TipoInscricao;
   mentoria: Mentoria;
+  /** Detalhe da mentoria ("2 encontros"), como no Dashboard (NPAC-75). */
+  variante: string | null;
   pessoas: PessoaResumo[];
   etapaId: string;
   version: number;

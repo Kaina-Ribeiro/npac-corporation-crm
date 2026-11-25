@@ -56,6 +56,7 @@ type LinhaPainel = {
   inscricao_id: string;
   tipo: TipoInscricao;
   mentoria: Mentoria;
+  variante: string | null;
   criado_em: Date;
   pessoas: PessoaResumo[];
   etapas: {
@@ -314,7 +315,7 @@ export class OnboardingService {
   painel(u: AuthUser): Promise<PainelOnboarding> {
     return withUser(this.db, u.id, async (tx) => {
       const linhas = await tx.execute<LinhaPainel>(sql`
-        select i.id as inscricao_id, i.tipo, i.mentoria, i.criado_em,
+        select i.id as inscricao_id, i.tipo, i.mentoria, i.mentoria_variante as variante, i.criado_em,
           (select json_agg(json_build_object('nome', p.nome, 'apelido', p.apelido,
              'fotoMidiaId', p.foto_midia_id) order by p.ordem)
            from mentoria_pessoas p where p.inscricao_id = i.id) as pessoas,
@@ -364,6 +365,7 @@ export class OnboardingService {
             nome,
             tipo: l.tipo,
             mentoria: l.mentoria,
+            variante: l.variante,
             pessoas: l.pessoas,
             etapaId: e.id,
             version: e.version,

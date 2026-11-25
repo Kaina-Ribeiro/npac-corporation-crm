@@ -5,6 +5,7 @@ import {
   type PainelOnboarding,
   type PessoaFunil,
 } from '@npac/shared/mentoria';
+import { rotuloMentoria } from '@npac/shared/engajamento';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { readPrefs } from '@npac/shared/screen-prefs';
@@ -13,6 +14,7 @@ import { ONBOARDING_REGRAS, atualizarAc } from '@/lib/acompanhamento-prefs';
 import { useLatestPrefs } from '@/lib/use-latest-prefs';
 import { button, quietButton } from '@/components/crm-ui';
 import { clientApi } from '@/lib/client-api';
+import { DashboardEngajamento } from './dashboard-engajamento';
 import { Dialogo } from './dialogo';
 import { dataBR, Rostos } from './ui';
 
@@ -48,7 +50,7 @@ function Linha({
         <div className="nm">
           {p.nome}
           <small>
-            {p.tipo === 'CASAL' ? 'Casal' : 'Individual'}, {p.mentoria}
+            {p.tipo === 'CASAL' ? 'Casal' : 'Individual'}, {rotuloMentoria(p.mentoria, p.variante)}
           </small>
         </div>
       </Link>
@@ -91,7 +93,10 @@ function Linha({
 
 type Painel = 'funil' | 'caixas' | 'idrs';
 
-/** Aba Onboarding: funil das 6 etapas, quem está parado, caixas em trânsito e IDRs a agendar. */
+/**
+ * Aba Dashboard (antes "Onboarding", NPAC-75): o bloco Engajamento no topo e, embaixo, o funil das 6 etapas, quem
+ * está parado, caixas em trânsito e IDRs a agendar.
+ */
 export function OnboardingFunil({
   painel,
   lembrar,
@@ -150,8 +155,18 @@ export function OnboardingFunil({
   return (
     <section className="view">
       <div>
-        <h1 className="h1">Onboarding</h1>
+        <h1 className="h1">Dashboard</h1>
         <p className="sub">
+          {painel.engajamento.total} {plural(painel.engajamento.total, 'mentorado', 'mentorados')},{' '}
+          {painel.total} em onboarding.
+        </p>
+      </div>
+
+      <DashboardEngajamento dados={painel.engajamento} />
+
+      <div className="ob-titulo">
+        <h2>Onboarding</h2>
+        <p>
           {painel.total} em onboarding
           {alertas > 0 && `, ${alertas} ${plural(alertas, 'parado', 'parados')} além do prazo`}.
         </p>

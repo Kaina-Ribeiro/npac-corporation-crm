@@ -176,7 +176,7 @@ variante="chat"`. Campos de 17 px ficam fora da regra dos 16 px com `.ch-campo`.
   · banco `db/src/schema/mentoria.ts`
   - 0044–0045 (`mentoria_perfil()`, `mentoria_admin()`, `mentoria_ve()`, `mentoria_edita()`, funções `mentoria_*`) ·
     seed `db/src/seed-mentoria.ts` · lógica pura `sh/mentoria/*` (cliente: `@npac/shared/mentoria`, sem zod) ·
-    telas `web/app/(app)/acompanhamento/*` (`fila` é a entrada, `mentorados`, `mentorados/nova`, `ficha/[id]`, `configuracoes`, `mais`,
+    telas `web/app/(app)/acompanhamento/*` (`fila` é a entrada, `mentorados`, `mentorados/nova`, `ficha/[id]`, `onboarding` = Dashboard, `configuracoes`, `mais`,
     `reunioes`, `reunioes/[id]`, `reunioes/nova`, `em-breve/[aba]`), `web/components/acompanhamento/*`, CSS só do módulo sob `.ac` em `acompanhamento/modulo.css`,
     fila de salvamento `sh/mentoria/field-queue.ts` + `web/lib/acompanhamento-saver.ts`, perfil no servidor
     `web/lib/acompanhamento.ts` (`lerEu`) · backup cifrado `infra/backup/*` (age)
@@ -253,6 +253,27 @@ variante="chat"`. Campos de 17 px ficam fora da regra dos 16 px com `.ch-campo`.
   (bloco NPAC-76), `api/test/mentoria-v2-base`, `e2e/acompanhamento-diagnostico.spec.ts`; capturas
   `CAPTURAS=<pasta> … e2e/capturas-diagnostico.spec.ts`. Pré-preencher com o diagnóstico do gerenciador antigo e a aba ACM
   da planilha ficam para depois.
+- **Dashboard e engajamento** (NPAC-75, Duda 24/11/2026, "1A, 2B, 3C, 4B" + opção A; spec
+  `docs/superpowers/specs/2026-11-24-npac-75-dashboard-engajamento-design.md`, fontes do protótipo em
+  `docs/acompanhamento/prototipo/npac-75/`): a tela Onboarding se chama **Dashboard** (menu, Ctrl+K, Mais, título); o
+  endereço continua `/acompanhamento/onboarding` (cookies `npac_f_ac_onb` e links). No topo, o bloco Engajamento
+  (`components/acompanhamento/dashboard-engajamento.tsx`): Total (status ≠ CANCELADO e CONCLUIDO, 3C), Engajados, Em
+  atenção, Em risco e Sem marcação com "N% do total", barra, listas com o nome (abre a ficha) e "Tipos de mentoria"
+  (mentoria + variante, sem diferença de maiúsculas e espaços; `montarEngajamento` em `sh/mentoria/engajamento.ts`, no cliente por `@npac/shared/engajamento`, fora do barril que pesa em `/leads`); no
+  celular, tocar num grupo mostra 5 nomes + "Ver todos". Embaixo, o funil com o subtítulo "Onboarding" (grade de 3 colunas
+  no celular, nunca desliza). Vem no mesmo `POST mentoria/onboarding/painel` (campo `engajamento`). **Engajamento** =
+  `mentoria_inscricoes.engajamento` (0087: ENGAJADO/EM_ATENCAO/EM_RISCO, nulo = "Sem marcação"; todos começam nulos, o
+  `legado.statusEngajamento` não é usado), marcado à mão no aside Inscrição da ficha depois de Status (`CampoEngajamento` em
+  `components/acompanhamento/engajamento.tsx`, salva ao escolher; histórico `inscricao.editada` só com o nome do campo),
+  sem semáforo. Marcam Admin e Acompanhamento (área `ENGAJAMENTO` de `mentoria_edita`, com o recorte da carteira; a API
+  confere com `exigirEdicao`, 404); a Operação edita a inscrição mas não o engajamento (gatilho
+  `mentoria_inscricoes_engajamento_guarda`, 42501; INSERT pelo app grava nulo); a coluna sai só para
+  `mentoria_ve_engajamento()` (Admin, Acompanhamento, Operação): a Especialista recebe `engajamento: null` e
+  `pode.verEngajamento = false` e 404 no painel; "só a carteira" conta só a carteira (RLS da inscrição, sem política nova).
+  Cores do semáforo (verde/amarelo/vermelho) e cinza neutro; CSS `.eg-*` em `modulo.css`. Testes:
+  `db/test/mentoria-engajamento.test.ts`, `shared/test/mentoria-engajamento.test.ts`,
+  `api/test/mentoria-v2-engajamento.e2e.test.ts`, `e2e/acompanhamento-engajamento.spec.ts`,
+  `e2e/mobile-layout-dashboard.spec.ts`; capturas `CAPTURAS=<pasta> … e2e/capturas-dashboard.spec.ts`.
 
 **Navegação e carregamento** (desempenho, Fase 2, 12/11/2026): o menu usa o `prefetch` padrão do Next
 (rota dinâmica sem `loading.tsx` não pré-carrega a página); `semPrefetch` (Ficha e itens "Em breve")

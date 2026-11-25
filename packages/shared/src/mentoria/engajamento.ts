@@ -1,4 +1,5 @@
-// Engajamento marcado à mão na ficha e o bloco do Dashboard (NPAC-75). Puro, sem zod: o cliente importa.
+// Engajamento marcado à mão na ficha e o bloco do Dashboard (NPAC-75). Puro, sem zod: o cliente importa por
+// `@npac/shared/engajamento`, fora do barril `@npac/shared/mentoria` que a casca leva a /leads (teto de 150 KB).
 import type { Mentoria, TipoInscricao } from './enums.js';
 
 export const ENGAJAMENTOS = ['ENGAJADO', 'EM_ATENCAO', 'EM_RISCO'] as const;
