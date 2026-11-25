@@ -53,8 +53,15 @@ type Ficha = {
   version: number;
   tipo: string;
   pessoas: { id: string; ordem: number; version: number; whatsapp: string | null }[];
-  momento: { version: number; dor: string | null; travadoEm: string | null } | null;
+  momento: {
+    version: number;
+    dor: string | null;
+    travadoEm: string | null;
+    dividasCentavos: number | null;
+    temDividas: boolean | null;
+  } | null;
   endereco: { version: number; endereco: string | null } | null;
+  completarCampos: string[];
 };
 
 const criar = async (cookie: string, corpo: object = INDIVIDUAL): Promise<Ficha> => {

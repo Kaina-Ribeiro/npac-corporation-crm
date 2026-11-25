@@ -63,15 +63,16 @@ test('Duda: menu → Mentorados → cria casal → edita → salvo', async ({ pa
   await expect(page.getByRole('link', { name: 'Mentorado', exact: true })).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Grupo', exact: true })).toHaveCount(0);
 
+  // Casal: uma aba só (NPAC-76), sem escolher a pessoa; o parceiro é a pessoa 2.
   await page.getByRole('tab', { name: 'Pessoas', exact: true }).click();
-  await page.getByRole('button', { name: 'Mentorado Fictício 51', exact: true }).click();
-  await page.getByLabel('Profissão').fill('Profissão Fictícia');
-  await page.getByLabel('Profissão').blur();
+  await expect(page.getByRole('group', { name: 'Pessoa do casal' })).toHaveCount(0);
+  await expect(page.getByLabel('Nome do parceiro(a)')).toHaveValue('Mentorado Fictício 51');
+  await page.getByLabel('Trabalho').fill('Trabalho Fictício');
+  await page.getByLabel('Trabalho').blur();
   await salvo(page).toBeVisible();
   await page.reload();
   await page.getByRole('tab', { name: 'Pessoas', exact: true }).click();
-  await page.getByRole('button', { name: 'Mentorado Fictício 51', exact: true }).click();
-  await expect(page.getByLabel('Profissão')).toHaveValue('Profissão Fictícia');
+  await expect(page.getByLabel('Trabalho')).toHaveValue('Trabalho Fictício');
 });
 
 test('duas abas editam campos diferentes da mesma pessoa e os dois ficam salvos', async ({
@@ -79,20 +80,21 @@ test('duas abas editam campos diferentes da mesma pessoa e os dois ficam salvos'
 }) => {
   const a = await abrirPessoa(browser, 'duda');
   const b = await abrirPessoa(browser, 'operacao');
-  await a.page.getByLabel('Cidade').fill('Cidade Fictícia');
-  await a.page.getByLabel('Cidade').blur();
+  await a.page.getByLabel('Cidade', { exact: true }).fill('Cidade Fictícia');
+  await a.page.getByLabel('Cidade', { exact: true }).blur();
   await salvo(a.page).toBeVisible();
-  await b.page.getByLabel('Profissão').fill('Ofício Fictício');
-  await b.page.getByLabel('Profissão').blur();
+  await b.page.getByLabel('E-mail', { exact: true }).fill('ficticio.duas.abas@exemplo.com');
+  await b.page.getByLabel('E-mail', { exact: true }).blur();
   await expect
     .poll(
       async () =>
         (
-          await owner<{ cidade: string | null; profissao: string | null }[]>`
-          select cidade, profissao from mentoria_pessoas where inscricao_id = ${FICHA_01}`
+          await owner<{ cidade: string | null; email: boolean }[]>`
+          select cidade, email is not null as email from mentoria_pessoas
+          where inscricao_id = ${FICHA_01}`
         )[0],
     )
-    .toEqual({ cidade: 'Cidade Fictícia', profissao: 'Ofício Fictício' });
+    .toEqual({ cidade: 'Cidade Fictícia', email: true });
   await salvo(b.page).toBeVisible();
   await expect(b.page.getByText('Outra pessoa mudou')).toHaveCount(0);
   await expect(b.page.getByText('Não foi possível')).toHaveCount(0);
@@ -103,13 +105,14 @@ test('duas abas editam campos diferentes da mesma pessoa e os dois ficam salvos'
 test('campo que o outro mudou: avisa e mantém o valor dele', async ({ browser }) => {
   const a = await abrirPessoa(browser, 'duda');
   const b = await abrirPessoa(browser, 'operacao');
-  await a.page.getByLabel('Instagram', { exact: true }).fill('conta.da.duda');
-  await a.page.getByLabel('Instagram', { exact: true }).blur();
+  const cidade = (p: Page) => p.getByLabel('Cidade', { exact: true });
+  await cidade(a.page).fill('Cidade da Duda');
+  await cidade(a.page).blur();
   await salvo(a.page).toBeVisible();
-  await b.page.getByLabel('Instagram', { exact: true }).fill('conta.da.operacao');
-  await b.page.getByLabel('Instagram', { exact: true }).blur();
+  await cidade(b.page).fill('Cidade da Operação');
+  await cidade(b.page).blur();
   await expect(b.page.getByText('Outra pessoa mudou este campo')).toBeVisible();
-  await expect(b.page.getByLabel('Instagram', { exact: true })).toHaveValue('conta.da.duda');
+  await expect(cidade(b.page)).toHaveValue('Cidade da Duda');
   await a.ctx.close();
   await b.ctx.close();
 });
@@ -248,7 +251,7 @@ test('375 px: lista e ficha sem rolagem lateral, item aberto é página própria
   await page.getByRole('link', { name: /Mentorado Fictício 01/ }).click();
   await page.waitForURL(/\/acompanhamento\/ficha\//);
   await expect(page.getByRole('link', { name: 'Mentorados' }).first()).toBeVisible();
-  for (const aba of ['Jornada', 'Inscrição', 'Pessoa', 'Momento inicial', 'Histórico']) {
+  for (const aba of ['Jornada', 'Inscrição', 'Pessoa', 'Histórico']) {
     await page.getByRole('tab', { name: aba, exact: true }).click();
     const over = await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
@@ -261,19 +264,16 @@ test('375 px: lista e ficha sem rolagem lateral, item aberto é página própria
 });
 
 // A Jornada fica de fora desde a Fase 2: a spec (§7) põe nela o PME atual com as tarefas, metas e
-// check-ins, e um ciclo com tarefas já passa de uma tela. As outras abas continuam cabendo.
-test('1440x900: cada aba da ficha, fora a Jornada, cabe sem rolar', async ({ page }) => {
+// check-ins, e um ciclo com tarefas já passa de uma tela. A aba Pessoas também, desde a NPAC-76: o
+// diagnóstico tem 20 perguntas, mais contato e entrega. O Histórico continua cabendo.
+test('1440x900: a aba Histórico cabe sem rolar', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await entrar(page, 'duda');
   await page.waitForURL(/\/acompanhamento\/fila/);
   await page.goto('/acompanhamento/mentorados');
-  for (const [id, pessoas] of [
-    [FICHA_01, 'Pessoa'],
-    [FICHA_CASAL, 'Pessoas'],
-    [FICHA_ABERTA, 'Pessoa'],
-  ] as const) {
+  for (const id of [FICHA_01, FICHA_CASAL, FICHA_ABERTA]) {
     await page.goto(`/acompanhamento/ficha/${id}`);
-    for (const aba of [pessoas, 'Momento inicial', 'Histórico']) {
+    for (const aba of ['Histórico']) {
       await page.getByRole('tab', { name: aba, exact: true }).click();
       await expect(page.getByRole('tabpanel')).toBeVisible();
       const sobra = await page.evaluate(
@@ -298,7 +298,9 @@ test('1440: endereço da aba Inscrição, que vira coluna, mostra a Jornada ao l
   await expect(page.getByRole('complementary', { name: 'Inscrição' })).toBeVisible();
 });
 
-test('Operação: menu → ficha, edita a inscrição e vê o momento sem editar', async ({ page }) => {
+test('Operação: menu → ficha, edita a inscrição e vê o diagnóstico sem editar', async ({
+  page,
+}) => {
   await entrar(page, 'operacao');
   await page.waitForURL(/\/acompanhamento\/fila/);
   await page.goto('/acompanhamento/mentorados');
@@ -307,9 +309,12 @@ test('Operação: menu → ficha, edita a inscrição e vê o momento sem editar
   await page.waitForURL(/\/acompanhamento\/ficha\//);
   await expect(page.getByLabel('Pagamento')).toBeEditable();
   await expect(page.getByLabel('Status', { exact: true })).toBeDisabled();
-  await page.getByRole('tab', { name: 'Momento inicial', exact: true }).click();
+  await page.getByRole('tab', { name: 'Pessoa', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Concluir' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Destravar' })).toHaveCount(0);
+  // Diagnóstico só leitura; nome, cidade e contato seguem com a Operação, como a inscrição.
+  await expect(page.getByLabel('Trabalho')).not.toBeEditable();
+  await expect(page.getByLabel('Cidade', { exact: true })).toBeEditable();
 });
 
 test('Manu: menu sem Configurações, só quem é dela e sem cadastro', async ({ page }) => {
@@ -350,7 +355,7 @@ test('Diretoria: menu do módulo abre Mentorados, ficha e Configurações', asyn
   await page.waitForURL(/\/acompanhamento\/mentorados/);
   await page.getByRole('link', { name: /Mentorado Fictício 01/ }).click();
   await page.waitForURL(/\/acompanhamento\/ficha\//);
-  await page.getByRole('tab', { name: 'Momento inicial', exact: true }).click();
+  await page.getByRole('tab', { name: 'Pessoa', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Destravar' })).toBeVisible();
   await expect(lateral(page).getByRole('link', { name: /^Ficha do mentorado/ })).toContainText(
     'Última: Mentorado Fictício 01',

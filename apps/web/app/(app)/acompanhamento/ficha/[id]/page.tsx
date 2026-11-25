@@ -35,7 +35,9 @@ export default async function FichaPage({
   // A aba Evolução só para quem a vê (spec §5.1): sem acesso, o link cai na aba padrão.
   const permitida = (a: string | undefined) =>
     a === 'evolucao' && !ficha.pode.verEvolucao ? undefined : a;
-  const abaDaUrl = permitida(aba) !== undefined && abaValida(aba) === aba;
+  // `?aba=momento` (links de antes da NPAC-76) conta como pedido da aba Pessoas.
+  const abaDaUrl =
+    permitida(aba) !== undefined && abaValida(aba) === (aba === 'momento' ? 'pessoas' : aba);
   return (
     <Ficha
       key={id}

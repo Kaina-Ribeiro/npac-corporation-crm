@@ -59,11 +59,16 @@ export function Icone({
   );
 }
 
-export type Aba = 'jornada' | 'inscricao' | 'pessoas' | 'momento' | 'evolucao' | 'historico';
-const ABAS: Aba[] = ['jornada', 'inscricao', 'pessoas', 'momento', 'evolucao', 'historico'];
-/** Aba da ficha pedida na URL; fica aqui porque a página de servidor a lê. */
-export const abaValida = (a: string | undefined): Aba =>
-  ABAS.includes(a as Aba) ? (a as Aba) : 'jornada';
+export type Aba = 'jornada' | 'inscricao' | 'pessoas' | 'evolucao' | 'historico';
+const ABAS: Aba[] = ['jornada', 'inscricao', 'pessoas', 'evolucao', 'historico'];
+/**
+ * Aba da ficha pedida na URL; fica aqui porque a página de servidor a lê. A aba Momento inicial saiu
+ * (NPAC-76): o diagnóstico está na aba Pessoas, então link e cookie antigos com `momento` abrem ela.
+ */
+export const abaValida = (a: string | undefined): Aba => {
+  const pedida = a === 'momento' ? 'pessoas' : a;
+  return ABAS.includes(pedida as Aba) ? (pedida as Aba) : 'jornada';
+};
 
 /** Foco de cada mês do RDV (PDF): 2M e 6M não têm nome por mês. */
 export const FOCOS_RDV = [

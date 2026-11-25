@@ -5711,3 +5711,126 @@
     color: var(--ink3);
   }
 }
+
+/* Diagnóstico da aba Pessoas (NPAC-76): as 20 perguntas da planilha da Duda, numeradas, no visual
+   das linhas `.pr`/`.pv`. No celular o número e a pergunta ficam em cima e a resposta embaixo; a
+   partir de 768 px, numa linha só. O 16 px ao tocar vem da regra de `globals.css`. */
+.ac {
+  .dg-rostos {
+    flex: none;
+    display: inline-flex;
+  }
+  .dg-rosto-b {
+    margin-left: -14px;
+  }
+  .dg-rosto-b .ava {
+    box-shadow: 0 0 0 2px var(--gl-solid);
+  }
+  .dg-h {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+  }
+  .dg-tit {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+  }
+  .pa .dg-tit h3 {
+    margin: 0;
+  }
+  .dg {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    margin-bottom: 4px;
+  }
+  .dg-l {
+    display: grid;
+    grid-template-columns: 22px minmax(0, 1fr);
+    align-items: center;
+    column-gap: 8px;
+    row-gap: 2px;
+    min-height: 44px;
+    padding: 6px 4px;
+    border-bottom: 1px solid var(--line);
+  }
+  .dg-n {
+    font-size: 12px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    color: var(--ink3);
+  }
+  .dg-r {
+    font-size: 13px;
+    color: var(--ink2);
+  }
+  .dg-v,
+  .dg-par {
+    grid-column: 2;
+  }
+  .dg-par {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(96px, 34%);
+    gap: 6px;
+  }
+  .dg-par > .dg-v {
+    grid-column: auto;
+  }
+  .dg-tx {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    padding: 8px;
+    border: 0;
+    border-radius: 8px;
+    background: var(--fill);
+    font: inherit;
+    font-size: 15px;
+    line-height: 20px;
+    color: var(--ink);
+    resize: vertical;
+  }
+  .dg-tx::placeholder {
+    color: var(--ink3);
+  }
+  .dg-tx:focus {
+    outline: none;
+    box-shadow: inset 0 0 0 1px var(--gold-ring);
+  }
+  .dg-tx:read-only {
+    background: transparent;
+    color: var(--ink2);
+    resize: none;
+  }
+  .dg-total {
+    padding: 8px 4px 8px 34px;
+    font-size: 13px;
+    color: var(--ink2);
+    border-bottom: 1px solid var(--line);
+  }
+  .dg-total b {
+    font-weight: 600;
+    color: var(--ink);
+  }
+  @media (min-width: 768px) {
+    .dg-l {
+      grid-template-columns: 22px 190px minmax(0, 1fr);
+    }
+    .dg-v,
+    .dg-par {
+      grid-column: 3;
+    }
+    .dg-longo {
+      align-items: start;
+    }
+    .dg-longo .dg-n,
+    .dg-longo .dg-r {
+      padding-top: 10px;
+    }
+    .dg-total {
+      padding-left: 232px;
+    }
+  }
+}

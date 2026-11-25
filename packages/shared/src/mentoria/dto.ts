@@ -723,7 +723,7 @@ export type EvolucaoDTO = {
   atualAtualizadoPor: string | null;
   fotoInicial: { id: string; em: string } | null;
   fotoAtual: { id: string; em: string } | null;
-  /** Da aba Momento inicial, só leitura. */
+  /** Do Momento inicial (o diagnóstico da aba Pessoas, NPAC-76), só leitura. */
   daAba: { dor: string | null; sonho: string | null; meta: string | null };
   partida: {
     recebeCentavos: number | null;
