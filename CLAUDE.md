@@ -29,6 +29,7 @@ pnpm 12 + Turborepo, Node ≥22, Postgres 16 no Docker. Prefixos: `api/` = `apps
   `sh/schemas/lead.ts`, `lead-update.ts` · usuário/pedido de acesso `sh/schemas/account.ts` ·
   DTOs `sh/dto.ts`, `finance.ts`, `today.ts` · dinheiro/datas BR `sh/money.ts`, `dates.ts`
   · filtros lembrados `sh/screen-prefs.ts` (`@npac/shared/screen-prefs`)
+  · versão e novidades `sh/novidades.ts` (`@npac/shared/novidades`, NPAC-77)
 - **Banco:** schema `db/src/schema/*.ts` · migrations `db/drizzle/00NN_*.sql` + `meta/` ·
   `withUser`, `leadContactTaken` `db/src/with-user.ts` · seed `db/src/seed*.ts`
 - **Auth:** Better Auth (username, TOTP, auditoria, rate limit) `api/auth/auth.ts` · sessão e
@@ -807,6 +808,27 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
   Ação nova do mesmo tipo segue o padrão.
 - Erros da API em português para o usuário final (`BadRequestException('…')`); o `clientApi` mostra a
   mensagem, as padrão do Nest viram texto genérico. `clientApi` aceita 204.
+
+## Versão e novidades (NPAC-77, 25/11/2026)
+
+Spec `docs/superpowers/specs/2026-11-25-npac-77-versao-e-novidades-design.md`, plano `docs/plans/npac-77-versao-e-novidades.md`,
+mock `docs/prototipos/novidades/index.html`. Gabriel: "1A, 2A, 3A, 4A". Fase 1 pronta (número e "já vi"); a janela é a Fase 2.
+
+- **Número**: o adaptador Cubeship do release-kit grava `APP_VERSION=<tag>` no app a cada deploy (kit PR #17; até a release
+  do kit, "dev"). A API lê (`api/config/env.ts`) e `GET /api/me` traz `versao` = `versaoNaTela(tag)`: X.Y.Z sem `-rc`/`-hf`
+  (a produção roda a última rc); local e e2e, "dev".
+- **Novidades**: `sh/novidades.ts` (`@npac/shared/novidades`, sem zod), a mais nova primeiro. **PR com mudança que a equipe vê
+  acrescenta uma entrada no topo, no mesmo PR** (português simples, sem contato; `id` único e estável, nunca renomear); PR só
+  interno não mexe (D4: a janela não abre, só o número muda). Quem vê: `para` (`todos`, `comercial`, `sdr` = SDR + Head,
+  `closer` = Closer + Head, `acompanhamento`, `acompanhamento-admin`) e os recortes opcionais `cargos` (comercial) e `perfis`
+  (módulo); a Diretoria vê tudo (`novidadeVisivel`, casos em `shared/test/novidades.test.ts`).
+- **"Já vi"**: `user.novidades_vista` (0088, id da mais nova vista; sem RLS, como o resto de `user`). Vazia (conta nova, subida):
+  o `/api/me` grava a mais nova e nada abre (S2). `POST /api/me/novidades/vista { ate }` (todos os cargos) só avança
+  (`vistaAvanca`); id desconhecido 400; sem auditoria. Não vistas = `naoVistas(pessoa, vista)`; id que saiu do arquivo = tudo visto.
+- **Rodapé** (`components/shell/versao-rodape.tsx`, componente de servidor: o arquivo não vai para o JS): "• Versão X.Y.Z · O que
+  mudou" embaixo de Sair/Alternar tema, dentro do `.side-fold` (some com a barra recolhida e no tablet em pé); no celular, no
+  `ContaCard` do `/mais` e do `/acompanhamento/mais` (`me` inteiro como prop). Ponto dourado com não vista (`data-novo`). O botão
+  leva `data-novidades` e ainda não abre nada (Fase 2). e2e `e2e/versao-rodape.spec.ts`; API `test/novidades.e2e.test.ts`.
 
 ## Meu perfil (NPAC-53, 18/11/2026)
 

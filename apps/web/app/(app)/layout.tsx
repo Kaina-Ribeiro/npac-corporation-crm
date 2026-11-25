@@ -14,6 +14,7 @@ import { BottomNav } from '@/components/shell/bottom-nav';
 import { Sidebar } from '@/components/shell/sidebar';
 import { SidebarShell } from '@/components/shell/sidebar-shell';
 import { SignOutButton } from '@/components/shell/sign-out-button';
+import { VersaoRodape } from '@/components/shell/versao-rodape';
 import { Avatar, AVATAR_EU } from '@/components/avatar';
 import { RoleTag } from '@/components/role-tag';
 import { pendingAccessRequests } from '@/lib/access-requests';
@@ -97,6 +98,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                   <SignOutButton />
                   <ThemeToggle />
                 </div>
+                <VersaoRodape me={me} variante="side" />
               </div>
             </div>
           </div>

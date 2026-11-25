@@ -71,6 +71,11 @@ const envSchema = z
       .optional(),
     /** Endereço da API do Telegram; só os testes trocam (servidor falso, nada sai da máquina). */
     TELEGRAM_API_URL: z.url().default('https://api.telegram.org'),
+    /**
+     * Tag que está no ar (`v0.25.0-rc`…), gravada no app pelo adaptador Cubeship do release-kit a
+     * cada deploy (NPAC-77). Sem ela (local, e2e), o rodapé mostra "dev".
+     */
+    APP_VERSION: z.string().trim().max(64).optional(),
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   })
   .refine((e) => !e.MENTORADO_ENCRYPTION_KEY.equals(e.FIELD_ENCRYPTION_KEY), {
