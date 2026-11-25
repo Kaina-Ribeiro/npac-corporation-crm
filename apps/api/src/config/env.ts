@@ -49,6 +49,28 @@ const envSchema = z
     SMTP_PASS: z.string().min(1).optional(),
     /** Remetente, ex.: `NPAC Corporation <npac.crm.sistema@gmail.com>` (no Gmail, o endereço da conta). */
     MAIL_FROM: z.string().min(3).optional(),
+    /**
+     * Avisos pelo Telegram (NPAC-74): token e nome do bot (do @BotFather) e o segredo que o Telegram
+     * manda no cabeçalho do webhook. As três juntas; sem elas, desligado (seção some do perfil, 404).
+     */
+    TELEGRAM_BOT_TOKEN: z
+      .string()
+      .regex(/^\d+:[\w-]{30,}$/, 'TELEGRAM_BOT_TOKEN no formato do @BotFather (123:ABC…)')
+      .optional(),
+    TELEGRAM_BOT_USERNAME: z
+      .string()
+      .transform((v) => v.replace(/^@/, ''))
+      .pipe(z.string().regex(/^\w{5,32}$/, 'TELEGRAM_BOT_USERNAME = o nome do bot, sem @'))
+      .optional(),
+    TELEGRAM_WEBHOOK_SECRET: z
+      .string()
+      .regex(
+        /^[\w-]{32,256}$/,
+        'TELEGRAM_WEBHOOK_SECRET: 32 a 256 caracteres A-Z, a-z, 0-9, _ ou -',
+      )
+      .optional(),
+    /** Endereço da API do Telegram; só os testes trocam (servidor falso, nada sai da máquina). */
+    TELEGRAM_API_URL: z.url().default('https://api.telegram.org'),
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   })
   .refine((e) => !e.MENTORADO_ENCRYPTION_KEY.equals(e.FIELD_ENCRYPTION_KEY), {
@@ -63,6 +85,26 @@ const envSchema = z
     message: 'MAIL_FROM é obrigatória com SMTP_HOST (remetente dos e-mails)',
     path: ['MAIL_FROM'],
   })
+  .refine(
+    (e) =>
+      [e.TELEGRAM_BOT_TOKEN, e.TELEGRAM_BOT_USERNAME, e.TELEGRAM_WEBHOOK_SECRET].every((v) => !v) ||
+      [e.TELEGRAM_BOT_TOKEN, e.TELEGRAM_BOT_USERNAME, e.TELEGRAM_WEBHOOK_SECRET].every((v) => !!v),
+    {
+      message:
+        'TELEGRAM_BOT_TOKEN, TELEGRAM_BOT_USERNAME e TELEGRAM_WEBHOOK_SECRET vêm juntas (ou nenhuma)',
+      path: ['TELEGRAM_BOT_TOKEN'],
+    },
+  )
+  .refine(
+    (e) =>
+      e.TELEGRAM_API_URL.startsWith('https:') ||
+      /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?\/?$/.test(e.TELEGRAM_API_URL),
+    {
+      // O token do bot vai no caminho da URL: fora da máquina, só por https.
+      message: 'TELEGRAM_API_URL precisa ser https: (http só para localhost, nos testes)',
+      path: ['TELEGRAM_API_URL'],
+    },
+  )
   .refine((e) => !e.SMTP_USER === !e.SMTP_PASS, {
     message: 'SMTP_USER e SMTP_PASS vêm juntas (ou nenhuma, para servidor sem login)',
     path: ['SMTP_PASS'],

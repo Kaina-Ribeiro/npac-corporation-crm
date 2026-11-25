@@ -6,12 +6,17 @@
 //   GET  http://localhost:2526/mensagens    # [{ to, subject, text, html }], mais nova por último
 //   DELETE http://localhost:2526/mensagens  # esvazia
 //
+// Também um Telegram falso (NPAC-74): API com TELEGRAM_API_URL=http://localhost:2526; o que o bot
+// mandaria (sendMessage, setWebhook) fica em GET/DELETE http://localhost:2526/telegram.
+//
 // Só sintaxe que o Node 24 executa direto (tipos são apagados): sem enum nem parameter properties.
 import { createServer as createHttp, type Server as HttpServer } from 'node:http';
 import { createServer as createSmtp, type Server as SmtpServer } from 'node:net';
 import { pathToFileURL } from 'node:url';
 
 export type Mensagem = { to: string[]; subject: string; text: string; html: string };
+/** Chamada à Bot API do Telegram: método (`sendMessage`…) e o corpo JSON. */
+export type ChamadaTelegram = { method: string; body: Record<string, unknown> };
 
 function decode(headers: string, body: string): string {
   const cte = /content-transfer-encoding:\s*([\w-]+)/i.exec(headers)?.[1]?.toLowerCase();
@@ -66,6 +71,7 @@ function parse(raw: string, to: string[]): Mensagem {
 
 export type CaixaFalsa = {
   mensagens: Mensagem[];
+  telegram: ChamadaTelegram[];
   smtpPort: number;
   httpPort: number;
   close(): Promise<void>;
@@ -74,6 +80,7 @@ export type CaixaFalsa = {
 /** Sobe a caixa. Porta 0 = qualquer livre (os testes leem `smtpPort`/`httpPort`). */
 export async function startCaixaFalsa(opts: { smtpPort?: number; httpPort?: number } = {}) {
   const mensagens: Mensagem[] = [];
+  const telegram: ChamadaTelegram[] = [];
   const smtp: SmtpServer = createSmtp((socket) => {
     let buffer = '';
     let data: string[] | null = null;
@@ -124,6 +131,29 @@ export async function startCaixaFalsa(opts: { smtpPort?: number; httpPort?: numb
     });
   });
   const http: HttpServer = createHttp((req, res) => {
+    const bot = /^\/bot[^/]+\/(\w+)$/.exec(req.url ?? '');
+    if (bot && req.method === 'POST') {
+      const parts: Buffer[] = [];
+      req.on('data', (c: Buffer) => parts.push(c));
+      req.on('end', () => {
+        let body: Record<string, unknown> = {};
+        try {
+          body = JSON.parse(Buffer.concat(parts).toString('utf8')) as Record<string, unknown>;
+        } catch {
+          // corpo vazio
+        }
+        telegram.push({ method: bot[1]!, body });
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, result: true }));
+      });
+      return;
+    }
+    if (req.url === '/telegram') {
+      if (req.method === 'DELETE') telegram.length = 0;
+      res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify(telegram));
+      return;
+    }
     if (req.url !== '/mensagens') {
       res.writeHead(404).end();
       return;
@@ -146,7 +176,7 @@ export async function startCaixaFalsa(opts: { smtpPort?: number; httpPort?: numb
     Promise.all(
       [smtp, http].map((s) => new Promise<void>((resolve) => s.close(() => resolve()))),
     ).then(() => undefined);
-  const caixa: CaixaFalsa = { mensagens, smtpPort, httpPort, close };
+  const caixa: CaixaFalsa = { mensagens, telegram, smtpPort, httpPort, close };
   return caixa;
 }
 

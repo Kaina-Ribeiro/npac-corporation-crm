@@ -29,7 +29,10 @@ export function ListaTopicos({
   );
 }
 
-/** Dor, sonho e meta da aba Momento inicial, como tópicos com rótulo (os vazios saem). */
+/**
+ * Dor, sonho e meta gravados no Momento inicial, como tópicos com rótulo (os vazios saem). Desde a
+ * NPAC-76 só o sonho ("Sonhos e objetivos" do diagnóstico) se edita; dor e meta antigas continuam.
+ */
 export function topicosDaAba(daAba: {
   dor: string | null;
   sonho: string | null;
@@ -39,7 +42,7 @@ export function topicosDaAba(daAba: {
     v?.trim() ? [{ rotulo, texto: v.trim().replace(/\s*\r?\n\s*/g, ' ') }] : [];
   return [
     ...linha('Dor', daAba.dor),
-    ...linha('Sonho', daAba.sonho),
+    ...linha('Sonhos e objetivos', daAba.sonho),
     ...linha('Meta de 12 meses', daAba.meta),
   ];
 }
@@ -51,7 +54,7 @@ export function rotuloMesAtual(ficha: Pick<FichaDTO, 'mesJornada' | 'mentoria'>)
   return mes > 12 ? 'Jornada concluída' : `Mês ${mes} de 12`;
 }
 
-/** Data de início: a da jornada; sem ela, a do Momento inicial. */
+/** Data de início: a da jornada; sem ela, a data antiga do Momento inicial. */
 export const inicioDaFicha = (ficha: Pick<FichaDTO, 'inicioJornada' | 'momento'>) =>
   ficha.inicioJornada ?? ficha.momento?.data ?? null;
 

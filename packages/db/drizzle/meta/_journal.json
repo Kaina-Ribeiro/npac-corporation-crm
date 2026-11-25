@@ -596,6 +596,20 @@
       "when": 1795528182671,
       "tag": "0084_excluir_contato_anotacao",
       "breakpoints": true
+    },
+    {
+      "idx": 85,
+      "version": "7",
+      "when": 1795531944096,
+      "tag": "0085_telegram",
+      "breakpoints": true
+    },
+    {
+      "idx": 86,
+      "version": "7",
+      "when": 1795570350177,
+      "tag": "0086_diagnostico",
+      "breakpoints": true
     }
   ]
 }

@@ -153,8 +153,8 @@ variante="chat"`. Campos de 17 px ficam fora da regra dos 16 px com `.ch-campo`.
   Parte 4 (0070): itens novos da Fila (`mentoria_fila`, `fila.service.ts`, degraus em `sh/mentoria/fila.ts`), contato do degrau
   (`reunioes.service.ts`), aba 7 `pmes-ciclos.controller.ts` + `web/app/(app)/acompanhamento/pmes`, `components/acompanhamento/pmes-ciclos.tsx`;
   **Evolução** (NPAC-57, 22/11/2026, spec `docs/superpowers/specs/2026-11-21-aba-evolucao-design.md`, plano
-  `docs/plans/npac-57-aba-evolucao.md`, opção A): aba da ficha com cartões antes → hoje, Momento inicial (da aba Momento
-  inicial) × Momento atual com foto e tópicos, Pontos de partida dos 4 pilares, Conquistas e "Baixar PDF". Banco 0076:
+  `docs/plans/npac-57-aba-evolucao.md`, opção A): aba da ficha com cartões antes → hoje, Momento inicial (do diagnóstico
+  da aba Pessoas, NPAC-76) × Momento atual com foto e tópicos, Pontos de partida dos 4 pilares, Conquistas e "Baixar PDF". Banco 0076:
   `mentoria_evolucao` (uma por inscrição, textos cifrados com AAD, `version`; `atual_atualizado_em/por` gravados pelo gatilho
   `mentoria_evolucao_guarda`) e `mentoria_conquistas` (sem UPDATE; sai só por `mentoria_conquista_excluir`), área `EVOLUCAO`
   em `mentoria_edita`. Veem e baixam o PDF Admin, Acompanhamento ("só a carteira": a carteira) e Operação
@@ -233,6 +233,26 @@ variante="chat"`. Campos de 17 px ficam fora da regra dos 16 px com `.ch-campo`.
   alguém ativo nele (`mentoria_tem_envios()`), senão à Operação; push "Tem envio para hoje" às 8h (`envios:<dia>`, a quem é
   Envios, havendo algo a enviar; `ENVIOS_PAYLOAD` no `avisos.scheduler.ts`). Testes: `db/test/mentoria-envios.test.ts`,
   `fila-equivalencia` (bloco Parte 2), `api/test/mentoria-v2-envios.e2e.test.ts`, `e2e/acompanhamento-envios.spec.ts`.
+
+- **Diagnóstico na aba Pessoas** (NPAC-76, 24/11/2026; Gabriel: "uma das partes mais importantes"; spec
+  `docs/superpowers/specs/2026-11-24-npac-76-diagnostico-design.md`, plano `docs/plans/npac-76-diagnostico.md`, desenho no
+  canvas aprovado): a **aba Momento inicial saiu**; a aba Pessoa(s) (`ficha-pessoas.tsx`; **uma só no casal**, sem seletor)
+  tem o cabeçalho com os rostos, o **Diagnóstico** (as 20 perguntas da planilha "Diagnóstico" da Duda, numeradas, na ordem
+  dela) e "Contato e entrega" (WhatsApp, e-mail e pulseira de cada pessoa; endereço, CEP e foto da família, que Envios e Fila
+  usam). Nome e Cidade = pessoa 1 e "Nome do parceiro(a)" = pessoa 2 no casal (área `INSCRICAO`, não travam); no
+  individual o parceiro e o resto vão em `mentoria_momento_inicial` (área `MOMENTO`, travam no "Concluir", Admin destrava).
+  0086: colunas novas com texto cifrado e AAD pela coluna (`COLUNA_TEXTO` em `ficha.service.ts`, `MOMENTO_TEXTOS` em
+  `sh/schemas/mentoria.ts`), `divida_1..3_centavos` e o gatilho `mentoria_momento_dividas_total` (mudou um valor de dívida →
+  `dividas_centavos` = soma e `tem_dividas` = total > 0; as três vazias → nulos; sem mexer nos valores, nada muda, como na
+  importação); a 0086 copiou o total antigo para a Dívida 1. Renda atual/Dinheiro guardado/Custo médio mensal/Sonhos e
+  objetivos são as colunas de antes (`recebe_`, `guardado_`, `custo_centavos`, `sonho`), que a Evolução e o PDF continuam
+  lendo (rótulos novos). Saíram da tela, **com o dado guardado**: Como prefere (as mensagens `{nome}` usam o apelido antigo
+  ou o primeiro nome), Instagram, Nascimento, UF, Profissão, Ocupação, Filhos, Idades, Tecnologia, Melhor horário, Canal,
+  Veio de, Data, Tem dívidas?, dor, meta, Prova e notas dos pilares. `?aba=momento` e cookie com `momento` abrem a aba Pessoas
+  (`abaValida` em `ui.tsx`). Exclusão e LGPD apagam a linha inteira; nada do diagnóstico no CSV. Testes: `db/test/mentoria-v2-rls`
+  (bloco NPAC-76), `api/test/mentoria-v2-base`, `e2e/acompanhamento-diagnostico.spec.ts`; capturas
+  `CAPTURAS=<pasta> … e2e/capturas-diagnostico.spec.ts`. Pré-preencher com o diagnóstico do gerenciador antigo e a aba ACM
+  da planilha ficam para depois.
 
 **Navegação e carregamento** (desempenho, Fase 2, 12/11/2026): o menu usa o `prefetch` padrão do Next
 (rota dinâmica sem `loading.tsx` não pré-carrega a página); `semPrefetch` (Ficha e itens "Em breve")
@@ -851,6 +871,27 @@ protótipo no canvas "Meu perfil". Gabriel aprovou com "1A, 2A, 3A".
   no servidor (limpeza, 404/410, aparelho que passou para outra pessoa) deixava o aparelho "ligado", sem receber e sem
   convite. "Ativar avisos" reaproveita a inscrição do navegador e registra de novo, sem pedir a permissão outra vez.
   Se a consulta falhar, não convida. e2e em `avisos-no-celular.spec.ts`.
+- **Avisos pelo Telegram** (NPAC-74, Igor 24/11/2026: "igual o bot que ele fez no Telegram"; spec
+  `docs/superpowers/specs/2026-11-24-avisos-telegram-design.md`): cada pessoa conecta o próprio Telegram no Meu perfil
+  (seção "Avisos pelo Telegram", `components/conta/telegram.tsx`; peças comuns do perfil em `conta/perfil-ui.tsx`) e
+  recebe lá **os mesmos avisos do push**, além do push (S2). "Conectar Telegram" → `POST /api/me/telegram/code` (32 bytes
+  base64url, uso único, 10 min, só o SHA-256 em `telegram_codigos` por `telegram_codigo`) → abre `t.me/<bot>?start=<código>`
+  → "Começar" → `POST /api/webhooks/telegram` (`@Public`, cabeçalho `X-Telegram-Bot-Api-Secret-Token` comparado em tempo
+  constante; errado ou sem as variáveis, 404; só `/start` em chat privado, nada do que chega vai para log) →
+  `telegram_conectar` (0085, SECURITY DEFINER, **só sem sessão**: grava `telegram_vinculos` com o chat cifrado e índice cego
+  único, um Telegram por pessoa, conta desativada não conecta) → o bot responde. A tela confere `GET /api/me/telegram` a
+  cada 4 s e ao voltar para a aba, até o código vencer. `telegram_vinculos`: cada um vê e apaga só o seu (RLS), ninguém
+  grava direto; `push_purge_user` (desativar) apaga vínculo e código. **Envio**: `PushService.notify` chama
+  `TelegramService.notify` (`api/telegram/*`) junto com o push: `<b>title</b>` + `body` e o botão "Abrir no CRM"
+  (`WEB_ORIGIN` + `url`, só `https:`), lido como a pessoa, fora da transação, em paralelo, 10 s de limite; 403 (bloqueou o
+  bot) apaga o vínculo. Texto igual ao do push, com o nome do lead (S1, sem o sim do Gabriel; `TELEGRAM_SEM_NOME` em
+  `telegram/telegram.ts` troca por "Novo aviso no CRM"). Log só `telegram enviado|recusado|sem resposta: <status> <host>`.
+  Variáveis `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`, `TELEGRAM_WEBHOOK_SECRET` (juntas; sem elas `telegram: null` no
+  `GET /api/me/profile`, a seção some e as rotas dão 404); `TELEGRAM_API_URL` só nos testes. O webhook é registrado
+  sozinho ao subir (`setWebhook`, com `WEB_ORIGIN` `https:`). Bots: `npac_itodev_bot` (ITODEV) e `npac_oficial_bot` (prod).
+  Testes: `db/test/telegram.test.ts`, `api/test/telegram.e2e.test.ts` (`MemoryTelegramSender`), `telegram-sender.test.ts`,
+  `e2e/telegram.spec.ts` (a caixa falsa, `scripts/caixa-falsa.mts`, também finge a Bot API em `/bot*/<método>` e lista em
+  `/telegram`).
 - **Convite para ativar** (NPAC-48, pedido do Igor 16/11/2026: a equipe não sabia que dava):
   `components/push-invite.tsx` no topo do Dashboard, Hoje, Chat (dentro da coluna, para o campo não sair
   da tela) e Fila do Acompanhamento; fora do layout para não pesar no JS de `/leads`. Só aparece se dá
@@ -912,7 +953,7 @@ protótipo no canvas "Meu perfil". Gabriel aprovou com "1A, 2A, 3A".
   Função SQL grande nova do módulo: mesma linha, e tabela de uma linha lida como valor único (`(select … )`).
 - Aplicar no dev: `pnpm --filter @npac/db build && pnpm --filter @npac/db migrate`.
   psql: `docker exec npac-corporation-postgres-1 psql -U npac_owner -d npac`.
-- Apagar lead/usuário à mão (a foto `user_photos` e os vínculos `area_membros` saem em cascata): FKs em `form_responses`, `sdr_sale_marks`, `chat_reads`, `chat_*`, `payments`, `deals`, `lead_notes`,
+- Apagar lead/usuário à mão (a foto `user_photos`, os vínculos `area_membros` e o Telegram `telegram_vinculos`/`telegram_codigos` saem em cascata): FKs em `form_responses`, `sdr_sale_marks`, `chat_reads`, `chat_*`, `payments`, `deals`, `lead_notes`,
   `lead_tasks`, `notifications`, `lead_timeline`, `meetings` (`meeting_confirmations` e
   `meeting_reminders_sent` em cascata), `lgpd_requests` (usuário: também `session`, `account`,
   `push_subscriptions`). `truncate` de `meetings` nos testes lista as duas tabelas de lembretes.

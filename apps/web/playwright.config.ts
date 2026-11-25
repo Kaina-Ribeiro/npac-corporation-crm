@@ -8,6 +8,8 @@ import {
   CAIXA_SMTP_PORT,
   CAIXA_URL,
   E2E_FORMS_TOKEN,
+  E2E_TELEGRAM,
+  TELEGRAM_FALSO,
   WEB_ORIGIN,
   WEB_PORT,
 } from './e2e/env.js';
@@ -27,6 +29,9 @@ const apiEnv = {
   SMTP_HOST: '127.0.0.1',
   SMTP_PORT: String(CAIXA_SMTP_PORT),
   MAIL_FROM: 'NPAC <crm@npac.test>',
+  // Avisos pelo Telegram (NPAC-74) para o Telegram falso da caixa: nada sai da máquina.
+  ...E2E_TELEGRAM,
+  TELEGRAM_API_URL: TELEGRAM_FALSO,
   // O e2e prova o MFA real de HEAD, independente do .env local.
 } as Record<string, string>;
 

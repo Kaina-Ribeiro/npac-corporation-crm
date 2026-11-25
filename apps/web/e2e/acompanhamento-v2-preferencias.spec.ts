@@ -239,11 +239,16 @@ test.describe('filtros lembrados: ficha', () => {
     const b = await inscricao('Mentorado Fictício Pref B');
     await entrar(page, 'duda');
     await page.goto(`/acompanhamento/ficha/${a}`);
-    const momento = page.getByRole('tab', { name: 'Momento inicial' });
+    const historico = page.getByRole('tab', { name: 'Histórico' });
     const pessoa = page.getByRole('tab', { name: 'Pessoa', exact: true });
-    await momento.click();
+    await historico.click();
     await page.goto(`/acompanhamento/ficha/${b}`);
-    await expect(momento).toHaveAttribute('aria-selected', 'true');
+    await expect(historico).toHaveAttribute('aria-selected', 'true');
+    // A aba Momento inicial saiu (NPAC-76): link antigo abre a aba Pessoa, onde está o diagnóstico.
+    await page.goto(`/acompanhamento/ficha/${a}?aba=momento`);
+    await expect(pessoa).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByRole('tab', { name: 'Momento inicial' })).toHaveCount(0);
+    await historico.click();
 
     // Link com ?aba= (Fila, Ctrl+K) vence e passa a ser o lembrado.
     await page.goto(`/acompanhamento/ficha/${b}?aba=pessoas`);

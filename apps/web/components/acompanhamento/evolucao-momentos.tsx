@@ -160,10 +160,10 @@ export function Momentos({
         </div>
         <div className="bloco">
           <div className="bloco-h">
-            <span>Da aba Momento inicial</span>
+            <span>Do diagnóstico</span>
             <a
               className="ver-aba"
-              href="?aba=momento"
+              href="?aba=pessoas"
               onClick={(e) => {
                 e.preventDefault();
                 irMomento();
@@ -175,7 +175,7 @@ export function Momentos({
           {daAba.length ? (
             <ListaTopicos itens={daAba} />
           ) : (
-            <p className="nada">Nada escrito ainda na aba Momento inicial.</p>
+            <p className="nada">Nada escrito ainda no diagnóstico (aba Pessoas).</p>
           )}
         </div>
         <div className="bloco">

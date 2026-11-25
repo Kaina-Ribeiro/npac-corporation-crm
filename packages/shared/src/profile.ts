@@ -18,4 +18,9 @@ export type ProfileDTO = {
   email: string;
   photo: string | null;
   mailEnabled: boolean;
+  /** Avisos pelo Telegram (NPAC-74); `null` = desligado no servidor (a seção não aparece). */
+  telegram: TelegramStatusDTO | null;
 };
+
+/** `GET /api/me/telegram`: conectado e desde quando (ISO). */
+export type TelegramStatusDTO = { connected: boolean; since: string | null };

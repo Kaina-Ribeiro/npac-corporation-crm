@@ -6,10 +6,10 @@ import { money } from '@npac/shared/money';
 type Partida = Pick<EvolucaoDTO, 'partida' | 'pilares'>;
 
 const NUMEROS = [
-  ['Recebe por mês', 'recebeCentavos'],
-  ['Custo mensal', 'custoCentavos'],
+  ['Renda atual', 'recebeCentavos'],
+  ['Custo médio mensal', 'custoCentavos'],
   ['Dívidas', 'dividasCentavos'],
-  ['Guardado', 'guardadoCentavos'],
+  ['Dinheiro guardado', 'guardadoCentavos'],
 ] as const;
 
 const PILARES = [

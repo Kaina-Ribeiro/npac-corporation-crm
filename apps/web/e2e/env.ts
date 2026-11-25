@@ -18,6 +18,13 @@ export const WEB_ORIGIN = `http://localhost:${WEB_PORT}`;
 export const CAIXA_SMTP_PORT = API_PORT + 25;
 export const CAIXA_HTTP_PORT = API_PORT + 26;
 export const CAIXA_URL = `http://localhost:${CAIXA_HTTP_PORT}/mensagens`;
+/** Telegram falso (NPAC-74): a mesma caixa responde como a Bot API e guarda o que o bot mandaria. */
+export const TELEGRAM_FALSO = `http://localhost:${CAIXA_HTTP_PORT}`;
+export const E2E_TELEGRAM = {
+  TELEGRAM_BOT_TOKEN: '123456:BotDeMentiraDoE2eBotDeMentiraDoE2e',
+  TELEGRAM_BOT_USERNAME: 'npac_e2e_bot',
+  TELEGRAM_WEBHOOK_SECRET: 'segredo-do-webhook-telegram-so-no-e2e',
+};
 
 export function e2eDbUrl(user?: string, password?: string): string {
   const raw = process.env.TEST_DATABASE_URL;

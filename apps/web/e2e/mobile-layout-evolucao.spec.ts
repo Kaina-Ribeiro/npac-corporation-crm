@@ -70,7 +70,7 @@ test('aba Evolução no iPhone: sem rolagem lateral, aba à vista, toques de 44 
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
     );
     expect(sobra, `rolagem lateral em ${largura}px`).toBeLessThanOrEqual(0);
-    // A fileira de abas rolou até a aberta (a Evolução fica depois do Momento inicial).
+    // A fileira de abas rolou até a aberta (a Evolução fica depois da aba Pessoas).
     const fileira = await page.locator('.tabs').boundingBox();
     const ativa = await page.getByRole('tab', { name: 'Evolução' }).boundingBox();
     expect(ativa!.x).toBeGreaterThanOrEqual(fileira!.x - 1);

@@ -17,6 +17,12 @@ import {
 import { REMINDER_CLOCK, type Clock } from '../src/push/reminders.js';
 import { MAIL_SENDER, type MailMessage, type MailSender } from '../src/mail/mail.js';
 import { MENTORIA_CLOCK } from '../src/mentoria/relogio.js';
+import {
+  TELEGRAM_SENDER,
+  type TelegramButton,
+  type TelegramResult,
+  type TelegramSender,
+} from '../src/telegram/telegram.js';
 
 /** Push de mentira: guarda o que seria enviado; `gone` simula inscrição expirada. */
 export class MemoryPushSender implements PushSender {
@@ -27,6 +33,24 @@ export class MemoryPushSender implements PushSender {
     if (this.gone.has(target.endpoint)) return Promise.resolve('gone');
     this.sent.push({ endpoint: target.endpoint, payload });
     return Promise.resolve('ok');
+  }
+}
+
+/** Telegram de mentira: guarda as mensagens; `blocked` simula quem bloqueou o bot (403). */
+export class MemoryTelegramSender implements TelegramSender {
+  sent: { chat: string; html: string; button?: TelegramButton }[] = [];
+  webhooks: { url: string; secret: string }[] = [];
+  blocked = new Set<string>();
+  fail = false;
+  send(chat: string, html: string, button?: TelegramButton): Promise<TelegramResult> {
+    if (this.blocked.has(chat)) return Promise.resolve('gone');
+    if (this.fail) return Promise.resolve('error');
+    this.sent.push({ chat, html, ...(button ? { button } : {}) });
+    return Promise.resolve('ok');
+  }
+  setWebhook(url: string, secret: string): Promise<boolean> {
+    this.webhooks.push({ url, secret });
+    return Promise.resolve(true);
   }
 }
 
@@ -115,6 +139,8 @@ export async function createTestApp(): Promise<NestFastifyApplication> {
     .useValue(new MemoryPushSender())
     .overrideProvider(MAIL_SENDER)
     .useValue(new MemoryMailSender())
+    .overrideProvider(TELEGRAM_SENDER)
+    .useValue(new MemoryTelegramSender())
     .overrideProvider(REMINDER_CLOCK)
     .useValue(new FakeClock())
     .overrideProvider(MENTORIA_CLOCK)

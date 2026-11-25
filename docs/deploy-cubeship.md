@@ -75,6 +75,14 @@ mudar as cinco variáveis. Sem `SMTP_HOST`, a tela manda pedir à liderança. O 
 `e-mail enviado: <servidor>` ou `e-mail não enviado: <código> <servidor>` (ETIMEDOUT/ECONNECTION =
 porta 465/587 bloqueada na saída do servidor).
 
+Telegram (opcional, só no app `api`; NPAC-74, avisos pelo Telegram): `TELEGRAM_BOT_TOKEN` (o token que o
+@BotFather dá, `123456:ABC…`), `TELEGRAM_BOT_USERNAME` (o nome do bot, sem @: `npac_itodev_bot` no ITODEV,
+`npac_oficial_bot` em produção) e `TELEGRAM_WEBHOOK_SECRET` (gere com `openssl rand -hex 32`). As três juntas; sem elas a
+seção "Avisos pelo Telegram" some do Meu perfil e as rotas dão 404. Um bot por ambiente (o webhook de um bot aponta para
+um endereço só). Ao subir, a api registra o webhook em `WEB_ORIGIN/api/webhooks/telegram` (só com `https:`); o log diz
+`telegram webhook registrado: 200 api.telegram.org` e, a cada aviso, `telegram enviado: 200 api.telegram.org` ou
+`telegram recusado: <código> api.telegram.org`.
+
 As chaves VAPID ligam o push do navegador (avisos do chat e lembretes de reunião). Sem elas
 a API sobe normalmente e só a tela avisa. Trocar o par invalida as inscrições dos aparelhos:
 cada pessoa ativa de novo em `/conta/avisos`.

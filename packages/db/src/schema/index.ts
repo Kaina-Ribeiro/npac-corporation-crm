@@ -14,3 +14,4 @@ export * from './mentoria.js';
 export * from './reminders.js';
 export * from './forms.js';
 export * from './revision.js';
+export * from './telegram.js';
