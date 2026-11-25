@@ -828,6 +828,79 @@ export const mentoriaPmes = pgTable(
 );
 
 /**
+ * Banco de itens do cronograma (NPAC-60, C1, C2): experiências, desafios, filmes, livros e EAP.
+ * Material do programa, sem dado pessoal: texto claro. Só a Admin escreve; sem DELETE (esconder =
+ * `ativo = false`). `texto_norm` vem da API (`normalizarItem` do shared) e é único no bloco.
+ */
+export const mentoriaCronogramaItens = pgTable(
+  'mentoria_cronograma_itens',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    bloco: text('bloco').notNull(),
+    texto: text('texto').notNull(),
+    textoNorm: text('texto_norm').notNull(),
+    ordem: integer('ordem').notNull().default(0),
+    ativo: boolean('ativo').notNull().default(true),
+    version: integer('version').notNull().default(1),
+    // Sem FK para user, como o catálogo de PMEs: a importação grava e um `truncate "user"` não leva o banco.
+    criadoPor: text('criado_por'),
+    criadoEm: autoria.criadoEm,
+    atualizadoEm: autoria.atualizadoEm,
+  },
+  (t) => [
+    unique('mentoria_cronograma_itens_texto_unico').on(t.bloco, t.textoNorm),
+    index('mentoria_cronograma_itens_ordem').on(t.bloco, t.ordem),
+    check(
+      'mentoria_cronograma_itens_bloco',
+      sql`${t.bloco} in ('EXPERIENCIA', 'DESAFIO', 'FILME', 'LIVRO', 'EAP')`,
+    ),
+    check('mentoria_cronograma_itens_texto', sql`char_length(${t.texto}) between 1 and 2000`),
+    check(
+      'mentoria_cronograma_itens_texto_norm',
+      sql`char_length(${t.textoNorm}) between 1 and 2000`,
+    ),
+  ],
+);
+
+/**
+ * O que veio da planilha e não virou tarefa (NPAC-60, C8, C9): recebido antes do sistema, não fez, já
+ * tinha antes (sem número) ou planejado para um PME futuro (`tarefa_id` quando sai num envio).
+ */
+export const mentoriaCronogramaAnteriores = pgTable(
+  'mentoria_cronograma_anteriores',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    inscricaoId: uuid('inscricao_id')
+      .notNull()
+      .references(() => mentoriaInscricoes.id, { onDelete: 'cascade' }),
+    itemId: uuid('item_id')
+      .notNull()
+      .references(() => mentoriaCronogramaItens.id),
+    pmeNumero: smallint('pme_numero'),
+    resultado: text('resultado').notNull(),
+    tarefaId: uuid('tarefa_id').references((): AnyPgColumn => mentoriaTarefas.id, {
+      onDelete: 'set null',
+    }),
+    importadoEm: timestamp('importado_em', { withTimezone: true }).notNull().defaultNow(),
+    importadoPor: text('importado_por'),
+  },
+  (t) => [
+    unique('mentoria_cronograma_anteriores_unico').on(t.inscricaoId, t.itemId),
+    index('mentoria_cronograma_anteriores_item').on(t.itemId),
+    index('mentoria_cronograma_anteriores_tarefa').on(t.tarefaId),
+    check('mentoria_cronograma_anteriores_numero', sql`${t.pmeNumero} between 1 and 12`),
+    check(
+      'mentoria_cronograma_anteriores_resultado',
+      sql`${t.resultado} in ('RECEBIDO', 'NAO_FEZ', 'JA_TINHA', 'PLANEJADO')`,
+    ),
+    check(
+      'mentoria_cronograma_anteriores_planejado',
+      sql`${t.resultado} in ('RECEBIDO', 'NAO_FEZ') or (${t.resultado} = 'JA_TINHA') = (${t.pmeNumero} is null)`,
+    ),
+  ],
+);
+
+/**
  * Ciclo de um PME numa inscrição (E2, E3): nasce no envio, dura 30 dias e fecha pela tarefa de
  * encerramento. O status é derivado em SQL (`mentoria_ciclo_status`), nunca gravado.
  */
@@ -894,10 +967,25 @@ export const mentoriaTarefas = pgTable(
     cobradaPor: text('cobrada_por').references(() => user.id),
     marcadaPorMentoradoEm: timestamp('marcada_por_mentorado_em', { withTimezone: true }),
     visivelAoMentorado: boolean('visivel_ao_mentorado').notNull().default(true),
+    /** Cronograma do PME (NPAC-60): bloco do item; só e sempre na origem PME. */
+    cronogramaBloco: text('cronograma_bloco'),
+    /** Item do banco; nulo = item "só desta pessoa" (C3). */
+    cronogramaItemId: uuid('cronograma_item_id').references(() => mentoriaCronogramaItens.id),
     version: integer('version').notNull().default(1),
     ...autoria,
   },
   (t) => [
+    uniqueIndex('mentoria_tarefas_cronograma_item')
+      .on(t.cicloId, t.cronogramaItemId)
+      .where(sql`${t.cronogramaItemId} is not null`),
+    check(
+      'mentoria_tarefas_cronograma',
+      sql`(${t.origem} = 'PME') = (${t.cronogramaBloco} is not null) and (${t.origem} <> 'PME' or ${t.cicloId} is not null) and (${t.cronogramaItemId} is null or ${t.origem} = 'PME')`,
+    ),
+    check(
+      'mentoria_tarefas_cronograma_bloco',
+      sql`${t.cronogramaBloco} in ('EXPERIENCIA', 'DESAFIO', 'FILME', 'LIVRO', 'EAP')`,
+    ),
     index('mentoria_tarefas_inscricao').on(t.inscricaoId, t.prazo),
     index('mentoria_tarefas_ciclo').on(t.cicloId, t.ordem),
     index('mentoria_tarefas_reuniao').on(t.reuniaoId),

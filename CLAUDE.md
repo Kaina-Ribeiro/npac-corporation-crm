@@ -282,6 +282,36 @@ variante="chat"`. Campos de 17 px ficam fora da regra dos 16 px com `.ch-campo`.
   `api/test/mentoria-v2-engajamento.e2e.test.ts`, `e2e/acompanhamento-engajamento.spec.ts`,
   `e2e/mobile-layout-dashboard.spec.ts`; capturas `CAPTURAS=<pasta> … e2e/capturas-dashboard.spec.ts`.
 
+- **Cronograma do PME** (NPAC-60, Eduarda 24/11/2026: "1A, 2B, 3A, 4A"; desenho
+  `docs/superpowers/specs/2026-11-24-cronograma-design.md`, plano `docs/plans/npac-60-cronograma.md`, protótipo
+  `docs/acompanhamento/prototipo/cronograma/`). A planilha "CRONOGRAMA" (experiências, desafios, filmes, livros e EAP de
+  cada PME) passa a morar no sistema. **Fase 1 (banco e API, 0091) pronta; telas (fase 2) e importação (fase 3) depois.**
+  Banco de itens `mentoria_cronograma_itens` (texto claro, único por bloco pelo `texto_norm` = `normalizarItem` do
+  shared, sem DELETE: esconder = `ativo = false`): só a Admin escreve; lêem Admin, Acompanhamento e Operação. Cada item
+  escolhido no envio vira **tarefa de origem `PME`** do ciclo (`cronograma_bloco`, `cronograma_item_id`; nulo = "só desta
+  pessoa"; CHECK origem PME ⇔ bloco; único por ciclo e item; o gatilho põe o bloco do item), texto cifrado como as extras,
+  prazo do ciclo, ordem extras → cronograma → encerramento, e entra na % do PME. A **Operação cria** (política
+  `mentoria_tarefas_criar`: PME pela área `PME`); **marcar** segue `mentoria_edita_tarefa` (Admin e Acompanhamento).
+  `mentoria_cronograma_anteriores` = o que veio da planilha e não virou tarefa (`RECEBIDO`, `NAO_FEZ`, `JA_TINHA` sem
+  número, `PLANEJADO` com número; `tarefa_id` quando o planejado sai num envio, pelo gatilho
+  `mentoria_tarefa_cronograma_planejado`); o npac_app só lê (a importação da fase 3 grava por função). **Já recebido**
+  (`mentoria_cronograma_recebidos(inscricao)`, SECURITY INVOKER, sob a RLS de quem chama): tarefas PME com item e linhas
+  da planilha desta inscrição e das outras com **WhatsApp ou e-mail igual** (índice cego, C7: RDV → 2M não repete);
+  `PLANEJADO` da própria não conta (reservado ao PME dele). Regras puras em `sh/mentoria/cronograma.ts` (`BLOCOS`,
+  `MODELO_PME` 3 EAP/1/1/2/1, `sugerirItens`, `jaRecebido`, `motivoJaRecebido`, `semCronograma`). API
+  (`api/mentoria/cronograma.controller.ts` + `prepararCronograma`/`inserirCronograma` em `ciclos.service.ts`):
+  `POST inscricoes/:id/ciclos` aceita `cronograma: [{ itemId? | texto?, bloco }]` (até 20; repetido 409 "Esse item já foi
+  do 2º PME"/"…do RDV"/"Esse item já está neste PME", escondido 400; histórico `pme.enviado` com o campo `cronograma`);
+  `GET inscricoes/:id/cronograma` (banco, recebidos, próximo número, sugestão do modelo, `semCronograma`, `podeEscolher`);
+  `POST ciclos/:id/cronograma` (ciclo aberto, `pme.cronograma_incluido` com os blocos); `DELETE tarefas/:id/cronograma`
+  `{ version }` (204; `mentoria_cronograma_remover`: só pendente, sem comprovante, ciclo aberto; `pme.cronograma_removido`);
+  banco só Admin: `GET/POST cronograma/itens`, `PATCH cronograma/itens/:id` (`envios` = tarefas que usam; texto repetido
+  409 "Esse item já está no banco"). Ficha: `pode.verCronograma`. **A Especialista recebe 404 em tudo** e não vê as
+  tarefas PME. **Fila e push não cobram item** (`COBRANCA` ignora `origem = 'PME'`, C10; o atraso segue no
+  `PME_ATRASADO`). Testes: `shared/test/cronograma.test.ts`, `db/test/mentoria-cronograma.test.ts`, `fila-equivalencia`
+  (bloco NPAC-60), `rls-por-consulta`, `api/test/mentoria-v2-cronograma.e2e.test.ts`. O CSV real da planilha nunca entra
+  no repositório nem em ferramenta.
+
 **Navegação e carregamento** (desempenho, Fase 2, 12/11/2026): o menu usa o `prefetch` padrão do Next
 (rota dinâmica sem `loading.tsx` não pré-carrega a página); `semPrefetch` (Ficha e itens "Em breve")
 vira `prefetch={false}`; link de linha ou card de lista leva `prefetch={false}`. Nunca `prefetch`

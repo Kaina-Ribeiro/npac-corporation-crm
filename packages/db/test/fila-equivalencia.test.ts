@@ -650,3 +650,57 @@ describe('NPAC-56, Parte 2: "Caixa a enviar" vai para o cargo Envios (M4)', () =
     expect(await linhas()).toEqual(antes);
   });
 });
+
+describe('NPAC-60: item do cronograma não vira cobrança (C10)', () => {
+  it('tarefas PME pendentes no prazo não mudam a Fila nem o push; a extra no mesmo dia continua', async () => {
+    const avisos = async (agora: string) =>
+      (
+        await owner<{ chave: string; user_ids: string[] }[]>`
+          select chave, user_ids from mentoria_avisos_candidatos(${agora}::timestamptz) order by chave`
+      ).map((a) => [a.chave, a.user_ids]);
+    const antes = new Map<string, unknown>();
+    for (const agora of AGORAS) {
+      antes.set(`avisos:${agora}`, await avisos(agora));
+      for (const u of TODOS)
+        antes.set(
+          `${u}:${agora}`,
+          (await fila(u, agora, 'mentoria_fila')).map((l) => l.chave),
+        );
+    }
+    // Em todo ciclo aberto, itens do cronograma pendentes vencendo nos dias testados (e no prazo do ciclo).
+    const abertos = await owner<{ id: string; inscricao_id: string }[]>`
+      select id, inscricao_id from mentoria_ciclos
+      where concluido_em is null and nao_concluido_em is null order by id`;
+    expect(abertos.length).toBeGreaterThan(5);
+    for (const c of abertos)
+      for (const prazo of [...DIAS, null])
+        await owner`insert into mentoria_tarefas (inscricao_id, origem, ciclo_id, ordem, descricao,
+            prazo, cronograma_bloco)
+          select ${c.inscricao_id}, 'PME', c.id, 50, 'cifrado', coalesce(${prazo}::date, c.prazo),
+            ${pick(['EAP', 'FILME', 'DESAFIO', 'LIVRO', 'EXPERIENCIA'])}
+          from mentoria_ciclos c where c.id = ${c.id}`;
+    for (const agora of AGORAS) {
+      expect({ agora, v: await avisos(agora) }).toEqual({ agora, v: antes.get(`avisos:${agora}`) });
+      for (const u of TODOS)
+        expect({
+          u,
+          agora,
+          v: (await fila(u, agora, 'mentoria_fila')).map((l) => l.chave),
+        }).toEqual({
+          u,
+          agora,
+          v: antes.get(`${u}:${agora}`),
+        });
+    }
+    // Uma extra vencendo hoje no mesmo ciclo ainda cobra.
+    const [extra] = await owner<{ id: string }[]>`
+      insert into mentoria_tarefas (inscricao_id, origem, ciclo_id, ordem, descricao, prazo)
+      select c.inscricao_id, 'EXTRA', c.id, 51, 'cifrado', ${diaDe(AGORAS[0]!)}::date
+      from mentoria_ciclos c join mentoria_inscricoes i on i.id = c.inscricao_id
+      where c.id = any (${abertos.map((a) => a.id)}::uuid[]) and i.status = 'ATIVO'
+      limit 1 returning id`;
+    expect((await fila(DIRETOR, AGORAS[0]!, 'mentoria_fila')).map((l) => l.chave)).toContain(
+      `cobranca:${extra!.id}`,
+    );
+  });
+});

@@ -314,10 +314,17 @@ describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => 
     // Evolução e conquistas (0076): quem vê a evolução, nunca a Especialista.
     await owner`insert into mentoria_evolucao (inscricao_id, renda) values (${a}, 'cifrado'), (${b}, 'cifrado')`;
     await owner`insert into mentoria_conquistas (inscricao_id, descricao) values (${a}, 'cifrado'), (${b}, 'cifrado')`;
+    // Cronograma (NPAC-60, 0091): o banco para quem monta PME; o da planilha como a evolução, nunca a Especialista.
+    const [item] = await owner<{ id: string }[]>`
+      insert into mentoria_cronograma_itens (bloco, texto, texto_norm) values ('FILME', 'Filme P', 'filme p')
+      returning id`;
+    await owner`insert into mentoria_cronograma_anteriores (inscricao_id, item_id, pme_numero, resultado)
+      values (${a}, ${item!.id}, 1, 'RECEBIDO'), (${b}, ${item!.id}, 1, 'RECEBIDO')`;
   });
 
   afterAll(async () => {
     await owner`truncate mentoria_inscricoes cascade`;
+    await owner`delete from mentoria_cronograma_itens where texto = 'Filme P'`;
     await owner`delete from mentoria_perfis where user_id like 'p-%'`;
     await owner`delete from "user" where id like 'p-%'`;
   });
@@ -405,6 +412,8 @@ describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => 
         mentoria_semaforo_historico: 1,
         mentoria_evolucao: 2,
         mentoria_conquistas: 2,
+        mentoria_cronograma_itens: 1,
+        mentoria_cronograma_anteriores: 2,
       },
       [DUDA]: {
         mentoria_inscricoes: 2,
@@ -415,6 +424,8 @@ describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => 
         mentoria_semaforo_historico: 1,
         mentoria_evolucao: 2,
         mentoria_conquistas: 2,
+        mentoria_cronograma_itens: 1,
+        mentoria_cronograma_anteriores: 2,
       },
       [ACOMP]: {
         mentoria_inscricoes: 2,
@@ -425,6 +436,8 @@ describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => 
         mentoria_semaforo_historico: 1,
         mentoria_evolucao: 2,
         mentoria_conquistas: 2,
+        mentoria_cronograma_itens: 1,
+        mentoria_cronograma_anteriores: 2,
       },
       [OPERACAO]: {
         mentoria_inscricoes: 2,
@@ -435,6 +448,8 @@ describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => 
         mentoria_semaforo_historico: 1,
         mentoria_evolucao: 2,
         mentoria_conquistas: 2,
+        mentoria_cronograma_itens: 1,
+        mentoria_cronograma_anteriores: 2,
       },
       [MANU]: {
         mentoria_inscricoes: 1,
@@ -445,6 +460,8 @@ describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => 
         mentoria_semaforo_historico: 0,
         mentoria_evolucao: 0,
         mentoria_conquistas: 0,
+        mentoria_cronograma_itens: 0,
+        mentoria_cronograma_anteriores: 0,
       },
       [MANU2]: {
         mentoria_inscricoes: 0,
@@ -455,6 +472,8 @@ describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => 
         mentoria_semaforo_historico: 0,
         mentoria_evolucao: 0,
         mentoria_conquistas: 0,
+        mentoria_cronograma_itens: 0,
+        mentoria_cronograma_anteriores: 0,
       },
       [LEO]: {
         mentoria_inscricoes: 0,
@@ -465,6 +484,8 @@ describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => 
         mentoria_semaforo_historico: 0,
         mentoria_evolucao: 0,
         mentoria_conquistas: 0,
+        mentoria_cronograma_itens: 0,
+        mentoria_cronograma_anteriores: 0,
       },
       [CARLA]: {
         mentoria_inscricoes: 0,
@@ -475,6 +496,8 @@ describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => 
         mentoria_semaforo_historico: 0,
         mentoria_evolucao: 0,
         mentoria_conquistas: 0,
+        mentoria_cronograma_itens: 0,
+        mentoria_cronograma_anteriores: 0,
       },
       [SDR2]: {
         mentoria_inscricoes: 0,
@@ -485,6 +508,8 @@ describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => 
         mentoria_semaforo_historico: 0,
         mentoria_evolucao: 0,
         mentoria_conquistas: 0,
+        mentoria_cronograma_itens: 0,
+        mentoria_cronograma_anteriores: 0,
       },
       // Só a carteira: a inscrição `a`, com as duas reuniões, as duas tarefas, a meta e o check-in dela.
       [CART]: {
@@ -496,6 +521,8 @@ describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => 
         mentoria_semaforo_historico: 1,
         mentoria_evolucao: 1,
         mentoria_conquistas: 1,
+        mentoria_cronograma_itens: 1,
+        mentoria_cronograma_anteriores: 1,
       },
     };
     for (const [u, tabelas] of Object.entries(esperado)) {
