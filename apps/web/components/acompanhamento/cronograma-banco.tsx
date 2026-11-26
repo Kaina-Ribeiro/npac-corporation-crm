@@ -60,7 +60,7 @@ export function CronogramaBanco({ itens }: { itens: ItemBancoDTO[] }) {
   };
 
   return (
-    <>
+    <div>
       <div className="cr-top">
         <div className="cr-rola">
           <div className="seg" role="group" aria-label="Bloco do cronograma">
@@ -173,7 +173,7 @@ export function CronogramaBanco({ itens }: { itens: ItemBancoDTO[] }) {
           )}
         </Dialogo>
       )}
-    </>
+    </div>
   );
 }
 

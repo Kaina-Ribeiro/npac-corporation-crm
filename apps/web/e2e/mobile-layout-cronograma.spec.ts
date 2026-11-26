@@ -105,6 +105,8 @@ test('envio do PME no iPhone: janela na tela, troca em tela própria, toques de 
       .click();
     const janela = page.getByRole('dialog', { name: 'Enviar o 2º PME' });
     await expect(janela.getByText('8 itens do cronograma')).toBeVisible();
+    // A janela entra com uma leve escala (.dlg): mede depois da entrada.
+    await janela.evaluate((el) => Promise.all(el.getAnimations().map((a) => a.finished)));
     expect(await sobraNaJanela(page), `janela passa da tela em ${largura}px`).toEqual([]);
 
     const linhas = janela.locator('button.cr-row');

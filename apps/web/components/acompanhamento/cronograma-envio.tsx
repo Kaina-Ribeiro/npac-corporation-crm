@@ -42,6 +42,9 @@ const MODELO_TEXTO = [
 const ondeRecebeu = (r: Recebido) =>
   !r.propria ? r.mentoria : r.pmeNumero == null ? 'Já tinha' : `${r.pmeNumero}º PME`;
 
+/** Altura da caixa suspensa cheia: busca, lista de até 380 px e rodapé. */
+const ALTURA_TROCA = 440;
+
 let seq = 0;
 const nova = (e: Omit<Escolha, 'chave'>): Escolha => ({ ...e, chave: `e${++seq}` });
 
@@ -85,7 +88,9 @@ export default function CronogramaEnvio({
   const pme = nomePme(numero);
 
   useEffect(() => {
+    // A janela recebe o foco (e o leitor de tela lê o título), não o campo de data.
     ref.current?.showModal();
+    ref.current?.focus();
     let vivo = true;
     clientApi<CronogramaDTO>(`/api/mentoria/inscricoes/${inscricaoId}/cronograma`)
       .then((d) => {
@@ -136,18 +141,17 @@ export default function CronogramaEnvio({
       setTroca({ bloco, alvo, modo: 'tela' });
       return;
     }
-    // Caixa suspensa presa ao item: a linha sobe para perto do topo, e a caixa abre embaixo (ou em
-    // cima, quando a linha está no fim da lista e não há espaço).
-    const rodape = f.querySelector<HTMLElement>('.cr-rodape');
+    // Caixa suspensa presa ao item, aberta embaixo (pode cobrir o rodapé). Sem espaço, a lista rola
+    // só o que falta; no fim da lista, a caixa abre em cima.
     const fRect = () => f.getBoundingClientRect();
-    const r0 = linha.getBoundingClientRect();
-    f.scrollTop += r0.top - fRect().top - 140;
+    const falta = ALTURA_TROCA - (fRect().bottom - linha.getBoundingClientRect().bottom - 12);
+    if (falta > 0)
+      f.scrollTop += Math.min(falta, linha.getBoundingClientRect().top - fRect().top - 24);
     const r = linha.getBoundingClientRect();
     const base = fRect();
-    const fundo = rodape ? rodape.getBoundingClientRect().top : base.bottom;
-    const abaixo = fundo - r.bottom - 12;
+    const abaixo = base.bottom - r.bottom - 12;
     const acima = r.top - base.top - 12;
-    const emCima = abaixo < 300 && acima > abaixo;
+    const emCima = abaixo < 320 && acima > abaixo;
     const espaco = emCima ? acima : abaixo;
     setTroca({
       bloco,
@@ -236,6 +240,7 @@ export default function CronogramaEnvio({
         else fecharJanela();
       }}
       data-own-motion
+      tabIndex={-1}
       className="ac-dialogo dlg cr-dlg"
     >
       <form

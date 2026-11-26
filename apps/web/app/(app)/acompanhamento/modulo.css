@@ -6526,6 +6526,7 @@
   }
   .cr-busca input {
     flex: 1;
+    width: 0;
     min-width: 0;
     height: 100%;
     border: 0;
@@ -6545,9 +6546,6 @@
     padding: 18px 16px;
     font-size: 13px;
     color: var(--ink2);
-  }
-  .cr-banco .pl-mod {
-    grid-template-columns: 30px minmax(0, 1fr) auto;
   }
   .cr-banco .pl-mod .cr-t {
     display: -webkit-box;
@@ -6592,7 +6590,12 @@
 
   /* Ficha: aba Cronograma e o grupo do card "PME atual". */
   .cr-aba {
-    padding: 18px 16px 20px;
+    padding: 18px 20px 20px;
+  }
+  @media (max-width: 640px) {
+    .cr-aba {
+      padding: 18px 16px 20px;
+    }
   }
   .cr-grupo + .cr-grupo {
     margin-top: 14px;
@@ -6634,6 +6637,12 @@
     .cr-texto {
       font-size: 16px;
     }
+    /* O `.btn` do módulo tem 38 px; nas telas do cronograma, 44 px no toque, como o do CRM. */
+    .cr-busca-acts .btn,
+    .cr-dlg .btn,
+    .cr-sheet .btn {
+      min-height: 44px;
+    }
   }
   @media (max-width: 640px) {
     .cr-top {
@@ -6651,6 +6660,10 @@
   width: min(620px, calc(100vw - 24px));
   max-height: calc(100dvh - 32px);
   overflow: hidden;
+}
+/* A janela recebe o foco ao abrir (o leitor de tela lê o título): sem anel em volta dela toda. */
+.ac-dialogo.cr-dlg:focus {
+  outline: none;
 }
 .cr-dlg > form {
   position: relative;

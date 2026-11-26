@@ -76,6 +76,41 @@ export type PessoaNovidades = {
 /** A mais nova primeiro. */
 export const NOVIDADES: readonly Novidade[] = [
   {
+    id: 'npac-60-cronograma-envio',
+    data: '2026-11-26',
+    para: ['acompanhamento'],
+    perfis: ['ACOMPANHAMENTO', 'OPERACAO'],
+    tipo: 'novo',
+    icone: 'list',
+    titulo: 'Cronograma no envio do PME',
+    texto:
+      'Ao registrar o envio do PME, a janela já traz as experiências, desafios, filmes, livros e EAP que a pessoa ainda não recebeu, nem em outra mentoria. Toque num item para trocar. Cada item vira tarefa do PME e conta na % dele.',
+    onde: 'Ficha do mentorado → Jornada → PME atual, ou Fila do dia',
+  },
+  {
+    id: 'npac-60-cronograma-aba',
+    data: '2026-11-26',
+    para: ['acompanhamento'],
+    perfis: ['ACOMPANHAMENTO', 'OPERACAO'],
+    tipo: 'novo',
+    icone: 'check',
+    titulo: 'Aba Cronograma na ficha',
+    texto:
+      'Tudo o que a pessoa recebeu do cronograma, PME a PME, com Feita, Não feita ou Pendente, contando o que veio de outra mentoria dela.',
+    onde: 'Ficha do mentorado → Cronograma',
+  },
+  {
+    id: 'npac-60-cronograma-banco',
+    data: '2026-11-26',
+    para: ['acompanhamento-admin'],
+    tipo: 'novo',
+    icone: 'box',
+    titulo: 'Banco do cronograma',
+    texto:
+      'Os itens de cada bloco ficam em Configurações → Cronograma. Toque em “Novo” para incluir e num item para corrigir ou esconder. Item já enviado não se apaga: escondido, sai das sugestões.',
+    onde: 'Acompanhamento → Configurações → Cronograma',
+  },
+  {
     id: 'npac-78-gravacao',
     data: '2026-11-25',
     para: ['acompanhamento'],

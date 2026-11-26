@@ -22,7 +22,7 @@ cego. A tela reusa as peças do sistema (lista `.pl-mod`, seletor `.seg`, `.ob-h
 | Fase | Tarefas | Entrega | Situação |
 |---|---|---|---|
 | 1. Banco de dados, regras e API | 1–3 | envio com itens por API, banco de itens por API, Fila sem cobrança de item | ✅ 25/11 (0091, PR na `release/v0.26`) |
-| 2. Telas | 4–7 | banco, janela de envio + troca, card do PME, aba da ficha | ⏳ |
+| 2. Telas | 4–7 | banco, janela de envio + troca, card do PME, aba da ficha | ✅ 26/11 (PR na `release/v0.26`) |
 | 3. Importação | 8–10 | prévia e importação da planilha em 3 passos | ⏳ |
 
 **Nota da fase 1 (25/11):** enquanto a fase 1 rodava, as releases v0.23 a v0.25 foram para a `main` e a `main` ganhou as
@@ -188,7 +188,7 @@ bloco do item na tarefa; gatilho que liga o `PLANEJADO` ao enviar (`tarefa_id`);
 
 ### Tarefa 4: Configurações → Cronograma (banco)
 
-**Situação:** ⏳
+**Situação:** ✅ 26/11 — `cronograma-banco.tsx`; edição pela janelinha do módulo (`Dialogo`) com "Texto" e Esconder/Mostrar (rótulos da janela não estavam no protótipo). Seta na mesma coluna de Configurações → PMEs.
 
 **Arquivos:** criar `apps/web/components/acompanhamento/cronograma-banco.tsx`; modificar
 `apps/web/app/(app)/acompanhamento/configuracoes/page.tsx` (aba `cronograma` depois de `pmes`, só Admin, `SUB` =
@@ -197,15 +197,15 @@ bloco do item na tarefa; gatilho que liga o `PLANEJADO` ao enviar (`tarefa_id`);
 
 **Consome:** rotas do banco (tarefa 3), `BLOCO_PLURAL`.
 
-- [ ] **Passo 1:** e2e que falha: Admin abre Configurações → Cronograma, troca para "Filmes", cria "Filme Fictício",
+- [x] **Passo 1:** e2e que falha: Admin abre Configurações → Cronograma, troca para "Filmes", cria "Filme Fictício",
   esconde e vê "Escondido · 0 envios"; Acompanhamento não vê a aba.
-- [ ] **Passo 2:** implementar como `banco-1440-claro.png`/`banco-375-claro.png` (seletor `.seg` rolando no celular,
+- [x] **Passo 2:** implementar como `banco-1440-claro.png`/`banco-375-claro.png` (seletor `.seg` rolando no celular,
   `.pl-lista` com `.pl-n`, texto em 2 linhas, ›; edição numa janela `<dialog class="dlg">` com texto e Esconder/Mostrar).
-- [ ] **Passo 3:** e2e passa; commit.
+- [x] **Passo 3:** e2e passa; commit.
 
 ### Tarefa 5: janela de envio + troca
 
-**Situação:** ⏳
+**Situação:** ✅ 26/11 — `cronograma-envio.tsx` (também modo "incluir": "Montar o cronograma" do PME aberto sem itens) e `cronograma-troca.tsx`. Textos novos fora do protótipo: "Item só desta pessoa (<bloco>)", "Incluir no PME", "Só desta pessoa", aviso da inscrição sem cronograma. e2e antigos que clicavam "Registrar envio" na janela passaram a "Enviar o 1º PME".
 
 **Arquivos:** criar `apps/web/components/acompanhamento/cronograma-envio.tsx` (janela) e `cronograma-troca.tsx`
 (caixa suspensa ≥ 768 px / tela própria no celular), carregados por `next/dynamic`; modificar `pme-atual.tsx` (o
@@ -214,38 +214,38 @@ janela). Teste: `apps/web/e2e/acompanhamento-cronograma-envio.spec.ts`.
 
 **Consome:** `GET …/cronograma` (sugestão, banco, recebidos), `POST …/ciclos` com `cronograma`.
 
-- [ ] **Passo 1:** e2e que falha: Operação abre a janela pela Fila, vê 8 sugestões com "Estava na planilha para este
+- [x] **Passo 1:** e2e que falha: Operação abre a janela pela Fila, vê 8 sugestões com "Estava na planilha para este
   PME" no planejado, troca o desafio (o recebido no RDV aparece apagado e não clica), adiciona um "só para ele",
   envia e o card mostra "Cronograma deste PME · 0 de 9 feitos"; no iPhone (projeto `iphone`) a troca abre como tela
   própria com "Voltar" e nada sai da tela.
-- [ ] **Passo 2:** implementar como `envio-*.png` e `envio-trocar-*.png` (lista `.pl-mod` com cabeçalho por bloco,
+- [x] **Passo 2:** implementar como `envio-*.png` e `envio-trocar-*.png` (lista `.pl-mod` com cabeçalho por bloco,
   rodapé fixo, busca filtrando por `normalizarItem`, "Tirar do PME", inscrição "sem cronograma" sem sugestões com o
   aviso "Inscrição sem cronograma").
-- [ ] **Passo 3:** e2e passa; `e2e/resposta-imediata.spec.ts` e `acompanhamento-v2-fila-cobranca.spec.ts` continuam
+- [x] **Passo 3:** e2e passa; `e2e/resposta-imediata.spec.ts` e `acompanhamento-v2-fila-cobranca.spec.ts` continuam
   verdes; commit.
 
 ### Tarefa 6: card do PME e aba "Cronograma"
 
-**Situação:** ⏳
+**Situação:** ✅ 26/11 — card em `pme-atual.tsx`, aba em `cronograma-aba.tsx` (grupos montados no cliente: tarefas dos ciclos da ficha + `recebidos`). "Tirar do PME" de um item já enviado (C11) não tem botão na tela (não estava no protótipo): só pela API.
 
 **Arquivos:** modificar `pme-atual.tsx` (grupo "Cronograma deste PME · N de M feitos" e "Montar o cronograma"),
 `ficha.tsx` + `ui.tsx` (`Aba` ganha `'cronograma'` depois de `'evolucao'`, só com `pode.verCronograma`; página da ficha
 igual à regra da Evolução), criar `apps/web/components/acompanhamento/cronograma-aba.tsx`. Teste:
 `apps/web/e2e/acompanhamento-cronograma-aba.spec.ts`.
 
-- [ ] **Passo 1:** e2e que falha: na aba, "2º PME · 1 de 8 feitos", item do RDV em "No RDV", filtro "Filmes" mostra só
+- [x] **Passo 1:** e2e que falha: na aba, "2º PME · 1 de 8 feitos", item do RDV em "No RDV", filtro "Filmes" mostra só
   filmes; Especialista não vê a aba e `?aba=cronograma` cai na Jornada.
-- [ ] **Passo 2:** implementar como `aba-*.png` e `card-*.png`.
-- [ ] **Passo 3:** e2e passa; commit.
+- [x] **Passo 2:** implementar como `aba-*.png` e `card-*.png`.
+- [x] **Passo 3:** e2e passa; commit.
 
 ### Tarefa 7: conferência visual e PR da fase 2
 
-**Situação:** ⏳
+**Situação:** ✅ 26/11 — `capturas-cronograma.spec.ts` (envio, troca, card, aba, banco; 375/768/1024/1440; claro e escuro) comparadas com o protótipo: corrigidos foco no campo de data ao abrir, rolagem da caixa suspensa, espaço e seta do banco, margem da aba, toques de 44 px nas telas do cronograma.
 
-- [ ] **Passo 1:** capturas das telas novas em 375/768/1024/1440, claro e escuro, lado a lado com as do protótipo;
+- [x] **Passo 1:** capturas das telas novas em 375/768/1024/1440, claro e escuro, lado a lado com as do protótipo;
   listar e corrigir as diferenças.
-- [ ] **Passo 2:** `mobile-layout-*` do módulo, limite de `/leads` e `pnpm --filter @npac/web e2e` passam.
-- [ ] **Passo 3:** `CLAUDE.md` (fase 2); PR `feat(NPAC-60): telas do cronograma`; ITODEV com roteiro por perfil (Admin,
+- [x] **Passo 2:** `mobile-layout-*` do módulo, limite de `/leads` e `pnpm --filter @npac/web e2e` passam.
+- [x] **Passo 3:** `CLAUDE.md` (fase 2); PR `feat(NPAC-60): telas do cronograma`; ITODEV com roteiro por perfil (Admin,
   Acompanhamento, Operação, Especialista); plano com fase 2 ✅.
 
 ## Fase 3 — importação da planilha
