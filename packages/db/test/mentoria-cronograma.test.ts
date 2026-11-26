@@ -427,3 +427,54 @@ describe('Fila e push não cobram item do cronograma (C10)', () => {
     expect(fila.map((l) => l.chave)).not.toContain(`cobranca:${pme.id}`);
   });
 });
+
+describe('importação da planilha (fase 3, 0093)', () => {
+  const importar = (u: string, insc: string, linhas: [string, number | null, string][]) =>
+    como<{ n: number }>(
+      u,
+      sql`select mentoria_cronograma_importar(${insc}::uuid,
+        ${sql.param(linhas.map((l) => l[0]))}::uuid[],
+        ${sql.param(linhas.map((l) => l[1]))}::smallint[],
+        ${sql.param(linhas.map((l) => l[2]))}::text[]) as n`,
+    ).then((r) => r[0]!.n);
+
+  it('a Admin grava o que veio da planilha; rodar de novo não acrescenta nada', async () => {
+    const linhas: [string, number | null, string][] = [
+      [itens.filme!, 3, 'PLANEJADO'],
+      [itens.desafio!, 1, 'NAO_FEZ'],
+    ];
+    expect(await importar(ADMIN, doisM, linhas)).toBe(2);
+    expect(await importar(ADMIN, doisM, linhas)).toBe(0);
+    // A linha "já tinha" do RDV fica como estava (mesmo item, outra resposta da planilha).
+    expect(await importar(ADMIN, rdv, [[itens.livro!, 2, 'RECEBIDO']])).toBe(0);
+    const [r] = await owner<{ importado_por: string }[]>`
+      select importado_por from mentoria_cronograma_anteriores
+      where inscricao_id = ${doisM} and item_id = ${itens.filme!}`;
+    expect(r!.importado_por).toBe(ADMIN);
+  });
+
+  it('quem não é Admin recebe 42501; inscrição inexistente, P0002', async () => {
+    for (const u of [ACOMP, OPERACAO, MANU, CART])
+      expect((await pgError(importar(u, doisM, [[itens.filme!, 1, 'RECEBIDO']]))).code).toBe(
+        '42501',
+      );
+    expect(
+      (
+        await pgError(
+          importar(ADMIN, '00000000-0000-4000-8000-000000000000', [[itens.filme!, 1, 'RECEBIDO']]),
+        )
+      ).code,
+    ).toBe('P0002');
+  });
+
+  it('o npac_app continua sem INSERT direto na tabela', async () => {
+    const e = await pgError(
+      como(
+        ADMIN,
+        sql`insert into mentoria_cronograma_anteriores (inscricao_id, item_id, pme_numero, resultado)
+          values (${doisM}::uuid, ${itens.filme!}::uuid, 1, 'RECEBIDO')`,
+      ),
+    );
+    expect(e.code).toBe('42501');
+  });
+});
