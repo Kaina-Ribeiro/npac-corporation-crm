@@ -194,5 +194,7 @@ describe('casarColunas (C14)', () => {
     );
     expect(dicaDaDuvida(1, [rdv, dois])).toBeNull();
     expect(dicaDaDuvida(12, [rdv])).toBeNull();
+    // Pessoas diferentes (só o primeiro nome na planilha): nada de "deve ser".
+    expect(dicaDaDuvida(12, [rdv, { ...dois, nomes: ['Mentorado Fictício 999'] }])).toBeNull();
   });
 });

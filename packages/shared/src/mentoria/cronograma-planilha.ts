@@ -311,15 +311,18 @@ export function casarColunas(
 }
 
 /**
- * Dica azul da dúvida (protótipo, caso RDV × 2M): quando só uma das candidatas chega ao maior mês da
+ * Dica azul da dúvida (protótipo, caso RDV × 2M): entre fichas da mesma pessoa (mesmos nomes), quando só uma chega ao maior mês da
  * coluna (concluída, ou com o PME atual até lá), "Vai até o 12º mês: deve ser o RDV." e, se for o RDV
  * e houver 2M/6M entre as outras, "Vale também na 2M." (a continuidade, C7). Sem uma só: nada.
  */
 export function dicaDaDuvida(
   mes: number | null,
-  candidatas: Pick<InscricaoParaCasar, 'mentoria' | 'status' | 'pmeAtual'>[],
+  candidatas: Pick<InscricaoParaCasar, 'nomes' | 'mentoria' | 'status' | 'pmeAtual'>[],
 ): string | null {
   if (mes === null || candidatas.length < 2) return null;
+  // Só entre fichas da mesma pessoa (o caso RDV × 2M); com pessoas diferentes a dica enganaria.
+  const pessoa = (c: { nomes: string[] }) => c.nomes.map((n) => tokens(n).join(' ')).join('|');
+  if (new Set(candidatas.map(pessoa)).size > 1) return null;
   const cabem = candidatas.filter((c) => c.status === 'CONCLUIDO' || (c.pmeAtual ?? 0) >= mes);
   if (cabem.length !== 1) return null;
   const certa = cabem[0]!;

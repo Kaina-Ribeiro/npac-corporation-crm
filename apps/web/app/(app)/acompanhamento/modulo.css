@@ -6872,13 +6872,10 @@
   align-items: center;
   gap: 6px;
 }
-.ac .cr-passos li + li {
-  gap: 6px;
-}
 .ac .cr-passos .lin {
   width: 24px;
   height: 1px;
-  margin-right: 2px;
+  margin-left: 2px;
   background: var(--cr-bd);
 }
 .ac .cr-passos i {
@@ -6909,7 +6906,7 @@
 .ac .cr-imp-txt {
   max-width: 60ch;
 }
-.ac .cr-arquivo {
+.ac .view > .cr-imp ul.cr-arquivo {
   margin-bottom: 16px;
 }
 .ac .cr-arquivo .t {

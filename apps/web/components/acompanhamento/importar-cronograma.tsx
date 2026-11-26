@@ -61,9 +61,9 @@ function Passos({ passo, feito }: { passo: Passo; feito: boolean }) {
             className={pronto ? 'feito' : n === passo ? 'on' : ''}
             aria-current={!feito && n === passo ? 'step' : undefined}
           >
-            {k > 0 && <span className="lin" aria-hidden="true" />}
             <i>{pronto ? <IconeCr d={ICONES.check} /> : n}</i>
             {nome}
+            {k < nomes.length - 1 && <span className="lin" aria-hidden="true" />}
           </li>
         );
       })}
