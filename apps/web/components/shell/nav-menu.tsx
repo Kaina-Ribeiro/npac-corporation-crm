@@ -30,6 +30,12 @@ const ACOMPANHAMENTO_ABAS: NavItem[] = [
   item('reunioes', 'Reuniões', 'M3 7h13v10H3zM16 11l5-3v8l-5-3'),
   item('pmes', 'PMEs e ciclos', 'M12 3a9 9 0 1 0 9 9M12 7v5l3 2'),
   item('envios', 'Envios físicos', 'M3 8l9-5 9 5v8l-9 5-9-5zM3 8l9 5 9-5M12 13v8'),
+  // NPAC-79: saiu do "Em breve"; só Admin e Acompanhamento.
+  item(
+    'renovacoes',
+    'Renovações e gestão',
+    'M4 12a8 8 0 0 1 14-5l2 2M20 12a8 8 0 0 1-14 5l-2-2M20 4v5h-5M4 20v-5h5',
+  ),
   item(
     'em-breve/linha-do-tempo',
     'Linha do tempo e conquistas',
@@ -37,18 +43,13 @@ const ACOMPANHAMENTO_ABAS: NavItem[] = [
     'Em breve',
   ),
   item('em-breve/eventos', 'Eventos e agenda', 'M5 4h14v17H5zM5 9h14', 'Em breve'),
-  item(
-    'em-breve/renovacoes',
-    'Renovações e gestão',
-    'M4 12a8 8 0 0 1 14-5l2 2M20 12a8 8 0 0 1-14 5l-2-2M20 4v5h-5M4 20v-5h5',
-    'Em breve',
-  ),
 ];
 
 const PMES_HREF = '/acompanhamento/pmes';
 const ENVIOS_HREF = '/acompanhamento/envios';
 /** Abas da gestão (Admin, Acompanhamento e Operação): a 7 (E22) e Envios físicos (NPAC-56). */
 const SO_GESTAO = [PMES_HREF, ENVIOS_HREF];
+const RENOVACOES_HREF = '/acompanhamento/renovacoes';
 
 const CONFIGURACOES = item(
   'configuracoes',
@@ -67,6 +68,8 @@ type Opcoes = {
   mentoriaCiclos?: boolean;
   /** Cargo Envios (NPAC-56): só a aba Envios físicos. */
   soEnvios?: boolean;
+  /** Admin e Acompanhamento: a aba "Renovações e gestão" (NPAC-79). */
+  mentoriaRenovacoes?: boolean;
 };
 
 /**
@@ -78,7 +81,11 @@ export function navItems(opts: Opcoes): NavItem[] {
   const abas = opts.soEnvios
     ? ACOMPANHAMENTO_ABAS.filter((a) => a.href === ENVIOS_HREF)
     : [
-        ...ACOMPANHAMENTO_ABAS.filter((a) => opts.mentoriaCiclos || !SO_GESTAO.includes(a.href)),
+        ...ACOMPANHAMENTO_ABAS.filter(
+          (a) =>
+            (opts.mentoriaCiclos || !SO_GESTAO.includes(a.href)) &&
+            (opts.mentoriaRenovacoes || a.href !== RENOVACOES_HREF),
+        ),
         ...(opts.mentoriaAdmin ? [CONFIGURACOES] : []),
       ];
   if (opts.commercial === false) return opts.mentoria ? abas : [];

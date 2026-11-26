@@ -25,7 +25,7 @@ import {
 import { clientApi } from '@/lib/client-api';
 import { useLatestPrefs } from '@/lib/use-latest-prefs';
 import { Dialogo } from './dialogo';
-import { dataBR, ICONES, Icone, Rostos, rotuloMes, TagStatus, Trilha } from './ui';
+import { dataBR, ICONES, Icone, Rostos, mesNoAno, rotuloMes, TagStatus, Trilha } from './ui';
 import { ExportarBotao } from './exportar-botao';
 import { Avatar, AVATAR_OUTRO, SEM_FOTOS, type TeamPhotos } from '@/components/avatar';
 import { SeloSemaforo } from './semaforo';
@@ -66,9 +66,11 @@ function Linha({
       <span className="tp tag justify-self-start">{r.mentoria}</span>
       <div className="jm">
         <b className={r.mesJornada === null ? 'antes' : ''}>
-          {rotuloMes(r.mesJornada, r.mentoria)}
+          {rotuloMes(r.mesJornada, r.mentoria, r.renovacoes)}
         </b>
-        {r.mesJornada !== null && <Trilha mes={r.mesJornada} alerta={r.completar} />}
+        {r.mesJornada !== null && (
+          <Trilha mes={mesNoAno(r.mesJornada, r.renovacoes)} alerta={r.completar} />
+        )}
       </div>
       <span className="pm">{pme}</span>
       <span className="sf">{r.semaforo ? <SeloSemaforo s={r.semaforo} /> : '—'}</span>

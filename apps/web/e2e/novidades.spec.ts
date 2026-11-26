@@ -84,6 +84,7 @@ test('Acompanhamento (Admin): vê só o do módulo; Entendi marca na conta', asy
   await expect(item(j, 'Banco do cronograma')).toBeVisible();
   await expect(j.getByText('Atualização de 25/11', { exact: true })).toBeVisible();
   await expect(j.getByText('Atualização de 23/11', { exact: true })).toBeVisible();
+  await expect(item(j, 'Renovações e gestão')).toBeVisible();
   await expect(
     j.getByText(/^\d+ mudanças em 4 atualizações desde a sua última visita\.$/),
   ).toBeVisible();

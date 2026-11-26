@@ -171,6 +171,20 @@ describe('Registrar renovação', () => {
     expect((await ficha(s, insc)).status).toBe('ATIVO');
   });
 
+  it('a lista de Mentorados traz quantas renovações a ficha tem (o mês vai até 24)', async () => {
+    const insc = await inscricao(1);
+    const s = await comoPerfil('ACOMPANHAMENTO', true);
+    const lista = async () => {
+      const r = await h.post('/api/mentoria/inscricoes/lista', {}, s);
+      expect(r.status, r.text).toBe(200);
+      return (r.body.itens as { id: string; renovacoes: number }[]).find((x) => x.id === insc)!
+        .renovacoes;
+    };
+    expect(await lista()).toBe(0);
+    expect((await renovar(s, insc)).status).toBe(201);
+    expect(await lista()).toBe(1);
+  });
+
   it('"Renovado" não é escolha manual no status', async () => {
     const insc = await inscricao(1);
     const s = await comoPerfil('ACOMPANHAMENTO', true);

@@ -86,7 +86,7 @@ const lateral = (page: Page) => page.getByRole('navigation', { name: 'Navegaçã
 const MODULOS = [
   ['Mentorados', /\/acompanhamento\/mentorados$/],
   ['Reuniões', /\/acompanhamento\/reunioes$/],
-  ['Renovações e gestão', /\/acompanhamento\/em-breve\/renovacoes$/],
+  ['Renovações e gestão', /\/acompanhamento\/renovacoes$/],
   ['Configurações', /\/acompanhamento\/configuracoes$/],
 ] as const;
 const LONGO = 'Linha do tempo e conquistas';

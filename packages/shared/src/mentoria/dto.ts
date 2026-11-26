@@ -57,6 +57,8 @@ export type InscricaoItem = {
   mentoria: Mentoria;
   status: InscricaoStatus;
   mesJornada: number | null;
+  /** Renovações registradas (NPAC-79): o mês vai até 12 × (renovações + 1). */
+  renovacoes: number;
   responsavel: { id: string; nome: string } | null;
   /** Último contato ou reunião realizada (data de Brasília, `AAAA-MM-DD`). */
   ultimoContato: string | null;
