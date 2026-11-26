@@ -59,8 +59,8 @@ export function Icone({
   );
 }
 
-export type Aba = 'jornada' | 'inscricao' | 'pessoas' | 'evolucao' | 'historico';
-const ABAS: Aba[] = ['jornada', 'inscricao', 'pessoas', 'evolucao', 'historico'];
+export type Aba = 'jornada' | 'inscricao' | 'pessoas' | 'evolucao' | 'cronograma' | 'historico';
+const ABAS: Aba[] = ['jornada', 'inscricao', 'pessoas', 'evolucao', 'cronograma', 'historico'];
 /**
  * Aba da ficha pedida na URL; fica aqui porque a página de servidor a lê. A aba Momento inicial saiu
  * (NPAC-76): o diagnóstico está na aba Pessoas, então link e cookie antigos com `momento` abrem ela.

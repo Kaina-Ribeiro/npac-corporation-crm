@@ -137,7 +137,7 @@ variante="chat"`. Campos de 17 px ficam fora da regra dos 16 px com `.ch-campo`.
   nunca IDR; **gravação** NPAC-78, 0090: na reunião Realizada, card "Gravação" (`reuniao-gravacao.tsx`) com o link do
   Google Drive colado (`gravacao` no PATCH, cifrado com AAD, só arquivo do Drive por `idDoDrive` em `sh/mentoria/reunioes.ts`,
   senão 400 "Cole o link da gravação no Google Drive") e o vídeo pela prévia do Drive num `<iframe>` (CSP `frame-src
-  https://drive.google.com` em `proxy.ts`); quem edita o registro cola, quem vê a reunião assiste; fora do CSV, histórico
+https://drive.google.com` em `proxy.ts`); quem edita o registro cola, quem vê a reunião assiste; fora do CSV, histórico
   só com o nome do campo, a anonimização apaga; o vídeo não sobe para o sistema); Fila do dia `fila.*` (0053: `mentoria_fila(agora)` calcula na leitura, SECURITY INVOKER;
   0064: sem função por linha que releia tabela, porque cada uma reavalia a RLS (era 0,6–1 s); o mês da
   jornada e os dias parados repetem a conta de `mentoria_mes_jornada`/`mentoria_dias_pausados`: mudou
@@ -339,7 +339,23 @@ variante="chat"`. Campos de 17 px ficam fora da regra dos 16 px com `.ch-campo`.
   tarefas PME. **Fila e push não cobram item** (`COBRANCA` ignora `origem = 'PME'`, C10; o atraso segue no
   `PME_ATRASADO`). Testes: `shared/test/cronograma.test.ts`, `db/test/mentoria-cronograma.test.ts`, `fila-equivalencia`
   (bloco NPAC-60), `rls-por-consulta`, `api/test/mentoria-v2-cronograma.e2e.test.ts`. O CSV real da planilha nunca entra
-  no repositório nem em ferramenta.
+  no repositório nem em ferramenta. **Telas (fase 2, 26/11/2026, protótipo v2):** peças comuns em
+  `components/acompanhamento/cronograma-ui.tsx` (ícone por bloco, título/link do EAP por `partesItem`, `TagResultado`); CSS
+  `.cr-*` no fim de `modulo.css`. Configurações → **Cronograma** (aba depois de PMEs, só Admin; `cronograma-banco.tsx`:
+  seletor `.seg` dos 5 blocos, busca por `normalizarItem`, "Novo <bloco>", lista `.pl-lista` com "N envios"/"Nunca
+  enviado"/"Escondido · N envios", tocar abre a janela com texto e Esconder/Mostrar). **Janela "Enviar o Nº PME"**
+  (`cronograma-envio.tsx`, por `next/dynamic`; modo `envio` ou `incluir` = "Montar o cronograma" do ciclo aberto sem itens):
+  carrega `GET …/cronograma`, vem com a sugestão, lista por bloco com "N de M", rodapé preso; tocar no item abre a troca
+  (`cronograma-troca.tsx`): ≥ 768 px caixa suspensa presa ao item, busca primeiro, setas e Enter; < 768 px tela própria com
+  "Voltar". "Já recebeu" vem apagado com onde ("1º PME", "RDV", "Já tinha"); "Escrever só para ele" = item sem banco.
+  Abre pelo card da ficha (sem `pode.verCronograma`, a janela antiga) e pela Fila `ENVIAR_PME` ("Registrar envio" deixou
+  de ser um clique). Card "PME atual": extras → grupo "Cronograma deste PME · N de M feitos" → encerramento; o comprovante
+  das tarefas do cronograma só em Feita/Parcial. Aba **Cronograma** da ficha (depois de Evolução, `pode.verCronograma`,
+  `cronograma-aba.tsx`; `?aba=cronograma` de quem não vê cai na Jornada): grupos por PME do sistema, "antes do sistema ·
+  da planilha" (EAP recolhido em "e mais N EAP"), "No <mentoria> · outra inscrição" e "Já tinha antes", filtro por bloco.
+  No módulo o `.btn` tem 38 px; nas telas do cronograma, 44 px no toque. e2e `acompanhamento-cronograma-banco|envio|aba.spec.ts`,
+  `mobile-layout-cronograma.spec.ts`; capturas `CAPTURAS=<pasta> … e2e/capturas-cronograma.spec.ts`. A janela de envio
+  troca o botão "Registrar envio" por "Enviar o Nº PME" (e2e antigos atualizados).
 
 **Navegação e carregamento** (desempenho, Fase 2, 12/11/2026): o menu usa o `prefetch` padrão do Next
 (rota dinâmica sem `loading.tsx` não pré-carrega a página); `semPrefetch` (Ficha e itens "Em breve")

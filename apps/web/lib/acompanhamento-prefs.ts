@@ -78,7 +78,7 @@ export const prefsDoFiltro = (f: FiltroPmes) => ({
 /** Ficha: a aba (vale para qualquer mentorado) e o filtro do histórico ("Tudo" é o padrão). */
 export const FICHA_REGRAS: PrefRules = {
   // `momento` só para ler cookie antigo: a aba saiu (NPAC-76) e `abaValida` a troca por `pessoas`.
-  aba: oneOf(['inscricao', 'pessoas', 'momento', 'evolucao', 'historico']),
+  aba: oneOf(['inscricao', 'pessoas', 'momento', 'evolucao', 'cronograma', 'historico']),
   historico: oneOf(['REUNIOES', 'CONTATOS', 'ANOTACOES', 'ALTERACOES']),
   /** Aba Evolução: "Linha do tempo" (sem a chave, "Lado a lado"). */
   vista: oneOf(['linha']),

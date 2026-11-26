@@ -27,6 +27,7 @@ import { CampoPr, DINHEIRO } from './campo';
 import { Dialogo } from './dialogo';
 import { CampoEngajamento, TagEngajamento } from './engajamento';
 import { OnboardingFicha } from './etapa-card';
+import { CronogramaAba } from './cronograma-aba';
 import { Evolucao } from './evolucao';
 import { FichaPessoas } from './ficha-pessoas';
 import { HistoricoLista } from './historico-lista';
@@ -574,8 +575,12 @@ export function Ficha({
 }) {
   const router = useRouter();
   // A aba Evolução some para quem não a vê (Especialista): cai na padrão (spec §5.1).
+  // A aba Cronograma também (NPAC-60, C12).
   const abaPermitida = (a: Aba): Aba =>
-    a === 'evolucao' && !ficha.pode.verEvolucao ? 'jornada' : a;
+    (a === 'evolucao' && !ficha.pode.verEvolucao) ||
+    (a === 'cronograma' && !ficha.pode.verCronograma)
+      ? 'jornada'
+      : a;
   const [aba, setAba] = useState<Aba>(() => abaPermitida(abaInicial));
   const fileira = useRef<HTMLDivElement>(null);
   const lembrarAba = (a: Aba) =>
@@ -644,6 +649,9 @@ export function Ficha({
     ['inscricao', 'Inscrição', 'so-lado'],
     ['pessoas', ficha.tipo === 'CASAL' ? 'Pessoas' : 'Pessoa', ''],
     ...(ficha.pode.verEvolucao ? [['evolucao', 'Evolução', ''] as [Aba, string, string]] : []),
+    ...(ficha.pode.verCronograma
+      ? [['cronograma', 'Cronograma', ''] as [Aba, string, string]]
+      : []),
     ['historico', 'Histórico', ''],
   ];
 
@@ -765,6 +773,7 @@ export function Ficha({
               irMomento={() => trocarAba('pessoas')}
             />
           )}
+          {aba === 'cronograma' && <CronogramaAba ficha={ficha} />}
           {aba === 'historico' && <HistoricoLista ficha={ficha} lembrar={lembrar} />}
         </div>
         <Inscricao

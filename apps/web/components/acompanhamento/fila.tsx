@@ -23,6 +23,7 @@ import {
   type MensagemModelo,
   type Responsavel,
 } from '@npac/shared/mentoria';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { readPrefs } from '@npac/shared/screen-prefs';
@@ -42,7 +43,17 @@ const dias = (n: number) => `${n} ${plural(n, 'dia', 'dias')}`;
 /** Atraso que pinta os dias de vermelho; até ele, cinza firme (o cabeçalho Atrasados segue vermelho). */
 const ATRASO_ALARME_DIAS = 14;
 
-type Acao = { label: string; href?: string; run?: () => Promise<unknown> };
+type Acao = {
+  label: string;
+  href?: string;
+  run?: () => Promise<unknown>;
+  /** Abre a janela do envio com o cronograma (NPAC-60) em vez de concluir no clique. */
+  envio?: true;
+};
+/** Janela do envio do PME com o cronograma: só baixa quando abre. */
+const CronogramaEnvio = dynamic(() => import('./cronograma-envio'), { ssr: false });
+const diaDeBrasilia = (d: Date) =>
+  new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(d);
 
 /** A ação principal de cada tipo: conclui ali mesmo ou leva à tela que conclui. */
 function acaoDe(item: FilaItemDTO): Acao | null {
@@ -130,7 +141,7 @@ function acaoDe(item: FilaItemDTO): Acao | null {
       return insc
         ? {
             label: 'Registrar envio',
-            run: () => clientApi(`/api/mentoria/inscricoes/${insc}/ciclos`, 'POST', {}),
+            envio: true,
           }
         : null;
     case 'PME_ATRASADO': {
@@ -333,6 +344,7 @@ export function Fila({
   // Item de link da IDR: só a ação do link some, a reunião de hoje fica na agenda.
   const [feitos, marcarFeito] = useOptimistic<string[], string>([], (f, chave) => [...f, chave]);
   const [, startTransition] = useTransition();
+  const [envio, setEnvio] = useState<FilaItemDTO | null>(null);
   const agora = new Date(dados.agora);
 
   // A IDR de hoje aparece uma vez na agenda; o "enviar o link" vira a ação da linha.
@@ -453,6 +465,12 @@ export function Fila({
   const botaoAcao = (l: Linha, classe: string) => {
     const acao = l.link ? acaoDe(l.link) : acaoDe(l.item);
     if (!acao) return null;
+    if (acao.envio)
+      return (
+        <button type="button" className={classe} onClick={() => setEnvio(l.item)}>
+          {acao.label}
+        </button>
+      );
     if (acao.href)
       return (
         <Link className={classe} href={acao.href} prefetch={false}>
@@ -611,6 +629,24 @@ export function Fila({
           )}
         </aside>
       </div>
+      {envio?.inscricaoId && (
+        <CronogramaEnvio
+          inscricaoId={envio.inscricaoId}
+          nome={envio.mentorado?.nome ?? 'a pessoa'}
+          hoje={diaDeBrasilia(agora)}
+          modo={{ tipo: 'envio', numero: (envio.ciclo?.numero ?? 0) + 1 }}
+          onFechar={() => setEnvio(null)}
+          onFeito={() => {
+            const chave = envio.chave;
+            if (selChave === chave) fechar();
+            startTransition(() => {
+              marcarFeito(chave);
+              showToast();
+              router.refresh();
+            });
+          }}
+        />
+      )}
     </section>
   );
 }

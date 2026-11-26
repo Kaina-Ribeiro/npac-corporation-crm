@@ -176,9 +176,11 @@ test('Operação: envia o próximo PME pela Fila e vê a aba 7', async ({ page }
   await expect(item).toBeVisible();
   await expect(linha(page, ATRASADA, 'Cobrar a tarefa combinada')).toHaveCount(0);
   await capturar(page, 'operacao');
+  // NPAC-60: o envio abre a janela com o cronograma (aqui sem itens no banco).
+  await item.getByRole('button', { name: 'Registrar envio' }).click();
   await clicarEsperando(
     page,
-    item.getByRole('button', { name: 'Registrar envio' }),
+    page.getByRole('button', { name: 'Enviar o 2º PME', exact: true }),
     '/api/mentoria/inscricoes/',
   );
   await expect(item).toHaveCount(0);
