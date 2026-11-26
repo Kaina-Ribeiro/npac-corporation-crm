@@ -11,6 +11,7 @@ import {
   mentoriaOnboardingEtapas,
   mentoriaPausas,
   mentoriaPessoas,
+  mentoriaRenovacoes,
   user,
   withUser,
   type Db,
@@ -33,6 +34,8 @@ import {
   type MomentoPut,
   type MomentoTexto,
   type PessoaDTO,
+  type RenovacaoDTO,
+  STATUS_QUE_RENOVA,
 } from '@npac/shared';
 import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { DB } from '../common/db/db.module.js';
@@ -125,6 +128,21 @@ export class FichaService {
       .select()
       .from(mentoriaPausas)
       .where(and(eq(mentoriaPausas.inscricaoId, id), isNull(mentoriaPausas.fim)));
+    const renovacoes = await tx
+      .select({
+        id: mentoriaRenovacoes.id,
+        ano: mentoriaRenovacoes.ano,
+        data: mentoriaRenovacoes.data,
+        mentoriaAnterior: mentoriaRenovacoes.mentoriaAnterior,
+        mentoriaNova: mentoriaRenovacoes.mentoriaNova,
+        terminoAnterior: mentoriaRenovacoes.terminoAnterior,
+        terminoNovo: mentoriaRenovacoes.terminoNovo,
+        registradaPor: user.name,
+      })
+      .from(mentoriaRenovacoes)
+      .leftJoin(user, eq(user.id, mentoriaRenovacoes.registradaPor))
+      .where(eq(mentoriaRenovacoes.inscricaoId, id))
+      .orderBy(asc(mentoriaRenovacoes.ano));
     const [extra] = await tx.execute<{
       mes: number | null;
       inscricao: boolean;
@@ -140,9 +158,12 @@ export class FichaService {
       checkin: boolean;
       segunda_chance: boolean;
       ver_evolucao: boolean;
+      ver_cronograma: boolean;
       evolucao: boolean;
       ver_engajamento: boolean;
       engajamento: boolean;
+      renovacao: boolean;
+      desfazivel: boolean | null;
       so_carteira: boolean;
       admin: boolean;
       travado_por: string | null;
@@ -163,9 +184,15 @@ export class FichaService {
         mentoria_edita('CHECKIN', ${id}::uuid) as checkin,
         mentoria_edita('SEGUNDA_CHANCE', ${id}::uuid) as segunda_chance,
         mentoria_ve_evolucao(${id}::uuid) as ver_evolucao,
+        coalesce(mentoria_admin() or mentoria_perfil() in ('ACOMPANHAMENTO', 'OPERACAO'), false)
+          as ver_cronograma,
         mentoria_edita('EVOLUCAO', ${id}::uuid) as evolucao,
         mentoria_ve_engajamento() as ver_engajamento,
         mentoria_edita('ENGAJAMENTO', ${id}::uuid) as engajamento,
+        mentoria_edita('RENOVACAO', ${id}::uuid) as renovacao,
+        (select not exists (select 1 from mentoria_acoes a where a.id = any (r.acoes) and a.status = 'FEITA')
+         from mentoria_renovacoes r where r.inscricao_id = ${id}::uuid
+         order by r.ano desc limit 1) as desfazivel,
         mentoria_admin() as admin,
         mentoria_so_carteira() as so_carteira,
         mentoria_status_financeiro(${id}::uuid) as financeiro,
@@ -327,6 +354,11 @@ export class FichaService {
             ),
           }
         : null,
+      renovacoes: renovacoes.map((r): RenovacaoDTO => ({
+        ...r,
+        mentoriaAnterior: r.mentoriaAnterior as RenovacaoDTO['mentoriaAnterior'],
+        mentoriaNova: r.mentoriaNova as RenovacaoDTO['mentoriaNova'],
+      })),
       pode: {
         inscricao: extra?.inscricao === true,
         momento: extra?.momento === true,
@@ -341,10 +373,18 @@ export class FichaService {
         checkin: extra?.checkin === true,
         segundaChance: extra?.segunda_chance === true,
         verEvolucao: extra?.ver_evolucao === true,
+        verCronograma: extra?.ver_cronograma === true,
         evolucao: extra?.ver_evolucao === true && extra?.evolucao === true,
         responsavel: extra?.inscricao === true && extra?.so_carteira !== true,
         verEngajamento: extra?.ver_engajamento === true,
         engajamento: extra?.ver_engajamento === true && extra?.engajamento === true,
+        renovar:
+          extra?.renovacao === true &&
+          STATUS_QUE_RENOVA.includes(i.status as FichaDTO['status']) &&
+          i.inicioJornada !== null &&
+          i.terminoPrevisto !== null,
+        desfazerRenovacao:
+          extra?.admin === true && i.status === 'ATIVO' && extra?.desfazivel === true,
         admin: extra?.admin === true,
       },
     };

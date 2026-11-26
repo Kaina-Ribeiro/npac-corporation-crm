@@ -17,7 +17,10 @@ import type { CanalContato, Plataforma, ReuniaoStatus } from './reunioes.js';
 import type { CampoEvolucao } from './evolucao.js';
 import type { Engajamento, PainelEngajamento } from './engajamento.js';
 import type { Pilar } from './metas.js';
+import type { RenovacaoDTO } from './renovacoes.js';
 import type { CicloStatus, TarefaOrigem, TarefaStatus } from './pmes.js';
+import type { Bloco, ItemBanco, Recebido } from './cronograma.js';
+import type { MotivoIgnorada, SituacaoColuna } from './cronograma-planilha.js';
 import type { MetaStatus, SemaforoCor, SemaforoMotivo } from './semaforo.js';
 
 /** `GET mentoria/eu`: o perfil operacional e o selo de Admin de quem está logado. */
@@ -55,6 +58,8 @@ export type InscricaoItem = {
   mentoria: Mentoria;
   status: InscricaoStatus;
   mesJornada: number | null;
+  /** Renovações registradas (NPAC-79): o mês vai até 12 × (renovações + 1). */
+  renovacoes: number;
   responsavel: { id: string; nome: string } | null;
   /** Último contato ou reunião realizada (data de Brasília, `AAAA-MM-DD`). */
   ultimoContato: string | null;
@@ -423,6 +428,11 @@ export type FichaDTO = {
   contatos: ContatoDTO[];
   /** A pausa em curso, se houver. `dias`: parados até hoje. */
   pausa: { inicio: string; dias: number; motivo: string | null } | null;
+  /**
+   * Renovações da ficha, a mais antiga primeiro (NPAC-79). Lê quem vê a ficha; o ano em curso é `renovacoes.length + 1`
+   * e o total de meses `mesesDaJornada(renovacoes.length)`.
+   */
+  renovacoes: RenovacaoDTO[];
   /** Ciclos de PME, do mais recente ao mais antigo (Fase 2). `hoje`: o dia de Brasília do cálculo. */
   ciclos: CicloDTO[];
   hoje: string;
@@ -459,6 +469,8 @@ export type FichaDTO = {
     segundaChance: boolean;
     /** Aba Evolução aparece (Admin, Acompanhamento com a carteira, Operação; NPAC-57). */
     verEvolucao: boolean;
+    /** Aba Cronograma aparece (Admin, Acompanhamento, Operação; NPAC-60). */
+    verCronograma: boolean;
     /** Edita a aba Evolução: cartões, momentos, fotos e conquistas (Admin, Acompanhamento). */
     evolucao: boolean;
     /** Trocar o responsável: quem edita a inscrição, menos quem tem "só a carteira" (Fase 3B, e). */
@@ -467,6 +479,10 @@ export type FichaDTO = {
     verEngajamento: boolean;
     /** Marca o engajamento (Admin, Acompanhamento). */
     engajamento: boolean;
+    /** "Registrar renovação" (NPAC-79): Admin e Acompanhamento (carteira), ficha Ativo ou Concluído com término. */
+    renovar: boolean;
+    /** "Desfazer" a última renovação (G5): só a Admin, ficha Ativo, nenhuma ação que ela criou feita. */
+    desfazerRenovacao: boolean;
     admin: boolean;
   };
 };
@@ -507,8 +523,82 @@ export type TarefaDTO = {
   /** Reunião onde foi combinada (ISO em UTC) e o tipo dela. */
   reuniaoInicio: string | null;
   reuniaoTipo: ReuniaoTipo | null;
+  /** Bloco do item do cronograma (NPAC-60); só na origem PME. */
+  cronogramaBloco: Bloco | null;
+  /** Item do banco; nulo = "só desta pessoa" ou fora do cronograma. */
+  cronogramaItemId: string | null;
   podeEditar: boolean;
 };
+
+/** Item do banco do cronograma na tela da Admin, com quantas tarefas o usam. */
+export type ItemBancoDTO = ItemBanco & { version: number; envios: number };
+
+/**
+ * Dados da janela de envio e da aba Cronograma (NPAC-60): o banco inteiro (~300 itens, também os
+ * escondidos, para dar nome ao que já foi), o que a pessoa já tem (desta e das outras inscrições dela),
+ * o próximo número de PME (nulo quando não dá para enviar) e a sugestão do modelo para ele.
+ */
+export type CronogramaDTO = {
+  banco: ItemBanco[];
+  recebidos: Recebido[];
+  proximo: number | null;
+  sugestao: Record<Bloco, ItemBanco[]>;
+  semCronograma: boolean;
+  /** Pode escolher os itens do PME (quem envia PME: Admin, Acompanhamento, Operação). */
+  podeEscolher: boolean;
+};
+
+/** Uma inscrição na prévia da importação do cronograma (só a Admin vê). */
+export type FichaCronogramaImportacao = {
+  id: string;
+  nome: string;
+  mentoria: string;
+  status: InscricaoStatus;
+  /** Número do PME mais recente; nulo sem nenhum. */
+  pmeAtual: number | null;
+};
+
+/** Uma coluna da planilha (um mentorado) na prévia: como casou e para qual ficha vai. */
+export type ColunaCronogramaPrevia = {
+  /** Posição no arquivo (A = 0): a chave das decisões. */
+  indice: number;
+  /** "Coluna 4" (A = 1). */
+  coluna: number;
+  nome: string;
+  situacao: SituacaoColuna;
+  marcas: number;
+  maiorMes: number | null;
+  /** Fichas que casam pelo nome (várias em DUVIDA). */
+  candidatas: FichaCronogramaImportacao[];
+  /** Dica azul do caso RDV × 2M. */
+  dica: string | null;
+  /** Ficha que a coluna vai preencher (a única candidata ou a escolha da Admin); nula = fica de fora. */
+  inscricaoId: string | null;
+};
+
+/** Contagens do que entra (C8): tarefas do PME em andamento e as linhas do histórico da planilha. */
+export type ContagemCronograma = {
+  tarefas: number;
+  recebidos: number;
+  planejados: number;
+  jaTinha: number;
+  naoFez: number;
+};
+
+export type PreviaCronograma = ContagemCronograma & {
+  itens: { bloco: Bloco; novos: number; existentes: number; juntados: number }[];
+  colunas: ColunaCronogramaPrevia[];
+  /** Colunas que vão para uma ficha. */
+  ligadas: number;
+  /** Células preenchidas que não são mês nem "já leu"/"não fez", por motivo (sem o texto). */
+  ignoradas: Record<MotivoIgnorada, number>;
+  /** Colunas que vão para a mesma ficha (juntam, fica o menor mês, C15). */
+  mesmaFicha: { inscricaoId: string; nome: string; colunas: number[] }[];
+  /** Todas as fichas (para escolher a de uma coluna sem ficha). */
+  fichas: FichaCronogramaImportacao[];
+};
+
+export type ResultadoCronograma = ContagemCronograma & { itens: number; colunas: number };
 
 /** Meta (Parte 2). `pessoaId` nulo = do casal ou do individual. `status` nulo = sem marcação (E10). */
 export type MetaDTO = {
@@ -637,6 +727,8 @@ export type ReuniaoDTO = ReuniaoItem & {
   cobrar: string | null;
   trava: string | null;
   anotacaoInterna: string | null;
+  /** NPAC-78: link da gravação no Google Drive (decifrado). */
+  gravacao: string | null;
   humor: number | null;
   interesseRenovar: boolean | null;
   /** Tarefas da semana combinadas nesta reunião (até 3). */

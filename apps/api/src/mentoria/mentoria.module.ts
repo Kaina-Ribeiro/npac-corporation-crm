@@ -6,6 +6,8 @@ import { ENV, type Env } from '../config/env.js';
 import { MEDIA_STORE, VolumeMediaStore, type MediaStore } from './media-store.js';
 import { apagarPendentes } from './media-worker.js';
 import { FichaService } from './ficha.service.js';
+import { CronogramaImportacaoController } from './importacao/cronograma-importacao.controller.js';
+import { CronogramaImportacaoService } from './importacao/cronograma-importacao.service.js';
 import { ImportacaoController } from './importacao/importacao.controller.js';
 import { ImportacaoService } from './importacao/importacao.service.js';
 import { InscricoesController } from './inscricoes.controller.js';
@@ -23,6 +25,11 @@ import { PlanoController } from './plano.controller.js';
 import { PlanoService } from './plano.service.js';
 import { CiclosController } from './ciclos.controller.js';
 import { CiclosService } from './ciclos.service.js';
+import {
+  CronogramaBancoController,
+  CronogramaController,
+  CronogramaService,
+} from './cronograma.controller.js';
 import { CheckinsController } from './checkins.controller.js';
 import { CheckinsService } from './checkins.service.js';
 import { EvolucaoController } from './evolucao.controller.js';
@@ -43,16 +50,20 @@ import { ExportacaoController, ExportacaoService } from './exportacao.controller
 import { MENTORIA_CLOCK, systemClock } from './relogio.js';
 import { ReunioesController } from './reunioes.controller.js';
 import { ReunioesService } from './reunioes.service.js';
+import { RenovacoesController, RenovacoesService } from './renovacoes.controller.js';
 import { InscricaoDaVenda } from './venda/inscricao-da-venda.js';
 
 /** Acompanhamento de mentorados: base à parte do comercial, só Diretoria e Acompanhamento. */
 @Module({
   controllers: [
+    CronogramaController,
+    CronogramaBancoController,
     PerfisController,
     InscricoesController,
     MidiaController,
     OnboardingController,
     ImportacaoController,
+    CronogramaImportacaoController,
     PlanoController,
     ReunioesController,
     ContatosController,
@@ -69,6 +80,7 @@ import { InscricaoDaVenda } from './venda/inscricao-da-venda.js';
     CheckinsController,
     PmesCiclosController,
     EnviosController,
+    RenovacoesController,
   ],
   providers: [
     MentoriaGuard,
@@ -81,6 +93,7 @@ import { InscricaoDaVenda } from './venda/inscricao-da-venda.js';
     FichaService,
     OnboardingService,
     ImportacaoService,
+    CronogramaImportacaoService,
     FilaService,
     MensagensService,
     AvisosScheduler,
@@ -94,8 +107,10 @@ import { InscricaoDaVenda } from './venda/inscricao-da-venda.js';
     EvolucaoService,
     EvolucaoLegado,
     CheckinsService,
+    CronogramaService,
     InscricaoDaVenda,
     EnviosService,
+    RenovacoesService,
     { provide: MENTORIA_CLOCK, useValue: systemClock },
     {
       provide: MentoriaCrypto,

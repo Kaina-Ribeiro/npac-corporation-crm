@@ -96,6 +96,12 @@ export const mentoriaInscricoes = pgTable(
      * `mentoria_ve_engajamento()`).
      */
     engajamento: text('engajamento'),
+    /**
+     * Quando a ficha foi marcada "Concluído" (NPAC-79, G4): o número "Não renovaram". Gravada pelo gatilho
+     * `mentoria_inscricao_status_regras` na troca para CONCLUIDO e apagada ao sair; ficha que já nasce concluída
+     * (importação) e os concluídos de antes da 0092 ficam sem data, fora da conta.
+     */
+    concluidaEm: timestamp('concluida_em', { withTimezone: true }),
     version: integer('version').notNull().default(1),
     ...autoria,
   },
@@ -578,6 +584,45 @@ export const mentoriaPausas = pgTable(
   ],
 );
 
+/**
+ * Renovações da ficha (NPAC-79, 4B): a mesma ficha ganha mais 12 meses. Só `mentoria_renovar` grava e só
+ * `mentoria_renovacao_desfazer` apaga (a última); `npac_app` só lê. `acoes` = as ações que a renovação criou,
+ * para o desfazer apagar só elas.
+ */
+export const mentoriaRenovacoes = pgTable(
+  'mentoria_renovacoes',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    inscricaoId: uuid('inscricao_id')
+      .notNull()
+      .references(() => mentoriaInscricoes.id, { onDelete: 'cascade' }),
+    /** Ano da jornada que começa: 2 na 1ª renovação, 3 na 2ª… */
+    ano: smallint('ano').notNull(),
+    data: date('data').notNull(),
+    mentoriaAnterior: text('mentoria_anterior').notNull(),
+    mentoriaNova: text('mentoria_nova').notNull(),
+    terminoAnterior: date('termino_anterior').notNull(),
+    terminoNovo: date('termino_novo').notNull(),
+    statusAnterior: text('status_anterior').notNull(),
+    concluidaEmAnterior: timestamp('concluida_em_anterior', { withTimezone: true }),
+    acoes: uuid('acoes')
+      .array()
+      .notNull()
+      .default(sql`'{}'::uuid[]`),
+    registradaPor: text('registrada_por').references(() => user.id),
+    criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique('mentoria_renovacoes_ano').on(t.inscricaoId, t.ano),
+    index('mentoria_renovacoes_data').on(t.data),
+    check('mentoria_renovacoes_ano_valido', sql`${t.ano} >= 2`),
+    check('mentoria_renovacoes_anterior', sql`${t.mentoriaAnterior} in ('RDV', '2M', '6M')`),
+    check('mentoria_renovacoes_nova', sql`${t.mentoriaNova} in ('RDV', '2M', '6M')`),
+    check('mentoria_renovacoes_termino', sql`${t.terminoNovo} > ${t.terminoAnterior}`),
+    check('mentoria_renovacoes_status', sql`${t.statusAnterior} in ('ATIVO', 'CONCLUIDO')`),
+  ],
+);
+
 const REUNIAO_TIPOS_SQL = sql.raw(
   `('IDR', 'ACOMP_2PME', 'POSICIONAMENTO', 'MENTORADO_EXPERIENTE', 'CARTOES_MILHAS', 'MENSAL_6M', 'TRIMESTRAL_2M', 'ACOMP_EMERGENCIA', 'RENOVACAO')`,
 );
@@ -613,6 +658,8 @@ export const mentoriaReunioes = pgTable(
     cobrar: text('cobrar'),
     trava: text('trava'),
     anotacaoInterna: text('anotacao_interna'),
+    /** NPAC-78: link da gravação no Google Drive, cifrado com AAD (como os textos do registro). */
+    gravacao: text('gravacao'),
     humor: smallint('humor'),
     interesseRenovar: boolean('interesse_renovar'),
     version: integer('version').notNull().default(1),
@@ -826,6 +873,79 @@ export const mentoriaPmes = pgTable(
 );
 
 /**
+ * Banco de itens do cronograma (NPAC-60, C1, C2): experiências, desafios, filmes, livros e EAP.
+ * Material do programa, sem dado pessoal: texto claro. Só a Admin escreve; sem DELETE (esconder =
+ * `ativo = false`). `texto_norm` vem da API (`normalizarItem` do shared) e é único no bloco.
+ */
+export const mentoriaCronogramaItens = pgTable(
+  'mentoria_cronograma_itens',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    bloco: text('bloco').notNull(),
+    texto: text('texto').notNull(),
+    textoNorm: text('texto_norm').notNull(),
+    ordem: integer('ordem').notNull().default(0),
+    ativo: boolean('ativo').notNull().default(true),
+    version: integer('version').notNull().default(1),
+    // Sem FK para user, como o catálogo de PMEs: a importação grava e um `truncate "user"` não leva o banco.
+    criadoPor: text('criado_por'),
+    criadoEm: autoria.criadoEm,
+    atualizadoEm: autoria.atualizadoEm,
+  },
+  (t) => [
+    unique('mentoria_cronograma_itens_texto_unico').on(t.bloco, t.textoNorm),
+    index('mentoria_cronograma_itens_ordem').on(t.bloco, t.ordem),
+    check(
+      'mentoria_cronograma_itens_bloco',
+      sql`${t.bloco} in ('EXPERIENCIA', 'DESAFIO', 'FILME', 'LIVRO', 'EAP')`,
+    ),
+    check('mentoria_cronograma_itens_texto', sql`char_length(${t.texto}) between 1 and 2000`),
+    check(
+      'mentoria_cronograma_itens_texto_norm',
+      sql`char_length(${t.textoNorm}) between 1 and 2000`,
+    ),
+  ],
+);
+
+/**
+ * O que veio da planilha e não virou tarefa (NPAC-60, C8, C9): recebido antes do sistema, não fez, já
+ * tinha antes (sem número) ou planejado para um PME futuro (`tarefa_id` quando sai num envio).
+ */
+export const mentoriaCronogramaAnteriores = pgTable(
+  'mentoria_cronograma_anteriores',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    inscricaoId: uuid('inscricao_id')
+      .notNull()
+      .references(() => mentoriaInscricoes.id, { onDelete: 'cascade' }),
+    itemId: uuid('item_id')
+      .notNull()
+      .references(() => mentoriaCronogramaItens.id),
+    pmeNumero: smallint('pme_numero'),
+    resultado: text('resultado').notNull(),
+    tarefaId: uuid('tarefa_id').references((): AnyPgColumn => mentoriaTarefas.id, {
+      onDelete: 'set null',
+    }),
+    importadoEm: timestamp('importado_em', { withTimezone: true }).notNull().defaultNow(),
+    importadoPor: text('importado_por'),
+  },
+  (t) => [
+    unique('mentoria_cronograma_anteriores_unico').on(t.inscricaoId, t.itemId),
+    index('mentoria_cronograma_anteriores_item').on(t.itemId),
+    index('mentoria_cronograma_anteriores_tarefa').on(t.tarefaId),
+    check('mentoria_cronograma_anteriores_numero', sql`${t.pmeNumero} between 1 and 12`),
+    check(
+      'mentoria_cronograma_anteriores_resultado',
+      sql`${t.resultado} in ('RECEBIDO', 'NAO_FEZ', 'JA_TINHA', 'PLANEJADO')`,
+    ),
+    check(
+      'mentoria_cronograma_anteriores_planejado',
+      sql`${t.resultado} in ('RECEBIDO', 'NAO_FEZ') or (${t.resultado} = 'JA_TINHA') = (${t.pmeNumero} is null)`,
+    ),
+  ],
+);
+
+/**
  * Ciclo de um PME numa inscrição (E2, E3): nasce no envio, dura 30 dias e fecha pela tarefa de
  * encerramento. O status é derivado em SQL (`mentoria_ciclo_status`), nunca gravado.
  */
@@ -892,10 +1012,25 @@ export const mentoriaTarefas = pgTable(
     cobradaPor: text('cobrada_por').references(() => user.id),
     marcadaPorMentoradoEm: timestamp('marcada_por_mentorado_em', { withTimezone: true }),
     visivelAoMentorado: boolean('visivel_ao_mentorado').notNull().default(true),
+    /** Cronograma do PME (NPAC-60): bloco do item; só e sempre na origem PME. */
+    cronogramaBloco: text('cronograma_bloco'),
+    /** Item do banco; nulo = item "só desta pessoa" (C3). */
+    cronogramaItemId: uuid('cronograma_item_id').references(() => mentoriaCronogramaItens.id),
     version: integer('version').notNull().default(1),
     ...autoria,
   },
   (t) => [
+    uniqueIndex('mentoria_tarefas_cronograma_item')
+      .on(t.cicloId, t.cronogramaItemId)
+      .where(sql`${t.cronogramaItemId} is not null`),
+    check(
+      'mentoria_tarefas_cronograma',
+      sql`(${t.origem} = 'PME') = (${t.cronogramaBloco} is not null) and (${t.origem} <> 'PME' or ${t.cicloId} is not null) and (${t.cronogramaItemId} is null or ${t.origem} = 'PME')`,
+    ),
+    check(
+      'mentoria_tarefas_cronograma_bloco',
+      sql`${t.cronogramaBloco} in ('EXPERIENCIA', 'DESAFIO', 'FILME', 'LIVRO', 'EAP')`,
+    ),
     index('mentoria_tarefas_inscricao').on(t.inscricaoId, t.prazo),
     index('mentoria_tarefas_ciclo').on(t.cicloId, t.ordem),
     index('mentoria_tarefas_reuniao').on(t.reuniaoId),

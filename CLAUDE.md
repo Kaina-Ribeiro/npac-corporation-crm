@@ -134,7 +134,11 @@ variante="chat"`. Campos de 17 px ficam fora da regra dos 16 px com `.ch-campo`.
   atalho "Importar" no topo de Mentorados só para Admin, 18/11/2026); reuniões e contatos `reunioes.*`, `contatos.controller.ts` (0052: estados e
   remarcar/excluir no banco; IDR realizada → `data_idr`/início de Brasília + ATIVO + ações em `iniciarPelaIdr`;
   reunião realizada conclui a ação do mesmo `reuniao_tipo`; Especialista vê só inscrições/reuniões que conduz,
-  nunca IDR); Fila do dia `fila.*` (0053: `mentoria_fila(agora)` calcula na leitura, SECURITY INVOKER;
+  nunca IDR; **gravação** NPAC-78, 0090: na reunião Realizada, card "Gravação" (`reuniao-gravacao.tsx`) com o link do
+  Google Drive colado (`gravacao` no PATCH, cifrado com AAD, só arquivo do Drive por `idDoDrive` em `sh/mentoria/reunioes.ts`,
+  senão 400 "Cole o link da gravação no Google Drive") e o vídeo pela prévia do Drive num `<iframe>` (CSP `frame-src
+https://drive.google.com` em `proxy.ts`); quem edita o registro cola, quem vê a reunião assiste; fora do CSV, histórico
+  só com o nome do campo, a anonimização apaga; o vídeo não sobe para o sistema); Fila do dia `fila.*` (0053: `mentoria_fila(agora)` calcula na leitura, SECURITY INVOKER;
   0064: sem função por linha que releia tabela, porque cada uma reavalia a RLS (era 0,6–1 s); o mês da
   jornada e os dias parados repetem a conta de `mentoria_mes_jornada`/`mentoria_dias_pausados`: mudou
   uma delas, mude a Fila e `api/mentoria/contas-lista.ts`; `db/test/fila-equivalencia.test.ts` compara com a versão da 0053; quem vê cada item `sh/mentoria/fila.ts` `itemVisivel`; `mentoria_fila_feitos` conclui o que não tem estado;
@@ -188,6 +192,54 @@ variante="chat"`. Campos de 17 px ficam fora da regra dos 16 px com `.ch-campo`.
   Bloco 1 (NPAC-56, venda vira mentorado + cargo Envios e aba Envios físicos): spec
   `docs/superpowers/specs/2026-11-19-acompanhamento-gestao-bloco-1-design.md`, plano `docs/plans/acompanhamento-gestao-bloco-1.md`.
   O Acompanhamento mexe no comercial quando precisar (G1, 19/11/2026). Partes 1 e 2 prontas (22 e 23/11/2026).
+  Bloco 2 (NPAC-79, Renovações): spec `docs/superpowers/specs/2026-11-26-renovacoes-design.md`, plano
+  `docs/plans/npac-79-renovacoes.md`. Partes 1 (banco e API) e 2 (telas) prontas (26/11/2026); Parte 3 (PMEs do 2º
+  ano) espera a Duda.
+- **Renovações** (NPAC-79, Parte 1, 0092; Duda 1A, 2C, 3B, 4B, 5A, 6A, 7A, 8A; Gabriel G1–G6): a renovação fica na
+  **mesma ficha**. `mentoria_renovar(inscricao, version, mentoria, data)` (SECURITY DEFINER, advisory lock + `FOR UPDATE`,
+  área `RENOVACAO` de `mentoria_edita`: Admin e Acompanhamento com a carteira; Operação, Especialista, Envios e Mentor
+  42501 = 404) grava `mentoria_renovacoes` (ano 2, 3…, data, mentoria e término de antes e depois, status de antes,
+  `acoes` criadas, quem registrou), anda o término **12 meses** (G3), troca a mentoria (RDV, 2M, 6M; a variante fica),
+  volta Concluído a **Ativo** (G1: a ficha renovada continua ATIVO, então Fila, semáforo, check-ins, PMEs, envios, push e
+  transferência seguem iguais; não mexer nessas funções) e gera as ações do plano-modelo da mentoria nova **só do novo
+  ano** (`mentoria_gerar_acoes_desde(inscricao, hoje, mês)`, interna; teto "data ≤ término" de sempre, então a 1ª
+  renovação da 2M cria 13, 19 e 25). `mentoria_gerar_acoes(uuid, date)` corta em 12 × nº de renovações + 1. Data: não
+  futura nem de mais de 1 ano (400 com a frase do banco); versão velha 409. Histórico `inscricao.renovada` só com nomes.
+  **Desfazer** (G5) `mentoria_renovacao_desfazer(inscricao, version)`: só a Admin, só a última, ficha Ativo, nenhuma das
+  `acoes` dela FEITA; volta término (pela diferença), mentoria, status e o `concluida_em` de antes, apaga as ações
+  pendentes que ela criou e grava `inscricao.renovacao_desfeita`. **Status**: "Renovado" à mão é recusado (gatilho
+  `mentoria_inscricao_status_regras` + API: 400 "Para renovar, use Registrar renovação."); quem já está fica.
+  `mentoria_inscricoes.concluida_em` é gravada pelo mesmo gatilho quando a ficha **muda** para Concluído (sai ao voltar;
+  quem nasce concluído, como na importação, fica sem data; `npac_app` não escreve a coluna). Tabela `mentoria_renovacoes`:
+  lê quem vê a ficha (política `(select …)`, como as pausas), só as funções gravam. **Aba** `mentoria_renovacoes_painel(hoje)`
+  (SECURITY INVOKER, `SET jit = off`, 42501 fora de Admin e Acompanhamento): ATIVO com término e `término − 1 mês ≤ hoje +
+60`, mais quem renovou nos últimos 60 dias (G6); reunião = a de Renovação mais recente do ciclo atual (início ≥ término −
+  12 meses), sem as remarcadas; números = renovações e Concluídos (com data) dos últimos 12 meses (G4). API
+  `renovacoes.controller.ts`: `GET mentoria/renovacoes` (`@Perfis('ACOMPANHAMENTO')`, devolve `{ hoje, numeros, itens }` com a
+  situação da conversa e o rótulo do mês prontos), `POST inscricoes/:id/renovacoes` `{ version, mentoria, data }`,
+  `DELETE inscricoes/:id/renovacoes/ultima` `{ version }` (`@SoAdmin`). Ficha: `renovacoes` e `pode.renovar`/
+  `pode.desfazerRenovacao`. Regras puras (situação 5A, "Mês 12 de 12"/"O 12º mês começa em"/"Terminou em", %, filtros)
+  `sh/mentoria/renovacoes.ts` (`@npac/shared/renovacoes`, fora do barril do módulo pelo peso de `/leads`). Testes: `db/test/mentoria-renovacoes.test.ts`, `rls-por-consulta`,
+  `shared/test/mentoria-renovacoes.test.ts`, `api/test/mentoria-v2-renovacoes.e2e.test.ts`.
+  **Telas** (Parte 2, 26/11/2026; janelinha 2 e, na aba, a mistura das opções 1 e 2 que o Gabriel escolheu no canvas
+  "Renovações e gestão" depois de achar a tabela "meio sem graça"; capturas em `docs/acompanhamento/prototipo/renovacoes/`):
+  aba `/acompanhamento/renovacoes` "Renovações e gestão" (`components/acompanhamento/renovacoes.tsx` +
+  `renovacoes-topo.tsx`, CSS `.rv-*` em `modulo.css`): **painel escuro** (escuro nos dois temas) com o anel dourado do %,
+  Renovaram/Não renovaram, Chegando/Já tiveram a reunião e os **degraus da conversa** (as 6 situações com a contagem; tocar
+  num degrau é o filtro de situação, `aria-pressed`; a contagem e os números não mudam com o filtro); filtro "Responsável"
+  (só os que estão na lista; some para "só a carteira"); filtros lembrados em `AC_PREFS.renovacoes` (`renovacoesRegras`,
+  no navegador); **linha do término** ("Quando cada um termina", só a partir de 768 px): cada rosto no dia do término, anel
+  com a cor da situação (vermelho terminou, verde quer, azul marcada, cinza o resto), faixa "Já terminou" antes de "Hoje",
+  meses no eixo, até 4 faixas (acima/abaixo) para os rostos não se cobrirem, quem renovou fica fora; e a tabela (cartões abaixo de 1280 px): nome com os rostos, responsável com foto, mês (vermelho em "Terminou em"; quem
+  renovou mostra "2º ano"), término e o selo da situação (dourado renovou, verde quer, azul marcada, cinza o resto). Menu,
+  Ctrl+K e Mais só para Admin e Acompanhamento (`veRenovacoes` em `lib/acompanhamento.ts`, `mentoriaRenovacoes` no
+  `navItems`); os demais 404; `em-breve/renovacoes` redireciona. Ficha (`renovacao-ficha.tsx`): topo da Jornada com
+  "Desfazer" (Admin) e "Registrar renovação" (janelinha com RDV/2M/6M em botões de 44 px, "Data da renovação" de hoje a 1
+  ano atrás e o resumo "Novo término" e "Nº ano: Meses 13 a 24"); selo dourado "Renovado em DD/MM" ao lado do status;
+  "Mês 14 de 24"; a faixa e a trilha do topo mostram o ano em que a pessoa está (13 a 24, etiqueta "2º ano"; `anoDoMes`: quem renova no mês 12 segue no 1º ano até o mês 13); status sem "Renovado"
+  (a não ser na ficha que já está nele). Mentorados e Plano: `InscricaoItem.renovacoes` faz "Mês 13" e a trilha do ano
+  atual em vez de "Jornada concluída" (`rotuloMes`, `mesNoAno` em `ui.tsx`). e2e `acompanhamento-renovacoes.spec.ts`,
+  `mobile-layout-renovacoes.spec.ts`; capturas `CAPTURAS=<pasta> … e2e/capturas-renovacoes.spec.ts`.
 - **Venda vira mentorado** (NPAC-56, Parte 1, 0077; Eduarda 1A–5A): `insertSale` (`api/finance/finance.service.ts`) recebe
   `InscricaoDaVenda` (`api/mentoria/venda/inscricao-da-venda.ts`, exportado pelo `MentoriaModule` com o `AvisosScheduler`)
   e, se o produto tem `products.mentoria` (`RDV`/`2M`/`6M`; Admin > Produtos "Vira mentorado", "Não" = nulo; a 0077
@@ -277,6 +329,73 @@ variante="chat"`. Campos de 17 px ficam fora da regra dos 16 px com `.ch-campo`.
   `db/test/mentoria-engajamento.test.ts`, `shared/test/mentoria-engajamento.test.ts`,
   `api/test/mentoria-v2-engajamento.e2e.test.ts`, `e2e/acompanhamento-engajamento.spec.ts`,
   `e2e/mobile-layout-dashboard.spec.ts`; capturas `CAPTURAS=<pasta> … e2e/capturas-dashboard.spec.ts`.
+
+- **Cronograma do PME** (NPAC-60, Eduarda 24/11/2026: "1A, 2B, 3A, 4A"; desenho
+  `docs/superpowers/specs/2026-11-24-cronograma-design.md`, plano `docs/plans/npac-60-cronograma.md`, protótipo
+  `docs/acompanhamento/prototipo/cronograma/`). A planilha "CRONOGRAMA" (experiências, desafios, filmes, livros e EAP de
+  cada PME) passa a morar no sistema. **Fase 1 (banco e API, 0091) pronta; telas (fase 2) e importação (fase 3) depois.**
+  Banco de itens `mentoria_cronograma_itens` (texto claro, único por bloco pelo `texto_norm` = `normalizarItem` do
+  shared, sem DELETE: esconder = `ativo = false`): só a Admin escreve; lêem Admin, Acompanhamento e Operação. Cada item
+  escolhido no envio vira **tarefa de origem `PME`** do ciclo (`cronograma_bloco`, `cronograma_item_id`; nulo = "só desta
+  pessoa"; CHECK origem PME ⇔ bloco; único por ciclo e item; o gatilho põe o bloco do item), texto cifrado como as extras,
+  prazo do ciclo, ordem extras → cronograma → encerramento, e entra na % do PME. A **Operação cria** (política
+  `mentoria_tarefas_criar`: PME pela área `PME`); **marcar** segue `mentoria_edita_tarefa` (Admin e Acompanhamento).
+  `mentoria_cronograma_anteriores` = o que veio da planilha e não virou tarefa (`RECEBIDO`, `NAO_FEZ`, `JA_TINHA` sem
+  número, `PLANEJADO` com número; `tarefa_id` quando o planejado sai num envio, pelo gatilho
+  `mentoria_tarefa_cronograma_planejado`); o npac_app só lê (a importação da fase 3 grava por função). **Já recebido**
+  (`mentoria_cronograma_recebidos(inscricao)`, SECURITY INVOKER, sob a RLS de quem chama): tarefas PME com item e linhas
+  da planilha desta inscrição e das outras com **WhatsApp ou e-mail igual** (índice cego, C7: RDV → 2M não repete);
+  `PLANEJADO` da própria não conta (reservado ao PME dele). Regras puras em `sh/mentoria/cronograma.ts` (`BLOCOS`,
+  `MODELO_PME` 3 EAP/1/1/2/1, `sugerirItens`, `jaRecebido`, `motivoJaRecebido`, `semCronograma`). API
+  (`api/mentoria/cronograma.controller.ts` + `prepararCronograma`/`inserirCronograma` em `ciclos.service.ts`):
+  `POST inscricoes/:id/ciclos` aceita `cronograma: [{ itemId? | texto?, bloco }]` (até 20; repetido 409 "Esse item já foi
+  do 2º PME"/"…do RDV"/"Esse item já está neste PME", escondido 400; histórico `pme.enviado` com o campo `cronograma`);
+  `GET inscricoes/:id/cronograma` (banco, recebidos, próximo número, sugestão do modelo, `semCronograma`, `podeEscolher`);
+  `POST ciclos/:id/cronograma` (ciclo aberto, `pme.cronograma_incluido` com os blocos); `DELETE tarefas/:id/cronograma`
+  `{ version }` (204; `mentoria_cronograma_remover`: só pendente, sem comprovante, ciclo aberto; `pme.cronograma_removido`);
+  banco só Admin: `GET/POST cronograma/itens`, `PATCH cronograma/itens/:id` (`envios` = tarefas que usam; texto repetido
+  409 "Esse item já está no banco"). Ficha: `pode.verCronograma`. **A Especialista recebe 404 em tudo** e não vê as
+  tarefas PME. **Fila e push não cobram item** (`COBRANCA` ignora `origem = 'PME'`, C10; o atraso segue no
+  `PME_ATRASADO`). Testes: `shared/test/cronograma.test.ts`, `db/test/mentoria-cronograma.test.ts`, `fila-equivalencia`
+  (bloco NPAC-60), `rls-por-consulta`, `api/test/mentoria-v2-cronograma.e2e.test.ts`. O CSV real da planilha nunca entra
+  no repositório nem em ferramenta. **Telas (fase 2, 26/11/2026, protótipo v2):** peças comuns em
+  `components/acompanhamento/cronograma-ui.tsx` (ícone por bloco, título/link do EAP por `partesItem`, `TagResultado`); CSS
+  `.cr-*` no fim de `modulo.css`. Configurações → **Cronograma** (aba depois de PMEs, só Admin; `cronograma-banco.tsx`:
+  seletor `.seg` dos 5 blocos, busca por `normalizarItem`, "Novo <bloco>", lista `.pl-lista` com "N envios"/"Nunca
+  enviado"/"Escondido · N envios", tocar abre a janela com texto e Esconder/Mostrar). **Janela "Enviar o Nº PME"**
+  (`cronograma-envio.tsx`, por `next/dynamic`; modo `envio` ou `incluir` = "Montar o cronograma" do ciclo aberto sem itens):
+  carrega `GET …/cronograma`, vem com a sugestão, lista por bloco com "N de M", rodapé preso; tocar no item abre a troca
+  (`cronograma-troca.tsx`): ≥ 768 px caixa suspensa presa ao item, busca primeiro, setas e Enter; < 768 px tela própria com
+  "Voltar". "Já recebeu" vem apagado com onde ("1º PME", "RDV", "Já tinha"); "Escrever só para ele" = item sem banco.
+  Abre pelo card da ficha (sem `pode.verCronograma`, a janela antiga) e pela Fila `ENVIAR_PME` ("Registrar envio" deixou
+  de ser um clique). Card "PME atual": extras → grupo "Cronograma deste PME · N de M feitos" → encerramento; o comprovante
+  das tarefas do cronograma só em Feita/Parcial. Aba **Cronograma** da ficha (depois de Evolução, `pode.verCronograma`,
+  `cronograma-aba.tsx`; `?aba=cronograma` de quem não vê cai na Jornada): grupos por PME do sistema, "antes do sistema ·
+  da planilha" (EAP recolhido em "e mais N EAP"), "No <mentoria> · outra inscrição" e "Já tinha antes", filtro por bloco.
+  No módulo o `.btn` tem 38 px; nas telas do cronograma, 44 px no toque. e2e `acompanhamento-cronograma-banco|envio|aba.spec.ts`,
+  `mobile-layout-cronograma.spec.ts`; capturas `CAPTURAS=<pasta> … e2e/capturas-cronograma.spec.ts`. A janela de envio
+  troca o botão "Registrar envio" por "Enviar o Nº PME" (e2e antigos atualizados).
+  **Importação da planilha (fase 3, 26/11/2026; desenho §8, C8, C13–C15):** Configurações → Importação, card "Planilha do
+  cronograma" depois do da carteira (`components/acompanhamento/importar-cronograma.tsx`, 3 passos Arquivo → Revisar colunas
+  → Importar), só a Admin. A tela manda o CSV como texto para `POST mentoria/cronograma/importar/previa` e `…/importar`
+  (`api/mentoria/importacao/cronograma-importacao.*`, `@SoAdmin`, 404 aos demais; rota no formato do limite de 25 MB;
+  `{ csv ≤ 5 MB, arquivo?, decisoes?: { <coluna A=0>: inscrição | 'IGNORAR' } }`); `.xlsx`/zip → 400 "Baixe a aba
+  CRONOGRAMA em CSV". Leitura e casamento puros em `sh/mentoria/cronograma-planilha.ts` (`lerCsv` RFC 4180 com BOM,
+  `lerCronograma`: bloco muda na linha-título da coluna B com a C repetindo um nome, "Column N" ou vazia; item = coluna B com
+  texto e A vazia/número/"Column N", o modelo do fim fica de fora; célula `lerCelula`: "Nº mês" 1–12 com as variações,
+  "já leu/leram/viram…" = `JA_TINHA`, "não fez/concluiu/fizeram" = `NAO_FEZ`, o resto contado por motivo sem o texto;
+  item repetido e coluna repetida juntam no menor mês, `marcaPrimeiro`; `casarColunas`: pessoa da coluna = o cabeçalho de
+  cima, casal "A e B"/"A/B" só com CASAL pelas duas pessoas, **liga sozinha só com uma candidata**, RDV e 2M da mesma pessoa
+  = dúvida; `dicaDaDuvida` = a dica azul). Plano (mesmo na prévia e na importação, refeito dentro da transação com advisory
+  lock): fichas não anonimizadas; **C8** com ciclo aberto Nº N: mês N vira tarefa PME pendente desse ciclo
+  (`inserirCronograma`), mês < N `RECEBIDO`, mês > N `PLANEJADO`; sem ciclo aberto tudo `RECEBIDO`; **só acrescenta** (item
+  que a ficha já tem como tarefa ou linha fica como está; itens novos no fim do bloco, na ordem do arquivo). As linhas da
+  planilha entram por `mentoria_cronograma_importar(inscricao, itens[], numeros[], resultados[])` (0093, SECURITY DEFINER,
+  só `mentoria_admin()`, `ON CONFLICT DO NOTHING`; o npac_app segue sem INSERT na tabela). Sem histórico por inscrição;
+  auditoria `mentoria.cronograma_importado` só com as contagens. Fixture fictícia `packages/shared/test/fixtures/cronograma-ficticio.csv`
+  (gerada com a forma do arquivo real; o real nunca entra). Testes: `shared/test/cronograma-planilha.test.ts`,
+  `db/test/mentoria-cronograma.test.ts` (bloco 0093), `api/test/mentoria-v2-cronograma-importacao.e2e.test.ts`,
+  `e2e/acompanhamento-cronograma-importacao.spec.ts` (com `CAPTURAS=<pasta>`, as capturas dos passos 2 e 3).
 
 **Navegação e carregamento** (desempenho, Fase 2, 12/11/2026): o menu usa o `prefetch` padrão do Next
 (rota dinâmica sem `loading.tsx` não pré-carrega a página); `semPrefetch` (Ficha e itens "Em breve")
@@ -1064,7 +1183,7 @@ VARREDURA_URL=http://localhost:3150 VARREDURA_SENHA=senha-do-e2e-123 VARREDURA_O
   (`E2E_WEB_PORT=3200` se outro projeto ocupar) e banco `npac_e2e`.
 - Testes só recriam `npac_test*`/`npac_e2e*`; nunca aponte para outro banco. `npac_test_api` é um só para todas as worktrees: duas suítes da API ao mesmo tempo dão 401 falso; com outra worktree rodando, `API_TEST_DB=npac_test_api_<nome> pnpm --filter @npac/api test`. O e2e isola com `E2E_DB`, `E2E_API_PORT` e `E2E_WEB_PORT`.
 - **CI em partes** (NPAC-45, 19/11/2026, `.github/workflows/ci.yml`): `static` (lint, typecheck, shared,
-  audit), `db`, `api (1/3…)` e `e2e (1/6…)` em paralelo, cada parte com Postgres, API e web próprios
+  audit), `db`, `api (1/3…)` e `e2e (1/7…)` (7 partes desde 26/11/2026: a 6ª passava de 4 min e o WebKit do iPhone ficava lento no fim) em paralelo, cada parte com Postgres, API e web próprios
   (`vitest --shard`, `playwright --shard`); `ci` é o resumo (verde só com tudo verde). Uma parte passou
   de ~3 min: some um número à lista `shard` do job. No e2e do CI o turbo compila API e web ao mesmo
   tempo antes do Playwright e `E2E_PREBUILT=1` faz o `playwright.config.ts` só subir os servidores

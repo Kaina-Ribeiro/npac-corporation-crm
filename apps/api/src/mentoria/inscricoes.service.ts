@@ -56,6 +56,7 @@ type LinhaBruta = {
   pessoas: InscricaoItem['pessoas'];
   plano: InscricaoItem['plano'];
   ultimo_contato: string | null;
+  renovacoes: number;
   sem_cor: SemaforoCor | null;
   sem_motivos: string[] | null;
   pme: InscricaoItem['pme'];
@@ -68,6 +69,7 @@ const emItem = (r: LinhaBruta): InscricaoItem => ({
   mentoria: r.mentoria,
   status: r.status,
   mesJornada: r.mes,
+  renovacoes: r.renovacoes,
   responsavel:
     r.responsavel_id && r.responsavel ? { id: r.responsavel_id, nome: r.responsavel } : null,
   ultimoContato: r.ultimo_contato,
@@ -216,6 +218,7 @@ export class InscricoesService {
              a.anterior_ao_sistema, a.data_limite, ${HOJE})))
          from mentoria_acoes a where a.inscricao_id = i.id) as plano,
         to_char(mentoria_ultimo_contato(i.id), 'YYYY-MM-DD') as ultimo_contato,
+        (select count(*)::int from mentoria_renovacoes r where r.inscricao_id = i.id) as renovacoes,
         s.cor as sem_cor, s.motivos as sem_motivos,
         (select json_build_object('numero', c.numero,
            'status', mentoria_ciclo_status(c.concluido_em, c.nao_concluido_em, c.prazo,
@@ -341,6 +344,9 @@ export class InscricoesService {
           );
       }
       if (campos.status && campos.status !== atual.status) {
+        // NPAC-79 (G2): "Renovado" só pela renovação; quem já está continua (o banco também recusa).
+        if (campos.status === 'RENOVADO')
+          throw new BadRequestException('Para renovar, use Registrar renovação.');
         if (campos.status === 'PAUSADO') throw new BadRequestException('Use a ação de pausar');
         if (atual.status === 'PAUSADO') throw new BadRequestException('Use a ação de retomar');
         const [q] = await tx.execute<{ ok: boolean }>(

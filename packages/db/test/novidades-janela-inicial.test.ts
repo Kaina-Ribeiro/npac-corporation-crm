@@ -60,8 +60,8 @@ afterAll(closeTestConnections);
 
 describe('janela da novidade do NPAC-77 para quem já existia (0089)', () => {
   it('a entrada logo abaixo da npac-77-versao é a do Dashboard', () => {
-    expect(NOVIDADES[0]!.id).toBe('npac-77-versao');
-    expect(NOVIDADES[1]!.id).toBe(ABAIXO);
+    const i = NOVIDADES.findIndex((n) => n.id === 'npac-77-versao');
+    expect(NOVIDADES[i + 1]!.id).toBe(ABAIXO);
   });
 
   it('conta vazia e a que o ITODEV já tinha marcado voltam para logo abaixo da novidade', async () => {
@@ -74,7 +74,8 @@ describe('janela da novidade do NPAC-77 para quem já existia (0089)', () => {
     expect(await vista('u-antiga')).toBe('npac-73-chat-novo');
   });
 
-  it('a janela abre com só a npac-77-versao, para todo cargo', () => {
+  // Entradas mais novas que a npac-77-versao entram também; nada mais antigo que ela.
+  it('a janela abre a partir da npac-77-versao, para todo cargo', () => {
     const pessoas: PessoaNovidades[] = [
       { mestre: true, areas: [] },
       { mestre: false, areas: [{ area: 'COMERCIAL', cargo: 'SDR', head: false }] },
@@ -82,7 +83,11 @@ describe('janela da novidade do NPAC-77 para quem já existia (0089)', () => {
       { mestre: false, areas: [{ area: 'ACOMPANHAMENTO', cargo: 'ACOMPANHAMENTO', head: true }] },
     ];
     for (const p of pessoas)
-      expect(naoVistas(p, ABAIXO).map((n) => n.id)).toEqual(['npac-77-versao']);
+      expect(
+        naoVistas(p, ABAIXO)
+          .map((n) => n.id)
+          .at(-1),
+      ).toBe('npac-77-versao');
   });
 
   it('conta criada depois continua vazia (o /api/me grava a mais nova e nada abre)', async () => {

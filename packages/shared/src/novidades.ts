@@ -76,6 +76,78 @@ export type PessoaNovidades = {
 /** A mais nova primeiro. */
 export const NOVIDADES: readonly Novidade[] = [
   {
+    id: 'npac-79-renovacoes',
+    data: '2026-11-26',
+    para: ['acompanhamento'],
+    perfis: ['ACOMPANHAMENTO'],
+    tipo: 'novo',
+    icone: 'growth',
+    titulo: 'Renovações e gestão',
+    texto:
+      'A aba nova mostra quem chega ao 12º mês nos próximos 60 dias e como está a conversa de renovação. Para renovar, abra a ficha e toque em “Registrar renovação”: a ficha continua Ativo e ganha mais 12 meses.',
+    onde: 'Acompanhamento → Renovações e gestão',
+    href: '/acompanhamento/renovacoes',
+  },
+  {
+    id: 'npac-60-cronograma-importacao',
+    data: '2026-11-26',
+    para: ['acompanhamento-admin'],
+    tipo: 'novo',
+    icone: 'list',
+    titulo: 'Importar a planilha do cronograma',
+    texto:
+      'Baixe a aba CRONOGRAMA em CSV e escolha o arquivo no card “Planilha do cronograma”. Confira as colunas em dúvida, escolha a ficha de cada uma e toque em “Importar”. Rodar de novo não duplica nada.',
+    onde: 'Acompanhamento → Configurações → Importação',
+  },
+  {
+    id: 'npac-60-cronograma-envio',
+    data: '2026-11-26',
+    para: ['acompanhamento'],
+    perfis: ['ACOMPANHAMENTO', 'OPERACAO'],
+    tipo: 'novo',
+    icone: 'list',
+    titulo: 'Cronograma no envio do PME',
+    texto:
+      'Ao registrar o envio do PME, a janela já traz as experiências, desafios, filmes, livros e EAP que a pessoa ainda não recebeu, nem em outra mentoria. Toque num item para trocar. Cada item vira tarefa do PME e conta na % dele.',
+    onde: 'Ficha do mentorado → Jornada → PME atual, ou Fila do dia',
+  },
+  {
+    id: 'npac-60-cronograma-aba',
+    data: '2026-11-26',
+    para: ['acompanhamento'],
+    perfis: ['ACOMPANHAMENTO', 'OPERACAO'],
+    tipo: 'novo',
+    icone: 'check',
+    titulo: 'Aba Cronograma na ficha',
+    texto:
+      'Tudo o que a pessoa recebeu do cronograma, PME a PME, com Feita, Não feita ou Pendente, contando o que veio de outra mentoria dela.',
+    onde: 'Ficha do mentorado → Cronograma',
+  },
+  {
+    id: 'npac-60-cronograma-banco',
+    data: '2026-11-26',
+    para: ['acompanhamento-admin'],
+    tipo: 'novo',
+    icone: 'box',
+    titulo: 'Banco do cronograma',
+    texto:
+      'Os itens de cada bloco ficam em Configurações → Cronograma. Toque em “Novo” para incluir e num item para corrigir ou esconder. Item já enviado não se apaga: escondido, sai das sugestões.',
+    onde: 'Acompanhamento → Configurações → Cronograma',
+  },
+  {
+    id: 'npac-78-gravacao',
+    data: '2026-11-25',
+    para: ['acompanhamento'],
+    perfis: ['ACOMPANHAMENTO', 'OPERACAO', 'ESPECIALISTA'],
+    tipo: 'novo',
+    icone: 'calendar',
+    titulo: 'Gravação da reunião',
+    texto:
+      'Na reunião realizada, cole o link da gravação no Google Drive. O vídeo passa a tocar ali mesmo, com “Abrir no Drive” embaixo. Quem for assistir precisa ter acesso ao arquivo no Drive.',
+    onde: 'Acompanhamento → Reuniões → abra a reunião',
+    href: '/acompanhamento/reunioes',
+  },
+  {
     id: 'npac-77-versao',
     data: '2026-11-25',
     para: ['todos'],

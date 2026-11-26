@@ -314,10 +314,22 @@ describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => 
     // Evolução e conquistas (0076): quem vê a evolução, nunca a Especialista.
     await owner`insert into mentoria_evolucao (inscricao_id, renda) values (${a}, 'cifrado'), (${b}, 'cifrado')`;
     await owner`insert into mentoria_conquistas (inscricao_id, descricao) values (${a}, 'cifrado'), (${b}, 'cifrado')`;
+    // Cronograma (NPAC-60, 0091): o banco para quem monta PME; o da planilha como a evolução, nunca a Especialista.
+    const [item] = await owner<{ id: string }[]>`
+      insert into mentoria_cronograma_itens (bloco, texto, texto_norm) values ('FILME', 'Filme P', 'filme p')
+      returning id`;
+    await owner`insert into mentoria_cronograma_anteriores (inscricao_id, item_id, pme_numero, resultado)
+      values (${a}, ${item!.id}, 1, 'RECEBIDO'), (${b}, ${item!.id}, 1, 'RECEBIDO')`;
+    // Renovações (NPAC-79, 0092): lê quem vê a inscrição, como as pausas.
+    await owner`insert into mentoria_renovacoes (inscricao_id, ano, data, mentoria_anterior, mentoria_nova,
+      termino_anterior, termino_novo, status_anterior)
+      values (${a}, 2, '2026-11-20', 'RDV', 'RDV', '2027-01-10', '2028-01-10', 'ATIVO'),
+        (${b}, 2, '2026-11-20', 'RDV', '2M', '2027-01-10', '2028-01-10', 'ATIVO')`;
   });
 
   afterAll(async () => {
     await owner`truncate mentoria_inscricoes cascade`;
+    await owner`delete from mentoria_cronograma_itens where texto = 'Filme P'`;
     await owner`delete from mentoria_perfis where user_id like 'p-%'`;
     await owner`delete from "user" where id like 'p-%'`;
   });
@@ -372,6 +384,17 @@ describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => 
       expect(checkins).toHaveLength(2);
       for (const r of checkins) expect({ u, v: r.depois }).toEqual({ u, v: r.antes });
 
+      // Renovações (0092): mesma resposta de mentoria_ve, sem função por linha.
+      const renovacoes = await comoOwner(
+        u,
+        (s) => s<{ antes: boolean; depois: boolean }[]>`
+          select mentoria_ve(x.inscricao_id) as antes,
+            coalesce(mentoria_ve_todas() or x.inscricao_id = any (mentoria_ids_visiveis()), false) as depois
+          from mentoria_renovacoes x`,
+      );
+      expect(renovacoes).toHaveLength(2);
+      for (const r of renovacoes) expect({ u, v: r.depois }).toEqual({ u, v: r.antes });
+
       // Evolução e conquistas (0076): mesma resposta de mentoria_ve_evolucao, sem função por linha.
       for (const tabela of ['mentoria_evolucao', 'mentoria_conquistas']) {
         const linhas = await comoOwner(
@@ -405,6 +428,9 @@ describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => 
         mentoria_semaforo_historico: 1,
         mentoria_evolucao: 2,
         mentoria_conquistas: 2,
+        mentoria_cronograma_itens: 1,
+        mentoria_cronograma_anteriores: 2,
+        mentoria_renovacoes: 2,
       },
       [DUDA]: {
         mentoria_inscricoes: 2,
@@ -415,6 +441,9 @@ describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => 
         mentoria_semaforo_historico: 1,
         mentoria_evolucao: 2,
         mentoria_conquistas: 2,
+        mentoria_cronograma_itens: 1,
+        mentoria_cronograma_anteriores: 2,
+        mentoria_renovacoes: 2,
       },
       [ACOMP]: {
         mentoria_inscricoes: 2,
@@ -425,6 +454,9 @@ describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => 
         mentoria_semaforo_historico: 1,
         mentoria_evolucao: 2,
         mentoria_conquistas: 2,
+        mentoria_cronograma_itens: 1,
+        mentoria_cronograma_anteriores: 2,
+        mentoria_renovacoes: 2,
       },
       [OPERACAO]: {
         mentoria_inscricoes: 2,
@@ -435,6 +467,9 @@ describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => 
         mentoria_semaforo_historico: 1,
         mentoria_evolucao: 2,
         mentoria_conquistas: 2,
+        mentoria_cronograma_itens: 1,
+        mentoria_cronograma_anteriores: 2,
+        mentoria_renovacoes: 2,
       },
       [MANU]: {
         mentoria_inscricoes: 1,
@@ -445,6 +480,9 @@ describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => 
         mentoria_semaforo_historico: 0,
         mentoria_evolucao: 0,
         mentoria_conquistas: 0,
+        mentoria_cronograma_itens: 0,
+        mentoria_cronograma_anteriores: 0,
+        mentoria_renovacoes: 1,
       },
       [MANU2]: {
         mentoria_inscricoes: 0,
@@ -455,6 +493,9 @@ describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => 
         mentoria_semaforo_historico: 0,
         mentoria_evolucao: 0,
         mentoria_conquistas: 0,
+        mentoria_cronograma_itens: 0,
+        mentoria_cronograma_anteriores: 0,
+        mentoria_renovacoes: 0,
       },
       [LEO]: {
         mentoria_inscricoes: 0,
@@ -465,6 +506,9 @@ describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => 
         mentoria_semaforo_historico: 0,
         mentoria_evolucao: 0,
         mentoria_conquistas: 0,
+        mentoria_cronograma_itens: 0,
+        mentoria_cronograma_anteriores: 0,
+        mentoria_renovacoes: 0,
       },
       [CARLA]: {
         mentoria_inscricoes: 0,
@@ -475,6 +519,9 @@ describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => 
         mentoria_semaforo_historico: 0,
         mentoria_evolucao: 0,
         mentoria_conquistas: 0,
+        mentoria_cronograma_itens: 0,
+        mentoria_cronograma_anteriores: 0,
+        mentoria_renovacoes: 0,
       },
       [SDR2]: {
         mentoria_inscricoes: 0,
@@ -485,6 +532,9 @@ describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => 
         mentoria_semaforo_historico: 0,
         mentoria_evolucao: 0,
         mentoria_conquistas: 0,
+        mentoria_cronograma_itens: 0,
+        mentoria_cronograma_anteriores: 0,
+        mentoria_renovacoes: 0,
       },
       // Só a carteira: a inscrição `a`, com as duas reuniões, as duas tarefas, a meta e o check-in dela.
       [CART]: {
@@ -496,6 +546,9 @@ describe('Acompanhamento: mentoria_ve_todas e mentoria_ids_especialista', () => 
         mentoria_semaforo_historico: 1,
         mentoria_evolucao: 1,
         mentoria_conquistas: 1,
+        mentoria_cronograma_itens: 1,
+        mentoria_cronograma_anteriores: 1,
+        mentoria_renovacoes: 1,
       },
     };
     for (const [u, tabelas] of Object.entries(esperado)) {

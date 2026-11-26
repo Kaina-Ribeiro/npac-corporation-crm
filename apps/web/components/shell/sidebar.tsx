@@ -25,6 +25,7 @@ export function Sidebar({
   mentoriaAdmin = false,
   mentoriaCiclos = false,
   soEnvios = false,
+  mentoriaRenovacoes = false,
   adminBadge = 0,
   ultimaFicha = null,
   footer,
@@ -40,6 +41,8 @@ export function Sidebar({
   mentoriaCiclos?: boolean;
   /** Cargo Envios: só a aba Envios físicos. */
   soEnvios?: boolean;
+  /** Admin e Acompanhamento: a aba "Renovações e gestão" (NPAC-79). */
+  mentoriaRenovacoes?: boolean;
   /** Pedidos de acesso esperando a liderança. */
   adminBadge?: number;
   /** Nome da última ficha aberta: o item "Ficha do mentorado" diz para onde leva. */
@@ -71,36 +74,43 @@ export function Sidebar({
       <div className="side-scroll -mx-2.5 -my-1 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-2.5 py-1">
         <nav aria-label="Navegação lateral" className="side-nav flex flex-none flex-col gap-px">
           {commercial && <InboxLink />}
-          {navItems({ head, mentoria, commercial, mentoriaAdmin, mentoriaCiclos, soEnvios }).map(
-            (item, i, all) =>
-              item.children ? (
-                <NavGroup
-                  key={item.href}
-                  item={item}
-                  linkClass={LINK}
-                  activeClass={ACTIVE}
-                  rotulo={rotulo}
-                />
-              ) : (
-                <Fragment key={item.href}>
-                  {item.section && item.section !== all[i - 1]?.section && (
-                    <NavSection title={item.section} />
+          {navItems({
+            head,
+            mentoria,
+            commercial,
+            mentoriaAdmin,
+            mentoriaCiclos,
+            soEnvios,
+            mentoriaRenovacoes,
+          }).map((item, i, all) =>
+            item.children ? (
+              <NavGroup
+                key={item.href}
+                item={item}
+                linkClass={LINK}
+                activeClass={ACTIVE}
+                rotulo={rotulo}
+              />
+            ) : (
+              <Fragment key={item.href}>
+                {item.section && item.section !== all[i - 1]?.section && (
+                  <NavSection title={item.section} />
+                )}
+                <NavLink item={item} className={LINK} activeClassName={ACTIVE}>
+                  {item.icon}
+                  {rotulo(item)}
+                  {item.href === '/chat' && <ChatBadge />}
+                  {item.href === ADMIN_ITEM.href && adminBadge > 0 && (
+                    <CountBadge n={adminBadge} label={`${adminBadge} pedidos de acesso`} />
                   )}
-                  <NavLink item={item} className={LINK} activeClassName={ACTIVE}>
-                    {item.icon}
-                    {rotulo(item)}
-                    {item.href === '/chat' && <ChatBadge />}
-                    {item.href === ADMIN_ITEM.href && adminBadge > 0 && (
-                      <CountBadge n={adminBadge} label={`${adminBadge} pedidos de acesso`} />
-                    )}
-                    {!item.ready && (
-                      <span className="side-label ml-auto text-[11px] font-medium text-ink3">
-                        Em breve
-                      </span>
-                    )}
-                  </NavLink>
-                </Fragment>
-              ),
+                  {!item.ready && (
+                    <span className="side-label ml-auto text-[11px] font-medium text-ink3">
+                      Em breve
+                    </span>
+                  )}
+                </NavLink>
+              </Fragment>
+            ),
           )}
         </nav>
         {commercial && (

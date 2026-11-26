@@ -172,6 +172,7 @@ const CAMPOS: Record<string, string> = {
   duracaoMin: 'Duração',
   plataforma: 'Plataforma',
   link: 'Link',
+  gravacao: 'Gravação',
   resumo: 'Resumo',
   metas: 'Metas',
   combinado: 'Combinado',

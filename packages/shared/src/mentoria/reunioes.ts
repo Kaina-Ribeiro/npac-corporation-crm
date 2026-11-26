@@ -86,6 +86,21 @@ export const CAMPOS_REUNIAO: readonly {
   { campo: 'anotacaoInterna', rotulo: 'Anotação interna', interno: true },
 ];
 
+/** Gravação da reunião (NPAC-78): só link de arquivo do Google Drive, que toca na própria reunião. */
+export const AVISO_GRAVACAO = 'Cole o link da gravação no Google Drive';
+const DRIVE_ARQUIVO = /^https:\/\/drive\.google\.com\/file\/d\/([A-Za-z0-9_-]{10,})(?:[/?#].*)?$/;
+const DRIVE_ABRIR =
+  /^https:\/\/drive\.google\.com\/open\?(?:[^#]*&)?id=([A-Za-z0-9_-]{10,})(?:[&#].*)?$/;
+
+/** Id do arquivo num link do Drive (`/file/d/<id>/…` ou `/open?id=<id>`); `null` para qualquer outro link. */
+export function idDoDrive(url: string): string | null {
+  const t = url.trim();
+  return DRIVE_ARQUIVO.exec(t)?.[1] ?? DRIVE_ABRIR.exec(t)?.[1] ?? null;
+}
+
+/** Endereço do player do Drive (o `<iframe>` da reunião). */
+export const previewDoDrive = (id: string) => `https://drive.google.com/file/d/${id}/preview`;
+
 /** Dias sem reunião realizada a partir dos quais a inscrição entra na lista (§6). */
 export const SEM_REUNIAO_DIAS = 30;
 

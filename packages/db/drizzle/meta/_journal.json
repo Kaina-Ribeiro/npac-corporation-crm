@@ -631,6 +631,34 @@
       "when": 1795619453928,
       "tag": "0089_novidades_janela_inicial",
       "breakpoints": true
+    },
+    {
+      "idx": 90,
+      "version": "7",
+      "when": 1795622227427,
+      "tag": "0090_reuniao_gravacao",
+      "breakpoints": true
+    },
+    {
+      "idx": 91,
+      "version": "7",
+      "when": 1795644531213,
+      "tag": "0091_cronograma_pme",
+      "breakpoints": true
+    },
+    {
+      "idx": 92,
+      "version": "7",
+      "when": 1795690498455,
+      "tag": "0092_renovacoes",
+      "breakpoints": true
+    },
+    {
+      "idx": 93,
+      "version": "7",
+      "when": 1795694312706,
+      "tag": "0093_cronograma_importacao",
+      "breakpoints": true
     }
   ]
 }

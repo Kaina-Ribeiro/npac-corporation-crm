@@ -5,6 +5,7 @@ import {
   INSCRICAO_STATUS,
   SEMAFORO_CORES,
 } from '@npac/shared/mentoria';
+import { SITUACOES_RENOVACAO, type FiltroRenovacoes } from '@npac/shared/renovacoes';
 import { oneOf, readPrefs, writePrefs, type PrefRules } from '@npac/shared/screen-prefs';
 import { readPreference } from './read-preference';
 import { rememberAt } from './screen-prefs';
@@ -23,6 +24,7 @@ export const AC_PREFS = {
   onboarding: { prefix: 'npac_f_ac_onb', path: '/acompanhamento/onboarding' },
   ficha: { prefix: 'npac_f_ac_ficha', path: '/acompanhamento/ficha' },
   pmes: { prefix: 'npac_f_ac_pmes', path: '/acompanhamento/pmes' },
+  renovacoes: { prefix: 'npac_f_ac_renov', path: '/acompanhamento/renovacoes' },
 } as const;
 
 export type AcScreen = keyof typeof AC_PREFS;
@@ -78,7 +80,7 @@ export const prefsDoFiltro = (f: FiltroPmes) => ({
 /** Ficha: a aba (vale para qualquer mentorado) e o filtro do histórico ("Tudo" é o padrão). */
 export const FICHA_REGRAS: PrefRules = {
   // `momento` só para ler cookie antigo: a aba saiu (NPAC-76) e `abaValida` a troca por `pessoas`.
-  aba: oneOf(['inscricao', 'pessoas', 'momento', 'evolucao', 'historico']),
+  aba: oneOf(['inscricao', 'pessoas', 'momento', 'evolucao', 'cronograma', 'historico']),
   historico: oneOf(['REUNIOES', 'CONTATOS', 'ANOTACOES', 'ALTERACOES']),
   /** Aba Evolução: "Linha do tempo" (sem a chave, "Lado a lado"). */
   vista: oneOf(['linha']),
@@ -118,3 +120,17 @@ export function prefsParaFiltros(p: Record<string, string>): FiltrosMentorados {
     ...(p.completar ? { completar: true } : {}),
   };
 }
+
+/**
+ * Renovações e gestão (NPAC-79): situação da conversa e responsável (só os que aparecem na lista; quem tem "só a
+ * carteira" não tem o filtro de responsável e o cookie não o guarda).
+ */
+export const renovacoesRegras = (responsaveis: readonly string[]): PrefRules => ({
+  situacao: oneOf(SITUACOES_RENOVACAO),
+  responsavelId: oneOf(responsaveis),
+});
+
+export const filtroRenovacoesDasPrefs = (p: Record<string, string>): FiltroRenovacoes => ({
+  ...(p.situacao ? { situacao: p.situacao as FiltroRenovacoes['situacao'] } : {}),
+  ...(p.responsavelId ? { responsavelId: p.responsavelId } : {}),
+});

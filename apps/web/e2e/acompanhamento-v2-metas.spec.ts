@@ -91,7 +91,7 @@ test('Duda combina 3 tarefas, define a meta, cobra na reunião seguinte e vê as
   await page.goto(`/acompanhamento/ficha/${inscricao}?aba=jornada`);
   const card = page.getByRole('region', { name: 'PME atual' });
   await card.getByRole('button', { name: 'Registrar envio do 1º PME' }).click();
-  await page.getByRole('button', { name: 'Registrar envio', exact: true }).click();
+  await page.getByRole('button', { name: 'Enviar o 1º PME', exact: true }).click();
   await expect(card.getByText('Em andamento')).toBeVisible();
 
   // Reunião da semana passada: 3 tarefas (a 4ª não cabe) e uma meta.

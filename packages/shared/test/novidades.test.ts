@@ -154,7 +154,7 @@ describe('arquivo NOVIDADES', () => {
     const ids = NOVIDADES.map((x) => x.id);
     expect(new Set(ids).size).toBe(ids.length);
     for (const id of ids) expect(id).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*$/);
-    expect(ULTIMA_NOVIDADE).toBe('npac-77-versao');
+    expect(ULTIMA_NOVIDADE).toBe(NOVIDADES[0]!.id);
   });
 
   it('datas válidas, da mais nova para a mais antiga', () => {

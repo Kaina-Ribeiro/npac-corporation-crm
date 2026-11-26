@@ -1,5 +1,6 @@
 'use client';
 import {
+  BLOCO_LABEL,
   CICLO_STATUS_LABEL,
   nomePme,
   TAREFA_ORIGEM_LABEL,
@@ -16,16 +17,21 @@ import {
   type MetaDTO,
   type TarefaDTO,
 } from '@npac/shared/mentoria';
+import dynamic from 'next/dynamic';
 import { useEffect, useRef, useState } from 'react';
 import { button, control, FormError, quietButton } from '@/components/crm-ui';
 import { clientApi } from '@/lib/client-api';
 import { filaDeSalvamento, registrarVersion, salvarCampo } from '@/lib/acompanhamento-saver';
 import { CampoPr, useCampo } from './campo';
+import type { ModoEnvio } from './cronograma-envio';
+import { IconeBloco } from './cronograma-ui';
 import { Dialogo } from './dialogo';
 import { enviarFoto } from './midia';
 import { dataBR, ICONES, Icone } from './ui';
 
 const sm = `${quietButton} sm`;
+/** Janela do envio com o cronograma (NPAC-60): só baixa quando abre. */
+const CronogramaEnvio = dynamic(() => import('./cronograma-envio'), { ssr: false });
 const CLASSE_CICLO: Record<CicloStatus, string> = {
   EM_ANDAMENTO: 'onb',
   SEGUNDA_CHANCE: 'onb',
@@ -147,6 +153,9 @@ export function Tarefa({
   const ed = t.podeEditar;
   const feita = t.status === 'FEITA';
   const encerramento = t.origem === 'ENCERRAMENTO';
+  // Item do cronograma (NPAC-60): o comprovante só aparece quando a pessoa fez (Feita/Parcial).
+  const doCronograma = t.origem === 'PME' && t.cronogramaBloco !== null;
+  const comprova = !doCronograma || t.status === 'FEITA' || t.status === 'PARCIAL';
   const descricao = t.descricao ?? 'Texto apagado (LGPD)';
   const editaCombinado = combinar && ed && t.origem === 'REUNIAO' && t.descricao !== null;
   const nomeMeta = t.metaId ? metas?.find((m) => m.id === t.metaId)?.descricao : null;
@@ -190,10 +199,13 @@ export function Tarefa({
         <Icone d={ICONES.check} largura={3} />
       </button>
       <div className="min-w-0">
-        <span className="pme-orig">
-          {mostrarReuniao && t.reuniaoInicio
-            ? `${t.reuniaoTipo ? REUNIAO_TIPO_LABEL[t.reuniaoTipo] : 'Reunião'} de ${diaBR(t.reuniaoInicio)}`
-            : TAREFA_ORIGEM_LABEL[t.origem]}
+        <span className={`pme-orig ${doCronograma ? 'cr-orig' : ''}`.trim()}>
+          {doCronograma && <IconeBloco bloco={t.cronogramaBloco!} pequeno />}
+          {doCronograma
+            ? BLOCO_LABEL[t.cronogramaBloco!]
+            : mostrarReuniao && t.reuniaoInicio
+              ? `${t.reuniaoTipo ? REUNIAO_TIPO_LABEL[t.reuniaoTipo] : 'Reunião'} de ${diaBR(t.reuniaoInicio)}`
+              : TAREFA_ORIGEM_LABEL[t.origem]}
         </span>
         {editaCombinado ? <Combinado t={t} metas={metas} /> : <b>{descricao}</b>}
         {!editaCombinado && nomeMeta && <span className="tr-meta">Meta: {nomeMeta}</span>}
@@ -204,7 +216,7 @@ export function Tarefa({
               ? `Prazo ${dataBR(t.prazo)}`
               : ''}
         </span>
-        {(ed || t.comprovanteMidiaId) && (
+        {((ed && comprova) || t.comprovanteMidiaId) && (
           <div className="pme-comp">
             {t.comprovanteMidiaId && (
               <a
@@ -283,6 +295,8 @@ type Janela =
   | { tipo: 'data'; c: CicloDTO }
   | { tipo: 'fechar'; c: CicloDTO }
   | { tipo: 'segunda'; c: CicloDTO }
+  /** Montar o cronograma do PME em andamento que nasceu sem itens (NPAC-60). */
+  | { tipo: 'cronograma'; c: CicloDTO }
   | null;
 
 /** Segunda chance (E15): depois do prazo original e não antes de hoje. */
@@ -349,10 +363,17 @@ function Ciclo({
   atualizar: () => void;
 }) {
   const doCiclo = c.tarefas.filter((t) => t.origem !== 'REUNIAO');
+  // Cronograma (NPAC-60): agrupado depois das extras e antes do encerramento.
+  const cronograma = doCiclo.filter((t) => t.origem === 'PME');
+  const feitosCronograma = cronograma.filter((t) => t.status === 'FEITA').length;
+  const fimDoCiclo = doCiclo.filter((t) => t.origem === 'ENCERRAMENTO');
+  const antes = doCiclo.filter((t) => t.origem !== 'PME' && t.origem !== 'ENCERRAMENTO');
   const daReuniao = c.tarefas.length - doCiclo.length;
   const semEncerramento = !c.tarefas.some((t) => t.origem === 'ENCERRAMENTO');
   const fechavel = semEncerramento && c.anteriorAoSistema && ficha.pode.tarefa;
   const aberto = !c.concluidoEm && !c.naoConcluidoEm;
+  const montar =
+    atual && aberto && !c.anteriorAoSistema && ficha.pode.pme && ficha.pode.verCronograma;
   return (
     <div className={`pme-ciclo ${atual ? 'atual' : ''}`}>
       <div className="pme-topo">
@@ -467,7 +488,32 @@ function Ciclo({
       )}
       {doCiclo.length > 0 && (
         <ul className="pme-tarefas">
-          {doCiclo.map((t) => (
+          {antes.map((t) => (
+            <Tarefa key={t.id} t={t} atualizar={atualizar} />
+          ))}
+          {(cronograma.length > 0 || montar) && (
+            <li className="cr-grupo-h">
+              <span>Cronograma deste PME</span>
+              {cronograma.length > 0 ? (
+                <span className="cr-ok">
+                  {feitosCronograma} de {cronograma.length}{' '}
+                  {cronograma.length === 1 ? 'feito' : 'feitos'}
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  className="pl-link"
+                  onClick={() => abrir({ tipo: 'cronograma', c })}
+                >
+                  Montar o cronograma
+                </button>
+              )}
+            </li>
+          )}
+          {cronograma.map((t) => (
+            <Tarefa key={t.id} t={t} atualizar={atualizar} />
+          ))}
+          {fimDoCiclo.map((t) => (
             <Tarefa key={t.id} t={t} atualizar={atualizar} />
           ))}
         </ul>
@@ -568,7 +614,35 @@ export function PmeAtual({ ficha, atualizar }: { ficha: FichaDTO; atualizar: () 
         </details>
       )}
 
-      {janela?.tipo === 'envio' && (
+      {janela?.tipo === 'envio' && ficha.pode.verCronograma && (
+        <CronogramaEnvio
+          inscricaoId={ficha.id}
+          nome={ficha.nome}
+          hoje={ficha.hoje}
+          modo={
+            {
+              tipo: 'envio',
+              numero: proximo,
+              aviso: aberto
+                ? `O ${nomePme(aberto.numero)} ainda não foi encerrado e ficará como não concluído.`
+                : undefined,
+            } satisfies ModoEnvio
+          }
+          onFechar={fechar}
+          onFeito={atualizar}
+        />
+      )}
+      {janela?.tipo === 'cronograma' && (
+        <CronogramaEnvio
+          inscricaoId={ficha.id}
+          nome={ficha.nome}
+          hoje={ficha.hoje}
+          modo={{ tipo: 'incluir', numero: janela.c.numero, cicloId: janela.c.id }}
+          onFechar={fechar}
+          onFeito={atualizar}
+        />
+      )}
+      {janela?.tipo === 'envio' && !ficha.pode.verCronograma && (
         <Dialogo
           titulo={`Registrar envio do ${nomePme(proximo)}`}
           texto="O ciclo nasce com as atividades extras do catálogo e a tarefa de encerramento, com prazo de 30 dias."

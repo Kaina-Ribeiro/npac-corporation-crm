@@ -28,9 +28,12 @@ import { ACAO_STATUS, GATILHOS, PERFIS_ACAO, REUNIAO_TIPOS } from '../mentoria/p
 import { PILARES } from '../mentoria/metas.js';
 import { META_STATUS, SEMAFORO_CORES } from '../mentoria/semaforo.js';
 import { CICLO_STATUS, TAREFA_STATUS } from '../mentoria/pmes.js';
+import { BLOCOS, LIMITE_CRONOGRAMA_ENVIO, LIMITE_TEXTO_ITEM } from '../mentoria/cronograma.js';
 import {
+  AVISO_GRAVACAO,
   CANAIS_CONTATO,
   dataHoraValida,
+  idDoDrive,
   mesValido,
   PLATAFORMAS,
   REUNIAO_STATUS,
@@ -390,9 +393,68 @@ export const pmePutSchema = z
   .strict();
 export type PmePut = z.output<typeof pmePutSchema>;
 
-/** Envio do próximo PME. Sem data: hoje. */
-export const envioPmeSchema = z.object({ enviadoEm: dataIso.optional() }).strict();
+// Cronograma do PME (NPAC-60): item do banco (`itemId`) ou "só desta pessoa" (`texto`, C3).
+const textoItem = z
+  .string()
+  .trim()
+  .min(1, 'Escreva o texto do item')
+  .max(LIMITE_TEXTO_ITEM, `O texto do item vai até ${LIMITE_TEXTO_ITEM} caracteres`);
+export const cronogramaEscolhaSchema = z
+  .object({ itemId: z.uuid().optional(), bloco: z.enum(BLOCOS), texto: textoItem.optional() })
+  .strict()
+  .refine((v) => (v.itemId === undefined) !== (v.texto === undefined), {
+    message: 'Escolha um item do banco ou escreva o texto',
+  });
+export type CronogramaEscolha = z.output<typeof cronogramaEscolhaSchema>;
+const listaCronograma = z
+  .array(cronogramaEscolhaSchema)
+  .max(LIMITE_CRONOGRAMA_ENVIO, `Até ${LIMITE_CRONOGRAMA_ENVIO} itens do cronograma por PME`);
+
+/** Envio do próximo PME. Sem data: hoje. Os itens do cronograma viram tarefas do ciclo. */
+export const envioPmeSchema = z
+  .object({ enviadoEm: dataIso.optional(), cronograma: listaCronograma.optional() })
+  .strict();
 export type EnvioPme = z.output<typeof envioPmeSchema>;
+
+/** Itens que entram depois no PME em andamento (engano ou PME aberto antes do cronograma). */
+export const cronogramaIncluirSchema = z
+  .object({ cronograma: listaCronograma.min(1, 'Escolha ao menos um item') })
+  .strict();
+export type CronogramaIncluir = z.output<typeof cronogramaIncluirSchema>;
+
+/** Tirar um item do PME em andamento: só pendente e sem comprovante (C11). */
+export const cronogramaRemoverSchema = z.object({ version }).strict();
+
+/** Banco de itens (Configurações → Cronograma, só a Admin). */
+export const cronogramaItemCriarSchema = z
+  .object({ bloco: z.enum(BLOCOS), texto: textoItem })
+  .strict();
+export type CronogramaItemCriar = z.output<typeof cronogramaItemCriarSchema>;
+export const cronogramaItemPatchSchema = z
+  .object({ version, texto: textoItem.optional(), ativo: z.boolean().optional() })
+  .strict();
+export type CronogramaItemPatch = z.output<typeof cronogramaItemPatchSchema>;
+export const cronogramaBlocoSchema = z.enum(BLOCOS).optional();
+
+/** Limite do CSV da aba CRONOGRAMA (o real tem ~300 linhas × 251 colunas, bem abaixo). */
+export const LIMITE_CSV_CRONOGRAMA = 5_000_000;
+/**
+ * Importação da planilha do cronograma (NPAC-60, fase 3): o CSV como texto e, por coluna (posição no
+ * arquivo, A = 0), a ficha escolhida pela Admin ou "IGNORAR". Sem decisão, coluna em dúvida fica de fora.
+ */
+export const importarCronogramaSchema = z
+  .object({
+    csv: z
+      .string()
+      .min(1, 'Escolha o arquivo CSV da aba CRONOGRAMA')
+      .max(LIMITE_CSV_CRONOGRAMA, 'Arquivo grande demais para a aba CRONOGRAMA'),
+    arquivo: z.string().max(255).optional(),
+    decisoes: z
+      .record(z.string().regex(/^\d{1,4}$/), z.union([z.uuid(), z.literal('IGNORAR')]))
+      .optional(),
+  })
+  .strict();
+export type ImportarCronograma = z.output<typeof importarCronogramaSchema>;
 
 /** Ciclo de antes do sistema (carteira importada): número e datas escolhidos, sem tarefas. */
 export const cicloAnteriorSchema = z
@@ -462,6 +524,17 @@ export type DataIdrPut = z.output<typeof dataIdrSchema>;
 
 export const pausarSchema = z.object({ motivo: texto(2000) }).strict();
 
+/**
+ * NPAC-79 "Registrar renovação" (2C, G3): mentoria escolhida e a data. Futura ou de mais de 1 ano atrás, o banco
+ * recusa com a mensagem pronta (`mentoria_renovar`). `version` da ficha evita a renovação dobrada.
+ */
+export const renovarSchema = z
+  .object({ version, mentoria: z.enum(MENTORIAS), data: dataIso })
+  .strict();
+export type RenovarPost = z.output<typeof renovarSchema>;
+/** NPAC-79 desfazer a última renovação (G5, só a Admin). */
+export const desfazerRenovacaoSchema = z.object({ version }).strict();
+
 export const anotacaoSchema = z
   .object({ texto: z.string().trim().min(1, 'Escreva a anotação').max(20_000) })
   .strict();
@@ -488,6 +561,14 @@ const linkReuniao = opc(
 );
 const usuarioId = z.string().min(1).max(100);
 const textoReuniao = texto(20_000);
+/** NPAC-78: link de arquivo do Google Drive; vazio apaga. */
+const gravacaoReuniao = opc(
+  z
+    .string()
+    .trim()
+    .max(2000, AVISO_GRAVACAO)
+    .refine((v) => idDoDrive(v) !== null, AVISO_GRAVACAO),
+);
 
 export const reuniaoCriarSchema = z
   .object({
@@ -512,6 +593,7 @@ export const reuniaoPatchSchema = z
     duracaoMin: z.number().int().min(5).max(480).optional(),
     plataforma: opc(z.enum(PLATAFORMAS)),
     link: linkReuniao,
+    gravacao: gravacaoReuniao,
     resumo: textoReuniao,
     metas: textoReuniao,
     combinado: textoReuniao,

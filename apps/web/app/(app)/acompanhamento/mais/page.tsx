@@ -2,7 +2,14 @@ import Link from 'next/link';
 import { CargoTag } from '@/components/role-tag';
 import { ContaCard } from '@/components/shell/conta-card';
 import { ICONES, Icone } from '@/components/acompanhamento/ui';
-import { lerEu, podeCadastrar, sessaoDoModulo, soEnvios, ultimaFicha } from '@/lib/acompanhamento';
+import {
+  lerEu,
+  podeCadastrar,
+  sessaoDoModulo,
+  soEnvios,
+  ultimaFicha,
+  veRenovacoes,
+} from '@/lib/acompanhamento';
 
 export const metadata = { title: 'Mais' };
 
@@ -125,6 +132,15 @@ export default async function MaisPage() {
                   enviosItem,
                 ]
               : []),
+            ...(veRenovacoes(eu)
+              ? [
+                  {
+                    rotulo: 'Renovações e gestão',
+                    icone: ICONES.renovacoes,
+                    href: '/acompanhamento/renovacoes',
+                  },
+                ]
+              : []),
           ]}
         />
       )}
@@ -134,7 +150,6 @@ export default async function MaisPage() {
           itens={[
             breve('Linha do tempo e conquistas', ICONES.linha, 'linha-do-tempo'),
             breve('Eventos e agenda', ICONES.eventos, 'eventos'),
-            breve('Renovações e gestão', ICONES.renovacoes, 'renovacoes'),
           ]}
         />
       )}
