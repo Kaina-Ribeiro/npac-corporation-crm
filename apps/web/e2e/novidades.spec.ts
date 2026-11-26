@@ -80,10 +80,12 @@ test('Acompanhamento (Admin): vê só o do módulo; Entendi marca na conta', asy
     await expect(item(j, fora)).toHaveCount(0);
   // Agrupado por data, com "Faça isso" no topo.
   await expect(j.getByText('Precisa de você', { exact: true })).toBeVisible();
+  await expect(j.getByText('Atualização de 26/11', { exact: true })).toBeVisible();
+  await expect(item(j, 'Banco do cronograma')).toBeVisible();
   await expect(j.getByText('Atualização de 25/11', { exact: true })).toBeVisible();
   await expect(j.getByText('Atualização de 23/11', { exact: true })).toBeVisible();
   await expect(
-    j.getByText(/^\d+ mudanças em 3 atualizações desde a sua última visita\.$/),
+    j.getByText(/^\d+ mudanças em 4 atualizações desde a sua última visita\.$/),
   ).toBeVisible();
   await expect(j.getByRole('button', { name: 'Entendi' })).toBeFocused();
 
