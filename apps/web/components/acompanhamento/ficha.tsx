@@ -40,10 +40,12 @@ import { SemaforoFicha } from './semaforo';
 import { TarefasFicha } from './tarefas-reuniao';
 import {
   abaValida,
+  anoDoMes,
   dataBR,
   FOCOS_RDV,
   ICONES,
   Icone,
+  mesNoAno,
   opcoesResponsavel,
   rotuloAntesDoInicio,
   Rostos,
@@ -70,7 +72,7 @@ function Jornada({
 }) {
   const mes = ficha.mesJornada;
   // NPAC-79: depois de renovar, a faixa mostra o ano atual (13 a 24 no 2º ano); os focos do RDV são do 1º ano.
-  const { ano } = anoDaFicha(ficha);
+  const ano = anoDoMes(mes, ficha.renovacoes.length);
   const primeiro = 12 * (ano - 1) + 1;
   const focos = ficha.mentoria === 'RDV' && ano === 1 ? FOCOS_RDV : null;
   const ativo = ficha.status === 'ATIVO';
@@ -648,7 +650,7 @@ export function Ficha({
 
   const mes = ficha.mesJornada;
   // NPAC-79: "Mês 14 de 24" depois de renovar; "Jornada concluída" só depois do último mês do término.
-  const { ano, total } = anoDaFicha(ficha);
+  const { total } = anoDaFicha(ficha);
   const foco = mes !== null && mes <= 12 && ficha.mentoria === 'RDV' ? FOCOS_RDV[mes - 1] : null;
   const titulo =
     mes === null
@@ -698,7 +700,7 @@ export function Ficha({
             <b>{titulo}</b>
             <span>{periodo}</span>
           </div>
-          <Trilha mes={mes === null ? null : mes - 12 * (ano - 1)} />
+          <Trilha mes={mesNoAno(mes, ficha.renovacoes.length)} />
         </div>
         <div className="fc-acts">
           {linkGrupoValido(ficha.linkGrupo) && (

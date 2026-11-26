@@ -90,10 +90,14 @@ test('a Duda abre a aba, renova pela ficha e vê "Renovou" na lista', async ({ p
   await dlg.getByRole('button', { name: 'Registrar renovação', exact: true }).click();
   await expect(dlg).toBeHidden();
 
-  // Ficha: continua Ativo, com o selo, "Mês 12 de 24", a faixa do 2º ano e o "Desfazer" (Admin).
+  // Ficha: continua Ativo, com o selo, "Mês 12 de 24" e o "Desfazer" (Admin). Renovou no mês 12: a faixa
+  // continua no 1º ano (1 a 12) e só passa a 13–24, com "2º ano", no mês 13.
   await expect(page.getByText(`Renovado em ${diaMes(HOJE)}`)).toBeVisible();
   await expect(page.getByText('Mês 12 de 24', { exact: false }).first()).toBeVisible();
-  await expect(page.getByText('2º ano', { exact: true })).toBeVisible();
+  await expect(page.getByText('2º ano', { exact: true })).toHaveCount(0);
+  const faixa = page.getByRole('tabpanel', { name: 'Jornada' }).locator('.rail');
+  await expect(faixa).toContainText('12');
+  await expect(faixa).not.toContainText('13');
   await expect(page.getByRole('button', { name: 'Desfazer', exact: true })).toBeVisible();
   const status = page.getByRole('complementary', { name: 'Inscrição' }).getByLabel('Status', {
     exact: true,

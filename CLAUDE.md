@@ -232,7 +232,7 @@ https://drive.google.com` em `proxy.ts`); quem edita o registro cola, quem vê a
   `navItems`); os demais 404; `em-breve/renovacoes` redireciona. Ficha (`renovacao-ficha.tsx`): topo da Jornada com
   "Desfazer" (Admin) e "Registrar renovação" (janelinha com RDV/2M/6M em botões de 44 px, "Data da renovação" de hoje a 1
   ano atrás e o resumo "Novo término" e "Nº ano: Meses 13 a 24"); selo dourado "Renovado em DD/MM" ao lado do status;
-  "Mês 14 de 24"; a faixa e a trilha do topo mostram o ano atual (13 a 24, etiqueta "2º ano"); status sem "Renovado"
+  "Mês 14 de 24"; a faixa e a trilha do topo mostram o ano em que a pessoa está (13 a 24, etiqueta "2º ano"; `anoDoMes`: quem renova no mês 12 segue no 1º ano até o mês 13); status sem "Renovado"
   (a não ser na ficha que já está nele). Mentorados e Plano: `InscricaoItem.renovacoes` faz "Mês 13" e a trilha do ano
   atual em vez de "Jornada concluída" (`rotuloMes`, `mesNoAno` em `ui.tsx`). e2e `acompanhamento-renovacoes.spec.ts`,
   `mobile-layout-renovacoes.spec.ts`; capturas `CAPTURAS=<pasta> … e2e/capturas-renovacoes.spec.ts`.
