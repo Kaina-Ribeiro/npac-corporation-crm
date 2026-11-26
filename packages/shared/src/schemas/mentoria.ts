@@ -504,6 +504,17 @@ export type DataIdrPut = z.output<typeof dataIdrSchema>;
 
 export const pausarSchema = z.object({ motivo: texto(2000) }).strict();
 
+/**
+ * NPAC-79 "Registrar renovação" (2C, G3): mentoria escolhida e a data. Futura ou de mais de 1 ano atrás, o banco
+ * recusa com a mensagem pronta (`mentoria_renovar`). `version` da ficha evita a renovação dobrada.
+ */
+export const renovarSchema = z
+  .object({ version, mentoria: z.enum(MENTORIAS), data: dataIso })
+  .strict();
+export type RenovarPost = z.output<typeof renovarSchema>;
+/** NPAC-79 desfazer a última renovação (G5, só a Admin). */
+export const desfazerRenovacaoSchema = z.object({ version }).strict();
+
 export const anotacaoSchema = z
   .object({ texto: z.string().trim().min(1, 'Escreva a anotação').max(20_000) })
   .strict();

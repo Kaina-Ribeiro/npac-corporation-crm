@@ -96,6 +96,12 @@ export const mentoriaInscricoes = pgTable(
      * `mentoria_ve_engajamento()`).
      */
     engajamento: text('engajamento'),
+    /**
+     * Quando a ficha foi marcada "Concluído" (NPAC-79, G4): o número "Não renovaram". Gravada pelo gatilho
+     * `mentoria_inscricao_status_regras` na troca para CONCLUIDO e apagada ao sair; ficha que já nasce concluída
+     * (importação) e os concluídos de antes da 0092 ficam sem data, fora da conta.
+     */
+    concluidaEm: timestamp('concluida_em', { withTimezone: true }),
     version: integer('version').notNull().default(1),
     ...autoria,
   },
@@ -575,6 +581,45 @@ export const mentoriaPausas = pgTable(
     check('mentoria_pausas_anterior', sql`${t.statusAnterior} in ('ONBOARDING', 'ATIVO')`),
     check('mentoria_pausas_ordem', sql`${t.fim} >= ${t.inicio}`),
     check('mentoria_pausas_motivo', cifradoCabe(t.motivo)),
+  ],
+);
+
+/**
+ * Renovações da ficha (NPAC-79, 4B): a mesma ficha ganha mais 12 meses. Só `mentoria_renovar` grava e só
+ * `mentoria_renovacao_desfazer` apaga (a última); `npac_app` só lê. `acoes` = as ações que a renovação criou,
+ * para o desfazer apagar só elas.
+ */
+export const mentoriaRenovacoes = pgTable(
+  'mentoria_renovacoes',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    inscricaoId: uuid('inscricao_id')
+      .notNull()
+      .references(() => mentoriaInscricoes.id, { onDelete: 'cascade' }),
+    /** Ano da jornada que começa: 2 na 1ª renovação, 3 na 2ª… */
+    ano: smallint('ano').notNull(),
+    data: date('data').notNull(),
+    mentoriaAnterior: text('mentoria_anterior').notNull(),
+    mentoriaNova: text('mentoria_nova').notNull(),
+    terminoAnterior: date('termino_anterior').notNull(),
+    terminoNovo: date('termino_novo').notNull(),
+    statusAnterior: text('status_anterior').notNull(),
+    concluidaEmAnterior: timestamp('concluida_em_anterior', { withTimezone: true }),
+    acoes: uuid('acoes')
+      .array()
+      .notNull()
+      .default(sql`'{}'::uuid[]`),
+    registradaPor: text('registrada_por').references(() => user.id),
+    criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique('mentoria_renovacoes_ano').on(t.inscricaoId, t.ano),
+    index('mentoria_renovacoes_data').on(t.data),
+    check('mentoria_renovacoes_ano_valido', sql`${t.ano} >= 2`),
+    check('mentoria_renovacoes_anterior', sql`${t.mentoriaAnterior} in ('RDV', '2M', '6M')`),
+    check('mentoria_renovacoes_nova', sql`${t.mentoriaNova} in ('RDV', '2M', '6M')`),
+    check('mentoria_renovacoes_termino', sql`${t.terminoNovo} > ${t.terminoAnterior}`),
+    check('mentoria_renovacoes_status', sql`${t.statusAnterior} in ('ATIVO', 'CONCLUIDO')`),
   ],
 );
 

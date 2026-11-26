@@ -3,9 +3,10 @@
 Spec: `docs/superpowers/specs/2026-11-26-renovacoes-design.md`. Respostas da Eduarda: 1A, 2C, 3B, 4B, 5A, 6A, 7A, 8A.
 Branch de cada parte a partir da `release/*` aberta; PR `feat(NPAC-79): …`; migration nova depois da última da release.
 
-Status: spec aprovada (26/11/2026, G1–G6 como recomendados). Parte 1 🚧, Parte 2 ⏳, Parte 3 ⏳ (Eduarda).
+Status: spec aprovada (26/11/2026, G1–G6 como recomendados). Parte 1 ✅ (26/11/2026, migration 0092), Parte 2 ⏳,
+Parte 3 ⏳ (Eduarda).
 
-## Parte 1 — banco e API 🚧
+## Parte 1 — banco e API ✅
 
 1. Migration: tabela `mentoria_renovacoes` (RLS de leitura no formato `(select …)`, `npac_app` só SELECT), área
    `RENOVACAO` em `mentoria_edita` (Admin, Acompanhamento com carteira), coluna `concluida_em` + gatilho, guarda que
@@ -18,6 +19,22 @@ Status: spec aprovada (26/11/2026, G1–G6 como recomendados). Parte 1 🚧, Par
 4. Testes: `db/test/mentoria-renovacoes.test.ts`, `rls-por-consulta`, `api/test/mentoria-v2-renovacoes.e2e.test.ts`.
 
 Feita quando: as suítes do db e da API passam e a ficha devolve o término novo e as ações do novo ano.
+
+Feito (26/11/2026), decisões tomadas na implementação (o resto como a spec):
+- A tabela `mentoria_renovacoes` lê quem vê a ficha (como as pausas), para o selo "Renovado em" aparecer ao lado do
+  status para todos; a **aba** é que fica só para Admin e Acompanhamento (`@Perfis` + `mentoria_ve_renovacoes()`).
+- "Ação do novo ano" no desfazer = as que a renovação criou (`mentoria_renovacoes.acoes`); as do mês 13 que já nasciam
+  no 1º ano (data no próprio término) ficam. O teto continua "data prevista ≤ término": a 1ª renovação da 2M cria
+  13, 19 e 25 (o 25 cai no novo término, como o 13 no 1º ano).
+- `mentoria_gerar_acoes(uuid, date)` passou a cortar em 12 × nº de renovações + 1: trocar a mentoria pela inscrição
+  depois de renovar não cria os meses dos anos que já passaram.
+- `concluida_em` só quando a ficha **muda** para Concluído; ficha que já nasce concluída (importação) fica sem data.
+- Renovar e desfazer pedem a `version` da ficha (clique duplo = 409); desfazer só com a ficha Ativo e volta o término
+  pela diferença de dias (pausa depois da renovação fica).
+- Para a Parte 2: `GET mentoria/renovacoes` devolve `{ hoje, numeros, itens }` com `situacao`, `situacaoRotulo` e
+  `mesRotulo` prontos; no cliente, importe de `@npac/shared/renovacoes` (fora do barril do módulo, pelo teto do `/leads`);
+  os filtros são `filtrarRenovacoes` (no servidor da tela, pelo cookie) e os números não mudam com
+  o filtro. A ficha traz `renovacoes` (ano em curso = `renovacoes.length + 1`, total `mesesDaJornada(n)`).
 
 ## Parte 2 — telas ⏳
 
