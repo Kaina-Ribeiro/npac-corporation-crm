@@ -23,7 +23,7 @@ let app: NestFastifyApplication;
 let h: ReturnType<typeof api>;
 let relogio: FakeClock;
 const ids: Record<string, string> = {};
-const insc: Record<string, string> = {};
+const insc = {} as Record<'i301' | 'i302' | 'i304' | 'i306r' | 'i306d', string>;
 
 const DIA = 86_400_000;
 /** Quinta, 10/12/2026, 10h de Brasília. */
