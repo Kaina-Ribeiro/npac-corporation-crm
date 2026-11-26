@@ -1,5 +1,6 @@
 import {
   MENTORIAS,
+  type ItemBancoDTO,
   type MensagemModelo,
   type Mentoria,
   type PlanoModeloLinha,
@@ -11,6 +12,7 @@ import { notFound } from 'next/navigation';
 import { LembrarUrl } from '@/components/acompanhamento/lembrar-url';
 import { ImportarCarteira } from '@/components/acompanhamento/importar-carteira';
 import { MensagensAdmin } from '@/components/acompanhamento/mensagens-admin';
+import { CronogramaBanco } from '@/components/acompanhamento/cronograma-banco';
 import { ConvidarBotao, PerfisAdmin } from '@/components/acompanhamento/perfis-admin';
 import type { AccessRequest } from '@/components/access-requests';
 import { PlanoModeloAdmin } from '@/components/acompanhamento/plano-modelo-admin';
@@ -28,17 +30,28 @@ const SUB = {
   perfis: 'Quem usa o Acompanhamento e o que cada pessoa pode fazer.',
   plano: 'A ação de cada mês, por mentoria.',
   pmes: 'O material, as atividades extras e o encerramento de cada PME.',
+  cronograma:
+    'Os itens que vão em cada PME. Item já enviado não se apaga: esconda para ele sair das sugestões.',
   importacao: 'Traga a carteira atual do gerenciador e da planilha, sem redigitar.',
   mensagens: 'O texto que os botões de WhatsApp copiam, por momento.',
   carteira: 'Passe as inscrições de uma pessoa para outra do Acompanhamento.',
 };
-const ABAS = ['perfis', 'plano', 'pmes', 'mensagens', 'importacao', 'carteira'] as const;
+const ABAS = [
+  'perfis',
+  'plano',
+  'pmes',
+  'cronograma',
+  'mensagens',
+  'importacao',
+  'carteira',
+] as const;
 type AbaConfig = (typeof ABAS)[number];
 /** Aba e mentoria do plano-modelo lembradas (NPAC-46). */
 const CHAVES = {
   perfis: [],
   plano: ['mentoria'],
   pmes: [],
+  cronograma: [],
   mensagens: [],
   importacao: [],
   carteira: [],
@@ -47,6 +60,7 @@ const ROTULOS: Record<AbaConfig, string> = {
   perfis: 'Perfis',
   plano: 'Plano-modelo',
   pmes: 'PMEs',
+  cronograma: 'Cronograma',
   mensagens: 'Mensagens-modelo',
   importacao: 'Importação',
   carteira: 'Transferir carteira',
@@ -80,6 +94,8 @@ export default async function ConfiguracoesPage({
   const modelo =
     aba === 'plano' ? await apiGet<PlanoModeloLinha[]>('/api/mentoria/plano-modelo') : [];
   const pmes = aba === 'pmes' ? await apiGet<PmeDTO[]>('/api/mentoria/pmes') : [];
+  const cronograma =
+    aba === 'cronograma' ? await apiGet<ItemBancoDTO[]>('/api/mentoria/cronograma/itens') : [];
   const mensagens =
     aba === 'mensagens' ? await apiGet<MensagemModelo[]>('/api/mentoria/mensagens') : [];
   return (
@@ -111,6 +127,7 @@ export default async function ConfiguracoesPage({
       {aba === 'carteira' && <TransferirCarteira responsaveis={responsaveis} />}
       {aba === 'plano' && <PlanoModeloAdmin linhas={modelo} mentoria={mentoria} />}
       {aba === 'pmes' && <PmesAdmin pmes={pmes} />}
+      {aba === 'cronograma' && <CronogramaBanco itens={cronograma} />}
       <LembrarUrl
         screen="configuracoes"
         cookie={lembradas.cookie}

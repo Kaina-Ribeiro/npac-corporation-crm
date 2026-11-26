@@ -128,7 +128,7 @@ test('Duda: vermelho sem check-in, lança o check-in, dá segunda chance e marca
   const pme = page.getByRole('region', { name: 'PME atual' });
   await pme.getByRole('button', { name: 'Registrar envio do 1º PME' }).click();
   await page.getByLabel('Data do envio').fill(diaBR(-45));
-  await page.getByRole('button', { name: 'Registrar envio', exact: true }).click();
+  await page.getByRole('button', { name: 'Enviar o 1º PME', exact: true }).click();
   await expect(motivos.getByText('15 dias de atraso no PME')).toBeVisible();
 
   // Check-in da semana passada, respondido.

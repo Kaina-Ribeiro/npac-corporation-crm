@@ -33,8 +33,12 @@ export default async function FichaPage({
   const cookie = acCookie('ficha', me.id);
   const salvo = readPrefs(jar.get(cookie)?.value, FICHA_REGRAS);
   // A aba Evolução só para quem a vê (spec §5.1): sem acesso, o link cai na aba padrão.
+  // A aba Cronograma segue a mesma regra (NPAC-60, C12).
   const permitida = (a: string | undefined) =>
-    a === 'evolucao' && !ficha.pode.verEvolucao ? undefined : a;
+    (a === 'evolucao' && !ficha.pode.verEvolucao) ||
+    (a === 'cronograma' && !ficha.pode.verCronograma)
+      ? undefined
+      : a;
   // `?aba=momento` (links de antes da NPAC-76) conta como pedido da aba Pessoas.
   const abaDaUrl =
     permitida(aba) !== undefined && abaValida(aba) === (aba === 'momento' ? 'pessoas' : aba);
