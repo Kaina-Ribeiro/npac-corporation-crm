@@ -20,6 +20,7 @@ import type { Pilar } from './metas.js';
 import type { RenovacaoDTO } from './renovacoes.js';
 import type { CicloStatus, TarefaOrigem, TarefaStatus } from './pmes.js';
 import type { Bloco, ItemBanco, Recebido } from './cronograma.js';
+import type { MotivoIgnorada, SituacaoColuna } from './cronograma-planilha.js';
 import type { MetaStatus, SemaforoCor, SemaforoMotivo } from './semaforo.js';
 
 /** `GET mentoria/eu`: o perfil operacional e o selo de Admin de quem está logado. */
@@ -544,6 +545,58 @@ export type CronogramaDTO = {
   /** Pode escolher os itens do PME (quem envia PME: Admin, Acompanhamento, Operação). */
   podeEscolher: boolean;
 };
+
+/** Uma inscrição na prévia da importação do cronograma (só a Admin vê). */
+export type FichaCronogramaImportacao = {
+  id: string;
+  nome: string;
+  mentoria: string;
+  status: InscricaoStatus;
+  /** Número do PME mais recente; nulo sem nenhum. */
+  pmeAtual: number | null;
+};
+
+/** Uma coluna da planilha (um mentorado) na prévia: como casou e para qual ficha vai. */
+export type ColunaCronogramaPrevia = {
+  /** Posição no arquivo (A = 0): a chave das decisões. */
+  indice: number;
+  /** "Coluna 4" (A = 1). */
+  coluna: number;
+  nome: string;
+  situacao: SituacaoColuna;
+  marcas: number;
+  maiorMes: number | null;
+  /** Fichas que casam pelo nome (várias em DUVIDA). */
+  candidatas: FichaCronogramaImportacao[];
+  /** Dica azul do caso RDV × 2M. */
+  dica: string | null;
+  /** Ficha que a coluna vai preencher (a única candidata ou a escolha da Admin); nula = fica de fora. */
+  inscricaoId: string | null;
+};
+
+/** Contagens do que entra (C8): tarefas do PME em andamento e as linhas do histórico da planilha. */
+export type ContagemCronograma = {
+  tarefas: number;
+  recebidos: number;
+  planejados: number;
+  jaTinha: number;
+  naoFez: number;
+};
+
+export type PreviaCronograma = ContagemCronograma & {
+  itens: { bloco: Bloco; novos: number; existentes: number; juntados: number }[];
+  colunas: ColunaCronogramaPrevia[];
+  /** Colunas que vão para uma ficha. */
+  ligadas: number;
+  /** Células preenchidas que não são mês nem "já leu"/"não fez", por motivo (sem o texto). */
+  ignoradas: Record<MotivoIgnorada, number>;
+  /** Colunas que vão para a mesma ficha (juntam, fica o menor mês, C15). */
+  mesmaFicha: { inscricaoId: string; nome: string; colunas: number[] }[];
+  /** Todas as fichas (para escolher a de uma coluna sem ficha). */
+  fichas: FichaCronogramaImportacao[];
+};
+
+export type ResultadoCronograma = ContagemCronograma & { itens: number; colunas: number };
 
 /** Meta (Parte 2). `pessoaId` nulo = do casal ou do individual. `status` nulo = sem marcação (E10). */
 export type MetaDTO = {

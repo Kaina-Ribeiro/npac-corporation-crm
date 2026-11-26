@@ -6,6 +6,8 @@ import { ENV, type Env } from '../config/env.js';
 import { MEDIA_STORE, VolumeMediaStore, type MediaStore } from './media-store.js';
 import { apagarPendentes } from './media-worker.js';
 import { FichaService } from './ficha.service.js';
+import { CronogramaImportacaoController } from './importacao/cronograma-importacao.controller.js';
+import { CronogramaImportacaoService } from './importacao/cronograma-importacao.service.js';
 import { ImportacaoController } from './importacao/importacao.controller.js';
 import { ImportacaoService } from './importacao/importacao.service.js';
 import { InscricoesController } from './inscricoes.controller.js';
@@ -61,6 +63,7 @@ import { InscricaoDaVenda } from './venda/inscricao-da-venda.js';
     MidiaController,
     OnboardingController,
     ImportacaoController,
+    CronogramaImportacaoController,
     PlanoController,
     ReunioesController,
     ContatosController,
@@ -90,6 +93,7 @@ import { InscricaoDaVenda } from './venda/inscricao-da-venda.js';
     FichaService,
     OnboardingService,
     ImportacaoService,
+    CronogramaImportacaoService,
     FilaService,
     MensagensService,
     AvisosScheduler,

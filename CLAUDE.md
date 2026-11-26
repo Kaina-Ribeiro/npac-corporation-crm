@@ -356,6 +356,27 @@ https://drive.google.com` em `proxy.ts`); quem edita o registro cola, quem vê a
   No módulo o `.btn` tem 38 px; nas telas do cronograma, 44 px no toque. e2e `acompanhamento-cronograma-banco|envio|aba.spec.ts`,
   `mobile-layout-cronograma.spec.ts`; capturas `CAPTURAS=<pasta> … e2e/capturas-cronograma.spec.ts`. A janela de envio
   troca o botão "Registrar envio" por "Enviar o Nº PME" (e2e antigos atualizados).
+  **Importação da planilha (fase 3, 26/11/2026; desenho §8, C8, C13–C15):** Configurações → Importação, card "Planilha do
+  cronograma" depois do da carteira (`components/acompanhamento/importar-cronograma.tsx`, 3 passos Arquivo → Revisar colunas
+  → Importar), só a Admin. A tela manda o CSV como texto para `POST mentoria/cronograma/importar/previa` e `…/importar`
+  (`api/mentoria/importacao/cronograma-importacao.*`, `@SoAdmin`, 404 aos demais; rota no formato do limite de 25 MB;
+  `{ csv ≤ 5 MB, arquivo?, decisoes?: { <coluna A=0>: inscrição | 'IGNORAR' } }`); `.xlsx`/zip → 400 "Baixe a aba
+  CRONOGRAMA em CSV". Leitura e casamento puros em `sh/mentoria/cronograma-planilha.ts` (`lerCsv` RFC 4180 com BOM,
+  `lerCronograma`: bloco muda na linha-título da coluna B com a C repetindo um nome, "Column N" ou vazia; item = coluna B com
+  texto e A vazia/número/"Column N", o modelo do fim fica de fora; célula `lerCelula`: "Nº mês" 1–12 com as variações,
+  "já leu/leram/viram…" = `JA_TINHA`, "não fez/concluiu/fizeram" = `NAO_FEZ`, o resto contado por motivo sem o texto;
+  item repetido e coluna repetida juntam no menor mês, `marcaPrimeiro`; `casarColunas`: pessoa da coluna = o cabeçalho de
+  cima, casal "A e B"/"A/B" só com CASAL pelas duas pessoas, **liga sozinha só com uma candidata**, RDV e 2M da mesma pessoa
+  = dúvida; `dicaDaDuvida` = a dica azul). Plano (mesmo na prévia e na importação, refeito dentro da transação com advisory
+  lock): fichas não anonimizadas; **C8** com ciclo aberto Nº N: mês N vira tarefa PME pendente desse ciclo
+  (`inserirCronograma`), mês < N `RECEBIDO`, mês > N `PLANEJADO`; sem ciclo aberto tudo `RECEBIDO`; **só acrescenta** (item
+  que a ficha já tem como tarefa ou linha fica como está; itens novos no fim do bloco, na ordem do arquivo). As linhas da
+  planilha entram por `mentoria_cronograma_importar(inscricao, itens[], numeros[], resultados[])` (0093, SECURITY DEFINER,
+  só `mentoria_admin()`, `ON CONFLICT DO NOTHING`; o npac_app segue sem INSERT na tabela). Sem histórico por inscrição;
+  auditoria `mentoria.cronograma_importado` só com as contagens. Fixture fictícia `packages/shared/test/fixtures/cronograma-ficticio.csv`
+  (gerada com a forma do arquivo real; o real nunca entra). Testes: `shared/test/cronograma-planilha.test.ts`,
+  `db/test/mentoria-cronograma.test.ts` (bloco 0093), `api/test/mentoria-v2-cronograma-importacao.e2e.test.ts`,
+  `e2e/acompanhamento-cronograma-importacao.spec.ts` (com `CAPTURAS=<pasta>`, as capturas dos passos 2 e 3).
 
 **Navegação e carregamento** (desempenho, Fase 2, 12/11/2026): o menu usa o `prefetch` padrão do Next
 (rota dinâmica sem `loading.tsx` não pré-carrega a página); `semPrefetch` (Ficha e itens "Em breve")

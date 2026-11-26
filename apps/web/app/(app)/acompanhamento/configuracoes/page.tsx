@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { LembrarUrl } from '@/components/acompanhamento/lembrar-url';
 import { ImportarCarteira } from '@/components/acompanhamento/importar-carteira';
+import { ImportarCronograma } from '@/components/acompanhamento/importar-cronograma';
 import { MensagensAdmin } from '@/components/acompanhamento/mensagens-admin';
 import { CronogramaBanco } from '@/components/acompanhamento/cronograma-banco';
 import { ConvidarBotao, PerfisAdmin } from '@/components/acompanhamento/perfis-admin';
@@ -32,7 +33,7 @@ const SUB = {
   pmes: 'O material, as atividades extras e o encerramento de cada PME.',
   cronograma:
     'Os itens que vão em cada PME. Item já enviado não se apaga: esconda para ele sair das sugestões.',
-  importacao: 'Traga a carteira atual do gerenciador e da planilha, sem redigitar.',
+  importacao: 'Traga a carteira e a planilha do cronograma, sem redigitar.',
   mensagens: 'O texto que os botões de WhatsApp copiam, por momento.',
   carteira: 'Passe as inscrições de uma pessoa para outra do Acompanhamento.',
 };
@@ -122,7 +123,12 @@ export default async function ConfiguracoesPage({
           </Link>
         ))}
       </div>
-      {aba === 'importacao' && <ImportarCarteira />}
+      {aba === 'importacao' && (
+        <>
+          <ImportarCarteira />
+          <ImportarCronograma />
+        </>
+      )}
       {aba === 'mensagens' && <MensagensAdmin mensagens={mensagens} />}
       {aba === 'carteira' && <TransferirCarteira responsaveis={responsaveis} />}
       {aba === 'plano' && <PlanoModeloAdmin linhas={modelo} mentoria={mentoria} />}
