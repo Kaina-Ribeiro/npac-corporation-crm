@@ -17,6 +17,7 @@ import type { CanalContato, Plataforma, ReuniaoStatus } from './reunioes.js';
 import type { CampoEvolucao } from './evolucao.js';
 import type { Engajamento, PainelEngajamento } from './engajamento.js';
 import type { Pilar } from './metas.js';
+import type { RenovacaoDTO } from './renovacoes.js';
 import type { CicloStatus, TarefaOrigem, TarefaStatus } from './pmes.js';
 import type { Bloco, ItemBanco, Recebido } from './cronograma.js';
 import type { MetaStatus, SemaforoCor, SemaforoMotivo } from './semaforo.js';
@@ -424,6 +425,11 @@ export type FichaDTO = {
   contatos: ContatoDTO[];
   /** A pausa em curso, se houver. `dias`: parados até hoje. */
   pausa: { inicio: string; dias: number; motivo: string | null } | null;
+  /**
+   * Renovações da ficha, a mais antiga primeiro (NPAC-79). Lê quem vê a ficha; o ano em curso é `renovacoes.length + 1`
+   * e o total de meses `mesesDaJornada(renovacoes.length)`.
+   */
+  renovacoes: RenovacaoDTO[];
   /** Ciclos de PME, do mais recente ao mais antigo (Fase 2). `hoje`: o dia de Brasília do cálculo. */
   ciclos: CicloDTO[];
   hoje: string;
@@ -470,6 +476,10 @@ export type FichaDTO = {
     verEngajamento: boolean;
     /** Marca o engajamento (Admin, Acompanhamento). */
     engajamento: boolean;
+    /** "Registrar renovação" (NPAC-79): Admin e Acompanhamento (carteira), ficha Ativo ou Concluído com término. */
+    renovar: boolean;
+    /** "Desfazer" a última renovação (G5): só a Admin, ficha Ativo, nenhuma ação que ela criou feita. */
+    desfazerRenovacao: boolean;
     admin: boolean;
   };
 };

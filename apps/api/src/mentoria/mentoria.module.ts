@@ -48,6 +48,7 @@ import { ExportacaoController, ExportacaoService } from './exportacao.controller
 import { MENTORIA_CLOCK, systemClock } from './relogio.js';
 import { ReunioesController } from './reunioes.controller.js';
 import { ReunioesService } from './reunioes.service.js';
+import { RenovacoesController, RenovacoesService } from './renovacoes.controller.js';
 import { InscricaoDaVenda } from './venda/inscricao-da-venda.js';
 
 /** Acompanhamento de mentorados: base à parte do comercial, só Diretoria e Acompanhamento. */
@@ -76,6 +77,7 @@ import { InscricaoDaVenda } from './venda/inscricao-da-venda.js';
     CheckinsController,
     PmesCiclosController,
     EnviosController,
+    RenovacoesController,
   ],
   providers: [
     MentoriaGuard,
@@ -104,6 +106,7 @@ import { InscricaoDaVenda } from './venda/inscricao-da-venda.js';
     CronogramaService,
     InscricaoDaVenda,
     EnviosService,
+    RenovacoesService,
     { provide: MENTORIA_CLOCK, useValue: systemClock },
     {
       provide: MentoriaCrypto,

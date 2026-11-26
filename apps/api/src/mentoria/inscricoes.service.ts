@@ -341,6 +341,9 @@ export class InscricoesService {
           );
       }
       if (campos.status && campos.status !== atual.status) {
+        // NPAC-79 (G2): "Renovado" só pela renovação; quem já está continua (o banco também recusa).
+        if (campos.status === 'RENOVADO')
+          throw new BadRequestException('Para renovar, use Registrar renovação.');
         if (campos.status === 'PAUSADO') throw new BadRequestException('Use a ação de pausar');
         if (atual.status === 'PAUSADO') throw new BadRequestException('Use a ação de retomar');
         const [q] = await tx.execute<{ ok: boolean }>(
