@@ -76,6 +76,19 @@ export type PessoaNovidades = {
 /** A mais nova primeiro. */
 export const NOVIDADES: readonly Novidade[] = [
   {
+    id: 'npac-79-renovacoes',
+    data: '2026-11-26',
+    para: ['acompanhamento'],
+    perfis: ['ACOMPANHAMENTO'],
+    tipo: 'novo',
+    icone: 'growth',
+    titulo: 'Renovações e gestão',
+    texto:
+      'A aba nova mostra quem chega ao 12º mês nos próximos 60 dias e como está a conversa de renovação. Para renovar, abra a ficha e toque em “Registrar renovação”: a ficha continua Ativo e ganha mais 12 meses.',
+    onde: 'Acompanhamento → Renovações e gestão',
+    href: '/acompanhamento/renovacoes',
+  },
+  {
     id: 'npac-60-cronograma-importacao',
     data: '2026-11-26',
     para: ['acompanhamento-admin'],

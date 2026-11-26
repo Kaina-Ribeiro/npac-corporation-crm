@@ -35,14 +35,17 @@ import { IndicadorSalvo } from './indicador-salvo';
 import { PlanoMentorado } from './plano-mentorado';
 import { Metas } from './metas';
 import { PmeAtual } from './pme-atual';
+import { anoDaFicha, RenovacaoAcoes, SeloRenovado } from './renovacao-ficha';
 import { SemaforoFicha } from './semaforo';
 import { TarefasFicha } from './tarefas-reuniao';
 import {
   abaValida,
+  anoDoMes,
   dataBR,
   FOCOS_RDV,
   ICONES,
   Icone,
+  mesNoAno,
   opcoesResponsavel,
   rotuloAntesDoInicio,
   Rostos,
@@ -68,7 +71,10 @@ function Jornada({
   memoria: string;
 }) {
   const mes = ficha.mesJornada;
-  const focos = ficha.mentoria === 'RDV' ? FOCOS_RDV : null;
+  // NPAC-79: depois de renovar, a faixa mostra o ano atual (13 a 24 no 2º ano); os focos do RDV são do 1º ano.
+  const ano = anoDoMes(mes, ficha.renovacoes.length);
+  const primeiro = 12 * (ano - 1) + 1;
+  const focos = ficha.mentoria === 'RDV' && ano === 1 ? FOCOS_RDV : null;
   const ativo = ficha.status === 'ATIVO';
   const comPme = ficha.ciclos.length > 0 || ativo;
   const comTarefas = ficha.tarefasReuniao.length > 0 || ativo;
@@ -83,10 +89,16 @@ function Jornada({
       role="tabpanel"
       aria-label="Jornada"
     >
-      <h3>Os 12 meses</h3>
+      <div className="rv-jornada">
+        <h3>
+          Os 12 meses
+          {ano > 1 && <span className="tag gold">{ano}º ano</span>}
+        </h3>
+        <RenovacaoAcoes ficha={ficha} />
+      </div>
       <div className="rail">
         {Array.from({ length: 12 }, (_, k) => {
-          const n = k + 1;
+          const n = primeiro + k;
           const feito = mes !== null && n < mes;
           const atual = mes === n;
           return (
@@ -155,7 +167,10 @@ function Inscricao({
   const ed = ficha.pode.inscricao;
   const base = { chave, editavel: ed };
   // Pausar tem ação própria (Parte 3): a lista não oferece entrar nem sair de Pausado.
-  const opcoesStatus = INSCRICAO_STATUS.map((s) => ({
+  // NPAC-79 (G2): "Renovado" só pela renovação; a ficha que já está nele continua mostrando.
+  const opcoesStatus = INSCRICAO_STATUS.filter(
+    (s) => s !== 'RENOVADO' || ficha.status === 'RENOVADO',
+  ).map((s) => ({
     valor: s,
     rotulo: INSCRICAO_STATUS_LABEL[s],
     desativada: s === 'PAUSADO' || ficha.status === 'PAUSADO',
@@ -634,13 +649,15 @@ export function Ficha({
   }
 
   const mes = ficha.mesJornada;
+  // NPAC-79: "Mês 14 de 24" depois de renovar; "Jornada concluída" só depois do último mês do término.
+  const { total } = anoDaFicha(ficha);
   const foco = mes !== null && mes <= 12 && ficha.mentoria === 'RDV' ? FOCOS_RDV[mes - 1] : null;
   const titulo =
     mes === null
       ? rotuloAntesDoInicio(ficha.mentoria)
-      : mes > 12
+      : mes > total
         ? 'Jornada concluída'
-        : `Mês ${mes} de 12${foco ? `: ${foco}` : ''}`;
+        : `Mês ${mes} de ${total}${foco ? `: ${foco}` : ''}`;
   const periodo = ficha.inicioJornada
     ? `${dataBR(ficha.inicioJornada)} a ${dataBR(ficha.terminoPrevisto)}`
     : '';
@@ -669,6 +686,7 @@ export function Ficha({
               <span className="tag">{ficha.mentoria}</span>
               <span className="tag">{TIPO_INSCRICAO_LABEL[ficha.tipo]}</span>
               <TagStatus status={ficha.status} />
+              <SeloRenovado ficha={ficha} />
               {ficha.pode.verEngajamento && <TagEngajamento valor={ficha.engajamento} />}
               {ficha.dealId && ficha.dataCompra && (
                 <span className="tag">Veio da venda de {diaMes(ficha.dataCompra)}</span>
@@ -682,7 +700,7 @@ export function Ficha({
             <b>{titulo}</b>
             <span>{periodo}</span>
           </div>
-          <Trilha mes={mes} />
+          <Trilha mes={mesNoAno(mes, ficha.renovacoes.length)} />
         </div>
         <div className="fc-acts">
           {linkGrupoValido(ficha.linkGrupo) && (

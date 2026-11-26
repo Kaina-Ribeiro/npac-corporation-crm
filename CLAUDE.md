@@ -193,8 +193,8 @@ https://drive.google.com` em `proxy.ts`); quem edita o registro cola, quem vê a
   `docs/superpowers/specs/2026-11-19-acompanhamento-gestao-bloco-1-design.md`, plano `docs/plans/acompanhamento-gestao-bloco-1.md`.
   O Acompanhamento mexe no comercial quando precisar (G1, 19/11/2026). Partes 1 e 2 prontas (22 e 23/11/2026).
   Bloco 2 (NPAC-79, Renovações): spec `docs/superpowers/specs/2026-11-26-renovacoes-design.md`, plano
-  `docs/plans/npac-79-renovacoes.md`. Parte 1 (banco e API) pronta (26/11/2026); Parte 2 (telas) e Parte 3 (PMEs do
-  2º ano, espera a Duda) abertas.
+  `docs/plans/npac-79-renovacoes.md`. Partes 1 (banco e API) e 2 (telas) prontas (26/11/2026); Parte 3 (PMEs do 2º
+  ano) espera a Duda.
 - **Renovações** (NPAC-79, Parte 1, 0092; Duda 1A, 2C, 3B, 4B, 5A, 6A, 7A, 8A; Gabriel G1–G6): a renovação fica na
   **mesma ficha**. `mentoria_renovar(inscricao, version, mentoria, data)` (SECURITY DEFINER, advisory lock + `FOR UPDATE`,
   área `RENOVACAO` de `mentoria_edita`: Admin e Acompanhamento com a carteira; Operação, Especialista, Envios e Mentor
@@ -221,6 +221,25 @@ https://drive.google.com` em `proxy.ts`); quem edita o registro cola, quem vê a
   `pode.desfazerRenovacao`. Regras puras (situação 5A, "Mês 12 de 12"/"O 12º mês começa em"/"Terminou em", %, filtros)
   `sh/mentoria/renovacoes.ts` (`@npac/shared/renovacoes`, fora do barril do módulo pelo peso de `/leads`). Testes: `db/test/mentoria-renovacoes.test.ts`, `rls-por-consulta`,
   `shared/test/mentoria-renovacoes.test.ts`, `api/test/mentoria-v2-renovacoes.e2e.test.ts`.
+  **Telas** (Parte 2, 26/11/2026; janelinha 2 e, na aba, a mistura das opções 1 e 2 que o Gabriel escolheu no canvas
+  "Renovações e gestão" depois de achar a tabela "meio sem graça"; capturas em `docs/acompanhamento/prototipo/renovacoes/`):
+  aba `/acompanhamento/renovacoes` "Renovações e gestão" (`components/acompanhamento/renovacoes.tsx` +
+  `renovacoes-topo.tsx`, CSS `.rv-*` em `modulo.css`): **painel escuro** (escuro nos dois temas) com o anel dourado do %,
+  Renovaram/Não renovaram, Chegando/Já tiveram a reunião e os **degraus da conversa** (as 6 situações com a contagem; tocar
+  num degrau é o filtro de situação, `aria-pressed`; a contagem e os números não mudam com o filtro); filtro "Responsável"
+  (só os que estão na lista; some para "só a carteira"); filtros lembrados em `AC_PREFS.renovacoes` (`renovacoesRegras`,
+  no navegador); **linha do término** ("Quando cada um termina", só a partir de 768 px): cada rosto no dia do término, anel
+  com a cor da situação (vermelho terminou, verde quer, azul marcada, cinza o resto), faixa "Já terminou" antes de "Hoje",
+  meses no eixo, até 4 faixas (acima/abaixo) para os rostos não se cobrirem, quem renovou fica fora; e a tabela (cartões abaixo de 1280 px): nome com os rostos, responsável com foto, mês (vermelho em "Terminou em"; quem
+  renovou mostra "2º ano"), término e o selo da situação (dourado renovou, verde quer, azul marcada, cinza o resto). Menu,
+  Ctrl+K e Mais só para Admin e Acompanhamento (`veRenovacoes` em `lib/acompanhamento.ts`, `mentoriaRenovacoes` no
+  `navItems`); os demais 404; `em-breve/renovacoes` redireciona. Ficha (`renovacao-ficha.tsx`): topo da Jornada com
+  "Desfazer" (Admin) e "Registrar renovação" (janelinha com RDV/2M/6M em botões de 44 px, "Data da renovação" de hoje a 1
+  ano atrás e o resumo "Novo término" e "Nº ano: Meses 13 a 24"); selo dourado "Renovado em DD/MM" ao lado do status;
+  "Mês 14 de 24"; a faixa e a trilha do topo mostram o ano em que a pessoa está (13 a 24, etiqueta "2º ano"; `anoDoMes`: quem renova no mês 12 segue no 1º ano até o mês 13); status sem "Renovado"
+  (a não ser na ficha que já está nele). Mentorados e Plano: `InscricaoItem.renovacoes` faz "Mês 13" e a trilha do ano
+  atual em vez de "Jornada concluída" (`rotuloMes`, `mesNoAno` em `ui.tsx`). e2e `acompanhamento-renovacoes.spec.ts`,
+  `mobile-layout-renovacoes.spec.ts`; capturas `CAPTURAS=<pasta> … e2e/capturas-renovacoes.spec.ts`.
 - **Venda vira mentorado** (NPAC-56, Parte 1, 0077; Eduarda 1A–5A): `insertSale` (`api/finance/finance.service.ts`) recebe
   `InscricaoDaVenda` (`api/mentoria/venda/inscricao-da-venda.ts`, exportado pelo `MentoriaModule` com o `AvisosScheduler`)
   e, se o produto tem `products.mentoria` (`RDV`/`2M`/`6M`; Admin > Produtos "Vira mentorado", "Não" = nulo; a 0077
@@ -1164,7 +1183,7 @@ VARREDURA_URL=http://localhost:3150 VARREDURA_SENHA=senha-do-e2e-123 VARREDURA_O
   (`E2E_WEB_PORT=3200` se outro projeto ocupar) e banco `npac_e2e`.
 - Testes só recriam `npac_test*`/`npac_e2e*`; nunca aponte para outro banco. `npac_test_api` é um só para todas as worktrees: duas suítes da API ao mesmo tempo dão 401 falso; com outra worktree rodando, `API_TEST_DB=npac_test_api_<nome> pnpm --filter @npac/api test`. O e2e isola com `E2E_DB`, `E2E_API_PORT` e `E2E_WEB_PORT`.
 - **CI em partes** (NPAC-45, 19/11/2026, `.github/workflows/ci.yml`): `static` (lint, typecheck, shared,
-  audit), `db`, `api (1/3…)` e `e2e (1/6…)` em paralelo, cada parte com Postgres, API e web próprios
+  audit), `db`, `api (1/3…)` e `e2e (1/7…)` (7 partes desde 26/11/2026: a 6ª passava de 4 min e o WebKit do iPhone ficava lento no fim) em paralelo, cada parte com Postgres, API e web próprios
   (`vitest --shard`, `playwright --shard`); `ci` é o resumo (verde só com tudo verde). Uma parte passou
   de ~3 min: some um número à lista `shard` do job. No e2e do CI o turbo compila API e web ao mesmo
   tempo antes do Playwright e `E2E_PREBUILT=1` faz o `playwright.config.ts` só subir os servidores

@@ -173,11 +173,22 @@ export const dataBR = (iso: string | null | undefined) =>
 export const rotuloAntesDoInicio = (mentoria: Mentoria) =>
   mentoria === 'RDV' ? 'Antes da IDR' : 'Antes do início';
 
-/** Rótulo do mês da jornada na lista e na ficha. */
-export function rotuloMes(mes: number | null, mentoria: Mentoria) {
+/** Rótulo do mês da jornada na lista. Depois de renovar (NPAC-79), a jornada vai até 12 × (renovações + 1). */
+export function rotuloMes(mes: number | null, mentoria: Mentoria, renovacoes = 0) {
   if (mes === null) return rotuloAntesDoInicio(mentoria);
-  return mes > 12 ? 'Jornada concluída' : `Mês ${mes}`;
+  return mes > 12 * (renovacoes + 1) ? 'Jornada concluída' : `Mês ${mes}`;
 }
+
+/**
+ * Ano em que a pessoa está (NPAC-79): o do mês, até o último ano contratado. Quem renova no mês 12 continua no 1º
+ * ano (a faixa só passa a 13–24 no mês 13).
+ */
+export const anoDoMes = (mes: number | null, renovacoes: number) =>
+  mes === null ? 1 : Math.min(renovacoes + 1, Math.max(1, Math.ceil(mes / 12)));
+
+/** Mês dentro do ano atual da jornada (1 a 12), para a trilha de 12 meses. */
+export const mesNoAno = (mes: number | null, renovacoes: number) =>
+  mes === null ? null : mes - 12 * (anoDoMes(mes, renovacoes) - 1);
 
 /** Nome do responsável, marcando quem saiu ou perdeu o perfil (não pode ser escolhido de novo). */
 export const rotuloResponsavel = (r: Responsavel) =>

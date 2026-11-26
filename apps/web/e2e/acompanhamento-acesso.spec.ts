@@ -35,9 +35,9 @@ const MODULOS = [
   'Reuniões',
   'PMEs e ciclos',
   'Envios físicos',
+  'Renovações e gestão',
   'Linha do tempo e conquistas',
   'Eventos e agenda',
-  'Renovações e gestão',
   'Configurações',
 ];
 /** Na barra lateral, "Ficha do mentorado" ganha uma 2ª linha: para onde o item leva. */

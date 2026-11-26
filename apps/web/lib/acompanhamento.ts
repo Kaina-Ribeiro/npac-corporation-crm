@@ -51,6 +51,10 @@ export const soEnvios = (eu: EuMentoria | null) => !!eu && !eu.admin && eu.perfi
 /** Quem abre Envios físicos: a gestão (Admin, Acompanhamento, Operação) e o cargo Envios. */
 export const veEnvios = (eu: EuMentoria | null) => podeCadastrar(eu) || soEnvios(eu);
 
+/** Aba "Renovações e gestão" (NPAC-79, 7A): Admin e Acompanhamento; a API repete a regra (404). */
+export const veRenovacoes = (eu: EuMentoria | null) =>
+  !!eu && (eu.admin || eu.perfil === 'ACOMPANHAMENTO');
+
 /** Quem exporta planilha (§6): Admin e Acompanhamento. A API repete a regra. */
 export const podeExportar = (eu: EuMentoria | null) =>
   !!eu && (eu.admin || eu.perfil === 'ACOMPANHAMENTO');

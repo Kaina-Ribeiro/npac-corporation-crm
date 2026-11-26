@@ -20,7 +20,7 @@ import { Avatar, AVATAR_EU } from '@/components/avatar';
 import { RoleTag } from '@/components/role-tag';
 import { pendingAccessRequests } from '@/lib/access-requests';
 import { getSession, pendingStep } from '@/lib/session';
-import { lerEu, podeCadastrar, precisaMfa, soEnvios, ultimaFicha } from '@/lib/acompanhamento';
+import { lerEu, podeCadastrar, precisaMfa, soEnvios, ultimaFicha, veRenovacoes } from '@/lib/acompanhamento';
 import { SemAcesso } from '@/components/acompanhamento/sem-acesso';
 import { SIDEBAR_COOKIE } from '@/lib/sidebar';
 
@@ -71,6 +71,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           mentoriaAdmin: eu?.admin,
           mentoriaCiclos: podeCadastrar(eu),
           soEnvios: soEnvios(eu),
+          mentoriaRenovacoes: veRenovacoes(eu),
         })}
         commercial={commercial}
         // "O que mudou no CRM" (NPAC-77): abre sozinha com novidade não vista; o texto baixa só aí.
@@ -89,6 +90,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         mentoriaAdmin={eu?.admin}
         mentoriaCiclos={podeCadastrar(eu)}
         soEnvios={soEnvios(eu)}
+        mentoriaRenovacoes={veRenovacoes(eu)}
         adminBadge={requests}
         ultimaFicha={ultima?.nome ?? null}
         footer={

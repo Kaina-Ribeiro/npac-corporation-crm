@@ -145,7 +145,9 @@ test('Manu não abre ficha de quem não é dela (404)', async ({ page }) => {
   expect((await page.goto(`/acompanhamento/ficha/${FICHA_01}`))?.status()).toBe(200);
 });
 
-test('as 3 abas futuras mostram "em breve"; a 7 e Envios físicos saíram', async ({ page }) => {
+test('as 2 abas futuras mostram "em breve"; a 7, Envios físicos e Renovações saíram', async ({
+  page,
+}) => {
   await entrar(page, 'duda');
   await page.waitForURL(/\/acompanhamento\/fila/);
   await page.goto('/acompanhamento/em-breve/pmes');
@@ -154,8 +156,11 @@ test('as 3 abas futuras mostram "em breve"; a 7 e Envios físicos saíram', asyn
   await page.goto('/acompanhamento/em-breve/envios');
   await page.waitForURL(/\/acompanhamento\/envios$/);
   await expect(page.getByRole('heading', { name: 'Envios físicos' })).toBeVisible();
+  await page.goto('/acompanhamento/em-breve/renovacoes');
+  await page.waitForURL(/\/acompanhamento\/renovacoes$/);
+  await expect(page.getByRole('heading', { name: 'Renovações e gestão' })).toBeVisible();
   await page.goto('/acompanhamento/mentorados');
-  for (const nome of ['Linha do tempo e conquistas', 'Eventos e agenda', 'Renovações e gestão']) {
+  for (const nome of ['Linha do tempo e conquistas', 'Eventos e agenda']) {
     await lateral(page).getByRole('link', { name: nome, exact: true }).click();
     await page.waitForURL(/\/acompanhamento\/em-breve\//);
     await expect(page.getByRole('heading', { name: 'Esta aba chega em breve' })).toBeVisible();

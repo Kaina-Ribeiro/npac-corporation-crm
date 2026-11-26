@@ -3,7 +3,7 @@ import { Sidebar } from '@/components/shell/sidebar';
 import { SignOutButton } from '@/components/shell/sign-out-button';
 import { RoleTag } from '@/components/role-tag';
 import { Aviso404 } from '@/components/shell/aviso-404';
-import { lerEu, podeCadastrar } from '@/lib/acompanhamento';
+import { lerEu, podeCadastrar, veRenovacoes } from '@/lib/acompanhamento';
 import { getSession } from '@/lib/session';
 
 export const metadata = { title: 'Página não encontrada' };
@@ -26,6 +26,7 @@ export default async function NotFound() {
         commercial={hasCommercialAccess(me.role)}
         mentoriaAdmin={eu?.admin}
         mentoriaCiclos={podeCadastrar(eu)}
+        mentoriaRenovacoes={veRenovacoes(eu)}
         footer={
           <div className="flex flex-col gap-2 px-1">
             <b className="truncate text-sm font-semibold">{me.name}</b>

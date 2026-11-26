@@ -13,7 +13,7 @@ import { quietButton } from '@/components/crm-ui';
 import { clientApi } from '@/lib/client-api';
 import { useFieldSaver } from '@/lib/acompanhamento-saver';
 import { BotaoFeita, linkAcao, responsavelDe, TagAcao, useAcaoFeita } from './plano-mentorado';
-import { dataBR, ICONES, Icone, Rostos, rotuloMes, Trilha } from './ui';
+import { dataBR, ICONES, Icone, mesNoAno, Rostos, rotuloMes, Trilha } from './ui';
 
 const DIAS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const diaSemana = (iso: string) => DIAS[new Date(`${iso}T12:00:00Z`).getUTCDay()]!;
@@ -241,12 +241,12 @@ export function PlanoMentorados({ inicial }: { inicial: PaginaInscricoes }) {
                   <div className="nm">
                     {r.nome}
                     <small>
-                      {r.mentoria}, {rotuloMes(r.mesJornada, r.mentoria)}
+                      {r.mentoria}, {rotuloMes(r.mesJornada, r.mentoria, r.renovacoes)}
                     </small>
                   </div>
                 </div>
                 <div className="pl-prog">
-                  <Trilha mes={r.mesJornada} />
+                  <Trilha mes={mesNoAno(r.mesJornada, r.renovacoes)} />
                   <span>
                     {r.plano.total > 0
                       ? `${r.plano.feitas} de ${r.plano.total} ações`
