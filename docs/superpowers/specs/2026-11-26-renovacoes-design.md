@@ -1,6 +1,6 @@
 # Spec: gestão do Acompanhamento, bloco 2 — Renovações (NPAC-79)
 
-Status: **rascunho, 26/11/2026, aguardando o Gabriel** (decisões G1–G6 abaixo). Perguntas e respostas da Eduarda:
+Status: **aprovada pelo Gabriel em 26/11/2026** ("Aprovo": G1–G6 e os textos G-texto como recomendados). Perguntas e respostas da Eduarda:
 `docs/acompanhamento/perguntas-gestao-bloco-2-2026-11-25.md` (**1A, 2C, 3B, 4B, 5A, 6A, 7A, 8A**). Plano:
 `docs/plans/npac-79-renovacoes.md`.
 

@@ -3,9 +3,9 @@
 Spec: `docs/superpowers/specs/2026-11-26-renovacoes-design.md`. Respostas da Eduarda: 1A, 2C, 3B, 4B, 5A, 6A, 7A, 8A.
 Branch de cada parte a partir da `release/*` aberta; PR `feat(NPAC-79): …`; migration nova depois da última da release.
 
-Status: ⏳ aguardando o Gabriel aprovar G1–G6.
+Status: spec aprovada (26/11/2026, G1–G6 como recomendados). Parte 1 🚧, Parte 2 ⏳, Parte 3 ⏳ (Eduarda).
 
-## Parte 1 — banco e API ⏳
+## Parte 1 — banco e API 🚧
 
 1. Migration: tabela `mentoria_renovacoes` (RLS de leitura no formato `(select …)`, `npac_app` só SELECT), área
    `RENOVACAO` em `mentoria_edita` (Admin, Acompanhamento com carteira), coluna `concluida_em` + gatilho, guarda que
