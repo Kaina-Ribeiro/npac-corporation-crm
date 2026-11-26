@@ -106,7 +106,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6]
+        shard: [1, 2, 3, 4, 5, 6, 7]
     # Imagem oficial com Chromium e WebKit já instalados (sem o apt das libs do WebKit, que travava).
     # Manter a tag igual à versão do @playwright/test no pnpm-lock.yaml.
     container:
