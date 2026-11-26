@@ -6,7 +6,18 @@ painel de gestão** → 3 Eventos e agenda → 4 Linha do tempo e conquistas + p
 
 ⭐ = sugestão nossa. Pergunta sem ⭐ = não temos como saber; só ela responde.
 
-**Respostas da Eduarda:** ⏳ aguardando.
+**Respostas da Eduarda (26/11/2026): 1A, 2C, 3B, 4B, 5A, 6A, 7A, 8A.**
+
+- 1A: RDV, 2M e 6M entram na lista (12 meses cada).
+- 2C: renova para a mesma mentoria ou para outra.
+- 3B: a renovação não passa pelo comercial; é combinada com ela, que registra no sistema.
+- 4B: continua na mesma ficha, com mais 12 meses (do 13º ao 24º mês).
+- 5A: a conversa é mostrada sozinha: Sem reunião → Reunião marcada → Quer renovar / Não quer renovar → Renovou.
+- 6A: sem aviso novo na Fila; vale a ação "Celebração e renovação".
+- 7A: veem Admin e Acompanhamento; "só a carteira" vê só os dela.
+- 8A: números: chegam nos 60 dias, já tiveram a reunião, renovaram, não renovaram e % de renovação.
+
+Spec: `docs/superpowers/specs/2026-11-26-renovacoes-design.md`. Plano: `docs/plans/npac-79-renovacoes.md`.
 
 ## Já respondido (não perguntar)
 
