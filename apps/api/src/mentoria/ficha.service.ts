@@ -354,13 +354,11 @@ export class FichaService {
             ),
           }
         : null,
-      renovacoes: renovacoes.map(
-        (r): RenovacaoDTO => ({
-          ...r,
-          mentoriaAnterior: r.mentoriaAnterior as RenovacaoDTO['mentoriaAnterior'],
-          mentoriaNova: r.mentoriaNova as RenovacaoDTO['mentoriaNova'],
-        }),
-      ),
+      renovacoes: renovacoes.map((r): RenovacaoDTO => ({
+        ...r,
+        mentoriaAnterior: r.mentoriaAnterior as RenovacaoDTO['mentoriaAnterior'],
+        mentoriaNova: r.mentoriaNova as RenovacaoDTO['mentoriaNova'],
+      })),
       pode: {
         inscricao: extra?.inscricao === true,
         momento: extra?.momento === true,

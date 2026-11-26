@@ -1,6 +1,7 @@
 // Renovações do Acompanhamento (NPAC-79; Duda 1A, 2C, 3B, 4B, 5A, 6A, 7A, 8A; Gabriel G1–G6). Puro, sem zod: o cliente
-// importa por `@npac/shared/mentoria`. A lista e os números vêm de `mentoria_renovacoes_painel` (banco); aqui só a
-// situação da conversa, os rótulos e as contas.
+// importa por `@npac/shared/renovacoes`, fora do barril `@npac/shared/mentoria` que a casca leva a /leads (teto de
+// 150 KB). A lista e os números vêm de `mentoria_renovacoes_painel` (banco); aqui só a situação da conversa, os
+// rótulos e as contas.
 import type { InscricaoStatus, Mentoria, TipoInscricao } from './enums.js';
 import type { ReuniaoStatus } from './reunioes.js';
 
@@ -104,7 +105,8 @@ type BaseSituacao = Pick<
 /** Situação da conversa (5A) e o texto da linha. */
 export function situacaoConversa(l: BaseSituacao): { situacao: SituacaoRenovacao; rotulo: string } {
   if (l.renovadaEm) {
-    const troca = l.renovadaPara && l.renovadaPara !== l.renovadaDe ? ` para ${l.renovadaPara}` : '';
+    const troca =
+      l.renovadaPara && l.renovadaPara !== l.renovadaDe ? ` para ${l.renovadaPara}` : '';
     return { situacao: 'RENOVOU', rotulo: `Renovou${troca} em ${diaMes(l.renovadaEm)}` };
   }
   if (l.reuniaoStatus === 'REALIZADA') {

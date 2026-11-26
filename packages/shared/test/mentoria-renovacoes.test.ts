@@ -62,9 +62,9 @@ describe('situação da conversa (5A)', () => {
         situacao: 'MARCADA',
         rotulo: 'Reunião marcada para 03/12',
       });
-    expect(situacaoConversa({ ...base, reuniaoStatus: 'FALTOU', reuniaoDia: '2026-11-01' })).toEqual(
-      { situacao: 'SEM_REUNIAO', rotulo: 'Sem reunião · faltou em 01/11' },
-    );
+    expect(
+      situacaoConversa({ ...base, reuniaoStatus: 'FALTOU', reuniaoDia: '2026-11-01' }),
+    ).toEqual({ situacao: 'SEM_REUNIAO', rotulo: 'Sem reunião · faltou em 01/11' });
     expect(situacaoConversa(base)).toEqual({ situacao: 'SEM_REUNIAO', rotulo: 'Sem reunião' });
   });
 });

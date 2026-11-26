@@ -119,11 +119,16 @@ const historico = (id: string, tipo: string) =>
     order by quando`;
 
 const maisMeses = async (data: string, meses: number) =>
-  (await owner<{ d: string }[]>`select (${data}::date + make_interval(months => ${meses}))::date::text as d`)[0]!
-    .d;
+  (
+    await owner<
+      { d: string }[]
+    >`select (${data}::date + make_interval(months => ${meses}))::date::text as d`
+  )[0]!.d;
 
 beforeAll(async () => {
-  HOJE = (await owner<{ d: string }[]>`select (now() at time zone 'America/Sao_Paulo')::date::text as d`)[0]!.d;
+  HOJE = (
+    await owner<{ d: string }[]>`select (now() at time zone 'America/Sao_Paulo')::date::text as d`
+  )[0]!.d;
   await owner`delete from mentoria_perfis where user_id like 'rn-%'`;
   await owner`delete from "user" where id like 'rn-%'`;
   await owner`
@@ -244,7 +249,9 @@ describe('renovar', () => {
     expect((await pgError(chamar(DUDA, id, version - 1, 'RDV', HOJE))).code).toBe('P0409');
     const futura = await pgError(chamar(DUDA, id, version, 'RDV', await dia(1)));
     expect(futura.code).toBe('22023');
-    expect(futura.message).toBe('A data da renovação não pode ser futura nem de mais de 1 ano atrás.');
+    expect(futura.message).toBe(
+      'A data da renovação não pode ser futura nem de mais de 1 ano atrás.',
+    );
     expect((await pgError(chamar(DUDA, id, version, 'RDV', await dia(-367)))).code).toBe('22023');
     expect((await pgError(chamar(DUDA, id, version, 'XYZ', HOJE))).code).toBe('22023');
 
@@ -292,7 +299,10 @@ describe('quem renova', () => {
     await owner`insert into mentoria_reunioes (inscricao_id, tipo, conduzida_por, inicio)
       values (${id}, 'POSICIONAMENTO', ${ESPEC}, now() - interval '2 hours')`;
     for (const u of [OPERACAO, ESPEC, MENTOR]) {
-      expect({ u, code: (await pgError(renovar(u, id, 'RDV'))).code }).toEqual({ u, code: '42501' });
+      expect({ u, code: (await pgError(renovar(u, id, 'RDV'))).code }).toEqual({
+        u,
+        code: '42501',
+      });
     }
     expect(await renovacoes(id)).toEqual([]);
   });
@@ -310,11 +320,18 @@ describe('quem renova', () => {
     expect(ins.code).toBe('42501');
     await renovar(DUDA, id, 'RDV');
     expect(
-      (await pgError(q(DUDA, sql`update mentoria_renovacoes set ano = 9 where inscricao_id = ${id}::uuid`)))
-        .code,
+      (
+        await pgError(
+          q(DUDA, sql`update mentoria_renovacoes set ano = 9 where inscricao_id = ${id}::uuid`),
+        )
+      ).code,
     ).toBe('42501');
     expect(
-      (await pgError(q(DUDA, sql`delete from mentoria_renovacoes where inscricao_id = ${id}::uuid`))).code,
+      (
+        await pgError(
+          q(DUDA, sql`delete from mentoria_renovacoes where inscricao_id = ${id}::uuid`),
+        )
+      ).code,
     ).toBe('42501');
     for (const tipo of ['inscricao.renovada', 'inscricao.renovacao_desfeita']) {
       const e = await pgError(
@@ -391,7 +408,10 @@ describe('desfazer', () => {
   it('recusa: sem renovação, ação do novo ano feita, ficha fora de Ativo, versão velha', async () => {
     const id = await nova(1);
     const sem = await pgError(desfazer(DUDA, id));
-    expect(sem).toMatchObject({ code: '22023', message: 'Esta ficha não tem renovação para desfazer.' });
+    expect(sem).toMatchObject({
+      code: '22023',
+      message: 'Esta ficha não tem renovação para desfazer.',
+    });
 
     await renovar(DUDA, id, '2M');
     const [r] = await renovacoes(id);
@@ -457,8 +477,11 @@ describe('status', () => {
     expect(marcada).toBeInstanceOf(Date);
     expect(Math.abs(Date.now() - marcada!.getTime())).toBeLessThan(60_000);
     // Outro campo não mexe na data.
-    await q(DUDA, sql`update mentoria_inscricoes set status = 'CONCLUIDO', mentoria_variante = 'y'
-      where id = ${id}::uuid`);
+    await q(
+      DUDA,
+      sql`update mentoria_inscricoes set status = 'CONCLUIDO', mentoria_variante = 'y'
+      where id = ${id}::uuid`,
+    );
     expect((await ler(id)).concluida_em?.getTime()).toBe(marcada!.getTime());
     await q(DUDA, sql`update mentoria_inscricoes set status = 'ATIVO' where id = ${id}::uuid`);
     expect((await ler(id)).concluida_em).toBeNull();
@@ -471,8 +494,11 @@ describe('status', () => {
     expect(n!.concluida_em).toBeNull();
     // npac_app não escreve a coluna.
     expect(
-      (await pgError(q(DUDA, sql`update mentoria_inscricoes set concluida_em = now() where id = ${id}::uuid`)))
-        .code,
+      (
+        await pgError(
+          q(DUDA, sql`update mentoria_inscricoes set concluida_em = now() where id = ${id}::uuid`),
+        )
+      ).code,
     ).toBe('42501');
   });
 });
@@ -482,7 +508,9 @@ describe('gerar ações depois de renovar', () => {
     const id = await nova(1);
     await renovar(DUDA, id, '2M');
     const antes = await acoes(id);
-    const [r] = await owner<{ n: number }[]>`select mentoria_gerar_acoes(${id}::uuid, ${HOJE}::date) as n`;
+    const [r] = await owner<
+      { n: number }[]
+    >`select mentoria_gerar_acoes(${id}::uuid, ${HOJE}::date) as n`;
     expect(r!.n).toBe(0);
     expect(await acoes(id)).toEqual(antes);
     // Trocar o plano pela inscrição (2M → 6M) também corta no ano atual.

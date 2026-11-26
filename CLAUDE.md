@@ -192,6 +192,35 @@ variante="chat"`. Campos de 17 px ficam fora da regra dos 16 px com `.ch-campo`.
   Bloco 1 (NPAC-56, venda vira mentorado + cargo Envios e aba Envios físicos): spec
   `docs/superpowers/specs/2026-11-19-acompanhamento-gestao-bloco-1-design.md`, plano `docs/plans/acompanhamento-gestao-bloco-1.md`.
   O Acompanhamento mexe no comercial quando precisar (G1, 19/11/2026). Partes 1 e 2 prontas (22 e 23/11/2026).
+  Bloco 2 (NPAC-79, Renovações): spec `docs/superpowers/specs/2026-11-26-renovacoes-design.md`, plano
+  `docs/plans/npac-79-renovacoes.md`. Parte 1 (banco e API) pronta (26/11/2026); Parte 2 (telas) e Parte 3 (PMEs do
+  2º ano, espera a Duda) abertas.
+- **Renovações** (NPAC-79, Parte 1, 0092; Duda 1A, 2C, 3B, 4B, 5A, 6A, 7A, 8A; Gabriel G1–G6): a renovação fica na
+  **mesma ficha**. `mentoria_renovar(inscricao, version, mentoria, data)` (SECURITY DEFINER, advisory lock + `FOR UPDATE`,
+  área `RENOVACAO` de `mentoria_edita`: Admin e Acompanhamento com a carteira; Operação, Especialista, Envios e Mentor
+  42501 = 404) grava `mentoria_renovacoes` (ano 2, 3…, data, mentoria e término de antes e depois, status de antes,
+  `acoes` criadas, quem registrou), anda o término **12 meses** (G3), troca a mentoria (RDV, 2M, 6M; a variante fica),
+  volta Concluído a **Ativo** (G1: a ficha renovada continua ATIVO, então Fila, semáforo, check-ins, PMEs, envios, push e
+  transferência seguem iguais; não mexer nessas funções) e gera as ações do plano-modelo da mentoria nova **só do novo
+  ano** (`mentoria_gerar_acoes_desde(inscricao, hoje, mês)`, interna; teto "data ≤ término" de sempre, então a 1ª
+  renovação da 2M cria 13, 19 e 25). `mentoria_gerar_acoes(uuid, date)` corta em 12 × nº de renovações + 1. Data: não
+  futura nem de mais de 1 ano (400 com a frase do banco); versão velha 409. Histórico `inscricao.renovada` só com nomes.
+  **Desfazer** (G5) `mentoria_renovacao_desfazer(inscricao, version)`: só a Admin, só a última, ficha Ativo, nenhuma das
+  `acoes` dela FEITA; volta término (pela diferença), mentoria, status e o `concluida_em` de antes, apaga as ações
+  pendentes que ela criou e grava `inscricao.renovacao_desfeita`. **Status**: "Renovado" à mão é recusado (gatilho
+  `mentoria_inscricao_status_regras` + API: 400 "Para renovar, use Registrar renovação."); quem já está fica.
+  `mentoria_inscricoes.concluida_em` é gravada pelo mesmo gatilho quando a ficha **muda** para Concluído (sai ao voltar;
+  quem nasce concluído, como na importação, fica sem data; `npac_app` não escreve a coluna). Tabela `mentoria_renovacoes`:
+  lê quem vê a ficha (política `(select …)`, como as pausas), só as funções gravam. **Aba** `mentoria_renovacoes_painel(hoje)`
+  (SECURITY INVOKER, `SET jit = off`, 42501 fora de Admin e Acompanhamento): ATIVO com término e `término − 1 mês ≤ hoje +
+60`, mais quem renovou nos últimos 60 dias (G6); reunião = a de Renovação mais recente do ciclo atual (início ≥ término −
+  12 meses), sem as remarcadas; números = renovações e Concluídos (com data) dos últimos 12 meses (G4). API
+  `renovacoes.controller.ts`: `GET mentoria/renovacoes` (`@Perfis('ACOMPANHAMENTO')`, devolve `{ hoje, numeros, itens }` com a
+  situação da conversa e o rótulo do mês prontos), `POST inscricoes/:id/renovacoes` `{ version, mentoria, data }`,
+  `DELETE inscricoes/:id/renovacoes/ultima` `{ version }` (`@SoAdmin`). Ficha: `renovacoes` e `pode.renovar`/
+  `pode.desfazerRenovacao`. Regras puras (situação 5A, "Mês 12 de 12"/"O 12º mês começa em"/"Terminou em", %, filtros)
+  `sh/mentoria/renovacoes.ts` (`@npac/shared/renovacoes`, fora do barril do módulo pelo peso de `/leads`). Testes: `db/test/mentoria-renovacoes.test.ts`, `rls-por-consulta`,
+  `shared/test/mentoria-renovacoes.test.ts`, `api/test/mentoria-v2-renovacoes.e2e.test.ts`.
 - **Venda vira mentorado** (NPAC-56, Parte 1, 0077; Eduarda 1A–5A): `insertSale` (`api/finance/finance.service.ts`) recebe
   `InscricaoDaVenda` (`api/mentoria/venda/inscricao-da-venda.ts`, exportado pelo `MentoriaModule` com o `AvisosScheduler`)
   e, se o produto tem `products.mentoria` (`RDV`/`2M`/`6M`; Admin > Produtos "Vira mentorado", "Não" = nulo; a 0077

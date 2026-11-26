@@ -66,7 +66,9 @@ beforeAll(async () => {
   h = api(app);
   const [r] = await owner<{ id: string }[]>`select id from "user" where username = 'carla'`;
   carla = r!.id;
-  HOJE = (await owner<{ d: string }[]>`select (now() at time zone 'America/Sao_Paulo')::date::text as d`)[0]!.d;
+  HOJE = (
+    await owner<{ d: string }[]>`select (now() at time zone 'America/Sao_Paulo')::date::text as d`
+  )[0]!.d;
 });
 afterAll(async () => {
   await owner`delete from mentoria_perfis`;
@@ -158,7 +160,11 @@ describe('Registrar renovação', () => {
     const insc = await inscricao(1, { terminoDias: -3 });
     const s = await comoPerfil('ACOMPANHAMENTO');
     const { version } = await ficha(s, insc);
-    const p = await h.patch(`/api/mentoria/inscricoes/${insc}`, { version, status: 'CONCLUIDO' }, s);
+    const p = await h.patch(
+      `/api/mentoria/inscricoes/${insc}`,
+      { version, status: 'CONCLUIDO' },
+      s,
+    );
     expect(p.status, p.text).toBe(200);
     expect((await ficha(s, insc)).pode.renovar).toBe(true);
     expect((await renovar(s, insc)).status).toBe(201);
@@ -254,7 +260,9 @@ describe('aba Renovações', () => {
     expect(c.mesRotulo).toMatch(/^(Mês 12 de 12|O 12º mês começa em \d{2}\/\d{2})$/);
     const t = p.itens.find((i) => i.inscricaoId === passou)!;
     expect(t).toMatchObject({ situacao: 'SEM_REUNIAO', situacaoRotulo: 'Sem reunião' });
-    expect(t.mesRotulo).toBe(`Terminou em ${t.terminoPrevisto.slice(8, 10)}/${t.terminoPrevisto.slice(5, 7)}`);
+    expect(t.mesRotulo).toBe(
+      `Terminou em ${t.terminoPrevisto.slice(8, 10)}/${t.terminoPrevisto.slice(5, 7)}`,
+    );
     const ontem = await dia(-1);
     expect(p.itens.find((i) => i.inscricaoId === renovada)).toMatchObject({
       situacao: 'RENOVOU',
