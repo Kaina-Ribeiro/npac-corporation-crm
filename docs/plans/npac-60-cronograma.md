@@ -23,7 +23,7 @@ cego. A tela reusa as peças do sistema (lista `.pl-mod`, seletor `.seg`, `.ob-h
 |---|---|---|---|
 | 1. Banco de dados, regras e API | 1–3 | envio com itens por API, banco de itens por API, Fila sem cobrança de item | ✅ 25/11 (0091, PR na `release/v0.26`) |
 | 2. Telas | 4–7 | banco, janela de envio + troca, card do PME, aba da ficha | ✅ 26/11 (PR na `release/v0.26`) |
-| 3. Importação | 8–10 | prévia e importação da planilha em 3 passos | ⏳ |
+| 3. Importação | 8–10 | prévia e importação da planilha em 3 passos | ✅ 26/11 (0093, PR na `release/v0.26`) |
 
 **Nota da fase 1 (25/11):** enquanto a fase 1 rodava, as releases v0.23 a v0.25 foram para a `main` e a `main` ganhou as
 migrations 0085 a 0090. A migration do cronograma virou **0091** e o PR foi para a `release/v0.26` (branch
@@ -252,7 +252,11 @@ igual à regra da Evolução), criar `apps/web/components/acompanhamento/cronogr
 
 ### Tarefa 8: leitura do CSV e casamento de colunas (shared)
 
-**Situação:** ⏳
+**Situação:** ✅ 26/11 — em arquivo próprio, `sh/mentoria/cronograma-planilha.ts` (não pesa em quem só usa
+`cronograma.ts`), exportado pelo barril do módulo; além do pedido: `lerCsv`, `lerCelula`, `marcaPrimeiro`, `maiorMes`,
+`pessoasDaColuna`, `dicaDaDuvida` (a dica azul do RDV × 2M) e `juntados` por bloco. Fixture gerada com 9 colunas (casal
+"e" e "/", RDV × 2M, só o primeiro nome, sem ficha, sem marcação, coluna vazia e coluna repetida). 27 testes; a fixture é
+lida com `?raw` (o shared não tem os tipos do Node).
 
 **Arquivos:** modificar `packages/shared/src/mentoria/cronograma.ts`; criar a fixture fictícia
 `packages/shared/test/fixtures/cronograma-ficticio.csv`; teste `packages/shared/test/cronograma-planilha.test.ts`.
@@ -274,7 +278,10 @@ igual à regra da Evolução), criar `apps/web/components/acompanhamento/cronogr
 
 ### Tarefa 9: API da importação
 
-**Situação:** ⏳
+**Situação:** ✅ 26/11 — migration **0093** com `mentoria_cronograma_importar` (SECURITY DEFINER, só Admin, `ON CONFLICT DO
+NOTHING`): o npac_app segue sem INSERT em `anteriores`. "Só acrescenta" também pula item que a ficha já tem como tarefa.
+Prévia traz `fichas` (para a coluna sem ficha), `mesmaFicha` e `ligadas`; `.xlsx`/zip e arquivo sem os blocos → 400. 7 testes
+na API e 3 no banco.
 
 **Arquivos:** criar `apps/api/src/mentoria/importacao/cronograma-importacao.controller.ts` (`@MentoriaController('cronograma')`,
 `@SoAdmin()`, rotas `importar/previa` e `importar` para usar o limite de 25 MB do `app.setup.ts`) e
@@ -293,7 +300,11 @@ só acrescentando; auditoria `mentoria.cronograma_importado` com as contagens.
 
 ### Tarefa 10: tela da importação e PR da fase 3
 
-**Situação:** ⏳
+**Situação:** ✅ 26/11 — `importar-cronograma.tsx`. O protótipo só mostra o passo 2: os passos 1 (texto de como baixar o
+CSV + "Escolher arquivo") e 3 ("O que entra", com os números, e "Importado" depois) foram desenhados nas mesmas peças. Sem
+escolha a coluna em dúvida fica de fora ("Escolher a ficha…" = Ignorar, decisão C14), por isso nada vem pré-escolhido
+(no protótipo a 1ª linha aparece escolhida). A coluna "Sem ficha" oferece todas as fichas. Subtítulo da aba Importação
+como no protótipo.
 
 **Arquivos:** criar `apps/web/components/acompanhamento/importar-cronograma.tsx`; modificar a aba Importação de
 `configuracoes/page.tsx` (card depois do da carteira). Teste: `apps/web/e2e/acompanhamento-cronograma-importacao.spec.ts`.

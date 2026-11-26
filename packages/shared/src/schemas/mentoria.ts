@@ -436,6 +436,26 @@ export const cronogramaItemPatchSchema = z
 export type CronogramaItemPatch = z.output<typeof cronogramaItemPatchSchema>;
 export const cronogramaBlocoSchema = z.enum(BLOCOS).optional();
 
+/** Limite do CSV da aba CRONOGRAMA (o real tem ~300 linhas × 251 colunas, bem abaixo). */
+export const LIMITE_CSV_CRONOGRAMA = 5_000_000;
+/**
+ * Importação da planilha do cronograma (NPAC-60, fase 3): o CSV como texto e, por coluna (posição no
+ * arquivo, A = 0), a ficha escolhida pela Admin ou "IGNORAR". Sem decisão, coluna em dúvida fica de fora.
+ */
+export const importarCronogramaSchema = z
+  .object({
+    csv: z
+      .string()
+      .min(1, 'Escolha o arquivo CSV da aba CRONOGRAMA')
+      .max(LIMITE_CSV_CRONOGRAMA, 'Arquivo grande demais para a aba CRONOGRAMA'),
+    arquivo: z.string().max(255).optional(),
+    decisoes: z
+      .record(z.string().regex(/^\d{1,4}$/), z.union([z.uuid(), z.literal('IGNORAR')]))
+      .optional(),
+  })
+  .strict();
+export type ImportarCronograma = z.output<typeof importarCronogramaSchema>;
+
 /** Ciclo de antes do sistema (carteira importada): número e datas escolhidos, sem tarefas. */
 export const cicloAnteriorSchema = z
   .object({

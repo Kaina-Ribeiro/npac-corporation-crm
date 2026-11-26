@@ -89,6 +89,17 @@ export const NOVIDADES: readonly Novidade[] = [
     href: '/acompanhamento/renovacoes',
   },
   {
+    id: 'npac-60-cronograma-importacao',
+    data: '2026-11-26',
+    para: ['acompanhamento-admin'],
+    tipo: 'novo',
+    icone: 'list',
+    titulo: 'Importar a planilha do cronograma',
+    texto:
+      'Baixe a aba CRONOGRAMA em CSV e escolha o arquivo no card “Planilha do cronograma”. Confira as colunas em dúvida, escolha a ficha de cada uma e toque em “Importar”. Rodar de novo não duplica nada.',
+    onde: 'Acompanhamento → Configurações → Importação',
+  },
+  {
     id: 'npac-60-cronograma-envio',
     data: '2026-11-26',
     para: ['acompanhamento'],
