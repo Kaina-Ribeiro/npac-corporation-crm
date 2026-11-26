@@ -6997,60 +6997,440 @@
   }
 }
 
-/* Renovações e gestão (NPAC-79): números, filtros e a lista de quem chega ao 12º mês. */
+/* Renovações e gestão (NPAC-79): painel, linha do término, filtros e a lista de quem chega ao 12º mês. */
 .ac {
-  .rv-kpis {
+  /* Painel escuro (mistura das opções 1 e 2, Gabriel 26/11): anel do %, números e os degraus da conversa. Fica
+     escuro nos dois temas, como o balão preto do Dashboard. */
+  .rv-hero {
+    position: relative;
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 20px 24px;
+    align-items: center;
+    padding: 20px;
+    border-radius: 24px;
+    color: #fff;
+    background:
+      radial-gradient(60% 120% at 0% 0%, rgba(226, 187, 102, 0.26), transparent 60%),
+      radial-gradient(40% 80% at 100% 100%, rgba(110, 145, 255, 0.14), transparent 70%), #18181b;
+    box-shadow: 0 24px 50px -24px rgba(0, 0, 0, 0.55);
+  }
+  .dark & .rv-hero {
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.08),
+      0 24px 50px -24px rgba(0, 0, 0, 0.7);
+  }
+  .rv-hero-pct {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     gap: 8px;
   }
-  .rv-k b {
-    color: var(--ink);
+  .rv-anel {
+    position: relative;
+    width: 112px;
+    height: 112px;
   }
-  .rv-k.pct {
-    grid-column: 1 / -1;
-    background: var(--ink);
-    color: var(--bg);
-    box-shadow: none;
-  }
-  .rv-k.pct .lb {
-    color: var(--bg);
-    opacity: 0.78;
-  }
-  .rv-k.pct b {
-    color: var(--bg);
-  }
-  .rv-pbar {
-    display: block;
+  .rv-anel svg {
     width: 100%;
-    height: 6px;
-    margin-top: 6px;
-    border-radius: 99px;
-    background: rgba(255, 255, 255, 0.18);
-    overflow: hidden;
-  }
-  .dark & .rv-pbar {
-    background: rgba(0, 0, 0, 0.16);
-  }
-  .rv-pbar i {
-    display: block;
     height: 100%;
-    border-radius: 99px;
-    background: var(--gold-deep);
+    transform: rotate(-90deg);
   }
-  /* Tablet: os quatro lado a lado e o % numa faixa embaixo; a partir de 1280 px, os cinco numa linha. */
+  .rv-anel circle {
+    fill: none;
+    stroke-width: 12;
+  }
+  .rv-anel .fundo {
+    stroke: rgba(255, 255, 255, 0.12);
+  }
+  .rv-anel .cheio {
+    stroke: #e2bb66;
+    stroke-linecap: round;
+  }
+  .rv-anel b {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+  }
+  .rv-anel-lb,
+  .rv-st .lb {
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.72);
+  }
+  .rv-hero-col {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .rv-st {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: 8px;
+  }
+  .rv-st .lb {
+    flex-basis: 100%;
+  }
+  .rv-st b {
+    font-size: 26px;
+    line-height: 32px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .rv-st small {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.62);
+  }
+  .rv-hero-div {
+    display: none;
+  }
+  .rv-hero-funil {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+  }
+  .rv-hero-linha {
+    display: flex;
+    gap: 28px;
+  }
+  .rv-degraus {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px 8px;
+  }
+  .rv-trilho {
+    display: none;
+  }
+  .rv-dg {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    min-height: 44px;
+    padding: 4px;
+    margin: -4px;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .rv-dg:focus-visible {
+    outline: 2px solid #e2bb66;
+    outline-offset: 2px;
+  }
+  .rv-dg .bola {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 17px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    background: #2a2a2e;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14);
+    transition:
+      background-color var(--dur-enter, 0.2s) ease,
+      box-shadow var(--dur-enter, 0.2s) ease;
+  }
+  .rv-dg .nm {
+    font-size: 13px;
+    line-height: 17px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.86);
+  }
+  .rv-dg.on .bola {
+    background: #e2bb66;
+    color: #18181b;
+    box-shadow: 0 0 0 4px rgba(226, 187, 102, 0.28);
+  }
+  .rv-dg.on .nm {
+    color: #e2bb66;
+  }
+  @media (hover: hover) {
+    .rv-dg:not(.on):hover .bola {
+      background: #38383d;
+    }
+  }
   @media (min-width: 768px) {
-    .rv-kpis {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+    .rv-hero {
+      padding: 24px 26px;
+    }
+    .rv-degraus {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+    .rv-trilho {
+      display: block;
+      position: absolute;
+      left: 22px;
+      right: 22px;
+      top: 21px;
+      height: 2px;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.18), #a87818 70%, #e2bb66);
     }
   }
   @media (min-width: 1280px) {
-    .rv-kpis {
-      grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(0, 1.3fr);
+    .rv-hero {
+      grid-template-columns: auto auto 1px minmax(0, 1fr);
+      gap: 32px;
+      padding: 26px 28px;
     }
-    .rv-k.pct {
+    .rv-anel {
+      width: 132px;
+      height: 132px;
+    }
+    .rv-anel b {
+      font-size: 34px;
+    }
+    .rv-hero-div {
+      display: block;
+      align-self: stretch;
+      background: rgba(255, 255, 255, 0.12);
+    }
+    .rv-hero-funil {
       grid-column: auto;
     }
+  }
+
+  /* Linha do término: cada rosto no dia em que termina, com a cor da situação. Só a partir do tablet. */
+  .rv-linha {
+    display: none;
+  }
+  @media (min-width: 768px) {
+    .rv-linha {
+      display: block;
+      padding: 18px 22px;
+    }
+  }
+  .rv-linha h2 {
+    margin: 0;
+    font-size: 16px;
+    line-height: 22px;
+    font-weight: 700;
+  }
+  .rv-linha > p {
+    margin: 2px 0 0;
+    font-size: 13px;
+    color: var(--ink2);
+  }
+  .rv-area {
+    --eixo: 112px;
+    --abaixo: 96px;
+    position: relative;
+    height: calc(var(--eixo) + var(--abaixo) + 22px);
+    margin: 14px 8px 0;
+  }
+  .rv-area.acima2 {
+    --eixo: 212px;
+  }
+  .rv-area.abaixo2 {
+    --abaixo: 206px;
+  }
+  .rv-area ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .rv-passado {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 22px;
+    border-radius: 12px;
+    background: repeating-linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--danger) 6%, transparent) 0 8px,
+      color-mix(in srgb, var(--danger) 11%, transparent) 8px 16px
+    );
+  }
+  .rv-passado span {
+    position: absolute;
+    left: 8px;
+    bottom: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--danger);
+    white-space: nowrap;
+  }
+  .rv-eixo {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: var(--eixo);
+    height: 2px;
+    background: var(--line);
+  }
+  .rv-hoje {
+    position: absolute;
+    top: 0;
+    bottom: 22px;
+    width: 2px;
+    margin-left: -1px;
+    background: var(--ink);
+  }
+  .rv-hoje span {
+    position: absolute;
+    left: 6px;
+    top: 0;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .rv-mes-tk {
+    position: absolute;
+    bottom: 0;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink3);
+  }
+  .rv-mes-tk::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 22px;
+    width: 1px;
+    height: calc(var(--abaixo) - 4px);
+    background: var(--line);
+  }
+  .rv-p {
+    --anel: var(--tag-neutro);
+    position: absolute;
+    top: 0;
+    width: 0;
+  }
+  .rv-p.quer {
+    --anel: var(--tag-ok);
+  }
+  .rv-p.marcada {
+    --anel: var(--tag-info);
+  }
+  .rv-p.fim {
+    --anel: var(--danger);
+  }
+  .rv-p a {
+    position: absolute;
+    left: -50px;
+    width: 100px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    text-align: center;
+    color: inherit;
+    text-decoration: none;
+    border-radius: 12px;
+  }
+  .rv-p a:focus-visible {
+    outline: 2px solid var(--gold-deep);
+    outline-offset: 2px;
+  }
+  .rv-p .ava {
+    width: 40px;
+    height: 40px;
+    font-size: 14px;
+    box-shadow:
+      0 0 0 3px var(--bg),
+      0 0 0 5.5px var(--anel),
+      0 8px 16px -6px rgba(0, 0, 0, 0.35);
+    transition: transform var(--dur-enter, 0.2s) ease;
+  }
+  @media (hover: hover) {
+    .rv-p a:hover .ava {
+      transform: translateY(-2px);
+    }
+  }
+  .rv-p b {
+    max-width: 100px;
+    font-size: 12px;
+    line-height: 15px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+  .rv-p small {
+    font-size: 11px;
+    line-height: 13px;
+    color: var(--ink2);
+  }
+  .rv-p .haste {
+    position: absolute;
+    left: -1px;
+    width: 2px;
+    background: var(--anel);
+    opacity: 0.5;
+  }
+  /* Faixas: 0 perto e 2 longe acima do eixo; 1 perto e 3 longe abaixo. */
+  .rv-p.f0 a {
+    top: calc(var(--eixo) - 102px);
+  }
+  .rv-p.f0 .haste {
+    top: calc(var(--eixo) - 10px);
+    height: 10px;
+  }
+  .rv-p.f2 a {
+    top: calc(var(--eixo) - 204px);
+  }
+  .rv-p.f2 .haste {
+    top: calc(var(--eixo) - 112px);
+    height: 112px;
+    opacity: 0.3;
+  }
+  .rv-p.f1 a {
+    top: calc(var(--eixo) + 14px);
+  }
+  .rv-p.f1 .haste {
+    top: var(--eixo);
+    height: 14px;
+  }
+  .rv-p.f3 a {
+    top: calc(var(--eixo) + 112px);
+  }
+  .rv-p.f3 .haste {
+    top: var(--eixo);
+    height: 112px;
+    opacity: 0.3;
+  }
+  .rv-leg {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    margin: 10px 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: 12px;
+    color: var(--ink2);
+  }
+  .rv-leg li::before {
+    content: '';
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin-right: 6px;
+    border-radius: 50%;
+    vertical-align: -1px;
+    background: var(--tag-neutro);
+  }
+  .rv-leg .quer::before {
+    background: var(--tag-ok);
+  }
+  .rv-leg .marcada::before {
+    background: var(--tag-info);
+  }
+  .rv-leg .fim::before {
+    background: var(--danger);
   }
 
   .rv-nm {

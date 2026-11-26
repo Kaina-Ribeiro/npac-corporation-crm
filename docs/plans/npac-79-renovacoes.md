@@ -39,9 +39,13 @@ Feito (26/11/2026), decisões tomadas na implementação (o resto como a spec):
 
 ## Parte 2 — telas ✅
 
-Feito (26/11/2026): desenho escolhido = **aba A (tabela) + janelinha 2 (botões + resumo)**, a sugestão seguida depois do
-"continua" do Gabriel (ele recebeu A, B, C e pode trocar); capturas das três em `docs/acompanhamento/prototipo/renovacoes/`
-(1–11 = comparação; `build-*` = a escolhida em 375/768/1024/1440, claro e escuro). Textos novos aprovados junto: subtítulo
+Feito (26/11/2026): janelinha 2 (botões + resumo), a sugestão seguida depois do "continua" do Gabriel. A aba começou como a
+opção A (tabela); o Gabriel achou "meio sem graça" e, entre as 3 opções do canvas "Renovações e gestão"
+(https://claude.ai/artifact/6fme7216tYSLNF878k6rjg), pediu "uma mistura do 1 com o 2": painel escuro com o anel do % e os
+degraus da conversa (que filtram) + a linha do término de cada um, com a tabela embaixo. Capturas em
+`docs/acompanhamento/prototipo/renovacoes/` (1–11 = comparação A/B/C e janelas; `build-*` = a final em 375/768/1024/1440,
+claro e escuro). Textos novos da linha: "Quando cada um termina", "Cada rosto fica no dia do término, com a cor da situação
+da conversa.", "Já terminou", "Hoje, DD/MM" e "Terminou" na legenda. Textos novos aprovados junto: subtítulo
 da aba, "de N" e "últimos 12 meses" nos números, "Novo término" e "Meses 13 a 24" na janelinha, o texto do "Desfazer" e
 "2º ano" no mês de quem renovou (a frase da API "O 24º mês começa em DD/MM" parecia data passada). Além do pedido:
 Mentorados e Plano da semana mostravam "Jornada concluída" para quem renovou; a lista traz `renovacoes` e o rótulo segue

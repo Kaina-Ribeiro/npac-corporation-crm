@@ -14,6 +14,11 @@ const lateral = (page: Page) => page.getByRole('navigation', { name: 'Navegaçã
 /** A linha da lista (o item "Ficha do mentorado" da lateral também traz o nome, como a última aberta). */
 const linhaDe = (page: Page, n: number) =>
   page.locator('.rv-row').filter({ hasText: `${NOME} ${n}` });
+/** Degrau da conversa no painel do topo ("Sem reunião: 1"); tocar filtra a lista. */
+const degrau = (page: Page, nome: string) =>
+  page
+    .getByRole('group', { name: 'Situação da conversa' })
+    .getByRole('button', { name: new RegExp(`^${nome}: \\d+$`) });
 const diaMes = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
 
 async function entrar(page: Page, usuario: string) {
@@ -75,8 +80,13 @@ test('a Duda abre a aba, renova pela ficha e vê "Renovou" na lista', async ({ p
   const linha = linhaDe(page, 1);
   await expect(linha).toContainText('Mês 12 de 12');
   await expect(linha).toContainText('Sem reunião');
-  await expect(page.getByLabel('Situação da conversa')).toBeVisible();
+  await expect(degrau(page, 'Sem reunião')).toBeVisible();
   await expect(page.getByLabel('Responsável', { exact: true })).toBeVisible();
+  // A linha do término mostra o rosto no dia do término, com o link para a ficha.
+  const linhaDoTermino = page.getByRole('region', { name: 'Quando cada um termina' });
+  await expect(
+    linhaDoTermino.getByRole('link', { name: new RegExp(`^${NOME} 1, término`) }),
+  ).toBeVisible();
 
   await linha.click();
   await page.waitForURL(/\/acompanhamento\/ficha\/.+aba=jornada/);
@@ -107,12 +117,14 @@ test('a Duda abre a aba, renova pela ficha e vê "Renovou" na lista', async ({ p
 
   await abrirAba(page);
   await expect(linhaDe(page, 1)).toContainText(`Renovou para 2M em ${diaMes(HOJE)}`);
-  // O filtro lembra a situação escolhida.
-  await page.getByLabel('Situação da conversa').selectOption('SEM_REUNIAO');
+  // O degrau "Renovou" conta e filtra; o filtro fica lembrado.
+  await expect(degrau(page, 'Renovou')).toContainText('1');
+  await degrau(page, 'Sem reunião').click();
   await expect(linhaDe(page, 1)).toHaveCount(0);
   await page.reload();
-  await expect(page.getByLabel('Situação da conversa')).toHaveValue('SEM_REUNIAO');
+  await expect(degrau(page, 'Sem reunião')).toHaveAttribute('aria-pressed', 'true');
   await page.getByRole('button', { name: 'Limpar filtros', exact: true }).click();
+  await expect(degrau(page, 'Sem reunião')).toHaveAttribute('aria-pressed', 'false');
   await expect(linhaDe(page, 1)).toBeVisible();
 
   // O endereço antigo do "Em breve" leva à aba.
@@ -133,7 +145,7 @@ test('"só a carteira" vê só os dela, sem o filtro de responsável', async ({ 
   await expect(linhaDe(page, 2)).toBeVisible();
   await expect(linhaDe(page, 3)).toHaveCount(0);
   await expect(page.getByLabel('Responsável', { exact: true })).toHaveCount(0);
-  await expect(page.getByLabel('Situação da conversa')).toBeVisible();
+  await expect(degrau(page, 'Sem reunião')).toBeVisible();
 });
 
 test('a Operação não tem a aba no menu e recebe 404', async ({ page }) => {

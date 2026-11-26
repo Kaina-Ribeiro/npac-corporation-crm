@@ -22,6 +22,10 @@ const PESSOAS: [string[], string, string | null, number, Reuniao | null][] = [
   [['Rogério Pacheco'], 'RDV', null, -5, ['FALTOU', -12, null]],
   [['Juliana Prado', 'Otávio Prado'], 'RDV', null, 26, ['REALIZADA', -1, null]],
   [['Márcia Peixoto'], 'RDV', null, 58, ['CONFIRMADA', 9, null]],
+  // Três na mesma semana do Bruno: a linha do término usa as faixas de longe.
+  [['Eduardo Lima'], '2M', null, 18, null],
+  [['Adriana Rocha'], 'RDV', null, 21, ['AGENDADA', 4, null]],
+  [['Hugo Moraes'], '6M', null, 23, null],
 ];
 
 async function entrar(page: Page, tema: 'light' | 'dark') {

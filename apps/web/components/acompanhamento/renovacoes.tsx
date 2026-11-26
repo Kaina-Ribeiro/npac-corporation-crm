@@ -1,8 +1,6 @@
 'use client';
 import {
   filtrarRenovacoes,
-  SITUACAO_RENOVACAO_LABEL,
-  SITUACOES_RENOVACAO,
   type FiltroRenovacoes,
   type PainelRenovacoes,
   type RenovacaoLinha,
@@ -15,6 +13,7 @@ import { Avatar, AVATAR_OUTRO, type TeamPhotos } from '@/components/avatar';
 import { control, quietButton } from '@/components/crm-ui';
 import { filtroRenovacoesDasPrefs, lembrarAc, renovacoesRegras } from '@/lib/acompanhamento-prefs';
 import { useLatestPrefs } from '@/lib/use-latest-prefs';
+import { contarSituacoes, LinhaTermino, PainelConversa } from './renovacoes-topo';
 import { dataBR, Rostos } from './ui';
 
 type Pessoa = { id: string; nome: string };
@@ -105,8 +104,8 @@ function ListaA({ itens, photos }: { itens: RenovacaoLinha[]; photos: TeamPhotos
 }
 
 /**
- * Aba "Renovações e gestão" (NPAC-79): os cinco números (8A, sobre tudo o que a pessoa vê; o filtro não muda), a
- * lista de quem chega ao 12º mês e a situação da conversa (5A). Cada linha abre a ficha na Jornada.
+ * Aba "Renovações e gestão" (NPAC-79): o painel com os cinco números (8A, sobre tudo o que a pessoa vê; o filtro não
+ * muda) e os degraus da conversa (5A, cada um filtra), a linha do término e a lista. Cada linha abre a ficha.
  */
 export function Renovacoes({
   painel,
@@ -143,6 +142,7 @@ export function Renovacoes({
   const n = painel.numeros;
   const itens = filtrarRenovacoes(painel.itens, f);
   const filtrando = !!(f.situacao || f.responsavelId);
+  const contagem = useMemo(() => contarSituacoes(painel.itens), [painel.itens]);
 
   return (
     <section className="view rv">
@@ -155,72 +155,39 @@ export function Renovacoes({
         </div>
       </div>
 
-      <div className="rv-kpis">
-        <div className="eg-k rv-k">
-          <span className="lb">Chegando</span>
-          <b>{n.chegando}</b>
-        </div>
-        <div className="eg-k rv-k">
-          <span className="lb">Já tiveram a reunião</span>
-          <b>{n.jaTiveramReuniao}</b>
-          <small>de {n.chegando}</small>
-        </div>
-        <div className="eg-k rv-k">
-          <span className="lb">Renovaram</span>
-          <b>{n.renovaram}</b>
-          <small>últimos 12 meses</small>
-        </div>
-        <div className="eg-k rv-k">
-          <span className="lb">Não renovaram</span>
-          <b>{n.naoRenovaram}</b>
-          <small>últimos 12 meses</small>
-        </div>
-        <div className="eg-k rv-k pct">
-          <span className="lb">% de renovação</span>
-          <b>{n.pct === null ? '—' : `${n.pct}%`}</b>
-          <span className="rv-pbar" aria-hidden="true">
-            <i style={{ width: `${n.pct ?? 0}%` }} />
-          </span>
-        </div>
-      </div>
+      <PainelConversa
+        numeros={n}
+        contagem={contagem}
+        situacao={f.situacao}
+        escolher={(situacao) => setF({ ...f, situacao })}
+      />
 
-      <div className="pc-filtros rv-filtros">
-        <select
-          className={control}
-          aria-label="Situação da conversa"
-          value={f.situacao ?? ''}
-          onChange={(e) =>
-            setF({ ...f, situacao: (e.target.value || undefined) as SituacaoRenovacao })
-          }
-        >
-          <option value="">Todas as situações</option>
-          {SITUACOES_RENOVACAO.map((s) => (
-            <option key={s} value={s}>
-              {SITUACAO_RENOVACAO_LABEL[s]}
-            </option>
-          ))}
-        </select>
-        {responsaveis.length > 0 && (
-          <select
-            className={control}
-            aria-label="Responsável"
-            value={f.responsavelId ?? ''}
-            onChange={(e) => setF({ ...f, responsavelId: e.target.value || undefined })}
-          >
-            <option value="">Todos os responsáveis</option>
-            {responsaveis.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.nome}
-              </option>
-            ))}
-          </select>
-        )}
-        {filtrando && (
-          <button type="button" className={quietButton} onClick={() => setF({})}>
-            Limpar filtros
-          </button>
-        )}
-      </div>
+      {(responsaveis.length > 0 || filtrando) && (
+        <div className="pc-filtros rv-filtros">
+          {responsaveis.length > 0 && (
+            <select
+              className={control}
+              aria-label="Responsável"
+              value={f.responsavelId ?? ''}
+              onChange={(e) => setF({ ...f, responsavelId: e.target.value || undefined })}
+            >
+              <option value="">Todos os responsáveis</option>
+              {responsaveis.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.nome}
+                </option>
+              ))}
+            </select>
+          )}
+          {filtrando && (
+            <button type="button" className={quietButton} onClick={() => setF({})}>
+              Limpar filtros
+            </button>
+          )}
+        </div>
+      )}
+
+      <LinhaTermino itens={itens} hoje={painel.hoje} />
 
       {itens.length === 0 ? (
         <section className="card">

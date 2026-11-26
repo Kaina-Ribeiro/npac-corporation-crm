@@ -70,6 +70,12 @@ test('Renovações no iPhone: sem rolagem lateral, toques de 44 px e campos de 1
   await expect(page.getByRole('heading', { level: 1, name: 'Renovações e gestão' })).toBeVisible();
   await semRolagemLateral(page);
   await campos16(page, '.rv-filtros');
+  // Os degraus do painel são o filtro da situação: toque de 44 px, dentro da tela.
+  for (const d of await page.locator('.rv-dg').all()) {
+    const b = (await d.boundingBox())!;
+    expect(b.height).toBeGreaterThanOrEqual(44);
+    expect(b.x + b.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+  }
   for (const linha of await page.locator('.rv-row').all())
     expect((await linha.boundingBox())!.height).toBeGreaterThanOrEqual(44);
 

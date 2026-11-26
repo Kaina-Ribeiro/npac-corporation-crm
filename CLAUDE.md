@@ -221,12 +221,16 @@ https://drive.google.com` em `proxy.ts`); quem edita o registro cola, quem vê a
   `pode.desfazerRenovacao`. Regras puras (situação 5A, "Mês 12 de 12"/"O 12º mês começa em"/"Terminou em", %, filtros)
   `sh/mentoria/renovacoes.ts` (`@npac/shared/renovacoes`, fora do barril do módulo pelo peso de `/leads`). Testes: `db/test/mentoria-renovacoes.test.ts`, `rls-por-consulta`,
   `shared/test/mentoria-renovacoes.test.ts`, `api/test/mentoria-v2-renovacoes.e2e.test.ts`.
-  **Telas** (Parte 2, 26/11/2026; opção A + janelinha 2, a sugestão seguida depois do "continua" do Gabriel; capturas em
-  `docs/acompanhamento/prototipo/renovacoes/`): aba `/acompanhamento/renovacoes` "Renovações e gestão"
-  (`components/acompanhamento/renovacoes.tsx`, CSS `.rv-*` em `modulo.css`): os cinco números (o "% de renovação" no
-  cartão escuro com a barra dourada), filtros "Situação da conversa" e "Responsável" (só os que estão na lista; some para
-  "só a carteira"), lembrados em `AC_PREFS.renovacoes` (`renovacoesRegras`, filtro no navegador, os números não mudam), e
-  a tabela (cartões abaixo de 1280 px): nome com os rostos, responsável com foto, mês (vermelho em "Terminou em"; quem
+  **Telas** (Parte 2, 26/11/2026; janelinha 2 e, na aba, a mistura das opções 1 e 2 que o Gabriel escolheu no canvas
+  "Renovações e gestão" depois de achar a tabela "meio sem graça"; capturas em `docs/acompanhamento/prototipo/renovacoes/`):
+  aba `/acompanhamento/renovacoes` "Renovações e gestão" (`components/acompanhamento/renovacoes.tsx` +
+  `renovacoes-topo.tsx`, CSS `.rv-*` em `modulo.css`): **painel escuro** (escuro nos dois temas) com o anel dourado do %,
+  Renovaram/Não renovaram, Chegando/Já tiveram a reunião e os **degraus da conversa** (as 6 situações com a contagem; tocar
+  num degrau é o filtro de situação, `aria-pressed`; a contagem e os números não mudam com o filtro); filtro "Responsável"
+  (só os que estão na lista; some para "só a carteira"); filtros lembrados em `AC_PREFS.renovacoes` (`renovacoesRegras`,
+  no navegador); **linha do término** ("Quando cada um termina", só a partir de 768 px): cada rosto no dia do término, anel
+  com a cor da situação (vermelho terminou, verde quer, azul marcada, cinza o resto), faixa "Já terminou" antes de "Hoje",
+  meses no eixo, até 4 faixas (acima/abaixo) para os rostos não se cobrirem, quem renovou fica fora; e a tabela (cartões abaixo de 1280 px): nome com os rostos, responsável com foto, mês (vermelho em "Terminou em"; quem
   renovou mostra "2º ano"), término e o selo da situação (dourado renovou, verde quer, azul marcada, cinza o resto). Menu,
   Ctrl+K e Mais só para Admin e Acompanhamento (`veRenovacoes` em `lib/acompanhamento.ts`, `mentoriaRenovacoes` no
   `navItems`); os demais 404; `em-breve/renovacoes` redireciona. Ficha (`renovacao-ficha.tsx`): topo da Jornada com
