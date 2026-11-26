@@ -29,6 +29,7 @@ export * from './mentoria/pmes.js';
 export * from './mentoria/metas.js';
 export * from './mentoria/evolucao.js';
 export * from './mentoria/cronograma.js';
+export * from './mentoria/cronograma-planilha.js';
 export * from './mentoria/renovacoes.js';
 export * from './mentoria/engajamento.js';
 export * from './mentoria/semaforo.js';
