@@ -220,3 +220,98 @@ describe('concluir tarefa com o próximo passo', () => {
     expect(await stageOf()).toBe('AGENDOU_PAGAMENTO');
   });
 });
+
+/**
+ * NPAC-81 (Igor, 27/11/2026): o lead já tinha reunião marcada e "Agendou reunião" criava outra igual.
+ * A janelinha mostra a reunião em aberto e a usa (`meetingId`); a API não cria outra no mesmo horário.
+ */
+describe('Agendou reunião com reunião já marcada', () => {
+  async function openMeeting(at = inDays(1)) {
+    const res = await h.post(
+      '/api/meetings',
+      { leadId: lead, closerId: ids('sonia'), scheduledAt: at, origin: 'DIRETO' },
+      ale,
+    );
+    expect(res.status).toBe(201);
+    return { id: res.body.id as string, at };
+  }
+  const count = async () => (await owner`select 1 from meetings where lead_id = ${lead}`).length;
+
+  it('usa a reunião que já existe: conclui, anota e não cria outra', async () => {
+    const m = await openMeeting();
+    const task = await overdueTask();
+    const res = await complete(task.id, {
+      version: task.version,
+      note: 'Confirmou a reunião',
+      next: 'MEETING',
+      meetingId: m.id,
+    });
+    expect(res.status).toBe(200);
+    expect(await count()).toBe(1);
+    const [t] = await owner<{ completed_at: Date | null }[]>`
+      select completed_at from lead_tasks where id = ${task.id}`;
+    expect(t!.completed_at).not.toBeNull();
+    const notes = await owner<
+      { body: string }[]
+    >`select body from lead_notes where lead_id = ${lead}`;
+    expect(notes.map((n) => n.body)).toEqual(['Confirmou a reunião']);
+    // Mesma regra de etapa do agendamento novo.
+    expect(await stageOf()).toBe('AGENDADO_DIRETO');
+  });
+
+  it('reunião nova no mesmo horário de uma em aberto dá 409 e não grava nada', async () => {
+    const m = await openMeeting();
+    const task = await overdueTask();
+    const before = await kinds();
+    const res = await complete(task.id, {
+      version: task.version,
+      note: 'Agendou',
+      next: 'MEETING',
+      at: m.at,
+      closerId: ids('sonia'),
+    });
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe('MEETING_EXISTS');
+    expect(await count()).toBe(1);
+    expect(await kinds()).toEqual(before);
+  });
+
+  it('reunião cancelada ou de outro lead não serve (409)', async () => {
+    const task = await overdueTask();
+    const body = { version: task.version, note: 'Ok', next: 'MEETING' };
+    const canceled = await openMeeting(inDays(2));
+    await owner`update meetings set canceled_at = now() where id = ${canceled.id}`;
+    expect((await complete(task.id, { ...body, meetingId: canceled.id })).status).toBe(409);
+    const other = (
+      await h.post(
+        '/api/leads',
+        { name: 'Outro', instagram: '@outro.lead', incomeBand: 'R5_8K', source: 'BIO' },
+        ale,
+      )
+    ).body.id as string;
+    const foreign = await h.post(
+      '/api/meetings',
+      { leadId: other, closerId: ids('sonia'), scheduledAt: inDays(3), origin: 'DIRETO' },
+      ale,
+    );
+    const res = await complete(task.id, { ...body, meetingId: foreign.body.id });
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe('MEETING_GONE');
+    const [t] = await owner<{ completed_at: Date | null }[]>`
+      select completed_at from lead_tasks where id = ${task.id}`;
+    expect(t!.completed_at).toBeNull();
+  });
+
+  it('meetingId só com Agendou reunião e sem horário nem closer (400)', async () => {
+    const m = await openMeeting();
+    const task = await overdueTask();
+    const base = { version: task.version, note: 'Ok', meetingId: m.id };
+    expect((await complete(task.id, { ...base, next: 'FOLLOW_UP', at: inDays(1) })).status).toBe(
+      400,
+    );
+    expect(
+      (await complete(task.id, { ...base, next: 'MEETING', at: inDays(1), closerId: ids('sonia') }))
+        .status,
+    ).toBe(400);
+  });
+});

@@ -908,7 +908,12 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
   Agendou Pagamento não muda o contato (403, como a ação rápida). "Agendou reunião" usa `scheduleMeeting` e
   `rearm()` depois do commit e leva o lead para Agendado como o Pipeline: Criando Relacionamento → Agendado direto,
   Em follow-up e No-show → Agendado follow-up; nas outras etapas o lead fica e a reunião entra como follow-up.
-  O closer e a tarefa pessoal concluem direto, como antes. Testes: `api/test/concluir-tarefa.e2e.test.ts`,
+  O closer e a tarefa pessoal concluem direto, como antes. **Reunião já marcada** (NPAC-81, Igor 27/11/2026: duplicava):
+  com "Agendou reunião", a janelinha busca `/api/meetings?leadId=` e, havendo reunião em aberto (sem resultado, não
+  cancelada, futura), mostra "Reunião já marcada" (dia, hora e closer) já escolhida, mais "Marcar outra reunião" (os
+  campos de antes). Usando a que existe vai `meetingId` no lugar de `at`/`closerId` (os dois juntos, 400): nada é criado,
+  a etapa muda como acima, sem `rearm()`; reunião que não é do lead ou não está mais em aberto, 409 `MEETING_GONE`.
+  Reunião nova no mesmo minuto de uma em aberto do lead, 409 `MEETING_EXISTS`. Testes: `api/test/concluir-tarefa.e2e.test.ts`,
   `e2e/concluir-tarefa.spec.ts`.
 - Desativar usuário derruba sessões; leads dele vão por `POST /admin/users/:id/transfer-leads`.
   Login de conta desativada: 401 com o mesmo corpo da senha errada (gancho `session.create.before` em
