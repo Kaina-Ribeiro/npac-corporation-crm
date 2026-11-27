@@ -30,10 +30,29 @@ const completion = z
     version: z.number().int().positive(),
     note: note.shape.body,
     next: z.enum(TASK_NEXT_STEPS),
-    at: z.iso.datetime({ offset: true }).transform((s) => new Date(s)),
+    at: z.iso
+      .datetime({ offset: true })
+      .transform((s) => new Date(s))
+      .optional(),
     closerId: z.string().min(1).max(64).optional(),
+    /** NPAC-81: a reunião que o lead já tem em aberto, no lugar de marcar outra. */
+    meetingId: z.uuid().optional(),
   })
-  .strict();
+  .strict()
+  .refine(
+    (v) => !v.meetingId || v.next === 'MEETING',
+    'A reunião marcada vale só para Agendou reunião',
+  )
+  .refine(
+    (v) => !v.meetingId || (v.at === undefined && v.closerId === undefined),
+    'Escolha a reunião marcada ou um horário novo',
+  )
+  .refine((v) => v.meetingId || v.at, 'Escolha a data')
+  .transform((v) =>
+    v.meetingId
+      ? { version: v.version, note: v.note, next: 'MEETING' as const, meetingId: v.meetingId }
+      : { version: v.version, note: v.note, next: v.next, at: v.at!, closerId: v.closerId },
+  );
 
 @Controller('leads/:leadId')
 export class LeadActivityController {

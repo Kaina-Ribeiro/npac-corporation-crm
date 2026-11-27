@@ -185,3 +185,67 @@ test('Cancelar fecha a janelinha sem concluir', async ({ page }) => {
   await expect(janela).toBeHidden();
   await expect(linha).toBeVisible();
 });
+
+// NPAC-81 (Igor, 27/11/2026): o lead já tinha reunião marcada e "Agendou reunião" criava outra igual.
+test('ficha: "Agendou reunião" mostra a reunião já marcada e usa ela, sem duplicar', async ({
+  page,
+}) => {
+  await login(page, 'ale@npac.com.br');
+  const sufixo = unico();
+  const titulo = `Novo contato ${sufixo}`;
+  const id = await leadComTarefa(page, `Lead reunião marcada ${sufixo}`, titulo);
+  const [sonia] = await owner<{ id: string }[]>`select id from "user" where username = 'sonia'`;
+  const quando = amanha();
+  const marcada = await page.request.post('/api/meetings', {
+    data: {
+      leadId: id,
+      closerId: sonia!.id,
+      scheduledAt: `${quando.campo}:00-03:00`,
+      origin: 'DIRETO',
+    },
+  });
+  expect(marcada.ok()).toBe(true);
+
+  await page.goto(`/leads/${id}`);
+  const janela = await abrirJanelinha(
+    page,
+    section(page, /^Tarefas$/).getByRole('button', { name: `Concluir ${titulo}` }),
+  );
+  await janela.getByLabel('O que aconteceu', { exact: true }).fill(`Agendou ${sufixo}`);
+  await janela.locator('label', { hasText: 'Agendou reunião' }).click();
+  const grupo = janela.getByRole('group', { name: 'Reunião já marcada' });
+  await expect(grupo).toBeVisible();
+  const existente = grupo.getByRole('radio').first();
+  await expect(existente).toBeChecked();
+  await expect(grupo.locator('label').first()).toContainText('10:00');
+  await expect(grupo.locator('label').first()).toContainText('Sônia');
+  // Usando a que existe, não pede data nem closer.
+  await expect(janela.getByLabel('Data e hora da reunião (Brasília)')).toHaveCount(0);
+  await expect(janela.getByLabel('Closer da reunião')).toHaveCount(0);
+  for (const largura of [1440, 1024, 768, 375]) {
+    await page.setViewportSize({ width: largura, height: largura < 768 ? 812 : 900 });
+    await page.screenshot({ path: `test-results/concluir-tarefa-reuniao-marcada-${largura}.png` });
+  }
+  // "Marcar outra reunião" volta aos campos; voltar para a marcada some com eles.
+  await grupo.getByLabel('Marcar outra reunião').check();
+  await expect(janela.getByLabel('Data e hora da reunião (Brasília)')).toBeVisible();
+  await expect(grupo.locator('label', { hasText: 'Marcar outra reunião' })).toHaveClass(
+    /gold-deep/,
+  );
+  await expect(grupo.locator('label').first()).not.toHaveClass(/shadow-\[0_0_0/);
+  await page.mouse.move(0, 0);
+  await page.waitForTimeout(300); // a borda anima 150 ms
+  await page.screenshot({ path: 'test-results/concluir-tarefa-reuniao-outra-375.png' });
+  await existente.check();
+  await expect(janela.getByLabel('Data e hora da reunião (Brasília)')).toHaveCount(0);
+  await page.setViewportSize({ width: 1280, height: 720 });
+
+  await janela.getByRole('button', { name: 'Concluir', exact: true }).click();
+  await expect(janela).toBeHidden();
+  await expect(
+    section(page, /^Tarefas$/).getByRole('button', { name: `Reabrir ${titulo}` }),
+  ).toBeVisible();
+  await expect(section(page, /^Notas$/).getByText(`Agendou ${sufixo}`)).toBeVisible();
+  const reunioes = await owner`select 1 from meetings where lead_id = ${id}`;
+  expect(reunioes).toHaveLength(1);
+});

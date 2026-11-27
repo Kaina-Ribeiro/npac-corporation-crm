@@ -137,6 +137,9 @@ test.beforeAll(async () => {
     on conflict (user_id) do nothing`;
   await owner`update "user" set image = 'cel1' where email = ${IGOR}`;
 });
+// Cada teste mede a tela em 4 larguras no WebKit: no CI já levavam 14–15 s e, num runner mais lento,
+// passaram dos 30 s padrão (27/11/2026, PR #208). O dobro de folga.
+test.describe.configure({ timeout: 60_000 });
 test.beforeEach(async () => {
   await owner`truncate rate_limit, verification`;
 });

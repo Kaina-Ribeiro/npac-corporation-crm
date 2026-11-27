@@ -1,5 +1,5 @@
 'use client';
-import type { LeadCatalog } from '@npac/shared';
+import type { LeadCatalog, MeetingDTO } from '@npac/shared';
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { brasiliaInput, clientApi } from '@/lib/client-api';
 import { closeWithMotion } from '@/lib/dialog-motion';
@@ -29,6 +29,19 @@ const AT_LABEL: Record<Next, string> = {
   FOLLOW_UP: 'Nova data de contato (Brasília)',
   CALL: 'Data e hora da ligação (Brasília)',
 };
+
+/** "sex., 27/11, 18:00": a reunião já marcada (NPAC-81). */
+const meetingWhen = (at: string) =>
+  new Date(at).toLocaleString('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    weekday: 'short',
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+/** Valor do rádio para marcar outra reunião em vez de usar a que existe. */
+const NEW_MEETING = 'new';
 
 const due = (at: string) =>
   new Date(at).toLocaleString('pt-BR', {
@@ -67,9 +80,30 @@ export function TaskCompleteDialog({
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [now] = useState(() => new Date().toISOString());
+  /** NPAC-81: reuniões do lead em aberto (null = buscando). Com alguma, a escolha começa nela. */
+  const [openMeetings, setOpenMeetings] = useState<MeetingDTO[] | null>(null);
+  const [meetingChoice, setMeetingChoice] = useState<string>(NEW_MEETING);
   useEffect(() => {
     ref.current?.showModal();
+    let alive = true;
+    clientApi<MeetingDTO[]>(`/api/meetings?leadId=${task.leadId}`)
+      .then((ms) => {
+        if (!alive) return;
+        const open = ms
+          .filter(
+            (m) => !m.canceledAt && !m.outcome && new Date(m.scheduledAt).getTime() > Date.now(),
+          )
+          .sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt));
+        setOpenMeetings(open);
+        if (open[0]) setMeetingChoice(open[0].id);
+      })
+      .catch(() => alive && setOpenMeetings([]));
+    return () => {
+      alive = false;
+    };
+    // Só ao abrir: a janelinha é montada para uma tarefa.
   }, []);
+  const useExisting = next === 'MEETING' && meetingChoice !== NEW_MEETING;
   const late = task.dueAt !== null && new Date(task.dueAt).getTime() < new Date(now).getTime();
 
   async function submit(e: FormEvent<HTMLFormElement>) {
@@ -82,13 +116,20 @@ export function TaskCompleteDialog({
     const f = new FormData(e.currentTarget);
     setBusy(true);
     try {
-      await clientApi(`/api/leads/${task.leadId}/tasks/${task.id}/complete`, 'POST', {
-        version: task.version,
-        note: String(f.get('note') ?? ''),
-        next,
-        at: brasiliaInput(String(f.get('at') ?? '')),
-        ...(next === 'MEETING' ? { closerId: f.get('closerId') } : {}),
-      });
+      const note = String(f.get('note') ?? '');
+      await clientApi(
+        `/api/leads/${task.leadId}/tasks/${task.id}/complete`,
+        'POST',
+        useExisting
+          ? { version: task.version, note, next, meetingId: meetingChoice }
+          : {
+              version: task.version,
+              note,
+              next,
+              at: brasiliaInput(String(f.get('at') ?? '')),
+              ...(next === 'MEETING' ? { closerId: f.get('closerId') } : {}),
+            },
+      );
       showToast();
       onSaved();
       closeWithMotion(ref.current, onClose);
@@ -175,7 +216,54 @@ export function TaskCompleteDialog({
             ))}
           </div>
         </fieldset>
-        {next && (
+        {next === 'MEETING' && openMeetings && openMeetings.length > 0 && (
+          <fieldset className="flex min-w-0 flex-col">
+            <legend className="mb-2 text-sm font-semibold text-ink2">
+              {openMeetings.length > 1 ? 'Reuniões já marcadas' : 'Reunião já marcada'}
+            </legend>
+            <div className="flex flex-col gap-1.5">
+              {[
+                ...openMeetings.map((m) => ({
+                  value: m.id,
+                  label: meetingWhen(m.scheduledAt),
+                  hint: team.find((u) => u.id === m.closerId)?.name ?? 'Closer',
+                })),
+                { value: NEW_MEETING, label: 'Marcar outra reunião', hint: '' },
+              ].map((o) => (
+                <label
+                  key={o.value}
+                  className={`flex min-h-11 cursor-pointer items-center gap-3 rounded-2xl px-3.5 py-2.5 text-sm transition-[background,box-shadow] duration-150 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[var(--gold-ring)] ${
+                    meetingChoice === o.value
+                      ? 'bg-[var(--bg)] shadow-[0_0_0_1.5px_var(--gold-deep)]'
+                      : 'bg-black/[.04] hover:bg-black/[.07] dark:bg-white/[.06] dark:hover:bg-white/[.1]'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="meetingChoice"
+                    value={o.value}
+                    checked={meetingChoice === o.value}
+                    onChange={() => {
+                      setMeetingChoice(o.value);
+                      setError('');
+                    }}
+                    className="size-4 flex-none accent-[var(--gold-deep)]"
+                  />
+                  <span className="min-w-0 flex-1 font-semibold first-letter:uppercase">
+                    {o.label}
+                  </span>
+                  {o.hint && <span className="text-ink2">{o.hint}</span>}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        )}
+        {next === 'MEETING' && openMeetings === null && (
+          <p className="text-sm text-ink2" role="status">
+            Procurando reunião marcada…
+          </p>
+        )}
+        {next && !useExisting && (next !== 'MEETING' || openMeetings !== null) && (
           <div key={next} className={`grid gap-3 ${next === 'MEETING' ? 'sm:grid-cols-2' : ''}`}>
             <Field label={AT_LABEL[next]}>
               <input

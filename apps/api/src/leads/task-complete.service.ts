@@ -6,9 +6,18 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { leadNotes, leads, leadTasks, pipelineStages, withUser, type Db } from '@npac/db';
+import {
+  leadNotes,
+  leads,
+  leadTasks,
+  meetings,
+  pipelineStages,
+  withUser,
+  type Db,
+  type Tx,
+} from '@npac/db';
 import { can, MEETING_ORIGIN_BY_STAGE, type AuthUser } from '@npac/shared';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, gt, isNull } from 'drizzle-orm';
 import { DB } from '../common/db/db.module.js';
 import { scheduleMeeting } from '../meetings/meetings.service.js';
 import { ReminderScheduler } from '../push/reminders.js';
@@ -24,17 +33,30 @@ import { assertIncomeStage } from './stage-fields.js';
 export const TASK_NEXT_STEPS = ['MEETING', 'FOLLOW_UP', 'CALL'] as const;
 export type TaskNextStep = (typeof TASK_NEXT_STEPS)[number];
 
-export type TaskCompletion = {
+type TaskCompletionBase = {
   /** Versão da tarefa (a tela do Hoje não tem a do lead). */
   version: number;
   /** "O que aconteceu": vira nota da ficha. */
   note: string;
-  next: TaskNextStep;
-  /** Horário da reunião ou do próximo contato. */
-  at: Date;
-  /** Closer da reunião (só em MEETING). */
-  closerId?: string;
 };
+export type TaskCompletion = TaskCompletionBase &
+  (
+    | {
+        next: TaskNextStep;
+        /** Horário da reunião ou do próximo contato. */
+        at: Date;
+        /** Closer da reunião (só em MEETING). */
+        closerId?: string;
+        meetingId?: undefined;
+      }
+    | {
+        /** NPAC-81: o lead já tem reunião marcada em aberto; a tarefa usa ela, sem criar outra. */
+        next: 'MEETING';
+        meetingId: string;
+        at?: undefined;
+        closerId?: undefined;
+      }
+  );
 
 /** "Agendou reunião" leva o lead para o Agendado, como o Pipeline; nas outras etapas ele fica. */
 const AGENDADO_DE: Partial<Record<string, string>> = {
@@ -62,13 +84,14 @@ export class TaskCompleteService {
     input: TaskCompletion,
     meta: RequestMeta,
   ) {
-    if (input.at.getTime() <= Date.now())
+    if (input.at && input.at.getTime() <= Date.now())
       throw new BadRequestException(
         input.next === 'MEETING' ? 'Escolha um horário futuro.' : 'Escolha uma data futura.',
       );
     if (input.next === 'MEETING') {
       if (!can(u, 'meeting:schedule')) throw new ForbiddenException();
-      if (!input.closerId) throw new BadRequestException('Escolha o closer da reunião.');
+      if (!input.meetingId && !input.closerId)
+        throw new BadRequestException('Escolha o closer da reunião.');
     }
     const result = await withUser(this.db, u.id, async (tx) => {
       const lead = await lockLead(tx, leadId);
@@ -95,6 +118,7 @@ export class TaskCompleteService {
       // Mesma regra da ação rápida: a data do pagamento combinado é do closer e da liderança.
       if (input.next !== 'MEETING' && u.role === 'SDR' && stage!.key === 'AGENDOU_PAGAMENTO')
         throw new ForbiddenException('A data do pagamento fica com o closer.');
+      if (input.next === 'MEETING') await this.checkMeeting(tx, leadId, input);
 
       const now = new Date();
       await tx
@@ -123,16 +147,18 @@ export class TaskCompleteService {
           await recordActivity(tx, u, leadId, 'lead.moved', ['stageKey'], undefined, meta);
         }
         // Lead que já passou da primeira reunião (ou numa etapa da liderança) entra como follow-up.
-        await scheduleMeeting(tx, u, {
-          leadId,
-          closerId: input.closerId!,
-          scheduledAt: input.at,
-          origin: MEETING_ORIGIN_BY_STAGE[target ?? stage!.key] ?? 'FOLLOW',
-        });
+        // Com a reunião já marcada (NPAC-81), nada é criado.
+        if (!input.meetingId)
+          await scheduleMeeting(tx, u, {
+            leadId,
+            closerId: input.closerId!,
+            scheduledAt: input.at!,
+            origin: MEETING_ORIGIN_BY_STAGE[target ?? stage!.key] ?? 'FOLLOW',
+          });
       } else {
         await tx
           .update(leads)
-          .set({ nextContactAt: input.at, version: lead.version + 1, updatedAt: now })
+          .set({ nextContactAt: input.at!, version: lead.version + 1, updatedAt: now })
           .where(eq(leads.id, leadId));
         await recordActivity(
           tx,
@@ -147,7 +173,40 @@ export class TaskCompleteService {
       return { id: taskId, version: task.version + 1 };
     });
     // Depois do commit, como no POST /meetings.
-    if (input.next === 'MEETING') void this.reminders.rearm();
+    if (input.next === 'MEETING' && !input.meetingId) void this.reminders.rearm();
     return result;
+  }
+
+  /**
+   * NPAC-81 (Igor, 27/11/2026): o lead já tinha reunião marcada e "Agendou reunião" criava outra
+   * igual. A reunião escolhida tem de ser do lead, em aberto e futura; reunião nova no mesmo horário
+   * de uma em aberto é recusada (a janelinha mostra a que existe).
+   */
+  private async checkMeeting(tx: Tx, leadId: string, input: TaskCompletion) {
+    const open = await tx
+      .select({ id: meetings.id, scheduledAt: meetings.scheduledAt })
+      .from(meetings)
+      .where(
+        and(
+          eq(meetings.leadId, leadId),
+          isNull(meetings.canceledAt),
+          isNull(meetings.outcome),
+          gt(meetings.scheduledAt, new Date()),
+        ),
+      );
+    if (input.meetingId) {
+      if (!open.some((m) => m.id === input.meetingId))
+        throw new ConflictException({
+          code: 'MEETING_GONE',
+          message: 'Essa reunião não está mais marcada. Atualize e tente novamente.',
+        });
+      return;
+    }
+    const minute = (d: Date) => Math.floor(d.getTime() / 60_000);
+    if (open.some((m) => minute(m.scheduledAt) === minute(input.at!)))
+      throw new ConflictException({
+        code: 'MEETING_EXISTS',
+        message: 'O lead já tem reunião marcada nesse horário. Escolha a reunião marcada.',
+      });
   }
 }
