@@ -6,6 +6,8 @@ export const ACTIONS = [
   'lead:move',
   'lead:reassign',
   'lead:delete',
+  // Planilha de leads (NPAC-80): liderança vê todos; o SDR, só os dele (RLS), sem R$.
+  'lead:export',
   'meeting:schedule',
   'meeting:reschedule',
   'meeting:outcome',
@@ -47,6 +49,7 @@ const MATRIX: Record<Role, ReadonlySet<Action>> = {
     'note:write',
     'task:write',
     'report:view',
+    'lead:export',
     'export:whatsapp',
     'chat:use',
   ]),

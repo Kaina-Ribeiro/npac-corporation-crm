@@ -16,6 +16,7 @@ import {
   eq,
   gte,
   ilike,
+  inArray,
   isNull,
   lt,
   notInArray,
@@ -138,26 +139,62 @@ export class LeadsRepository {
   }
 
   /** Linhas do CSV de leads (até 10 001, para o chamador recusar acima de 10 mil). */
-  exportRows(tx: Tx, filters: LeadFilters, created?: { start: Date; end: Date }) {
+  /**
+   * Linhas da planilha (NPAC-80): tudo o que a ficha do lead tem. Reunião e venda vêm por
+   * subconsulta (uma linha por lead, sem multiplicar), sob a RLS de quem exporta.
+   */
+  exportRows(tx: Tx, filters: LeadFilters, created?: { start: Date; end: Date }, ids?: string[]) {
+    // Nome inteiro da tabela nas subconsultas correlacionadas (CLAUDE.md, Banco).
+    const lastMeeting = (col: SQL) => sql`(
+      select ${col} from meetings m left join "user" mc on mc.id = m.closer_id
+      where m.lead_id = "leads"."id" and m.canceled_at is null
+      order by m.scheduled_at desc, m.id desc limit 1)`;
+    const activeDeal = (col: SQL) => sql`(
+      select ${col} from deals d where d.lead_id = "leads"."id" and d.reversed_at is null
+      order by d.closed_at desc limit 1)`;
+    const productName = (id: SQL) =>
+      sql<string | null>`(select p.name from products p where p.id = ${id})`;
     return tx
       .select({
         name: leads.name,
         phoneEnc: leads.phoneEnc,
         instagram: leads.instagram,
         emailEnc: leads.emailEnc,
+        incomeBand: leads.incomeBand,
         tier: leads.tier,
+        source: leads.source,
+        sourceOther: leads.sourceOther,
         stage: pipelineStages.label,
         sdrName: user.name,
+        closerName: closer.name,
+        nextContactAt: leads.nextContactAt,
+        summary: leads.summary,
+        paymentProduct: productName(sql`"leads"."payment_product_id"`),
+        paymentAmountCents: leads.paymentAmountCents,
+        paymentEntryCents: leads.paymentEntryCents,
+        paymentEntryPaid: leads.paymentEntryPaid,
+        soldProduct: productName(sql`"leads"."sold_product_id"`),
+        dealProduct: activeDeal(sql`d.product_name`).mapWith(String),
+        dealClosedAt: activeDeal(sql`d.closed_at`).mapWith(leads.createdAt),
+        dealTotalCents: activeDeal(sql`d.total_cents`).mapWith(Number),
+        lostReason: leads.lostReason,
+        lostReasonOther: leads.lostReasonOther,
+        meetingAt: lastMeeting(sql`m.scheduled_at`).mapWith(leads.createdAt),
+        meetingOutcome: lastMeeting(sql`m.outcome`).mapWith(String),
+        meetingCloser: lastMeeting(sql`mc.name`).mapWith(String),
         createdAt: leads.createdAt,
+        updatedAt: leads.updatedAt,
       })
       .from(leads)
       .innerJoin(pipelineStages, eq(pipelineStages.id, leads.stageId))
       .innerJoin(user, eq(user.id, leads.sdrId))
+      .leftJoin(closer, eq(closer.id, leads.closerId))
       .where(
         and(
           this.where(filters),
           created ? gte(leads.createdAt, created.start) : undefined,
           created ? lt(leads.createdAt, created.end) : undefined,
+          ids ? inArray(leads.id, ids) : undefined,
         ),
       )
       .orderBy(asc(leads.createdAt), asc(leads.id))

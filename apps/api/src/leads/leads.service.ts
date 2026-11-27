@@ -20,6 +20,9 @@ import {
   spDayRange,
   TIER_BY_INCOME_BAND,
   TIER_LABELS,
+  INCOME_BAND_LABELS,
+  LEAD_SOURCE_LABELS,
+  LOST_REASON_LABELS,
   normalizeEmail,
   normalizeInstagram,
   normalizePhoneBR,
@@ -30,6 +33,7 @@ import {
   isLeader,
   can,
 } from '@npac/shared';
+import { money } from '@npac/shared/money';
 import { and, asc, eq, sql } from 'drizzle-orm';
 import { AuditService } from '../audit/audit.service.js';
 import { toCsv } from '../common/csv.js';
@@ -68,6 +72,7 @@ export interface LeadExportQuery extends Omit<LeadFilters, 'search'> {
   search?: string;
   createdFrom?: string;
   createdTo?: string;
+  ids?: string[];
 }
 
 /** Dia de Brasília (AAAA-MM-DD). */
@@ -76,6 +81,22 @@ const spDay = (d: Date) =>
 
 const brDate = (d: Date) =>
   new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo' }).format(d);
+const brDateTime = (d: Date | null) =>
+  d
+    ? new Intl.DateTimeFormat('pt-BR', {
+        timeZone: 'America/Sao_Paulo',
+        dateStyle: 'short',
+        timeStyle: 'short',
+      })
+        .format(d)
+        .replace(',', '')
+    : '';
+const brMoney = (cents: number | null) => (cents == null ? '' : money(cents));
+const OUTCOME_LABELS: Record<string, string> = {
+  DONE: 'Realizada',
+  NO_SHOW: 'No-show',
+  RESCHEDULED: 'Remarcada',
+};
 
 @Injectable()
 export class LeadsService {
@@ -268,7 +289,7 @@ export class LeadsService {
 
   /** CSV com contato (só liderança, pela rota): período, filtros atuais ou todos. */
   async csv(u: AuthUser, q: LeadExportQuery, meta: RequestMeta): Promise<string> {
-    const { search, createdFrom, createdTo, ...rest } = q;
+    const { search, createdFrom, createdTo, ids, ...rest } = q;
     const filters = { ...rest, sdrId: sdrDoFiltro(u, rest.sdrId) };
     if (!createdFrom !== !createdTo || (createdFrom && createdTo && createdFrom > createdTo))
       throw new BadRequestException('Intervalo inválido');
@@ -280,7 +301,7 @@ export class LeadsService {
           }
         : undefined;
     const rows = await withUser(this.db, u.id, (tx) =>
-      this.repo.exportRows(tx, { ...filters, search: this.parseSearch(search) }, created),
+      this.repo.exportRows(tx, { ...filters, search: this.parseSearch(search) }, created, ids),
     );
     if (rows.length > 10_000)
       throw new BadRequestException('Reduza o filtro para exportar até 10 mil leads');
@@ -291,17 +312,74 @@ export class LeadsService {
       data: { count: rows.length },
       ...meta,
     });
+    // SDR não recebe R$ de venda (pedido do cliente, 04/11/2026): sem as colunas de valor.
+    const withMoney = isLeader(u.role);
+    const soLideranca = <T>(v: T[]) => (withMoney ? v : []);
+    const now = Date.now();
     return toCsv([
-      ['Nome', 'Telefone', 'Instagram', 'E-mail', 'Perfil', 'Etapa', 'SDR', 'Criado em'],
+      [
+        'Nome',
+        'Telefone',
+        'Instagram',
+        'E-mail',
+        'Faixa de renda',
+        'Perfil',
+        'Origem',
+        'Etapa',
+        'SDR',
+        'Closer',
+        'Próximo contato',
+        'Resumo',
+        'Produto do pagamento',
+        ...soLideranca(['Valor do pagamento', 'Entrada']),
+        'Entrada paga',
+        'Produto vendido',
+        'Venda registrada em',
+        ...soLideranca(['Valor da venda']),
+        'Motivo de perda',
+        'Última reunião',
+        'Resultado da última reunião',
+        'Closer da última reunião',
+        'Criado em',
+        'Atualizado em',
+      ],
       ...rows.map((r) => [
         r.name,
         r.phoneEnc ? this.crypto.decrypt(r.phoneEnc) : '',
         r.instagram ?? '',
         r.emailEnc ? this.crypto.decrypt(r.emailEnc) : '',
+        INCOME_BAND_LABELS[r.incomeBand],
         TIER_LABELS[r.tier],
+        r.source === 'OUTRO' && r.sourceOther
+          ? `${LEAD_SOURCE_LABELS.OUTRO}: ${r.sourceOther}`
+          : LEAD_SOURCE_LABELS[r.source],
         r.stage,
         r.sdrName,
+        r.closerName ?? '',
+        brDateTime(r.nextContactAt),
+        r.summary ?? '',
+        r.paymentProduct ?? '',
+        ...soLideranca([brMoney(r.paymentAmountCents), brMoney(r.paymentEntryCents)]),
+        r.paymentEntryPaid ? 'Sim' : 'Não',
+        r.dealProduct ?? r.soldProduct ?? '',
+        r.dealClosedAt ? brDate(r.dealClosedAt) : '',
+        ...soLideranca([brMoney(r.dealTotalCents)]),
+        r.lostReason
+          ? r.lostReason === 'OUTRO' && r.lostReasonOther
+            ? `${LOST_REASON_LABELS.OUTRO}: ${r.lostReasonOther}`
+            : LOST_REASON_LABELS[r.lostReason]
+          : '',
+        brDateTime(r.meetingAt),
+        r.meetingAt
+          ? r.meetingOutcome
+            ? (OUTCOME_LABELS[r.meetingOutcome] ?? r.meetingOutcome)
+            : r.meetingAt.getTime() > now
+              ? 'Agendada'
+              : 'Sem resultado'
+          : '',
+        r.meetingCloser ?? '',
         brDate(r.createdAt),
+        brDate(r.updatedAt),
       ]),
     ]);
   }

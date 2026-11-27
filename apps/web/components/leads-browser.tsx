@@ -112,13 +112,14 @@ export function LeadsBrowser({
   }
   // Mesmas regras da API: closer só move etapa; troca de responsável é do Head.
   const canAssign = isLeader(role);
-  // Exportar é só da liderança: baixa depois de montar, fora do JS da primeira carga de /leads
-  // (limite de 150 KB no e2e).
+  // Exportar (NPAC-80): liderança e SDR (a API e a RLS dão ao SDR só os leads dele, sem R$).
+  // Baixa depois de montar, fora do JS da primeira carga de /leads (limite de 150 KB no e2e).
+  const canExport = canAssign || role === 'SDR';
   const [CsvExport, setCsv] = useState<typeof Csv | null>(null);
   useEffect(() => {
-    if (canAssign)
+    if (canExport)
       import('./csv-export').then((m) => setCsv(() => m.CsvExport)).catch(() => undefined);
-  }, [canAssign]);
+  }, [canExport]);
   // Ações em massa: a barra só baixa quando a pessoa marca o primeiro lead.
   const [BulkBar, setBulkBar] = useState<typeof Bulk | null>(null);
   const anySelected = selected.length > 0;
@@ -385,7 +386,7 @@ export function LeadsBrowser({
             {data.total} {data.total === 1 ? 'lead' : 'leads'}
           </p>
         </div>
-        {canAssign && CsvExport && (
+        {canExport && CsvExport && (
           <CsvExport
             label="Exportar"
             endpoint="/api/leads/csv"
@@ -394,6 +395,14 @@ export function LeadsBrowser({
             options={[
               { label: 'Com os filtros atuais', body: () => ({ ...filters, search: q }) },
               { label: 'Todos os leads', body: () => ({}) },
+              ...(anySelected
+                ? [
+                    {
+                      label: `Só os marcados (${selected.length})`,
+                      body: () => ({ ids: selected }),
+                    },
+                  ]
+                : []),
             ]}
           />
         )}
