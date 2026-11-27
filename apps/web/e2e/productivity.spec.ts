@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 import { closeTestConnections, ownerSql } from '@npac/db/testing';
 import { E2E_DB, E2E_PASSWORD } from './env.js';
@@ -198,7 +199,9 @@ test('closer não vê Novo lead no Hoje', async ({ page }) => {
   ).toHaveCount(0);
 });
 
-test('leads: liderança exporta CSV; SDR não vê a opção', async ({ page }) => {
+test('leads: liderança exporta CSV; SDR exporta os dele e os marcados (NPAC-80)', async ({
+  page,
+}) => {
   await login(page, 'ana@npac.com.br');
   await page.goto('/leads');
   await page.getByText('Exportar', { exact: true }).click();
@@ -215,9 +218,41 @@ test('leads: liderança exporta CSV; SDR não vê a opção', async ({ page }) =
   await request;
   await page.context().clearCookies();
   await login(page, 'ale@npac.com.br');
+  const created = await page.request.post('/api/leads', {
+    data: {
+      name: 'Exporta Marcado',
+      instagram: `@exporta.${Date.now()}`,
+      incomeBand: 'R5_8K',
+      source: 'BIO',
+    },
+  });
+  const { id } = (await created.json()) as { id: string };
   await page.goto('/leads');
   await expect(page.getByRole('heading', { name: 'Leads' })).toBeVisible();
-  await expect(page.getByText('Exportar', { exact: true })).toHaveCount(0);
+  // Sem marcar nada, não há a opção dos marcados.
+  await page.getByText('Exportar', { exact: true }).click();
+  await expect(page.getByRole('button', { name: /^Só os marcados/ })).toHaveCount(0);
+  const own = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Todos os leads', exact: true }).click();
+  expect((await own).suggestedFilename()).toBe('npac-leads.csv');
+  await page.getByText('Exportar', { exact: true }).click();
+  await page
+    .getByRole('checkbox', { name: 'Selecionar Exporta Marcado', exact: true })
+    .filter({ visible: true })
+    .check();
+  await page.getByText('Exportar', { exact: true }).click();
+  const marked = page.waitForRequest(
+    (r) =>
+      r.url().endsWith('/api/leads/csv') &&
+      JSON.stringify(r.postDataJSON()) === JSON.stringify({ ids: [id] }),
+  );
+  const file = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Só os marcados (1)', exact: true }).click();
+  await marked;
+  const csv = await (await file).path().then((p) => readFileSync(p, 'utf8'));
+  expect(csv).toContain('Exporta Marcado');
+  expect(csv).not.toContain('Valor');
+  expect(csv.split('\r\n')).toHaveLength(2);
 });
 
 test('hoje: ação rápida de chamado, remarcado e próxima ação', async ({ page }) => {

@@ -4,7 +4,8 @@ Spec: `docs/superpowers/specs/2026-11-26-renovacoes-design.md`. Respostas da Edu
 Branch de cada parte a partir da `release/*` aberta; PR `feat(NPAC-79): …`; migration nova depois da última da release.
 
 Status: spec aprovada (26/11/2026, G1–G6 como recomendados). Parte 1 ✅ (26/11/2026, migration 0092), Parte 2 ✅ (26/11/2026, telas),
-Parte 3 ⏳ (Eduarda).
+Partes 1 e 2 em produção na v0.26.8 (26/11/2026; varredura por cargo no ITODEV sem problema, Operação só pelo e2e).
+Parte 3 ⏳ (Eduarda; mensagem pronta abaixo).
 
 ## Parte 1 — banco e API ✅
 

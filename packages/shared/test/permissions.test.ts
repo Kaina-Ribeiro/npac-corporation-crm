@@ -11,6 +11,7 @@ const SDR_ALLOWED = [
   'note:write',
   'task:write',
   'report:view',
+  'lead:export',
   'export:whatsapp',
   'chat:use',
 ];

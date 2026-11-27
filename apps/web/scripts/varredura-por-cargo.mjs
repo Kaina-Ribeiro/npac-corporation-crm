@@ -98,6 +98,12 @@ try {
     await page.waitForURL((u) => !u.pathname.startsWith('/login'), { timeout: 20_000 });
     await page.waitForLoadState('load');
     await page.waitForTimeout(800);
+    // Janela "O que mudou no CRM" (NPAC-77): aparece uma vez por versão e cobre o menu.
+    const novidades = page.locator('dialog.nov[open]');
+    if (await novidades.isVisible().catch(() => false)) {
+      await novidades.getByRole('button', { name: 'Entendi', exact: true }).click();
+      await novidades.waitFor({ state: 'hidden', timeout: 5_000 }).catch(() => {});
+    }
     const caiu = new URL(page.url()).pathname;
     const inicio = await estado(page);
     await page.screenshot({ path: join(pasta, `entrada-1440.png`) });

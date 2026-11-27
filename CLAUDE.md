@@ -744,7 +744,7 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
   a foto do perfil, com a versão na URL). SSE só manda `{ type }`.
 - Chat: DM privada por RLS mesmo para liderança; mensagens append-only.
 - LGPD: eliminação só via `lgpd_anonymize_lead`; nada de outro caminho que apague fato financeiro.
-- CSV com contato: só liderança, auditado, fórmulas neutralizadas.
+- CSV com contato: liderança e, na planilha de Leads, o SDR com os leads dele (NPAC-80); auditado, fórmulas neutralizadas.
 
 ## Regras de escrita e negócio
 
@@ -908,7 +908,12 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
   Agendou Pagamento não muda o contato (403, como a ação rápida). "Agendou reunião" usa `scheduleMeeting` e
   `rearm()` depois do commit e leva o lead para Agendado como o Pipeline: Criando Relacionamento → Agendado direto,
   Em follow-up e No-show → Agendado follow-up; nas outras etapas o lead fica e a reunião entra como follow-up.
-  O closer e a tarefa pessoal concluem direto, como antes. Testes: `api/test/concluir-tarefa.e2e.test.ts`,
+  O closer e a tarefa pessoal concluem direto, como antes. **Reunião já marcada** (NPAC-81, Igor 27/11/2026: duplicava):
+  com "Agendou reunião", a janelinha busca `/api/meetings?leadId=` e, havendo reunião em aberto (sem resultado, não
+  cancelada, futura), mostra "Reunião já marcada" (dia, hora e closer) já escolhida, mais "Marcar outra reunião" (os
+  campos de antes). Usando a que existe vai `meetingId` no lugar de `at`/`closerId` (os dois juntos, 400): nada é criado,
+  a etapa muda como acima, sem `rearm()`; reunião que não é do lead ou não está mais em aberto, 409 `MEETING_GONE`.
+  Reunião nova no mesmo minuto de uma em aberto do lead, 409 `MEETING_EXISTS`. Testes: `api/test/concluir-tarefa.e2e.test.ts`,
   `e2e/concluir-tarefa.spec.ts`.
 - Desativar usuário derruba sessões; leads dele vão por `POST /admin/users/:id/transfer-leads`.
   Login de conta desativada: 401 com o mesmo corpo da senha errada (gancho `session.create.before` em
@@ -922,6 +927,13 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
   período, filtro atual ou tudo (`period: 'ALL'` só no CSV). `POST /reports/export` = relatório do
   período em CSV (resumo + por SDR/closer/produto, sem contato), para todos; SDR sem venda. As
   exportações dos Relatórios leem o formulário na tela, não o último "Atualizar".
+- **Planilha de Leads** (NPAC-80, Igor 26/11/2026, "1B, 2B"): "Exportar" em Leads para a liderança e o SDR
+  (ação `lead:export`; o closer não exporta; `export:csv` segue só da liderança, para `/reports/csv`). O SDR recebe só os
+  leads dele (RLS + `sdrDoFiltro`), com telefone e e-mail, sem as colunas de R$ (valor do pagamento, entrada, valor da
+  venda). Opções: período de criação, filtros atuais, todos e "Só os marcados (N)" (aparece com lead marcado; corpo
+  `{ ids }`, até 1000). Colunas = tudo da ficha: contato, faixa, perfil, origem, etapa, SDR, closer, próximo contato,
+  resumo, pagamento, produto vendido, venda, motivo de perda, última reunião (data, resultado, closer), criado e
+  atualizado (`exportRows` em `leads.repository.ts`; reunião e venda por subconsulta, uma linha por lead).
 - Ação de um clique (concluir na Fila, marcar feita no Plano, mover card no Pipeline): `useOptimistic` +
   `startTransition`, a tela muda no clique; erro desfaz e mostra a mensagem da API; sucesso chama `showToast()`.
   Ação nova do mesmo tipo segue o padrão.
