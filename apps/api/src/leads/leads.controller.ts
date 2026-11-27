@@ -56,7 +56,12 @@ const listQuerySchema = z.object({
 // A tela manda a ordenação junto com os filtros; o CSV sai por data de criação.
 const exportQuerySchema = listQuerySchema
   .omit({ page: true, pageSize: true })
-  .extend({ createdFrom: z.iso.date().optional(), createdTo: z.iso.date().optional() })
+  .extend({
+    createdFrom: z.iso.date().optional(),
+    createdTo: z.iso.date().optional(),
+    // "Só os marcados" (NPAC-80): a RLS decide quais desses a pessoa vê.
+    ids: z.array(z.uuid()).min(1).max(1000).optional(),
+  })
   .strict();
 
 const quickActionSchema = z
@@ -212,7 +217,7 @@ export class LeadsController {
 
   @Post('csv')
   @HttpCode(200)
-  @Can('export:csv')
+  @Can('lead:export')
   async csv(
     @CurrentUser() u: SessionUser,
     @Body() body: unknown,

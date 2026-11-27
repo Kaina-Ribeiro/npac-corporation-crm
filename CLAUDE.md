@@ -744,7 +744,7 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
   a foto do perfil, com a versão na URL). SSE só manda `{ type }`.
 - Chat: DM privada por RLS mesmo para liderança; mensagens append-only.
 - LGPD: eliminação só via `lgpd_anonymize_lead`; nada de outro caminho que apague fato financeiro.
-- CSV com contato: só liderança, auditado, fórmulas neutralizadas.
+- CSV com contato: liderança e, na planilha de Leads, o SDR com os leads dele (NPAC-80); auditado, fórmulas neutralizadas.
 
 ## Regras de escrita e negócio
 
@@ -922,6 +922,13 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
   período, filtro atual ou tudo (`period: 'ALL'` só no CSV). `POST /reports/export` = relatório do
   período em CSV (resumo + por SDR/closer/produto, sem contato), para todos; SDR sem venda. As
   exportações dos Relatórios leem o formulário na tela, não o último "Atualizar".
+- **Planilha de Leads** (NPAC-80, Igor 26/11/2026, "1B, 2B"): "Exportar" em Leads para a liderança e o SDR
+  (ação `lead:export`; o closer não exporta; `export:csv` segue só da liderança, para `/reports/csv`). O SDR recebe só os
+  leads dele (RLS + `sdrDoFiltro`), com telefone e e-mail, sem as colunas de R$ (valor do pagamento, entrada, valor da
+  venda). Opções: período de criação, filtros atuais, todos e "Só os marcados (N)" (aparece com lead marcado; corpo
+  `{ ids }`, até 1000). Colunas = tudo da ficha: contato, faixa, perfil, origem, etapa, SDR, closer, próximo contato,
+  resumo, pagamento, produto vendido, venda, motivo de perda, última reunião (data, resultado, closer), criado e
+  atualizado (`exportRows` em `leads.repository.ts`; reunião e venda por subconsulta, uma linha por lead).
 - Ação de um clique (concluir na Fila, marcar feita no Plano, mover card no Pipeline): `useOptimistic` +
   `startTransition`, a tela muda no clique; erro desfaz e mostra a mensagem da API; sucesso chama `showToast()`.
   Ação nova do mesmo tipo segue o padrão.

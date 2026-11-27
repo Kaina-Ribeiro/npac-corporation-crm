@@ -487,6 +487,38 @@ describe('e-mail do lead', () => {
   });
 });
 
+const COLS = (money: boolean) =>
+  [
+    'Nome',
+    'Telefone',
+    'Instagram',
+    'E-mail',
+    'Faixa de renda',
+    'Perfil',
+    'Origem',
+    'Etapa',
+    'SDR',
+    'Closer',
+    'Próximo contato',
+    'Resumo',
+    'Produto do pagamento',
+    ...(money ? ['Valor do pagamento', 'Entrada'] : []),
+    'Entrada paga',
+    'Produto vendido',
+    'Venda registrada em',
+    ...(money ? ['Valor da venda'] : []),
+    'Motivo de perda',
+    'Última reunião',
+    'Resultado da última reunião',
+    'Closer da última reunião',
+    'Criado em',
+    'Atualizado em',
+  ]
+    .map((c) => `"${c}"`)
+    .join(';');
+const LEADER_HEADER = COLS(true);
+const SDR_HEADER = COLS(false);
+
 describe('exportar leads (período, filtro ou total)', () => {
   const csv = (body: object, cookie: Cookie) => h.post('/api/leads/csv', body, cookie);
 
@@ -500,9 +532,76 @@ describe('exportar leads (período, filtro ou total)', () => {
     expect(res.text).toContain('"\'+formula@exemplo.com"');
   });
 
-  it('só liderança exporta', async () => {
+  it('SDR exporta só os próprios leads (NPAC-80); closer não exporta', async () => {
+    await create(lead({ name: 'Do Ale', phone: '11987654321' }), ale);
+    await create(lead({ name: 'Do Murilo' }), murilo);
+    const own = await csv({}, ale);
+    expect(own.status).toBe(200);
+    expect(own.text).toContain('Do Ale');
+    expect(own.text).toContain('+5511987654321');
+    expect(own.text).not.toContain('Do Murilo');
+    // Pedir outro SDR devolve os dele, como a lista (NPAC-66).
+    const other = await csv({ sdrId: ids.murilo }, ale);
+    expect(other.text).toContain('Do Ale');
+    expect(other.text).not.toContain('Do Murilo');
+    expect((await csv({}, sonia)).status).toBe(403);
+  });
+
+  it('SDR não recebe colunas de R$ (valor do pagamento, entrada, venda)', async () => {
     await create(lead(), ale);
-    expect((await csv({}, ale)).status).toBe(403);
+    const [header] = (await csv({}, ale)).text.replace('﻿', '').split('\r\n');
+    expect(header).toBe(SDR_HEADER);
+    expect(header).not.toContain('Valor');
+    expect(header).not.toContain('"Entrada"');
+  });
+
+  it('só os marcados: exporta os ids pedidos que a pessoa vê', async () => {
+    const a = await create(lead({ name: 'Marcado A' }), ale);
+    await create(lead({ name: 'Sem marca' }), ale);
+    const b = await create(lead({ name: 'Alheio marcado' }), murilo);
+    const res = await csv({ ids: [a, b] }, ale);
+    expect(res.status).toBe(200);
+    const lines = res.text.replace('﻿', '').split('\r\n');
+    expect(lines).toHaveLength(2);
+    expect(res.text).toContain('Marcado A');
+    expect(res.text).not.toContain('Sem marca');
+    expect(res.text).not.toContain('Alheio marcado');
+    const both = await csv({ ids: [a, b] }, ronaldo);
+    expect(both.text.replace('﻿', '').split('\r\n')).toHaveLength(3);
+    expect((await csv({ ids: ['x'] }, ale)).status).toBe(400);
+    expect((await csv({ ids: [] }, ale)).status).toBe(400);
+  });
+
+  it('leva todos os dados do lead (NPAC-80)', async () => {
+    const id = await create(
+      lead({
+        name: 'Completo',
+        email: 'completo@exemplo.com',
+        incomeBand: 'R15_50K',
+        source: 'OUTRO',
+        sourceOther: 'Indicação do primo',
+        nextContactAt: '2030-01-02T14:30:00-03:00',
+        summary: 'Quer começar em janeiro',
+      }),
+      ale,
+    );
+    await owner`insert into meetings (lead_id, closer_id, scheduled_at, origin, created_by)
+      values (${id}, ${ids.sonia}, '2030-01-05T10:00:00-03:00', 'DIRETO', ${ids.ale})`;
+    const res = await csv({}, ronaldo);
+    const [header, line] = res.text.replace('﻿', '').split('\r\n');
+    expect(header).toBe(LEADER_HEADER);
+    const cols = line!.split(';').map((c) => c.slice(1, -1));
+    const at = (name: string) => cols[header!.split(';').indexOf(`"${name}"`)];
+    expect(at('Faixa de renda')).toBe('R$ 15–50 mil');
+    expect(at('Perfil')).toBe('P0');
+    expect(at('Origem')).toBe('Outro: Indicação do primo');
+    expect(at('Próximo contato')).toBe('02/01/2030 14:30');
+    expect(at('Resumo')).toBe('Quer começar em janeiro');
+    expect(at('Última reunião')).toBe('05/01/2030 10:00');
+    expect(at('Resultado da última reunião')).toBe('Agendada');
+    expect(at('Closer da última reunião')).toBe('Sônia');
+    expect(at('Entrada paga')).toBe('Não');
+    expect(at('Atualizado em')).toMatch(/^\d{2}\/\d{2}\/\d{4}$/);
   });
 
   it('total traz todos os leads visíveis com contato decifrado e auditoria', async () => {
@@ -512,9 +611,7 @@ describe('exportar leads (período, filtro ou total)', () => {
     expect(res.status).toBe(200);
     expect(res.headers['content-type']).toContain('text/csv');
     const [header, ...lines] = res.text.replace('﻿', '').split('\r\n');
-    expect(header).toBe(
-      '"Nome";"Telefone";"Instagram";"E-mail";"Perfil";"Etapa";"SDR";"Criado em"',
-    );
+    expect(header).toBe(LEADER_HEADER);
     expect(lines).toHaveLength(2);
     expect(res.text).toContain('+5511987654321');
     expect(res.text).toContain('"\'=1+1"');
