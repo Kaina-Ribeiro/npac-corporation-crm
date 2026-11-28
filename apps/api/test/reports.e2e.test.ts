@@ -48,9 +48,10 @@ beforeEach(async () => {
         )
       ).status,
     ).toBe(201);
+    // Duas reuniões realizadas do lead, em minutos diferentes (uma por lead e minuto, NPAC-82).
     if (cookie === ale)
       await owner`insert into meetings (lead_id,closer_id,scheduled_at,origin,outcome,outcome_at,created_by)
-   select ${lead.body.id},${p!.closer_id},now(),'DIRETO','DONE',now(),u.id from "user" u cross join generate_series(1,2) where u.email='ale@npac.com.br'`;
+   select ${lead.body.id},${p!.closer_id},now() - make_interval(mins => g),'DIRETO','DONE',now(),u.id from "user" u cross join generate_series(1,2) g where u.email='ale@npac.com.br'`;
   }
 });
 it('produto renomeado continua em uma linha só, com o nome atual', async () => {

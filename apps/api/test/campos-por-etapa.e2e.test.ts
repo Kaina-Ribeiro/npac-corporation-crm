@@ -552,12 +552,14 @@ describe('Agendou Pagamento só depois da reunião realizada', () => {
     paymentProductId: productId,
     paymentAmountCents: 300000,
   });
+  // Cada reunião num minuto: o lead não tem duas no mesmo minuto (NPAC-82).
+  let minuto = 0;
   const meetingRow = (id: string, outcome: string | null, extra = '') =>
     owner.unsafe(
       `insert into meetings (lead_id, closer_id, scheduled_at, origin, outcome, outcome_at, created_by, canceled_at)
-       values ($1, $2, now() - interval '2 hours', 'DIRETO', $3::meeting_outcome,
+       values ($1, $2, now() - interval '2 hours' - make_interval(mins => $5), 'DIRETO', $3::meeting_outcome,
          case when $3::text is null then null else now() - interval '1 hour' end, $4, ${extra || 'null'})`,
-      [id, ids.sonia, outcome, ids.ale],
+      [id, ids.sonia, outcome, ids.ale, ++minuto],
     );
 
   it('cadastro em Agendou Pagamento → 409 MEETING_DONE_REQUIRED (SDR e liderança)', async () => {

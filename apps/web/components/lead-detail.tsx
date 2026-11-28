@@ -613,46 +613,32 @@ export function LeadDetail({
                 <>
                   <div className="flex flex-wrap gap-2">
                     {/* Resultado só depois do horário marcado (a API recusa antes); registrado, só a liderança corrige. */}
-                    {started(m.scheduledAt) && (!m.outcome || isLeader(me.role)) && (
-                      <>
-                        <button
-                          className={quietButton}
-                          disabled={busy}
-                          onClick={() =>
-                            void mutate(`/api/meetings/${m.id}/outcome`, 'POST', {
-                              version: m.version,
-                              outcome: 'DONE',
-                            })
-                          }
-                        >
-                          Realizada
-                        </button>
-                        <button
-                          className={quietButton}
-                          disabled={busy}
-                          onClick={() =>
-                            void mutate(`/api/meetings/${m.id}/outcome`, 'POST', {
-                              version: m.version,
-                              outcome: 'NO_SHOW',
-                            })
-                          }
-                        >
-                          No-show
-                        </button>
-                        <button
-                          className={quietButton}
-                          disabled={busy}
-                          onClick={() =>
-                            void mutate(`/api/meetings/${m.id}/outcome`, 'POST', {
-                              version: m.version,
-                              outcome: 'RESCHEDULED',
-                            })
-                          }
-                        >
-                          Remarcado
-                        </button>
-                      </>
-                    )}
+                    {/* A correção não oferece o resultado que a reunião já tem (NPAC-82). */}
+                    {started(m.scheduledAt) &&
+                      (!m.outcome || isLeader(me.role)) &&
+                      (
+                        [
+                          ['DONE', 'Realizada'],
+                          ['NO_SHOW', 'No-show'],
+                          ['RESCHEDULED', 'Remarcado'],
+                        ] as const
+                      )
+                        .filter(([outcome]) => outcome !== m.outcome)
+                        .map(([outcome, label]) => (
+                          <button
+                            key={outcome}
+                            className={quietButton}
+                            disabled={busy}
+                            onClick={() =>
+                              void mutate(`/api/meetings/${m.id}/outcome`, 'POST', {
+                                version: m.version,
+                                outcome,
+                              })
+                            }
+                          >
+                            {label}
+                          </button>
+                        ))}
                     {/* Com resultado a reunião está encerrada: não cancela, não remarca, não troca closer. */}
                     {!m.outcome && (
                       <button
