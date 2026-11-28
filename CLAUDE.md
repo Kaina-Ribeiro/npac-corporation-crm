@@ -873,6 +873,13 @@ valorDoServidor)` lê memória → `document.cookie` → valor do servidor. Toda
 - Resultado de reunião só depois do horário (400 "A reunião ainda não aconteceu"). Resultados:
   `DONE`, `NO_SHOW`, `RESCHEDULED`. Valor por reunião realizada = `MEETING_VALUE_CENTS`
   (P0 900, P1 700, P2 500, DESCOBRINDO 0), pelo perfil **atual** do lead; no-show e remarcada não somam.
+  **Uma reunião por lead e minuto** (NPAC-82, Igor 27/11/2026: duas iguais realizadas "somou 2x os ganhos"):
+  `scheduleMeeting` (POST /meetings, troca de etapa, cadastro, "A reunião já aconteceu", Concluir tarefa) e o
+  remarcar recusam outra reunião não cancelada do mesmo lead no mesmo minuto (409 `MEETING_EXISTS`, "O lead já tem
+  reunião nesse horário."); o banco também (índice único `meetings_lead_minuto_uniq`, 0094, que cancelou as
+  repetidas de antes: fica a da renda extra, senão a realizada, senão a com resultado, senão a mais antiga). A
+  correção da liderança mantém o `outcome_at` do primeiro resultado (o ganho não muda de dia) e o mesmo resultado de
+  novo dá 409 "A reunião já está com esse resultado"; a ficha não oferece o botão do resultado atual.
 - **Perfil = faixa de renda** (Igor, 05/11/2026, "1B, 2B"): 5–8 mil P2, 8–15 mil P1, 15 mil+ P0
   (`TIER_BY_INCOME_BAND` em `sh/enums.ts` + gatilho `leads_tier_from_income`, 0036, que reescreve
   `tier` em todo INSERT e UPDATE de faixa/perfil). Sem troca à mão: cadastro ignora `tier`, PATCH
@@ -1144,6 +1151,9 @@ protótipo no canvas "Meu perfil". Gabriel aprovou com "1A, 2A, 3A".
 - Valor novo de enum não vale na mesma transação da migration (compare como texto). Num banco novo
   todas as migrations rodam numa transação só: em função `LANGUAGE sql` (o corpo é conferido ao criar),
   nada de `'ACOMPANHAMENTO'::role` ou `'DIRETOR'::role`; leia o valor como texto e converta na execução.
+- Migration que grava numa tabela do canal ao vivo e depois cria índice ou altera a tabela: o gatilho adiado deixa
+  evento pendente ("cannot CREATE INDEX … pending trigger events"). Use `SET CONSTRAINTS app_revision_<tabela>
+IMMEDIATE` antes e `DEFERRED` depois (exemplo: 0094).
 - **Cargo** (0072): função ou política nova lê o cargo por `app_role()`, `mentoria_perfil*()`, `mentoria_admin()`,
   `area_mestre()`, `area_head_areas()` ou `area_membros`, nunca `user.role` nem `mentoria_perfis` (teste-guarda em
   `db/test/areas-compat.test.ts`). Gatilhos de `area_membros`/`user` usam `npac.area_sync` para não traduzir de volta.

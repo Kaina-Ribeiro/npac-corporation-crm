@@ -119,6 +119,85 @@ it('resultado remarcado é aceito depois do horário', async () => {
   const [m] = await owner<{ outcome: string }[]>`select outcome from meetings where id = ${id}`;
   expect(m!.outcome).toBe('RESCHEDULED');
 });
+// NPAC-82 (Igor, 27/11/2026): duas reuniões do mesmo lead no mesmo horário, marcadas realizadas,
+// somavam o valor duas vezes.
+it('não aceita duas reuniões do mesmo lead no mesmo minuto (NPAC-82)', async () => {
+  const id = await schedule();
+  const dup = await h.post(
+    '/api/meetings',
+    { ...body(), scheduledAt: '2030-01-10T23:30:40-03:00' },
+    ale,
+  );
+  expect(dup.status).toBe(409);
+  expect(dup.body).toMatchObject({
+    code: 'MEETING_EXISTS',
+    message: 'O lead já tem reunião nesse horário.',
+  });
+  // Outro minuto pode; remarcar para o minuto da outra, não.
+  const other = await h.post(
+    '/api/meetings',
+    { ...body(), scheduledAt: '2030-01-10T23:31:00-03:00' },
+    ale,
+  );
+  expect(other.status).toBe(201);
+  const moved = await h.patch(
+    `/api/meetings/${other.body.id}`,
+    { version: 1, scheduledAt: '2030-01-10T23:30:00-03:00' },
+    ale,
+  );
+  expect(moved.status).toBe(409);
+  expect(moved.body.code).toBe('MEETING_EXISTS');
+  // Cancelada não conta.
+  expect((await h.post(`/api/meetings/${id}/cancel`, { version: 1 }, ale)).status).toBe(200);
+  expect(
+    (
+      await h.patch(
+        `/api/meetings/${other.body.id}`,
+        { version: 1, scheduledAt: '2030-01-10T23:30:00-03:00' },
+        ale,
+      )
+    ).status,
+  ).toBe(200);
+  // O banco também recusa.
+  await expect(
+    owner`insert into meetings (lead_id, closer_id, scheduled_at, origin, created_by)
+      values (${leadId}, ${ids.sonia!}, '2030-01-11T02:30:20Z', 'DIRETO', ${ids.ale!})`,
+  ).rejects.toThrow(/meetings_lead_minuto/);
+});
+it('"a reunião já aconteceu" no minuto de outra reunião do lead é recusada (NPAC-82)', async () => {
+  const id = await schedule();
+  const [m] = await owner<{ at: Date }[]>`
+    update meetings set scheduled_at = date_trunc('minute', now()) - interval '2 hours'
+    where id = ${id} returning scheduled_at as at`;
+  const res = await h.post(
+    '/api/meetings/done',
+    { ...body(), scheduledAt: m!.at.toISOString() },
+    ale,
+  );
+  expect(res.status).toBe(409);
+  expect(res.body.code).toBe('MEETING_EXISTS');
+  const [n] = await owner<{ n: number }[]>`select count(*)::int as n from meetings`;
+  expect(n!.n).toBe(1);
+});
+it('a liderança corrige o resultado sem mudar o dia do ganho; o mesmo resultado de novo é recusado (NPAC-82)', async () => {
+  const id = await schedule();
+  await owner`update meetings set scheduled_at = now() - interval '1 hour' where id = ${id}`;
+  expect(
+    (await h.post(`/api/meetings/${id}/outcome`, { version: 1, outcome: 'DONE' }, sonia)).status,
+  ).toBe(200);
+  await owner`update meetings set outcome_at = '2026-11-07T17:00:00Z' where id = ${id}`;
+  const same = await h.post(`/api/meetings/${id}/outcome`, { version: 2, outcome: 'DONE' }, head);
+  expect(same.status).toBe(409);
+  expect(same.body.message).toBe('A reunião já está com esse resultado');
+  expect(
+    (await h.post(`/api/meetings/${id}/outcome`, { version: 2, outcome: 'NO_SHOW' }, head)).status,
+  ).toBe(200);
+  const [m] = await owner<
+    { outcome: string; at: Date }[]
+  >`select outcome, outcome_at as at from meetings where id = ${id}`;
+  expect(m).toMatchObject({ outcome: 'NO_SHOW' });
+  expect(m!.at.toISOString()).toBe('2026-11-07T17:00:00.000Z');
+});
 it('reunião com resultado não remarca, não cancela e só a liderança corrige o resultado', async () => {
   const id = await schedule();
   await owner`update meetings set scheduled_at = now() - interval '1 hour' where id = ${id}`;

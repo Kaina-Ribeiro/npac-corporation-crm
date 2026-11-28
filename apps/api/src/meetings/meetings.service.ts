@@ -35,9 +35,29 @@ type MeetingChange = {
 };
 
 /**
+ * Uma reunião não cancelada por lead e minuto (NPAC-82, Igor 27/11/2026): duas iguais, marcadas
+ * realizadas, somavam o valor por reunião duas vezes. O banco também recusa (índice da 0094); aqui a
+ * resposta sai em português. `except` = a própria reunião, ao remarcar.
+ */
+async function assertNoMeetingAt(tx: Tx, leadId: string, at: Date, except?: string) {
+  const rows = await tx.execute<{ id: string }>(sql`select id from meetings
+    where lead_id = ${leadId} and canceled_at is null
+      and date_trunc('minute', scheduled_at at time zone 'UTC')
+        = date_trunc('minute', ${at.toISOString()}::timestamptz at time zone 'UTC')
+      ${except ? sql`and id <> ${except}` : sql``}
+    limit 1`);
+  if (rows.length)
+    throw new ConflictException({
+      code: 'MEETING_EXISTS',
+      message: 'O lead já tem reunião nesse horário.',
+    });
+}
+
+/**
  * Agenda numa transação que já travou o lead: closer ativo que fecha vendas, timeline
  * `meeting.scheduled`. Quem chama rearma os lembretes depois do commit (`reminders.rearm()`).
- * Usada pelo POST /meetings e pelos Agendados do cadastro/troca de etapa (NPAC-38).
+ * Usada pelo POST /meetings e pelos Agendados do cadastro/troca de etapa (NPAC-38). Recusa outra
+ * reunião do lead no mesmo minuto (NPAC-82).
  */
 export async function scheduleMeeting(tx: Tx, u: AuthUser, input: Schedule) {
   await assertIncomeKnown(tx, input.leadId, 'agendar a reunião');
@@ -46,6 +66,7 @@ export async function scheduleMeeting(tx: Tx, u: AuthUser, input: Schedule) {
     .from(user)
     .where(and(eq(user.id, input.closerId), eq(user.active, true), eq(user.canClose, true)));
   if (!closer) throw new BadRequestException('Closer inválido');
+  await assertNoMeetingAt(tx, input.leadId, input.scheduledAt);
   const [created] = await tx
     .insert(meetings)
     .values({ ...input, createdBy: u.id })
@@ -185,6 +206,10 @@ export class MeetingsService {
       // Só a liderança corrige um resultado registrado errado.
       if (old.outcome && !(input.outcome && isLeader(u.role)))
         throw new ConflictException('A reunião já tem resultado');
+      // O mesmo resultado de novo mudaria só o dia do ganho (NPAC-82).
+      if (old.outcome && input.outcome === old.outcome)
+        throw new ConflictException('A reunião já está com esse resultado');
+      if (input.scheduledAt) await assertNoMeetingAt(tx, old.leadId, input.scheduledAt, id);
       if (input.closerId) {
         if (!isLeader(u.role)) throw new ForbiddenException();
         const [closer] = await tx
@@ -201,7 +226,8 @@ export class MeetingsService {
       if (input.closerId) patch.closerId = input.closerId;
       if (input.outcome) {
         patch.outcome = input.outcome;
-        patch.outcomeAt = new Date();
+        // A correção da liderança mantém o dia do primeiro resultado: o ganho não muda de dia (NPAC-82).
+        patch.outcomeAt = old.outcomeAt ?? new Date();
       }
       if (input.cancel) patch.canceledAt = new Date();
       const kind = input.cancel
